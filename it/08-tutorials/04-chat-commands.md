@@ -116,7 +116,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID si attiva quando il giocatore invia un messaggio chat
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +173,12 @@ modded class MissionGameplay
 
 ### Come Funziona l'Intercettazione della Chat
 
-Il metodo `OnEvent` su `MissionGameplay` viene chiamato per vari eventi di gioco. Quando `eventTypeId` è `ChatMessageEventTypeID`, significa che il giocatore ha appena inviato un messaggio chat. Il `Param3` contiene:
+Il metodo `OnEvent` su `MissionGameplay` viene chiamato per vari eventi di gioco. Quando `eventTypeId` è `ChatMessageEventTypeID`, significa che il giocatore ha appena inviato un messaggio chat. I params sono un `ChatMessageEventParams` (un `Param4<int, string, string, string>`) e contengono:
 
 - `param1` -- Canale (int): il canale della chat (globale, diretto, ecc.)
 - `param2` -- Nome del mittente (string)
 - `param3` -- Testo del messaggio (string)
+- `param4` -- Classe di configurazione del colore (string)
 
 Controlliamo se il messaggio inizia con `/`. Se sì, inoltriamo l'intera stringa al server via RPC. Il messaggio viene comunque inviato anche come chat normale -- in una mod di produzione, lo sopprimeresti (trattato nelle note alla fine).
 
@@ -644,8 +645,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | Canale | Colore | Uso Tipico |
 |--------|--------|------------|
-| `"colorStatusChannel"` | Giallo/arancione | Messaggi di sistema |
-| `"colorAction"` | Bianco | Feedback azioni |
+| `"colorStatusChannel"` | Blu | Messaggi di sistema |
+| `"colorAction"` | Giallo | Feedback azioni |
 | `"colorFriendly"` | Verde | Feedback positivo |
 | `"colorImportant"` | Rosso | Avvisi/errori |
 
@@ -1352,7 +1353,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1506,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Permesso Negato per gli Admin
 
 - **Steam64 ID errato:** Ricontrolla gli ID admin in `IsCommandAdmin()`. Devono essere Steam64 ID esatti (numeri di 17 cifre che iniziano con `7656`).
-- **GetPlainId() vs GetId():** `GetPlainId()` restituisce lo Steam64 ID. `GetId()` restituisce l'ID di sessione DayZ. Usa `GetPlainId()` per i controlli admin.
+- **GetPlainId() vs GetId():** `GetPlainId()` restituisce lo Steam64 ID in chiaro. `GetId()` restituisce un ID univoco con hash stabile (sicuro per database e log), non un ID di sessione -- l'ID per-sessione che viene riutilizzato dopo la disconnessione di un giocatore è `GetPlayerId()` (un int). Usa `GetPlainId()` per i controlli admin.
 
 ### Il Messaggio di Feedback Non Appare nella Chat
 
@@ -1521,20 +1522,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### Il Comando Appare nella Chat Come Messaggio Normale
 
-- L'hook `OnEvent` intercetta il messaggio ma non lo sopprime dall'essere inviato come chat. Per sopprimerlo in una mod di produzione, dovresti moddare la classe `ChatInputMenu` per filtrare i messaggi `/` prima che vengano inviati:
+- L'hook `OnEvent` intercetta il messaggio ma non lo sopprime dall'essere inviato come chat. Per sopprimerlo in una mod di produzione, dovresti moddare la classe `ChatInputMenu` per filtrare i messaggi `/` prima che vengano inviati. In vanilla, `ChatInputMenu` invia il testo della chat dal suo gestore `OnChange()`, dove chiama `g_Game.ChatPlayer(text)`. Puoi sovrascrivere `OnChange()` e saltare l'invio quando il testo inizia con `/`:
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Ottieni il testo corrente dal widget di input
-        // Se inizia con /, NON chiamare super (che lo invia come chat)
+        // Ottieni il testo corrente dal widget di input (m_edit_box.GetText())
+        // Se inizia con /, NON chiamare super (che chiama g_Game.ChatPlayer)
         // Invece, gestiscilo come comando
 
         // Questo approccio varia in base alla versione di DayZ -- controlla i sorgenti vanilla
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1558,7 @@ L'implementazione esatta dipende dalla versione di DayZ e da come `ChatInputMenu
 
 - **Controlla sempre i permessi prima di eseguire comandi admin.** Un controllo permessi mancante significa che qualsiasi giocatore può usare `/heal` o `/kill` su chiunque. Valida lo Steam64 ID del chiamante (tramite `GetPlainId()`) sul server prima di elaborare.
 - **Invia feedback all'admin anche per i comandi falliti.** I fallimenti silenziosi rendono impossibile il debug. Invia sempre un messaggio chat che spiega cosa è andato storto ("Giocatore non trovato", "Permesso negato").
-- **Usa `GetPlainId()` per i controlli admin, non `GetId()`.** `GetId()` restituisce un ID DayZ specifico della sessione che cambia ad ogni riconnessione. `GetPlainId()` restituisce lo Steam64 ID permanente.
+- **Usa `GetPlainId()` per i controlli admin, non `GetId()`.** `GetId()` restituisce un ID univoco con hash stabile pensato per database e log (l'ID per-sessione che viene riutilizzato dopo la disconnessione di un giocatore è `GetPlayerId()`). `GetPlainId()` restituisce lo Steam64 ID in chiaro.
 - **Memorizza gli ID admin in un file di configurazione JSON, non nel codice.** Gli ID codificati richiedono una ricostruzione del PBO per essere modificati. Un file JSON in `$profile:` può essere modificato dagli admin del server senza conoscenze di modding.
 - **Converti i nomi dei comandi in minuscolo prima del confronto.** I giocatori possono digitare `/Heal`, `/HEAL` o `/heal`. Normalizzare in minuscolo previene frustranti errori "comando sconosciuto".
 

@@ -38,7 +38,7 @@ Az egyéni bemenetek egy egyedi akciónévvel azonosíthatók (konvenció szerin
 
 ## Fájl helye
 
-Helyezd az `inputs.xml` fájlt a Scripts könyvtárad `data` almappájába:
+Az `inputs.xml` fájlt bárhová elhelyezheted a modod PBO-ján belül. Egy gyakori elrendezés a Scripts könyvtárad `data` almappája:
 
 ```
 @MyMod/
@@ -52,7 +52,7 @@ Helyezd az `inputs.xml` fájlt a Scripts könyvtárad `data` almappájába:
         5_Mission/
 ```
 
-Egyes modok közvetlenül a `Scripts/` mappába helyezik. Mindkét hely működik. A motor automatikusan felfedezi a fájlt --- nincs szükség config.cpp regisztrációra.
+A fájl helyét nem rögzíti konvenció; a motor nem fedezi fel automatikusan. Regisztrálnod kell a fájlt úgy, hogy a `config.cpp` `CfgMods` blokkod `inputs` tulajdonságát rámutatod, például `inputs = "MyMod/Scripts/data/inputs.xml";`. Az útvonal tetszőleges --- a motor onnan tölti be a fájlt, ahová megadod.
 
 ---
 
@@ -296,7 +296,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-A `false` paraméter a `LocalPress("name", false)` metódusban azt jelzi, hogy az ellenőrzés ne fogyassza el a beviteli eseményt.
+A `false` paraméter a `LocalPress("name", false)` metódusban a `check_focus` argumentum. A `false` átadása akkor is kiértékeli a bemenetet, amikor a játékablak nincs fókuszban; amikor `true` (az alapértelmezés), egy fókuszálatlan játék `false`-t ad vissza. Nem szabályozza a bemenet elfogyasztását.
 
 ---
 
@@ -338,7 +338,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Dupla koppintás akció:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +410,12 @@ A `<btn name="">` attribútumban használt billentyűnevek meghatározott elneve
 | Betűk | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Számok (felső sor) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Funkcióbillentyűk | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Módosítók | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navigáció | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Módosítók | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (Bal Alt), `kRMenu` (Jobb Alt) |
+| Navigáció | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Szerkesztés | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (numpad +), `kSubstract` (numpad -, figyeld a motor helyesírását), `kMultiply` (numpad *), `kDivide` (numpad /), `kDecimal` (numpad .) |
 | Írásjelek | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Zárkapcsolók | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Zárkapcsolók | `kCapital` (Caps Lock), `kNumlock` (figyeld a kisbetűs `l`-t), `kScrollLock` |
 
 ### Egérgombok
 
@@ -424,15 +424,18 @@ A `<btn name="">` attribútumban használt billentyűnevek meghatározott elneve
 | `mBLeft` | Bal egérgomb |
 | `mBRight` | Jobb egérgomb |
 | `mBMiddle` | Középső egérgomb (görgő kattintás) |
-| `mBExtra1` | Egérgomb 4 (oldalsó gomb hátra) |
-| `mBExtra2` | Egérgomb 5 (oldalsó gomb előre) |
+| `mB4` | Egérgomb 4 (oldalsó gomb hátra) |
+| `mB5` | Egérgomb 5 (oldalsó gomb előre) |
+| `mB6`, `mB7`, `mB8` | További egérgombok |
 
-### Egér tengelyek
+### Egér mozgás és görgő
 
-| Név | Tengely |
-|------|------|
-| `mAxisX` | Egér vízszintes mozgás |
-| `mAxisY` | Egér függőleges mozgás |
+| Név | Irány |
+|------|-----------|
+| `mLeft` | Egér balra mozgatva |
+| `mRight` | Egér jobbra mozgatva |
+| `mUp` | Egér felfelé mozgatva |
+| `mDown` | Egér lefelé mozgatva |
 | `mWheelUp` | Görgő felfelé |
 | `mWheelDown` | Görgő lefelé |
 
@@ -440,7 +443,7 @@ A `<btn name="">` attribútumban használt billentyűnevek meghatározott elneve
 
 - **Billentyűzet**: `k` előtag + billentyű neve (pl. `kT`, `kF5`, `kLControl`)
 - **Egérgombok**: `mB` előtag + gomb neve (pl. `mBLeft`, `mBRight`)
-- **Egér tengelyek**: `m` előtag + tengely neve (pl. `mAxisX`, `mWheelUp`)
+- **Egér mozgás/görgő**: `m` előtag + irány neve (pl. `mLeft`, `mWheelUp`)
 
 ---
 

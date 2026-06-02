@@ -184,7 +184,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | サーバーログを有効にする |
 | `-adminlog` | 管理者アクションのログを記録 |
 | `-netlog` | ネットワークイベントのログを記録 |
-| `-freezecheck` | フリーズ検出時の自動再起動 |
+| `-freezecheck` | 5分以上フリーズした場合にサーバーを停止し、クラッシュダンプを書き出す |
 
 ### ステップ3: 初期化の完了を待つ
 
@@ -226,7 +226,7 @@ Steamを開き、**表示 > ゲームサーバー > お気に入り** に移動�
 
 ### 方法4: クエリポート
 
-https://www.battlemetrics.com/ などの外部ツールや `gamedig` npmパッケージを使用して、ポート27016（Steamクエリポート = ゲームポート + 24714）にクエリを送信します。
+https://www.battlemetrics.com/ などの外部ツールや `gamedig` npmパッケージを使用して、Steamクエリポートにクエリを送信します。デフォルトでは **2305 UDP** です（`serverDZ.cfg` の `steamQueryPort` で変更可能）。ゲームポートではありません。
 
 ---
 

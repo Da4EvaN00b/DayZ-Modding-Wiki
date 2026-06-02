@@ -38,7 +38,7 @@ Vlastní vstupy jsou identifikovány unikátním názvem akce (konvenčně s př
 
 ## Umístění souboru
 
-Umístěte `inputs.xml` do podsložky `data` vašeho adresáře Scripts:
+Soubor `inputs.xml` můžete umístit kamkoli do PBO vašeho modu. Běžné rozložení je podsložka `data` vašeho adresáře Scripts:
 
 ```
 @MyMod/
@@ -52,7 +52,7 @@ Umístěte `inputs.xml` do podsložky `data` vašeho adresáře Scripts:
         5_Mission/
 ```
 
-Některé mody ho umisťují přímo do složky `Scripts/`. Obě umístění fungují. Engine objeví soubor automaticky --- žádná registrace v config.cpp není potřeba.
+Umístění souboru není určeno žádnou konvencí; engine ho automaticky neobjeví. Musíte soubor zaregistrovat tak, že na něj nasměrujete vlastnost `inputs` v bloku `CfgMods` vašeho `config.cpp`, například `inputs = "MyMod/Scripts/data/inputs.xml";`. Cesta je libovolná --- engine načte soubor odkudkoli, kam ji zadáte.
 
 ---
 
@@ -296,7 +296,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-Parametr `false` v `LocalPress("name", false)` znamená, že kontrola nemá vstup konzumovat.
+Parametr `false` v `LocalPress("name", false)` je argument `check_focus`. Předání `false` vyhodnotí vstup i tehdy, když herní okno není aktivní (nemá fokus); když je `true` (výchozí hodnota), hra bez fokusu vrací `false`. Neřídí konzumaci vstupu.
 
 ---
 
@@ -338,7 +338,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Akce dvojitým ťuknutím:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +410,12 @@ Názvy kláves používané v atributu `<btn name="">` sledují specifickou konv
 | Písmena | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Čísla (horní řada) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Funkční klávesy | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modifikátory | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navigace | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modifikátory | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (levý Alt), `kRMenu` (pravý Alt) |
+| Navigace | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Editační | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Numerická klávesnice | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Numerická klávesnice | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (numpad +), `kSubstract` (numpad -, pozor na pravopis enginu), `kMultiply` (numpad *), `kDivide` (numpad /), `kDecimal` (numpad .) |
 | Interpunkce | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Zámky | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Zámky | `kCapital` (Caps Lock), `kNumlock` (pozor na malé `l`), `kScrollLock` |
 
 ### Tlačítka myši
 
@@ -424,15 +424,18 @@ Názvy kláves používané v atributu `<btn name="">` sledují specifickou konv
 | `mBLeft` | Levé tlačítko myši |
 | `mBRight` | Pravé tlačítko myši |
 | `mBMiddle` | Prostřední tlačítko myši (klik kolečkem) |
-| `mBExtra1` | Tlačítko myši 4 (boční tlačítko vzad) |
-| `mBExtra2` | Tlačítko myši 5 (boční tlačítko vpřed) |
+| `mB4` | Tlačítko myši 4 (boční tlačítko vzad) |
+| `mB5` | Tlačítko myši 5 (boční tlačítko vpřed) |
+| `mB6`, `mB7`, `mB8` | Další tlačítka myši |
 
-### Osy myši
+### Pohyb myši a kolečko
 
-| Název | Osa |
-|-------|-----|
-| `mAxisX` | Horizontální pohyb myši |
-| `mAxisY` | Vertikální pohyb myši |
+| Název | Směr |
+|-------|------|
+| `mLeft` | Myš pohnuta doleva |
+| `mRight` | Myš pohnuta doprava |
+| `mUp` | Myš pohnuta nahoru |
+| `mDown` | Myš pohnuta dolů |
 | `mWheelUp` | Kolečko nahoru |
 | `mWheelDown` | Kolečko dolů |
 
@@ -440,7 +443,7 @@ Názvy kláves používané v atributu `<btn name="">` sledují specifickou konv
 
 - **Klávesnice**: předpona `k` + název klávesy (např. `kT`, `kF5`, `kLControl`)
 - **Tlačítka myši**: předpona `mB` + název tlačítka (např. `mBLeft`, `mBRight`)
-- **Osy myši**: předpona `m` + název osy (např. `mAxisX`, `mWheelUp`)
+- **Pohyb myši/kolečko**: předpona `m` + název směru (např. `mLeft`, `mWheelUp`)
 
 ---
 
@@ -626,7 +629,7 @@ Výběr kláves, které kolidují s vanilkovými přiřazeními (jako `W`, `A`, 
 |---------|--------|---------|
 | `visible="false"` skryje z menu Ovládání | Vstup je registrován, ale neviditelný | Skryté vstupy se stále mohou objevit ve výpisu bloku `<sorting>` v některých verzích DayZ. Vynechání z `<sorting>` je spolehlivý způsob skrytí vstupů |
 | `LocalPress()` se spustí jednou za stisk klávesy | Jednorázový trigger ve snímku stisku klávesy | Pokud hra zakolísá (nízké FPS), `LocalPress()` může být zcela vynechán. Pro kritické akce kontrolujte také `LocalValue() > 0` jako zálohu |
-| Kombinace s modifikátory přes vnořené `<btn>` | Vnější je modifikátor, vnitřní je spouštěč | Samotná modifikační klávesa se také zaregistruje jako stisk na svém vlastním vstupu (např. `kLControl` je také vanilkový dřep). Hráči podržící Ctrl+klik budou také dřepat |
+| Kombinace s modifikátory přes vnořené `<btn>` | Vnější je modifikátor, vnitřní je spouštěč | Samotná modifikační klávesa se také zaregistruje jako stisk na svém vlastním vstupu (např. `kLControl` je vanilkový Hold Breath, navázaný na `UAHoldBreath`; vanilkový dřep/postoj `UAStance` je na `kC`). Hráči podržící Ctrl+klik také spustí Hold Breath |
 | `ForceDisable(true)` potlačí vstup | Vstup je zcela ignorován | `ForceDisable` přetrvává, dokud není explicitně znovu povolen. Pokud váš mod spadne nebo se UI zavře bez volání `ForceDisable(false)`, vstup zůstane deaktivován do restartu hry |
 | Více sourozeneckých `<btn>` | Obě klávesy spouštějí stejnou akci | Funguje správně, ale menu Ovládání zobrazí pouze první klávesu. Hráč může vidět a přebindovat první klávesu, ale nemusí si uvědomovat, že existuje druhá výchozí |
 

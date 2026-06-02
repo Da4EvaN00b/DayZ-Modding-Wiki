@@ -242,7 +242,7 @@ ScriptModulePathClass {
 
 某些框架会覆盖入口点（CF 使用 `"CF_CreateGame"`）。
 
-**imageSets / widgetStyles** -- 布局预览所必需。没有原版图像集，布局文件会显示缺失的图像。始终包含上述示例中列出的标准 14 个原版图像集。
+**imageSets / widgetStyles** -- 布局预览所必需。没有原版图像集，布局文件会显示缺失的图像。包含你的布局所引用的原版图像集；具体列表会有所不同（默认的 `dayz.gproj` 大约附带十几个，例如 `ccgui_enforce`、`dayz_gui`、`dayz_inventory`、`dayz_crosshairs`），然后再追加你自己的。
 
 ### 路径前缀解析
 
@@ -500,7 +500,7 @@ P:\scripts\5_Mission\  <-- 原版 Mission 层脚本
 
 ### 游戏内脚本分析器（诊断菜单）
 
-除了 Workbench 的分析器之外，`DayZDiag_x64.exe` 还有一个内置脚本分析器，可通过诊断菜单（在 Statistics 下）访问。它显示每类时间、每函数时间、类分配、每函数计数和类实例计数的前 20 名列表。使用 `-profile` 启动参数从启动时启用分析。分析器仅测量 Enforce Script -- proto（引擎）方法不作为单独条目测量，但其执行时间包含在调用它们的脚本方法的总时间中。参见原版脚本中的 `EnProfiler.c` 了解编程 API（`EnProfiler.Enable`、`EnProfiler.SetModule`、标志常量）。
+除了 Workbench 的分析器之外，`DayZDiag_x64.exe` 还有一个内置脚本分析器，可通过诊断菜单（在 Statistics 下）访问。它显示每类时间、每函数时间、类分配和每函数计数的前 20 名列表，以及类实例计数（Class count）的前 40 名列表。使用 `-profile` 启动参数从启动时启用分析。分析器仅测量 Enforce Script -- proto（引擎）方法不作为单独条目测量，但其执行时间包含在调用它们的脚本方法的总时间中。参见原版脚本中的 `EnProfiler.c` 了解编程 API（`EnProfiler.Enable`、`EnProfiler.SetModule`、标志常量）。
 
 ### 常见瓶颈
 

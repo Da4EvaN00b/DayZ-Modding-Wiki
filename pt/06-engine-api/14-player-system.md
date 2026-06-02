@@ -284,7 +284,7 @@ Máximos padrão são definidos em `PlayerConstants`:
 | Stat | Constante | Padrão |
 |------|-----------|--------|
 | Água máx | `PlayerConstants.SL_WATER_MAX` | 5000 |
-| Energia máx | `PlayerConstants.SL_ENERGY_MAX` | 20000 |
+| Energia máx | `PlayerConstants.SL_ENERGY_MAX` | 5000 |
 
 ### Temperatura e Conforto Térmico
 
@@ -793,10 +793,8 @@ vector lookDir = player.GetDirection();
 vector headingDir = MiscGameplayFunctions.GetHeadingVector(player);
 
 // Direção de mira completa baseada na câmera
-vector cameraPos;
-vector cameraDir;
-GetGame().GetCurrentCameraPosition(cameraPos);
-GetGame().GetCurrentCameraDirection(cameraDir);
+vector cameraPos = GetGame().GetCurrentCameraPosition();
+vector cameraDir = GetGame().GetCurrentCameraDirection();
 // Use cameraDir para raycast de mira
 ```
 
@@ -814,7 +812,7 @@ PlayerBase GetLocalPlayer()
 
 ```c
 // Em um handler de RPC, a identidade do remetente diz quem enviou
-void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+void OnRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
 {
     if (!sender)
         return;

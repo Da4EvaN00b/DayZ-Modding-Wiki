@@ -157,11 +157,13 @@ Gra vanilla definiuje typy powiadomień z przypisanymi tytułami i ikonami. Typo
 
 | Typ | Opis |
 |-----|------|
-| `NotificationType.GENERIC` | Ogólne powiadomienie |
-| `NotificationType.FRIENDLY_FIRE` | Ostrzeżenie o ogniu przyjaznym |
-| `NotificationType.JOIN` | Dołączenie gracza |
-| `NotificationType.LEAVE` | Opuszczenie przez gracza |
-| `NotificationType.STATUS` | Aktualizacja statusu |
+| `NotificationType.FRIEND_CONNECTED` | Znajomy się połączył |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Zaproszenie nieudane (już na tym samym serwerze) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Nie udało się pobrać sesji przy dołączaniu |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Ogólny błąd połączenia |
+| `NotificationType.DISCONNECTED` | Rozłączono z serwerem |
+| `NotificationType.GENERIC_ERROR` | Ogólny błąd |
+| `NotificationType.NOTIFICATIONS_END` | Wartość strażnicza (oznacza koniec wyliczenia) |
 
 > **Uwaga:** Dostępne typy zależą od wersji gry. Dla maksymalnej elastyczności używaj wariantów `Extended`, które przyjmują niestandardowe łańcuchy tytułu i ikony.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ System powiadomień musi być aktualizowany co klatkę, aby obsłużyć animacje
 static void Update(float timeslice);
 ```
 
-Jest to wywoływane automatycznie przez metodę `OnUpdate` misji vanilla. Jeśli piszesz całkowicie niestandardową misję, upewnij się, że ją wywołujesz.
+Jest to wywoływane automatycznie z `DayZGame.OnUpdate` (pętli aktualizacji gry), a nie z `OnUpdate` misji. Jeśli piszesz całkowicie niestandardową klasę gry, upewnij się, że ją wywołujesz.
 
 ---
 

@@ -305,8 +305,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Konverzió más típusokból
-    string fromInt = "Score: " + 42;     // NEM működik -- explicit konverzió szükséges
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // működik -- a + operátor a 42-t "42"-vé alakítja
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicit, ugyanaz az eredmény)
 
     // A Format használata a preferált megközelítés
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +464,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // typename lekérése stringből
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Típusok összehasonlítása
     if (t == PlayerBase)

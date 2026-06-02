@@ -184,7 +184,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | 启用服务器日志记录 |
 | `-adminlog` | 记录管理员操作 |
 | `-netlog` | 记录网络事件 |
-| `-freezecheck` | 检测到冻结时自动重启 |
+| `-freezecheck` | 当服务器冻结超过 5 分钟时停止服务器并写入崩溃转储 |
 
 ### 步骤 3：等待初始化
 
@@ -226,7 +226,7 @@ BattlEye Server: Initialized
 
 ### 方法 4：查询端口
 
-使用外部工具（如 https://www.battlemetrics.com/）或 `gamedig` npm 包查询端口 27016（Steam 查询端口 = 游戏端口 + 24714）。
+使用外部工具（如 https://www.battlemetrics.com/）或 `gamedig` npm 包查询 Steam 查询端口。默认情况下该端口为 **2305 UDP**（可通过 `serverDZ.cfg` 中的 `steamQueryPort` 配置），而不是游戏端口。
 
 ---
 

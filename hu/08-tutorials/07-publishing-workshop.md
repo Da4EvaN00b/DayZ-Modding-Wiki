@@ -109,7 +109,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### Mező referencia
@@ -127,7 +126,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | Nem | Nagy kép a mod áttekintő panelen |
 | `action` | Nem | URL, amely megnyílik, amikor a játékos a "Weboldal" gombra kattint (jellemzően a Workshop oldalad vagy GitHub) |
 | `version` | Igen | Aktuális verzió string (pl. `"1.0.0"`) |
-| `versionPath` | Nem | Egy szövegfájl útvonala, amely a verziószámot tartalmazza (automatizált build-ekhez) |
 
 ### Gyakori hibák
 
@@ -454,7 +452,7 @@ Amikor a modod perzisztens adatokat ment (JSON konfigok, játékos adat fájlok)
 
 Példa migrációs ellenőrzés Enforce Script-ben:
 
-```csharp
+```c
 // A konfiguráció betöltő függvényben
 if (config.configVersion < 2)
 {

@@ -121,7 +121,7 @@ Az eredményül kapott JSON így néz ki:
 | `string` | Szöveg |
 | `vector` | 3 számból álló tömb |
 | `array<T>` | JSON tömb |
-| `map<string, T>` | JSON objektum (csak szöveg kulcsokkal) |
+| `map<K, T>` | JSON objektum (`K` lehet `string`, `int` vagy `enum`; a JSON minden kulcsot szövegként jelenít meg) |
 | Beágyazott osztály | Beágyazott JSON objektum |
 
 ### Beágyazott objektumok

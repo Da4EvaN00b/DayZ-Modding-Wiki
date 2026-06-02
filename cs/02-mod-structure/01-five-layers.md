@@ -172,9 +172,9 @@ Low-level engine library bindings. This layer exists in the vanilla script hiera
 **DabsFramework** is one of the few mods that uses this layer:
 
 ```c
-// 2_GameLib/DabsFramework/MVC/ScriptView.c
-// Low-level view binding infrastructure
-class ScriptView : ScriptedWidgetEventHandler
+// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
+// Nízkoúrovňová infrastruktura pro propojení atributů
+class ConfigEntryAttribute : AttributeBase
 {
     // ...
 };
@@ -226,17 +226,6 @@ class JMRPCData
     static const int WEATHER_SET  = 0x1001;
     static const int PLAYER_HEAL  = 0x1002;
     // ...
-};
-```
-
-**VPP Admin Tools** registers its chat commands:
-
-```c
-// 3_Game/VPPAdminTools/ChatCommands/ChatCommandBase.c
-class ChatCommandBase
-{
-    string GetCommand();
-    bool Execute(PlayerIdentity sender, array<string> args);
 };
 ```
 

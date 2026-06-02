@@ -180,7 +180,7 @@ If your mod depends on another mod, add its CfgPatches class name to `requiredAd
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Depends on Community Framework
+    "JM_CF_Scripts"           // Depends on Community Framework
 };
 ```
 

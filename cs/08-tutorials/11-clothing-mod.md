@@ -198,9 +198,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Viditelnost hráče pro AI (nižší = těžší detekce). |
 | `absorbency` | `0.3` | Absorpce vody (0 = vodotěsné, 1 = houba). Nižší je lepší pro odolnost proti dešti. |
 
-**Vanilla reference heatIsolation:** Tričko 0.2, Mikina 0.5, Bunda Gorka 0.7, Polní bunda 0.8, Vlněný kabát 0.9.
+**Vanilla reference heatIsolation:** Tričko 0.1, Mikina 0.6, Bunda Gorka 0.4, Turistická bunda 0.8, Vlněný kabát 0.9.
 
-**Opravy:** `repairableWithKits[] = { 5, 2 }` uvádí typy sad (5=Šicí sada, 2=Kožedělnická šicí sada). `repairCosts[]` udává spotřebovaný materiál na opravu v odpovídajícím pořadí.
+**Opravy:** `repairableWithKits[] = { 5, 2 }` uvádí typy sad (5=Lepicí páska, 2=Šicí sada). `repairCosts[]` udává spotřebovaný materiál na opravu v odpovídajícím pořadí.
 
 **Zbroj:** Hodnota `damage` 0.8 znamená, že hráč obdrží 80 % příchozího poškození (20 % absorbováno). Nižší hodnoty = větší ochrana.
 
@@ -242,7 +242,7 @@ Pro úplnou kontrolu materiálu vytvořte `.rvmat` soubory a odkazujte je v `hid
 
 ## Krok 4: Přidání úložného prostoru
 
-Při rozšíření `GorkaEJacket_ColorBase` automaticky zdědíte jeho mřížku úložného prostoru (4x3) a inventářový slot (`"Body"`). Vlastnost `itemSize[] = { 3, 4 }` definuje, jak velká je bunda při uložení jako loot -- NE její kapacitu úložného prostoru.
+Při rozšíření `GorkaEJacket_ColorBase` automaticky zdědíte jeho mřížku úložného prostoru (`itemsCargoSize[] = { 6, 4 }`) a inventářový slot (`"Body"`). Vlastnost `itemSize[] = { 3, 4 }` definuje, jak velká je bunda při uložení jako loot -- NE její kapacitu úložného prostoru.
 
 Běžné sloty oblečení: `"Body"` (bundy), `"Legs"` (kalhoty), `"Feet"` (boty), `"Headgear"` (čepice), `"Vest"` (taktické vesty), `"Gloves"`, `"Mask"`, `"Back"` (batohy).
 

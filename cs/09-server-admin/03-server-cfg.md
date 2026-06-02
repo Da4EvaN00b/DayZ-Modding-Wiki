@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Jas v noci (0 = svetlejsi, 1 = tmavsi)
 | `disable3rdPerson` | int | 0, 1 | 0 | Nastavte na 1 pro servery pouze s prvni osobou. Toto je nejcastejsi "hardcore" nastaveni. |
 | `disableCrosshair` | int | 0, 1 | 0 | Nastavte na 1 pro odstraneni zamerovace. Casto kombinovano s `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | "Osobni svetlo" je jemna zare kolem hrace v noci. Vetsina serveru ho zakazuje (hodnota 1) pro realismus. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = svetlejsi noci (viditelne mesicni svetlo). 1 = uhelnate tmavy noci (vyzaduje baterku/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = svetlejsi noci (viditelne mesicni svetlo). 1 = uhelnate tmavy noci (vyzaduje baterku/NVG). 2 = osvetleni specificke pro Sakhal. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Ulozit cas mezi restarty
 | Parametr | Typ | Platne hodnoty | Vychozi | Poznamky |
 |-----------|------|-------------|---------|-------|
 | `serverTime` | string | `"SystemTime"` nebo `"RRRR/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` pouziva mistni hodiny pocitace. Nastavte fixni cas jako `"2024/9/15/12/0"` pro trvale denni server. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Nasobitel herniho casu. Při 12 trva cely 24hodinovy cyklus 2 realne hodiny. Pri 1 je cas realtimovy. Pri 24 uplyne cely den za 1 hodinu. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Nasobitel herniho casu. Při 12 trva cely 24hodinovy cyklus 2 realne hodiny. Pri 1 je cas realtimovy. Pri 24 uplyne cely den za 1 hodinu. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Nasobeno `serverTimeAcceleration`. Pri hodnote 4 se zrychlenim 12 probiha noc rychlosti 48x (velmi kratke noci). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Kdyz je 1, server ukla svuj herní cas na disk a po restartu v nem pokracuje. Kdyz je 0, cas se pri kazdem restartu resetuje na `serverTime`. |
 

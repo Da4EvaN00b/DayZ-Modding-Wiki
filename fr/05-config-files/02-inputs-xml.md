@@ -38,7 +38,7 @@ Les entrées personnalisées sont identifiées par un nom d'action unique (conve
 
 ## Emplacement du fichier
 
-Placez `inputs.xml` dans un sous-dossier `data` de votre répertoire Scripts :
+Vous pouvez placer `inputs.xml` n'importe où dans le PBO de votre mod. Une disposition courante est un sous-dossier `data` de votre répertoire Scripts :
 
 ```
 @MyMod/
@@ -52,7 +52,7 @@ Placez `inputs.xml` dans un sous-dossier `data` de votre répertoire Scripts :
         5_Mission/
 ```
 
-Certains mods le placent directement dans le dossier `Scripts/`. Les deux emplacements fonctionnent. Le moteur découvre le fichier automatiquement --- aucun enregistrement dans config.cpp n'est requis.
+L'emplacement du fichier n'est pas fixé par convention ; le moteur ne le découvre pas automatiquement. Vous devez enregistrer le fichier en pointant la propriété `inputs` du bloc `CfgMods` de votre `config.cpp` vers lui, par exemple `inputs = "MyMod/Scripts/data/inputs.xml";`. Le chemin est arbitraire --- le moteur charge le fichier depuis l'emplacement que vous spécifiez.
 
 ---
 
@@ -296,7 +296,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-Le paramètre `false` dans `LocalPress("name", false)` indique que la vérification ne devrait pas consommer l'événement d'entrée.
+Le paramètre `false` dans `LocalPress("name", false)` est l'argument `check_focus`. Passer `false` évalue l'entrée même lorsque la fenêtre du jeu n'a pas le focus ; lorsqu'il est `true` (la valeur par défaut), un jeu sans focus retourne `false`. Il ne contrôle pas la consommation de l'entrée.
 
 ---
 
@@ -338,7 +338,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Action double-tap :**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +410,12 @@ Les noms de touches utilisés dans l'attribut `<btn name="">` suivent une conven
 | Lettres | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Chiffres (rangée du haut) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Touches de fonction | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modificateurs | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navigation | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modificateurs | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (Alt gauche), `kRMenu` (Alt droit) |
+| Navigation | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page précédente), `kNext` (Page suivante) |
 | Édition | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Pavé numérique | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Pavé numérique | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (pavé numérique +), `kSubstract` (pavé numérique -, noter l'orthographe du moteur), `kMultiply` (pavé numérique *), `kDivide` (pavé numérique /), `kDecimal` (pavé numérique .) |
 | Ponctuation | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Verrouillages | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Verrouillages | `kCapital` (Verr. Maj.), `kNumlock` (noter le `l` minuscule), `kScrollLock` |
 
 ### Boutons de la souris
 
@@ -424,15 +424,18 @@ Les noms de touches utilisés dans l'attribut `<btn name="">` suivent une conven
 | `mBLeft` | Bouton gauche de la souris |
 | `mBRight` | Bouton droit de la souris |
 | `mBMiddle` | Bouton du milieu (clic sur la molette) |
-| `mBExtra1` | Bouton 4 de la souris (bouton latéral arrière) |
-| `mBExtra2` | Bouton 5 de la souris (bouton latéral avant) |
+| `mB4` | Bouton 4 de la souris (bouton latéral arrière) |
+| `mB5` | Bouton 5 de la souris (bouton latéral avant) |
+| `mB6`, `mB7`, `mB8` | Boutons de souris supplémentaires |
 
-### Axes de la souris
+### Mouvement et molette de la souris
 
-| Nom | Axe |
-|-----|-----|
-| `mAxisX` | Mouvement horizontal de la souris |
-| `mAxisY` | Mouvement vertical de la souris |
+| Nom | Direction |
+|-----|-----------|
+| `mLeft` | Souris déplacée vers la gauche |
+| `mRight` | Souris déplacée vers la droite |
+| `mUp` | Souris déplacée vers le haut |
+| `mDown` | Souris déplacée vers le bas |
 | `mWheelUp` | Molette vers le haut |
 | `mWheelDown` | Molette vers le bas |
 
@@ -440,7 +443,7 @@ Les noms de touches utilisés dans l'attribut `<btn name="">` suivent une conven
 
 - **Clavier** : préfixe `k` + nom de la touche (ex. `kT`, `kF5`, `kLControl`)
 - **Boutons de souris** : préfixe `mB` + nom du bouton (ex. `mBLeft`, `mBRight`)
-- **Axes de souris** : préfixe `m` + nom de l'axe (ex. `mAxisX`, `mWheelUp`)
+- **Mouvement/molette de souris** : préfixe `m` + nom de la direction (ex. `mLeft`, `mWheelUp`)
 
 ---
 
@@ -626,7 +629,7 @@ Choisir des touches qui entrent en conflit avec les raccourcis vanilla (comme `W
 |---------|---------|---------|
 | `visible="false"` masque du menu Contrôles | L'entrée est enregistrée mais invisible | Les entrées masquées apparaissent toujours dans la liste du bloc `<sorting>` dans certaines versions de DayZ. Omettre du `<sorting>` est le moyen fiable de masquer les entrées |
 | `LocalPress()` se déclenche une fois par key-down | Déclenchement unique sur la frame où la touche est enfoncée | Si le jeu saccade (FPS bas), `LocalPress()` peut être complètement raté. Pour les actions critiques, vérifiez aussi `LocalValue() > 0` comme repli |
-| Combinaisons de modificateurs via `<btn>` imbriqués | L'extérieur est le modificateur, l'intérieur est le déclencheur | La touche modificatrice seule s'enregistre aussi comme une pression sur sa propre entrée (ex. `kLControl` est aussi l'accroupissement vanilla). Les joueurs maintenant Ctrl+clic s'accroupiront aussi |
+| Combinaisons de modificateurs via `<btn>` imbriqués | L'extérieur est le modificateur, l'intérieur est le déclencheur | La touche modificatrice seule s'enregistre aussi comme une pression sur sa propre entrée (ex. `kLControl` est le « Retenir sa respiration » vanilla, lié à `UAHoldBreath` ; l'accroupissement/posture vanilla `UAStance` est sur `kC`). Les joueurs maintenant Ctrl+clic déclencheront aussi « Retenir sa respiration » |
 | `ForceDisable(true)` supprime l'entrée | L'entrée est complètement ignorée | `ForceDisable` persiste jusqu'à être explicitement réactivé. Si votre mod plante ou l'interface se ferme sans appeler `ForceDisable(false)`, l'entrée reste désactivée jusqu'au redémarrage du jeu |
 | Plusieurs `<btn>` frères | Les deux touches déclenchent la même action | Fonctionne correctement, mais le menu Contrôles n'affiche que la première touche. Le joueur peut voir et réassigner la première touche mais peut ne pas se rendre compte que la seconde par défaut existe |
 

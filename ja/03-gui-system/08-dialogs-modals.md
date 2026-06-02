@@ -629,7 +629,7 @@ class InputDialog : ScriptedWidgetEventHandler
         if (w == m_BtnOk)
         {
             string text = m_InputBox.GetText();
-            text.Trim();
+            text.TrimInPlace();
 
             if (text == "")
             {

@@ -61,8 +61,8 @@
 
 | Methode | Signatur | Beschreibung |
 |---------|----------|--------------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | Kind an Bone anhängen |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | Kind lösen |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Kind an Bone anhängen |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Kind lösen |
 | `GetParent` | `IEntity GetParent()` | Eltern-Entity oder null |
 | `GetChildren` | `IEntity GetChildren()` | Erstes Kind-Entity |
 | `GetSibling` | `IEntity GetSibling()` | Nächstes Geschwister-Entity |
@@ -126,11 +126,11 @@
 | `IsTransport()` | Object | Ist dies ein Fahrzeug? |
 | `IsDayZCreature()` | Object | Ist dies eine Kreatur (Zombie/Tier)? |
 | `IsKindOf(string)` | Object | Konfigurationsvererbungspruefung |
-| `IsItemBase()` | EntityAI | Ist dies ein Inventargegenstand? |
-| `IsWeapon()` | EntityAI | Ist dies eine Waffe? |
-| `IsMagazine()` | EntityAI | Ist dies ein Magazin? |
-| `IsClothing()` | EntityAI | Ist dies Kleidung? |
-| `IsFood()` | EntityAI | Ist dies Nahrung? |
+| `IsItemBase()` | Object | Ist dies ein Inventargegenstand? |
+| `IsWeapon()` | Object | Ist dies eine Waffe? |
+| `IsMagazine()` | Object | Ist dies ein Magazin? |
+| `IsClothing()` | Object | Ist dies Kleidung? |
+| `IsFood()` | Object | Ist dies Nahrung? |
 | `Class.CastTo(out, obj)` | Class | Sicherer Downcast (gibt bool zurück) |
 | `ClassName.Cast(obj)` | Class | Inline-Cast (gibt null bei Fehlschlag zurück) |
 
@@ -146,12 +146,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Gegenstand im Cargo erstellen |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | Gegenstand im Cargo erstellen |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | Gegenstand als Attachment erstellen |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | Alle Gegenstände auflisten |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | Alle Gegenstände auflisten |
 | `CountInventory` | `int CountInventory()` | Gegenstände zählen |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | Nach Gegenstand suchen |
 | `AttachmentCount` | `int AttachmentCount()` | Anzahl der Attachments |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | Attachment nach Index abfragen |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | Attachment nach Slot abfragen |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | Attachment nach Slot abfragen |
 
 ---
 
@@ -214,7 +214,7 @@
 | `CrewSize` | `int CrewSize()` | Gesamtanzahl der Sitze |
 | `CrewMember` | `Human CrewMember(int idx)` | Mensch auf Sitzplatz abfragen |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | Sitzplatz des Menschen abfragen |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | Erzwungener Ausstieg aus Sitz |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | Erzwungener Ausstieg aus Sitz |
 | `CrewDeath` | `void CrewDeath(int idx)` | Besatzungsmitglied töten |
 
 ### Motor (Car)
@@ -245,10 +245,10 @@
 
 | Methode | Signatur | Beschreibung |
 |---------|----------|--------------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0, -1 = alle |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | Lenkungseingabe |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 Gas |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | Lenkungseingabe |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 Gas (ersetzt das veraltete `SetThrust`) |
 
 ---
 
@@ -282,11 +282,11 @@
 |---------|----------|--------------|
 | `GetActual` | `float GetActual()` | Aktueller interpolierter Wert |
 | `GetForecast` | `float GetForecast()` | Zielwert |
-| `GetDuration` | `float GetDuration()` | Verbleibende Dauer (Sekunden) |
+| `GetNextChange` | `float GetNextChange()` | Zeit bis zur nächsten Änderung (Sekunden) |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | Ziel setzen (nur Server) |
 | `SetLimits` | `void SetLimits(float min, float max)` | Wertebereichsgrenzen |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | Änderungsgeschwindigkeitsgrenzen |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | Änderungsstärkegrenzen |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | Änderungsgeschwindigkeitsgrenzen |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | Änderungsstärkegrenzen |
 
 ---
 
@@ -314,7 +314,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | Text schreiben (ohne Zeilenumbruch) |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | Text + Zeilenumbruch schreiben |
 | `FGets` | `int FGets(FileHandle fh, string line)` | Eine Zeile lesen |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | Gesamte Datei lesen |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | Bytes in Array lesen (gibt Anzahl zurück) |
 | `DeleteFile` | `bool DeleteFile(string path)` | Datei löschen |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | Datei kopieren |
 
@@ -354,10 +354,12 @@
 |---------|----------|--------------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | Verzögerten/wiederholenden Aufruf planen |
 | `Call` | `void Call(func fn, param1..4)` | Nächsten Frame ausführen |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | Methode per String-Name aufrufen |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | Methode per String-Name aufrufen |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | Verzögerter/wiederholender Aufruf per String-Name |
 | `Remove` | `void Remove(func fn)` | Geplanten Aufruf abbrechen |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | Per String-Name abbrechen |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | Verbleibende Zeit von CallLater abfragen |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | Verbleibende Zeit von CallLater abfragen (ms) |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | Verbleibende Zeit per String-Name (ms) |
 
 ### Timer-Klasse
 
@@ -368,18 +370,17 @@
 | `Stop` | `void Stop()` | Timer stoppen |
 | `Pause` | `void Pause()` | Timer pausieren |
 | `Continue` | `void Continue()` | Timer fortsetzen |
-| `IsPaused` | `bool IsPaused()` | Timer pausiert? |
-| `IsRunning` | `bool IsRunning()` | Timer aktiv? |
+| `IsRunning` | `bool IsRunning()` | Timer aktiv? (false während pausiert) |
 | `GetRemaining` | `float GetRemaining()` | Verbleibende Sekunden |
 
 ### ScriptInvoker
 
 | Methode | Signatur | Beschreibung |
 |---------|----------|--------------|
-| `Insert` | `void Insert(func fn)` | Callback registrieren |
-| `Remove` | `void Remove(func fn)` | Callback deregistrieren |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | Callback registrieren |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | Callback deregistrieren |
 | `Invoke` | `void Invoke(params...)` | Alle Callbacks auslösen |
-| `Count` | `int Count()` | Anzahl registrierter Callbacks |
+| `Count` | `int Count(func fn)` | Wie oft diese fn registriert ist |
 | `Clear` | `void Clear()` | Alle Callbacks entfernen |
 
 ---
@@ -395,13 +396,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | Kind per Name finden (rekursiv) |
 | `Show` | `void Show(bool show)` | Widget ein-/ausblenden |
 | `SetText` | `void TextWidget.SetText(string text)` | Textinhalt setzen |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | Bildindex setzen |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | Bildindex setzen |
 | `SetColor` | `void SetColor(int color)` | Widget-Farbe setzen (ARGB) |
 | `SetAlpha` | `void SetAlpha(float alpha)` | Transparenz setzen 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Widget-Größe setzen |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Widget-Position setzen |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Widget-Größe setzen |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Widget-Position setzen |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Bildschirmauflösung |
-| `Destroy` | `void Widget.Destroy()` | Widget entfernen und zerstören |
+| `Unlink` | `void Widget.Unlink()` | Widget entfernen und zerstören (samt Kindern) |
 
 ### ARGB-Farbhilfe
 
@@ -582,7 +583,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | Serverzeit (Sekunden) |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | UI-Workspace |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | Geländehöhe an Position |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | Oberflächenmaterialtyp |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | Oberflächenmaterialtyp (im `out`-Parameter) |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | Objekte in der Nähe finden |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | Bildschirmauflösung abfragen |
 | `GetGame().IsServer()` | `bool IsServer()` | Serverpruefung |
@@ -610,7 +611,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | Chat-, Sprach-Events |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | Spieler beigetreten |
 | `override void InvokeOnDisconnect(PlayerBase player)` | Spieler verlassen |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | Client bereit für Daten |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | Client bereit für Daten |
 | `override void PlayerRegistered(int peerId)` | Identität registriert |
 
 ### Clientseitig (modded MissionGameplay)

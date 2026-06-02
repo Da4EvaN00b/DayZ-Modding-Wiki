@@ -176,7 +176,7 @@ Ha a modod fugg egy masik modtol, add hozza annak CfgPatches osztalynevet a `req
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Fugg a Community Frameworktol
+    "JM_CF_Scripts"           // Fugg a Community Frameworktol
 };
 ```
 

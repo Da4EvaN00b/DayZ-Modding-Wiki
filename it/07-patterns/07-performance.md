@@ -442,7 +442,8 @@ Un'esigenza comune è tracciare tutti i veicoli (o tutte le entità di un tipo s
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +614,7 @@ Questa funzione scansiona ogni oggetto fisico nel mondo all'interno del raggio d
 
 ```c
 // NON FARLO MAI
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 Usa un registro basato su registrazione (vedi [Pattern Registro Veicoli](#pattern-registro-veicoli)).

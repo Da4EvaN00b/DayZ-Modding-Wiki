@@ -172,9 +172,9 @@ Bindings de la biblioteca del motor de bajo nivel. Esta capa existe en la jerarq
 **DabsFramework** es uno de los pocos mods que usa esta capa:
 
 ```c
-// 2_GameLib/DabsFramework/MVC/ScriptView.c
-// Infraestructura de binding de vistas de bajo nivel
-class ScriptView : ScriptedWidgetEventHandler
+// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
+// Infraestructura de binding de atributos de bajo nivel
+class ConfigEntryAttribute : AttributeBase
 {
     // ...
 };
@@ -226,17 +226,6 @@ class JMRPCData
     static const int WEATHER_SET  = 0x1001;
     static const int PLAYER_HEAL  = 0x1002;
     // ...
-};
-```
-
-**VPP Admin Tools** registra sus comandos de chat:
-
-```c
-// 3_Game/VPPAdminTools/ChatCommands/ChatCommandBase.c
-class ChatCommandBase
-{
-    string GetCommand();
-    bool Execute(PlayerIdentity sender, array<string> args);
 };
 ```
 

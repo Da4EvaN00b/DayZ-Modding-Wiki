@@ -39,11 +39,13 @@ Les widgets conteneurs contiennent et organisent les widgets enfants. Ils n'affi
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Layout en flux. Arrange les enfants séquentiellement avec retour à la ligne, padding et marges. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Layout en grille. Arrange les enfants dans une grille définie par `Columns` et `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Zone de défilement. Active le défilement vertical/horizontal du contenu enfant. |
-| `SpacerBaseWidget` | -- | Classe de base abstraite pour `WrapSpacerWidget` et `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Classe de base abstraite pour `SpacerWidget` et `ScrollWidget`. `WrapSpacerWidget` et `GridSpacerWidget` étendent tous deux `SpacerWidget`. |
 
 ### FrameWidget
 
-Le cheval de bataille de l'interface DayZ. Utilisez `FrameWidget` comme conteneur par défaut lorsque vous devez regrouper des widgets ensemble. Il n'a aucune apparence visuelle -- il est purement structurel.
+Le cheval de bataille de l'interface DayZ. Utilisez un frame comme conteneur par défaut lorsque vous devez regrouper des widgets ensemble. Il n'a aucune apparence visuelle -- il est purement structurel.
+
+> **Note :** `FrameWidgetClass` est utilisable dans les fichiers `.layout` et `FrameWidgetTypeID` existe pour `CreateWidget()`, mais il n'y a pas de classe script `FrameWidget`. Comme pour `PanelWidget`, travaillez avec un frame en tant que `Widget` de base -- ne le castez pas en `FrameWidget`.
 
 **Méthodes principales :**
 - Toutes les méthodes de base de `Widget` (position, taille, couleur, enfants, drapeaux)
@@ -52,7 +54,7 @@ Le cheval de bataille de l'interface DayZ. Utilisez `FrameWidget` comme conteneu
 
 ```c
 // Trouver un widget frame par nom
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +316,8 @@ Un curseur horizontal pour les valeurs numériques.
 **Méthodes principales :**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Retourne un float (0-1)
+sw.SetMinMax(0, 100);       // Configurer la plage de valeurs (plage par défaut sinon)
+sw.GetCurrent();            // Retourne un float dans la plage min/max configurée
 sw.SetCurrent(float val);   // Définir la position
 ```
 

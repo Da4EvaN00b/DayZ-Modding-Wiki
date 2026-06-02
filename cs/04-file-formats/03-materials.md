@@ -67,9 +67,9 @@ class Stage1                               // Fáze textury: Normálová mapa
     };
 };
 
-class Stage2                               // Fáze textury: Difuzní/barevná mapa
+class Stage2                               // Fáze textury: Detailní mapa (základní barva _co pochází z textury modelu / hiddenSelectionsTextures[], nikoli z fáze)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -107,10 +107,9 @@ Hodnoty `PixelShaderID` a `VertexShaderID` určují, který renderovací pipelin
 | **Super** | Standardní neprůhledné povrchy (zbraně, oblečení, předměty) | Normálová, difuzní, spekulární/kovová |
 | **Multi** | Vícevrstevný terén a složité povrchy | Více difuzních/normálových párů |
 | **Glass** | Průhledné a poloprůhledné povrchy | Difuzní s alfou |
-| **Water** | Vodní povrchy s odrazem a lomem | Speciální textury vody |
-| **Terrain** | Povrchy terénu | Satelit, maska, vrstvy materiálů |
-| **AlphaTest** | Tvrdá průhlednost (listí, ploty) | Difuzní s alfou |
-| **AlphaBlend** | Hladká průhlednost (sklo, kouř) | Difuzní s alfou |
+| **CalmWater** | Vodní povrchy s odrazem a lomem | Speciální textury vody |
+| **TerrainX** | Povrchy terénu (pixel shader; vertex shader je `Terrain`) | Satelit, maska, vrstvy materiálů |
+| **AlphaShadow / AlphaNoShadow** | Alfa-klíčovaná průhlednost (listí, ploty) s vrháním stínu nebo bez něj | Difuzní s alfou |
 
 ### Shader Super (nejběžnější)
 
@@ -118,9 +117,11 @@ Shader **Super** je standardní fyzikálně založený renderovací shader použ
 
 ```
 Stage1 = Normálová mapa (_nohq)
-Stage2 = Difuzní/barevná mapa (_co)
+Stage2 = Detailní mapa (_dt)
 Stage3 = Spekulární/kovová mapa (_smdi)
 ```
+
+Základní barva (`_co`) se v shaderu Super nepřiřazuje přes fázi (Stage) -- pochází ze základní textury modelu nebo z `hiddenSelectionsTextures[]`.
 
 Pokud vytváříte modový předmět (zbraň, oblečení, nástroj, kontejner), téměř vždy budete používat shader Super.
 
@@ -135,7 +136,7 @@ Každá třída `Stage` v RVMAT přiřazuje texturu specifickému vstupu shaderu
 | Fáze | Role textury | Typická přípona | Popis |
 |-------|-------------|----------------|-------------|
 | **Stage1** | Normálová mapa | `_nohq` | Detail povrchu, nerovnosti, drážky |
-| **Stage2** | Difuzní / barevná mapa | `_co` nebo `_ca` | Základní barva povrchu |
+| **Stage2** | Detailní mapa | `_dt` | Jemný detail povrchu (základní barvu `_co` dodává základní textura modelu / `hiddenSelectionsTextures[]`, nikoli fáze) |
 | **Stage3** | Spekulární / kovová mapa | `_smdi` | Lesklost, kovové vlastnosti, detail |
 | **Stage4** | Okolní stín | `_as` | Předpečená okolní okluze (volitelné) |
 | **Stage5** | Makro mapa | `_mc` | Velkoplošná barevná variace (volitelné) |
@@ -182,13 +183,23 @@ Předměty DayZ se časem degradují. Engine podporuje automatickou výměnu mat
 ```cpp
 class MyItem: Inventory_Base
 {
-    healthLevels[] =
+    class DamageSystem
     {
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Nedotčený (100% zdraví)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Opotřebovaný (70% zdraví)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Poškozený (50% zdraví)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Vážně poškozený (30% zdraví)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Zničený (0% zdraví)
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Nedotčený (100% zdraví)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Opotřebovaný (70% zdraví)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Poškozený (50% zdraví)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Vážně poškozený (30% zdraví)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Zničený (0% zdraví)
+                };
+            };
+        };
     };
 };
 ```
@@ -305,7 +316,7 @@ class Stage3
 ### 1. Špatné pořadí fází
 
 **Příznak:** Textura se zobrazuje zkomoleně, normálová mapa se zobrazuje jako barva, barva se zobrazuje jako nerovnosti.
-**Oprava:** Ujistěte se, že Stage1 = normálová, Stage2 = difuzní, Stage3 = spekulární (pro shader Super).
+**Oprava:** Ujistěte se, že Stage1 = normálová, Stage2 = detailní, Stage3 = spekulární (pro shader Super). Základní barva `_co` pochází z textury modelu / `hiddenSelectionsTextures[]`, nikoli z fáze.
 
 ### 2. Překlep `emmisive`
 
@@ -325,7 +336,7 @@ class Stage3
 ### 5. Použití špatného shaderu pro průhledné předměty
 
 **Příznak:** Průhledná textura se zobrazuje jako neprůhledná nebo celý povrch zmizí.
-**Oprava:** Pro průhledné povrchy použijte shader `Glass`, `AlphaTest` nebo `AlphaBlend` místo `Super`. Používejte textury s příponou `_ca` se správnými alfa kanály.
+**Oprava:** Pro průhledné povrchy použijte shader `Glass`, `AlphaShadow` nebo `AlphaNoShadow` místo `Super`. Používejte textury s příponou `_ca` se správnými alfa kanály.
 
 ---
 
@@ -359,7 +370,7 @@ class Stage3
 
 - **Více modů:** Cesty RVMAT jsou per-PBO a nekolidují napříč mody. Nicméně přepisy `hiddenSelectionsMaterials[]` v config.cpp následují prioritu poslední-načtený-vyhrává, takže dva mody přepisující materiál stejného vanilla předmětu budou v konfliktu.
 - **Výkon:** Každý unikátní RVMAT odkazovaný na jednom P3D modelu vytváří oddělený draw call. Konsolidace ploch pod méně materiály snižuje režii GPU, zejména pro složité scény.
-- **Verze:** Textový formát RVMAT a názvy shaderů (Super, Glass, AlphaTest) jsou stabilní od DayZ 1.0. V nedávných aktualizacích nebyly zavedeny žádné strukturální změny.
+- **Verze:** Textový formát RVMAT a základní názvy shaderů (Super, Glass, Multi) jsou stabilní od DayZ 1.0. Nedávné aktualizace však strukturu rozšířily: projekční vrstva Sakhal zavedla nové klíče nejvyšší úrovně (`superAllowProjectionLayer`, `degAngleTopProjectionStart`/`End`), třídy `TexGen` a další fáze (např. `Stage10`) pro shadery Super, TreeAdvTrunk a Multi.
 
 ---
 

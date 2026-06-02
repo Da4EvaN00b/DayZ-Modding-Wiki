@@ -121,7 +121,7 @@ class SettingsManager
 | `string` | 文字列 |
 | `vector` | 3つの数値の配列 |
 | `array<T>` | JSON配列 |
-| `map<string, T>` | JSONオブジェクト（文字列キーのみ） |
+| `map<K, T>` | JSONオブジェクト（`K`は`string`、`int`、または`enum`が使用可能。JSONではすべてのキーが文字列として表現される） |
 | ネストされたクラス | ネストされたJSONオブジェクト |
 
 ### ネストされたオブジェクト

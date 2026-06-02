@@ -70,9 +70,9 @@ class Stage1                               // Textúra szakasz: normál térkép
     };
 };
 
-class Stage2                               // Textúra szakasz: diffúz/szín térkép
+class Stage2                               // Textúra szakasz: részlettérkép (az alap _co szín a modell textúrájából / hiddenSelectionsTextures[]-ből származik, nem egy Stage-ből)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -120,18 +120,23 @@ class Stage3                               // Textúra szakasz: tükrözési/fé
 |--------|----------|------------------------|
 | **Super** | Szabványos átlátszatlan felületek (fegyverek, ruházat, tárgyak) | Normál, diffúz, tükrözési/fémes |
 | **Glass** | Átlátszó és félig átlátszó felületek | Diffúz alfával |
-| **AlphaTest** | Éles szélű átlátszóság (lombozat, kerítések) | Diffúz alfával |
-| **AlphaBlend** | Sima átlátszóság (üveg, füst) | Diffúz alfával |
+| **AlphaShadow / AlphaNoShadow** | Alfa-kulcsos átlátszóság (lombozat, kerítések) árnyékvetéssel vagy anélkül | Diffúz alfával |
 
 ### Super shader (leggyakoribb)
 
-A **Super** shader a szabványos fizikai alapú renderelési shader, amelyet a DayZ tárgyainak túlnyomó többsége használ. Három textúra szakaszt vár:
+A **Super** shader a szabványos fizikai alapú renderelési shader, amelyet a DayZ tárgyainak túlnyomó többsége használ. Ezeket az alapvető textúra szakaszokat várja (valós vanilla rvmat-okkal egyezően, mint például `DZ\weapons\ammunition\data\00buck_box.rvmat`):
 
 ```
 Stage1 = Normál térkép (_nohq)
-Stage2 = Diffúz/szín térkép (_co)
-Stage3 = Tükrözési/fémes térkép (_smdi)
+Stage2 = Részlettérkép (_dt)
+Stage3 = Makró térkép (_mc)
+Stage4 = Környezeti árnyék (_as)
+Stage5 = Tükrözési/fémes térkép (_smdi)
+Stage6 = Fresnel (_fr)
+Stage7 = Környezeti térkép (_env)
 ```
+
+Az alap szín (`_co`) nincs Stage-en keresztül hozzárendelve a Super shaderben -- a modell alap textúrájából vagy a `hiddenSelectionsTextures[]`-ből származik.
 
 ---
 
@@ -166,29 +171,39 @@ A DayZ tárgyak idővel degradálódnak. A motor támogatja az automatikus anyag
 ```cpp
 class MyItem: Inventory_Base
 {
-    healthLevels[] =
+    class DamageSystem
     {
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Érintetlen (100% életerő)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Kopott (70% életerő)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Sérült (50% életerő)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Nagyon sérült (30% életerő)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Tönkrement (0% életerő)
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Érintetlen (100% életerő)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Kopott (70% életerő)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Sérült (50% életerő)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Nagyon sérült (30% életerő)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Tönkrement (0% életerő)
+                };
+            };
+        };
     };
 };
 ```
 
 ### Vanilla sérülési anyagok használata
 
-A DayZ általános sérülési fedőanyagokat biztosít:
+A vanilla tárgyak nem használnak névvel ellátott, szintenkénti általános fedőanyag-készletet. Ehelyett minden egészség szint egy tárgyspecifikus RVMAT-ra mutat (általában `<item>.rvmat`, `<item>_damage.rvmat` és `<item>_destruct.rvmat`), ugyanazt a fájlt újrahasználva a szomszédos szinteknél. Az egyetlen általános anyag a `DZ\data\data\`-ban a `default_destruct.rvmat` (a `default.rvmat` mellett):
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -199,7 +214,7 @@ healthLevels[] =
 ### 1. Rossz szakasz sorrend
 
 **Tünet:** A textúra kevert, a normál térkép színként jelenik meg, a szín dudorodásként jelenik meg.
-**Javítás:** Győződj meg róla, hogy a Stage1 = normál, Stage2 = diffúz, Stage3 = tükrözési (a Super shader esetén).
+**Javítás:** Győződj meg róla, hogy a Stage1 = normál, Stage2 = részlet, Stage3 = makró, Stage5 = tükrözési (a Super shader esetén). Az alap `_co` szín a modell textúrájából / `hiddenSelectionsTextures[]`-ből származik, nem egy Stage-ből. Lásd a fenti Stage hozzárendelések táblázatot.
 
 ### 2. Az `emmisive` hibás írásmódja
 
@@ -214,7 +229,7 @@ healthLevels[] =
 ### 4. Rossz shader átlátszó tárgyakhoz
 
 **Tünet:** Az átlátszó textúra átlátszatlannak tűnik, vagy a teljes felület eltűnik.
-**Javítás:** Használj `Glass`, `AlphaTest` vagy `AlphaBlend` shader-t `Super` helyett átlátszó felületekhez. Használj `_ca` utótagú textúrákat megfelelő alfa csatornákkal.
+**Javítás:** Használj `Glass`, `AlphaShadow` vagy `AlphaNoShadow` shader-t `Super` helyett átlátszó felületekhez. Használj `_ca` utótagú textúrákat megfelelő alfa csatornákkal.
 
 ---
 

@@ -24,10 +24,11 @@
 
 ## cfgplayerspawnpoints.xml Ueberblick
 
-Diese Datei befindet sich in Ihrem Missionsordner (z.B. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Sie hat zwei Abschnitte, jeweils mit eigenen Parametern und Positionsblasen:
+Diese Datei befindet sich in Ihrem Missionsordner (z.B. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Sie hat drei Abschnitte, jeweils mit eigenen Parametern und Positionsblasen:
 
 - **`<fresh>`** -- brandneue Charaktere (erstes Leben oder nach dem Tod)
 - **`<hop>`** -- Server-Hopper (Spieler hatte einen Charakter auf einem anderen Server)
+- **`<travel>`** -- Spawns durch In-Game-Kartenreise/Teleport
 
 ---
 
@@ -77,12 +78,12 @@ Der Generator erstellt ein Raster von Kandidatenpositionen um jede Blase:
 
 | Parameter | Wert | Bedeutung |
 |-----------|------|-----------|
-| `grid_density` | 4 | Abstand zwischen Rasterpunkten in Metern -- niedriger = mehr Kandidaten, hoehere CPU-Last |
-| `grid_width` | 200 | Raster erstreckt sich 200m auf der X-Achse um jedes Blasenzentrum |
-| `grid_height` | 200 | Raster erstreckt sich 200m auf der Z-Achse um jedes Blasenzentrum |
+| `grid_density` | 4 | Abtastfrequenz (Anzahl der Unterteilungen) des Rasters -- hoeher = mehr Kandidaten, hoehere CPU-Last. Abstand zwischen Punkten = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Gesamtbreite des Kandidatenrasters in Metern (zentriert auf der Blase) -- erstreckt sich ~100m zu jeder Seite auf der X-Achse |
+| `grid_height` | 200 | Gesamthoehe des Kandidatenrasters in Metern (zentriert auf der Blase) -- erstreckt sich ~100m zu jeder Seite auf der Z-Achse |
 | `min_steepness` / `max_steepness` | -45 / 45 | Gelaendeneigungsbereich in Grad -- lehnt Klippen und steile Huegel ab |
 
-Jede Blase erhaelt ein 200x200m-Raster mit einem Punkt alle 4m (~2.500 Kandidaten). Die Engine filtert nach Neigung und statischem Abstand und wendet dann `spawn_params` zur Spawnzeit an.
+Jede Blase erhaelt ein 200x200m-Raster mit Kandidatenpunkten im Abstand `grid_width` / `grid_density` = 200/4 = 50m (in der Groessenordnung von ~16-25 Kandidaten). Die Engine filtert nach Neigung und statischem Abstand und wendet dann `spawn_params` zur Spawnzeit an.
 
 #### `allow_in_water`-Parameter (1.28+)
 
@@ -111,8 +112,8 @@ Standardmaessig lehnt die Engine jede Kandidatenposition ab, die im Wasser liegt
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +121,10 @@ Standardmaessig lehnt die Engine jede Kandidatenposition ab, die im Wasser liegt
 |-----------|------|-----------|
 | `enablegroups` | true | Positionsblasen sind in benannten Gruppen organisiert |
 | `groups_as_regular` | true | Gruppen werden als regulaere Spawnpunkte behandelt (jede Gruppe kann ausgewaehlt werden) |
-| `lifetime` | 240 | Sekunden, bevor ein genutzter Spawnpunkt wieder verfuegbar wird |
-| `counter` | -1 | Wie oft ein Spawnpunkt genutzt werden kann. -1 = unbegrenzt |
+| `lifetime` | 120 | Sekunden, die eine Spawn-Gruppe aktiv bleibt, bevor das System zu einer anderen Gruppe wechselt. -1 = deaktiviert |
+| `counter` | 2 | Anzahl der Logins, die eine Gruppe aktiv bleibt, bevor gewechselt wird (pro Gruppe). -1 = deaktiviert |
 
-Eine genutzte Position ist fuer 240 Sekunden gesperrt, um zu verhindern, dass zwei Spieler uebereinander spawnen.
+`lifetime` steuert, wie lange eine Spawn-Gruppe die aktive Gruppe bleibt, bevor das System zu einer anderen Gruppe wechselt; es ist keine Sperre pro Position. Der Abstand zwischen gleichzeitigen Spawns wird durch `min_dist_player` erzwungen.
 
 ---
 
@@ -192,7 +193,7 @@ Hop-Spawns sind beim Spielerabstand toleranter und verwenden kleinere Raster:
 
 <!-- Hop group_params Unterschiede -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 Hop-Gruppen sind **im Landesinneren** verteilt: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Mit `enablegroups=false` behandelt die Engine alle 50 Positionen als flachen Pool.
@@ -246,7 +247,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Was jeder Spieler erhaelt: **BandageDressing** (Schnellleiste 3), zufaelliges **Chemlight** (Schnellleiste 2), zufaelliges Obst -- 35% Apfel, 30% Pflaume, 35% Birne (Schnellleiste 1). `SetRandomHealth` setzt 45-65% Zustand bei allen Items.
+Was jeder Spieler erhaelt: **BandageDressing** (Schnellleiste 2), zufaelliges **Chemlight** (Schnellleiste 1), zufaelliges Obst -- 35% Apfel, 30% Pflaume, 35% Birne (Schnellleiste 3). `SetRandomHealth` setzt 45-65% Zustand bei allen Items.
 
 ### Eigene Startausruestung hinzufuegen
 
@@ -279,7 +280,7 @@ Schritte:
 4. Verwenden Sie `x` fuer Ost-West und `z` fuer Nord-Sued -- die Engine berechnet Y (Hoehe) vom Gelaende
 5. Starten Sie den Server neu -- kein Persistenz-Wipe erforderlich
 
-Fuer ausgewogenes Spawning halten Sie mindestens 4 Positionen pro Gruppe, damit die 240-Sekunden-Sperre nicht alle Positionen blockiert, wenn mehrere Spieler gleichzeitig sterben.
+Fuer ausgewogenes Spawning halten Sie mindestens 4 Positionen pro Gruppe, damit eine einzelne Gruppe genuegend Streuung hat, um `min_dist_player` zu erfuellen, wenn mehrere Spieler gleichzeitig sterben.
 
 ---
 
@@ -291,7 +292,7 @@ Sie haben `z` (Nord-Sued) mit Y (Hoehe) vertauscht oder Koordinaten ausserhalb d
 
 ### Nicht genug Spawn-Punkte
 
-Mit nur 2-3 Positionen verursacht die 240-Sekunden-Sperre Ballung. Vanilla verwendet 49 frische Positionen in 11 Gruppen. Streben Sie mindestens 20 Positionen in 4+ Gruppen an.
+Mit nur 2-3 Positionen kann die aktive Gruppe die Spieler nicht verteilen, und es kommt zu Ballung. Vanilla verwendet 49 frische Positionen in 11 Gruppen. Streben Sie mindestens 20 Positionen in 4+ Gruppen an.
 
 ### Hop-Abschnitt vergessen
 
@@ -303,7 +304,7 @@ Der Generator lehnt Neigungen ueber 45 Grad ab. Wenn alle eigenen Positionen an 
 
 ### Spieler spawnen immer am selben Ort
 
-Gruppen mit 1-2 Positionen werden durch die 240-Sekunden-Abklingzeit blockiert. Fuegen Sie mehr Positionen pro Gruppe hinzu.
+Gruppen mit 1-2 Positionen haben zu wenige Kandidaten, als dass die Engine die gewaehlte Position variieren koennte. Fuegen Sie mehr Positionen pro Gruppe hinzu.
 
 ---
 

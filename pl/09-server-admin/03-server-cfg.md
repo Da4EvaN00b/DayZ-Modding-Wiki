@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Jasnosc nocy (0 = jasniejsza, 1 = ciemnie
 | `disable3rdPerson` | int | 0, 1 | 0 | Ustaw na 1 dla serwerow tylko z pierwsza osoba. To najczestsze ustawienie "hardcore". |
 | `disableCrosshair` | int | 0, 1 | 0 | Ustaw na 1, aby usunac celownik. Czesto laczone z `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | "Personal light" to subtelna poswiate wokol gracza w nocy. Wiekszosc serwerow je wylacza (wartosc 1) dla realizmu. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = jasniejsze noce (widoczne swiatlo ksiezyca). 1 = zupelnie ciemne noce (wymaga latarki/noktowizji). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = jasniejsze noce (widoczne swiatlo ksiezyca). 1 = zupelnie ciemne noce (wymaga latarki/noktowizji). 2 = oswietlenie specyficzne dla Sakhal. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Zapisywanie czasu miedzy restartam
 | Parametr | Typ | Prawidlowe wartosci | Domyslnie | Uwagi |
 |----------|-----|---------------------|-----------|-------|
 | `serverTime` | string | `"SystemTime"` lub `"RRRR/MM/DD/GG/MM"` | `"SystemTime"` | `"SystemTime"` uzywa lokalnego zegara maszyny. Ustaw staly czas jak `"2024/9/15/12/0"` dla serwera z wiecznym dniem. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Mnoznik czasu w grze. Przy 12 pelny cykl 24-godzinny trwa 2 godziny realne. Przy 1 czas jest rzeczywisty. Przy 24 pelny dzien mija w 1 godzine. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Mnoznik czasu w grze. Przy 12 pelny cykl 24-godzinny trwa 2 godziny realne. Przy 1 czas jest rzeczywisty. Przy 24 pelny dzien mija w 1 godzine. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Mnozone przez `serverTimeAcceleration`. Przy wartosci 4 z przyspieszeniem 12, noc mija z predkoscia 48x (bardzo krotkie noce). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Gdy 1, serwer zapisuje swoj zegar w grze na dysk i wznawia go po restarcie. Gdy 0, czas resetuje sie do `serverTime` przy kazdym restarcie. |
 

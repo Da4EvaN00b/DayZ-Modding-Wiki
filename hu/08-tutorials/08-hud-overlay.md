@@ -84,101 +84,95 @@ A `3_Game` réteg definiálja a konstansokat (az RPC ID-nket). A `4_World` réte
 
 ## 1. lépés: A layout fájl létrehozása
 
-A layout fájlok (`.layout`) XML-ben definiálják a widget hierarchiát. A DayZ GUI rendszere egy koordináta modellt használ, ahol minden widgetnek van pozíciója és mérete, arányos értékekkel (0.0 - 1.0 a szülő arányában) plusz pixel eltolásokkal kifejezve.
+A layout fájlok (`.layout`) egy kapcsos zárójel alapú formátumban definiálják a widget hierarchiát. Minden widget `WidgetClass WidgetName { ... }` formában van deklarálva, az attribútumok csupasz `name value` sorok (csak akkor idézőjelesek, ha a név szóközt tartalmaz), a gyerek widgetek pedig egy belső `{ }` blokkba vannak ágyazva. A DayZ GUI rendszere egy koordináta modellt használ, ahol minden widgetnek van pozíciója és mérete, arányos értékekkel (0.0 - 1.0 a szülő arányában) plusz pixel eltolásokkal kifejezve.
 
 ### `GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <!-- Gyökér keret: lefedi a teljes képernyőt, nem fogyaszt bemenetet -->
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <!-- Háttér panel: jobb felső sarok -->
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <!-- Szerver név szöveg -->
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Játékosszám szöveg -->
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Játékon belüli idő szöveg -->
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  // Háttér panel: jobb felső sarok
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    // Szerver név szöveg
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+     "text halign" left
+     "text valign" top
+    }
+    // Játékosszám szöveg
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+    // Játékon belüli idő szöveg
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+   }
+  }
+ }
+}
 ```
 
 ### Főbb layout fogalmak
 
 | Attribútum | Jelentés |
 |-----------|---------|
-| `halign="2"` | Vízszintes igazítás: **jobbra**. A widget a szülője jobb széléhez rögzül. |
-| `valign="0"` | Függőleges igazítás: **felülre**. |
-| `hexactpos="0"` + `vexactpos="1"` | A vízszintes pozíció arányos (1.0 = jobb szél), a függőleges pozíció pixelben van. |
-| `hexactsize="1"` + `vexactsize="1"` | A szélesség és magasság pixelben van (220 x 70). |
-| `color="0 0 0 0.55"` | RGBA lebegőpontos számokként. Fekete 55%-os átlátszatlansággal a háttér panelhez. |
+| `halign right` | Vízszintes igazítás: **jobbra**. A widget a szülője jobb széléhez rögzül. |
+| `valign top` | Függőleges igazítás: **felülre**. |
+| `hexactpos 0` + `vexactpos 1` | A vízszintes pozíció arányos (1.0 = jobb szél), a függőleges pozíció pixelben van. |
+| `hexactsize 1` + `vexactsize 1` | A szélesség és magasság pixelben van (220 x 70). |
+| `color 0 0 0 0.55` | RGBA lebegőpontos számokként. Fekete 55%-os átlátszatlansággal a háttér panelhez. |
 
-A `ServerInfoPanel` az arányos X=1.0 pozícióra (jobb szél) van helyezve `halign="2"` (jobbra igazított) beállítással, így a panel jobb széle érinti a képernyő jobb oldalát. Az Y pozíció 0 pixel a tetejétől. Ez a jobb felső sarokba helyezi a HUD-unkat.
+A `ServerInfoPanel` az arányos X=1.0 pozícióra (jobb szél) van helyezve `halign right` (jobbra igazított) beállítással, így a panel jobb széle érinti a képernyő jobb oldalát. Az Y pozíció 0 pixel a tetejétől. Ez a jobb felső sarokba helyezi a HUD-unkat.
 
 **Miért pixel méret a panelhez?** Az arányos méretezés a panelt a felbontással együtt méretezné, de kis infó widgeteknél rögzített pixel lábnyomot szeretnél, hogy a szöveg minden felbontáson olvasható maradjon.
 
@@ -485,6 +479,10 @@ Az RPC ID-knek egyedinek kell lenniük az összes mod között. A mieinket a `3_
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Maximum játékos helyek. Nincs GetGame().GetMaxPlayers() natív, ezért
+// állítsd ezt úgy, hogy egyezzen a szerver konfigoddal (az indítási paramétereidben lévő érték).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 **Miért `3_Game`?** A konstansok és enum-ok a legalsó rétegbe tartoznak, amelyet mind a kliens, mind a szerver elérhet. A `3_Game` réteg a `4_World` és `5_Mission` előtt töltődik be, így mindkét oldal láthatja ezeket az értékeket.
@@ -532,8 +530,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // Maximum játékosok a szerver konfigból
-        maxPlayers = GetGame().GetMaxPlayers();
+        // Nincs GetGame().GetMaxPlayers(). A beállított hely-
+        // szám a szerver konfigban él, nem egy scriptből elérhető
+        // CGame natívban, ezért itt egy ismert konstanst használunk.
+        maxPlayers = SIH_MAX_PLAYERS;
 
         // Válasz küldése vissza a kérő kliensnek
         ScriptRPC rpc = new ScriptRPC();
@@ -933,6 +933,10 @@ class CfgMods
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Maximum játékos helyek. Nincs GetGame().GetMaxPlayers() natív, ezért
+// állítsd ezt úgy, hogy egyezzen a szerver konfigoddal (az indítási paramétereidben lévő érték).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 ### 5. fájl: `ServerInfoHUD/Scripts/4_World/ServerInfoHUD/ServerInfoServer.c`
@@ -972,8 +976,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         int playerCount = players.Count();
 
-        // Maximum játékos helyek lekérése
-        int maxPlayers = GetGame().GetMaxPlayers();
+        // Nincs GetGame().GetMaxPlayers(). A beállított helyszám
+        // a szerver konfigban él, nem egy scriptből elérhető CGame natívban,
+        // ezért itt egy ismert konstanst használunk.
+        int maxPlayers = SIH_MAX_PLAYERS;
 
         // Az adatok visszaküldése a kérő kliensnek
         ScriptRPC rpc = new ScriptRPC();
@@ -1282,73 +1288,68 @@ modded class MissionGameplay
 
 ### 8. fájl: `ServerInfoHUD/GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-            </Widget>
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+    }
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+    }
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+    }
+   }
+  }
+ }
+}
 ```
 
 ---
@@ -1369,31 +1370,22 @@ protected void RefreshFPS()
     if (!m_FPSText)
         return;
 
-    float fps = 1.0 / GetGame().GetDeltaT();
+    float fps = GetGame().GetLastFPS();
     m_FPSText.SetText("FPS: " + Math.Round(fps).ToString());
 }
 ```
 
-Hívd meg a `RefreshFPS()`-t a `RefreshTime()` mellett a frissítés metódusban. Vedd figyelembe, hogy a `GetDeltaT()` az aktuális képkocka idejét adja vissza, tehát az FPS érték ingadozni fog. Simább megjelenítéshez átlagolj több képkockán:
+Hívd meg a `RefreshFPS()`-t a `RefreshTime()` mellett a frissítés metódusban. Vedd figyelembe, hogy a `GetLastFPS()` az utolsó képkocka képkockasebességét adja vissza, tehát az érték ingadozni fog. Simább megjelenítéshez használd a motor beépített gördülő átlagát:
 
 ```c
-protected float m_FPSAccum;
-protected int m_FPSFrames;
-
 protected void RefreshFPS()
 {
     if (!m_FPSText)
         return;
 
-    m_FPSAccum += GetGame().GetDeltaT();
-    m_FPSFrames++;
-
-    float avgFPS = m_FPSFrames / m_FPSAccum;
+    // A GetAvgFPS a megadott számú legutóbbi képkockán átlagol.
+    float avgFPS = GetGame().GetAvgFPS(64);
     m_FPSText.SetText("FPS: " + Math.Round(avgFPS).ToString());
-
-    // Visszaállítás másodpercenként (amikor a fő időzítő aktiválódik)
-    m_FPSAccum = 0;
-    m_FPSFrames = 0;
 }
 ```
 
@@ -1481,7 +1473,7 @@ class DraggableHUD : ScriptedWidgetEventHandler
         return false;
     }
 
-    override bool OnUpdate(Widget w, int x, int y, int oldX, int oldY)
+    override bool OnDrag(Widget w, int x, int y)
     {
         if (m_Dragging && m_DragWidget)
         {
@@ -1598,7 +1590,7 @@ Most, hogy van egy működő HUD overlayd, fontold meg ezeket a továbblépések
 |---------|---------|---------|
 | `OnUpdate(float timeslice)` | Képkockánként egyszer hívódik a képkocka delta idővel | Egy 144 FPS-es kliensen ez másodpercenként 144-szer aktiválódik. RPC küldése minden híváskor játékosonként másodpercenként 144 hálózati csomagot hoz létre. Mindig gyűjtsd a `timeslice`-ot és csak akkor cselekedj, ha az összeg meghaladja az intervallumodat. |
 | `CreateWidgets()` layout útvonal | Betölti a layoutot a megadott útvonalról | Az útvonal a PBO prefix-hez képest relatív, nem a fájlrendszerhez. Ha a PBO prefixed nem egyezik az útvonal stringgel, a `CreateWidgets` csendben NULL-t ad vissza hiba nélkül a logban. |
-| `WidgetFadeTimer` | Simán animálja a widget átlátszóságát | A `FadeOut` elrejti a widgetet az animáció befejezése után, de a `FadeIn` NEM hívja meg először a `Show(true)` metódust. Manuálisan meg kell jelenítened a widgetet a `FadeIn` meghívása előtt, különben semmi sem jelenik meg. |
+| `WidgetFadeTimer` | Simán animálja a widget átlátszóságát | A `FadeOut` elrejti a widgetet, amint az alfa közel nullára ér, a `FadeIn` pedig meghívja a `Show(true)` metódust magán a widgeten, mielőtt az alfát 0-ról 1-re animálná. A `FadeIn` előtti extra `m_Root.Show(true)` tehát felesleges (ártalmatlan, nem szükséges). |
 | `GetUApi().GetInputByName()` | Visszaadja a beviteli akciót az egyéni billentyűkötésedhez | Ha az `inputs.xml` nincs hivatkozva a `config.cpp`-ben a `class inputs` alatt, az akció név ismeretlen és a `GetInputByName` null-t ad vissza, ami összeomlást okoz a `.LocalPress()` hívásnál. |
 
 ---

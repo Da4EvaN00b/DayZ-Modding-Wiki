@@ -77,8 +77,6 @@ DayZ 玩家相机是由引擎的玩家控制器管理的原生类。它们不能
 | `DayZPlayerCameras.DAYZCAMERA_OPTICS` | 光学/瞄准镜瞄准 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_VEHICLE` | 第三人称载具 |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE` | 第一人称载具 |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_SWIM` | 第三人称游泳 |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_UNCONSCIOUS` | 第三人称昏迷 |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS` | 第一人称昏迷 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_CLIMB` | 第三人称攀爬 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_JUMP` | 第三人称跳跃 |
@@ -89,8 +87,8 @@ DayZ 玩家相机是由引擎的玩家控制器管理的原生类。它们不能
 DayZPlayer player = GetGame().GetPlayer();
 if (player)
 {
-    int cameraType = player.GetCurrentCameraType();
-    if (cameraType == DayZPlayerCameras.DAYZCAMERA_1ST)
+    DayZPlayerCamera cam = player.GetCurrentCamera();
+    if (cam && cam.GetCameraName() == "DayZPlayerCamera1stPerson")
     {
         Print("Player is in first person");
     }
@@ -101,34 +99,30 @@ if (player)
 
 ## FreeDebugCamera
 
-**文件：** `5_Mission/gui/scriptconsole/freedebugcamera.c`
+**文件：** `3_Game/entities/camera.c`
 
 用于调试和影视制作的自由飞行相机。在诊断版本中可用，或通过模组启用。
 
 ### 获取实例
 
 ```c
-FreeDebugCamera GetFreeDebugCamera();
+static proto native FreeDebugCamera GetInstance();
 ```
 
-此全局函数返回自由相机的单例实例（如果不存在则返回 null）。
+此静态方法返回自由相机的单例实例（如果不存在则返回 null）。请通过 `FreeDebugCamera.GetInstance()` 调用它。
 
 ### 主要方法
 
 ```c
-// 启用/禁用自由相机
-static void SetActive(bool active);
-static bool GetActive();
+// 启用/禁用自由相机（继承自 Camera）
+proto native void SetActive(bool active);
+proto native bool IsActive();
 
 // 位置和朝向
 vector GetPosition();
 void   SetPosition(vector pos);
 vector GetOrientation();
 void   SetOrientation(vector ori);   // 偏航、俯仰、翻滚
-
-// 速度
-void SetFlySpeed(float speed);
-float GetFlySpeed();
 
 // 相机方向
 vector GetDirection();
@@ -139,14 +133,12 @@ vector GetDirection();
 ```c
 void ActivateDebugCamera(vector pos)
 {
-    FreeDebugCamera.SetActive(true);
-
-    FreeDebugCamera cam = GetFreeDebugCamera();
+    FreeDebugCamera cam = FreeDebugCamera.GetInstance();
     if (cam)
     {
+        cam.SetActive(true);
         cam.SetPosition(pos);
         cam.SetOrientation(Vector(0, -30, 0));  // 略微向下看
-        cam.SetFlySpeed(10.0);
     }
 }
 ```
@@ -160,8 +152,8 @@ void ActivateDebugCamera(vector pos)
 ### 读取 FOV
 
 ```c
-// 获取当前相机 FOV
-float fov = GetDayZGame().GetFieldOfView();
+// 获取当前相机 FOV（弧度）
+float fov = Camera.GetCurrentFOV();
 ```
 
 ### DayZPlayerCamera FOV 覆盖
@@ -171,9 +163,10 @@ float fov = GetDayZGame().GetFieldOfView();
 ```c
 class MyCustomCamera extends DayZPlayerCamera1stPerson
 {
-    override float GetCurrentFOV()
+    override void OnUpdate(float pDt, out DayZPlayerCameraResult pOutResult)
     {
-        return 0.7854;  // 约 45 度（弧度）
+        super.OnUpdate(pDt, pOutResult);
+        pOutResult.m_fFovAbsolute = 0.7854;  // 约 45 度（弧度）
     }
 }
 ```
@@ -184,26 +177,17 @@ class MyCustomCamera extends DayZPlayerCamera1stPerson
 
 景深通过后处理效果系统控制（见[第 6.5 章](05-ppe.md)）。然而，相机系统通过以下机制与 DOF 配合工作：
 
-### 通过 World 设置 DOF
+### 通过 CGame 设置 DOF
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    // SetDOF(对焦距离, 对焦长度, 近端对焦长度, 模糊度, 对焦深度偏移)
-    // 所有值以米为单位
-    world.SetDOF(5.0, 100.0, 0.5, 0.3, 0.0);
-}
+// OverrideDOF(enable, focusDistance, focusLength, focusLengthNear, blur, focusDepthOffset)
+GetGame().OverrideDOF(true, 5.0, 100.0, 0.5, 0.3, 0.0);
 ```
 
 ### 禁用 DOF
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    world.SetDOF(0, 0, 0, 0, 0);  // 全部设为零可禁用 DOF
-}
+GetGame().OverrideDOF(false, 0, 0, 0, 0, 1);  // 第一个参数为 false 可禁用 DOF
 ```
 
 ---
@@ -224,11 +208,13 @@ ScriptCamera camera = ScriptCamera.Cast(
 
 ### 主要方法
 
+> **注意：** `ScriptCamera` 仅在 `#ifdef GAME_TEMPLATE` 下编译，DayZ 游戏构建中不存在。它通过 `GenericEntity` 的相机方法（`SetCameraVerticalFOV`、`SetCameraNearPlane`、`SetCameraFarPlane`、`SetCameraType`）进行自我配置。下面的方法属于引擎 `Camera` 类（`3_Game/entities/camera.c`），`FreeDebugCamera` 继承自该类：
+
 ```c
-proto native void SetFOV(float fov);          // FOV（弧度）
-proto native void SetNearPlane(float nearPlane);
-proto native void SetFarPlane(float farPlane);
-proto native void SetFocus(float dist, float len);
+proto native void SetFOV(float fov);                 // FOV（弧度）
+proto native void SetNearPlane(float nearPlane);     // 内部钳制到 0.01m
+proto native float GetNearPlane();
+proto native void SetFocus(float distance, float blur);  // 景深
 ```
 
 ### 激活相机
@@ -278,10 +264,10 @@ Object GetObjectInCrosshair(float maxDistance)
 |------|------|
 | 全局访问器 | `GetCurrentCameraPosition()`, `GetCurrentCameraDirection()`, `GetScreenPos()` |
 | 相机类型 | `DayZPlayerCameras` 常量（1ST, 3RD_ERC, IRONSIGHTS, OPTICS, VEHICLE 等） |
-| 当前类型 | `player.GetCurrentCameraType()` |
-| 自由相机 | `FreeDebugCamera.SetActive(true)`，然后 `GetFreeDebugCamera()` |
-| FOV | `GetDayZGame().GetFieldOfView()` 读取，在相机类中覆盖 `GetCurrentFOV()` |
-| DOF | `GetGame().GetWorld().SetDOF(focus, length, near, blur, offset)` |
+| 当前类型 | `player.GetCurrentCamera().GetCameraName()` |
+| 自由相机 | `FreeDebugCamera.GetInstance()`，然后 `cam.SetActive(true)` |
+| FOV | `Camera.GetCurrentFOV()` 读取，在 `OnUpdate` 中设置 `pOutResult.m_fFovAbsolute` |
+| DOF | `GetGame().OverrideDOF(enable, focusDist, focusLen, focusLenNear, blur, offset)` |
 | 屏幕转换 | `GetScreenPos(worldPos)` 返回像素 XY + 深度 Z |
 
 ---

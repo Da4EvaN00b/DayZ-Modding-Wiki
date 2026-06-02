@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Nachthelligkeit (0 = heller, 1 = dunkler)
 | `disable3rdPerson` | int | 0, 1 | 0 | Auf 1 setzen fuer Erste-Person-Only-Server. Dies ist die haeufigste "Hardcore"-Einstellung. |
 | `disableCrosshair` | int | 0, 1 | 0 | Auf 1 setzen, um das Fadenkreuz zu entfernen. Wird oft mit `disable3rdPerson=1` kombiniert. |
 | `disablePersonalLight` | int | 0, 1 | 1 | Das "Personal Light" ist ein dezentes Leuchten um den Spieler bei Nacht. Die meisten Server deaktivieren es (Wert 1) fuer Realismus. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = hellere Naechte (Mondlicht sichtbar). 1 = stockdunkle Naechte (Taschenlampe/NVG erforderlich). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = hellere Naechte (Mondlicht sichtbar). 1 = stockdunkle Naechte (Taschenlampe/NVG erforderlich). 2 = Sakhal-spezifische Beleuchtung. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Zeit zwischen Neustarts speichern
 | Parameter | Typ | Gueltige Werte | Standard | Hinweise |
 |-----------|-----|----------------|----------|----------|
 | `serverTime` | string | `"SystemTime"` oder `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` verwendet die lokale Uhr des Rechners. Setzen Sie eine feste Zeit wie `"2024/9/15/12/0"` fuer einen permanenten Tagesserver. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Multiplikator fuer die In-Game-Zeit. Bei 12 dauert ein voller 24-Stunden-Zyklus 2 reale Stunden. Bei 1 laeuft die Zeit in Echtzeit. Bei 24 vergeht ein voller Tag in 1 Stunde. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Multiplikator fuer die In-Game-Zeit. Bei 12 dauert ein voller 24-Stunden-Zyklus 2 reale Stunden. Bei 1 laeuft die Zeit in Echtzeit. Bei 24 vergeht ein voller Tag in 1 Stunde. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Wird mit `serverTimeAcceleration` multipliziert. Bei Wert 4 mit Beschleunigung 12 vergeht die Nacht mit 48-facher Geschwindigkeit (sehr kurze Naechte). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Bei 1 speichert der Server seine In-Game-Uhr auf der Festplatte und setzt sie nach einem Neustart fort. Bei 0 wird die Zeit bei jedem Neustart auf `serverTime` zurueckgesetzt. |
 

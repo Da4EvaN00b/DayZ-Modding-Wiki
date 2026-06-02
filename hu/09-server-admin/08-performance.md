@@ -30,7 +30,7 @@ Közösségi adatok alapján (400+ Discord említés FPS/teljesítmény/lag/desy
 2. **Esemény spawnolás** -- túl sok aktív dinamikus esemény (járművek, állatok, helikopter roncsok) az `events.xml`-ben spawn/takarítási ciklusokat és entitás helyeket fogyaszt.
 3. **Játékos szám + mod szám** -- minden csatlakoztatott játékos entitás frissítéseket generál, és minden mod szkript osztályokat ad hozzá, amelyeket a motornak minden tickben le kell fordítania és végrehajtania.
 
-A szerver játékciklus fix 30 FPS tick sebességgel fut. Amikor a szerver nem képes tartani a 30 FPS-t, a játékosok desync-et tapasztalnak -- gumiszalag effektus, késleltetett tárgy felvétel és találat regisztrációs hibák. 15 szerver FPS alatt a játék játszhatatlanná válik.
+A szerver játékciklus változó FPS-en fut, amely a terheléssel ingadozik. Amikor a szerver nem képes tartani egy egészséges FPS-t (a `serverFpsWarning` alapértelmezett küszöbe 15), a játékosok desync-et tapasztalnak -- gumiszalag effektus, késleltetett tárgy felvétel és találat regisztrációs hibák. 15 szerver FPS alatt a játék játszhatatlanná válik.
 
 ---
 
@@ -53,7 +53,7 @@ Ezek a vanilla alapértékek a teljesítményt közvetlenül befolyásoló param
 | `ZombieMaxCount` | 1000 | A szerveren egyszerre élő fertőzöttek korlátja. Minden zombi AI útvonalkeresést futtat. 500-700-ra csökkentés észrevehetően javítja a szerver FPS-t népes szervereken. |
 | `AnimalMaxCount` | 200 | Állatok korlátja. Az állatoknak egyszerűbb AI-juk van, mint a zombiknak, de még mindig fogyasztanak tick időt. Csökkentsd 100-ra, ha FPS problémákat látsz. |
 | `ZoneSpawnDist` | 300 | Távolság méterben, amelynél a zombi zónák aktiválódnak a játékosok körül. 200-ra csökkentés kevesebb egyidejű aktív zónát jelent. |
-| `SpawnInitial` | 1200 | Tárgyak száma, amelyet a CE az első indításkor spawnol. Magasabb értékek hosszabb kezdeti betöltést jelentenek. Nem befolyásolja az állandó állapotú teljesítményt. |
+| `SpawnInitial` | 1200 | A kezdeti tárgy spawnolás során engedélyezett spawn próbálkozások (tesztek) száma, nem a spawnolt tárgyak száma. Az első indításkor spawnolt zsákmány mennyiségét az `InitialSpawn` szabályozza (alapértelmezett 100, ami egy százalék). Magasabb értékek hosszabb kezdeti betöltést jelentenek. Nem befolyásolja az állandó állapotú teljesítményt. |
 | `CleanupLifetimeDefault` | 45 | Alapértelmezett takarítási idő másodpercben specifikus élettartam nélküli tárgyakhoz. Alacsonyabb értékek gyorsabb takarítási ciklusokat, de gyakoribb CE feldolgozást jelentenek. |
 
 **Ajánlott teljesítmény profil** (40 játékos feletti nehézségekkel küzdő szerverekhez):
@@ -135,7 +135,7 @@ A fő szerver konfigurációs fájlnak korlátozott teljesítménnyel kapcsolato
 | `maxPlayers` | Csökkentsd, ha a szerver küzd. Minden játékos hálózati forgalmat és entitás frissítéseket generál. 60-ról 40 játékosra csökkentés 5-10 szerver FPS-t nyerhet vissza. |
 | `instanceId` | Meghatározza a `storage_1/` elérési útvonalát. Nem teljesítmény beállítás, de ha a tárolód lassú lemezen van, befolyásolja a perzisztencia I/O-t. |
 
-**Amit nem változtathatsz meg:** a szerver tick sebesség fix 30 FPS. Nincs beállítás a növelésére vagy csökkentésére. Ha a szerver nem képes tartani a 30 FPS-t, egyszerűen lassabban fut.
+**Amit nem változtathatsz meg:** nincs beállítás egy magasabb minimális szerver FPS kényszerítésére. A szerver FPS változó és a terheléssel ingadozik. A maximumot a `-limitFPS=` indítási paraméterrel korlátozhatod (a jelenlegi maximum 200), hogy csökkentsd a CPU használatot alacsony népességű szervereken, de ha a szerver nem bír lépést tartani terhelés alatt, egyszerűen lassabban fut.
 
 ---
 

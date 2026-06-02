@@ -176,7 +176,7 @@ Pokud váš mod závisí na jiném modu, přidejte jeho název třídy CfgPatche
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Závisí na Community Framework
+    "JM_CF_Scripts"           // Závisí na Community Framework
 };
 ```
 

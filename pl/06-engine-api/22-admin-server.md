@@ -147,14 +147,26 @@ enum EClientKicked
     KICK_ALL_ADMIN,     // Admin kicked all (RCON)
     KICK_ALL_SERVER,    // Server kicked all
     TIMEOUT,            // Network timeout
+    LOGOUT,             // Player logged out
     KICK,               // Generic kick
     BAN,                // Player was banned
     PING,               // Ping limit exceeded
     MODIFIED_DATA,      // Modified game files
+    UNSTABLE_NETWORK,   // Connection too unstable
+    SERVER_SHUTDOWN,    // Server shutting down
     NOT_WHITELISTED,    // Not on whitelist
+    NO_IDENTITY,        // No identity received
+    NO_INPUT_INTERFACE, // No input interface for player
+    INVALID_UID,        // UID incorrect while creating identity
+    BANK_COUNT,         // Bank count changed
     ADMIN_KICK,         // Kicked by admin
+    INVALID_ID,         // Invalid player ID
+    INPUT_HACK,         // Sending more inputs than possible
+    QUIT,               // Player closed the game
+    LEAVE,              // Player pressed Leave button
+    // ... large jumps follow for login machine errors (LOGIN_MACHINE_ERROR = 48),
+    // DB errors, respawn, verification, auth, and PBO mismatch codes
     BATTLEYE = 240,     // BattlEye kick
-    // ... additional codes for login machine errors, DB errors, etc.
 }
 ```
 
@@ -297,7 +309,7 @@ GetGame().GetWorld().SetTimeMultiplier(2.0);
 Also available from `CGame`:
 
 ```c
-proto native float GetDayTime(); // Seconds since midnight (0-86400 approx.)
+proto native float GetDayTime(); // Current daytime in hours (0-24)
 ```
 
 ### Weather Control

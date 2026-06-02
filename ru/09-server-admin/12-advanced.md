@@ -45,16 +45,19 @@ enableCfgGameplayFile = 1;
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ class Missions {
 
 ## cfgenvironment.xml и территории животных
 
-Файл **cfgenvironment.xml** в вашей папке миссии ссылается на файлы территорий в подкаталоге `env/`:
+Файл **cfgenvironment.xml** в вашей папке миссии сопоставляет файлы территорий в подкаталоге `env/` с поведением животных. Каждая группа животных -- это элемент `<territory>` с дочерним элементом `<file usable="..." />` (на который ссылаются по имени, без префикса `env/` и расширения `.xml`):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ class Missions {
 </event>
 ```
 
-**3. Добавьте заражённых охранников** (опционально) -- добавьте элементы `<secondary type="ZmbM_PatrolNormal_Autumn" />` в определение события.
+**3. Добавьте заражённых охранников** (опционально) -- добавьте элемент `<secondary>InfectedArmy</secondary>` в определение события. Его содержимое ссылается на имя другого события в **events.xml**, которое спавнит заражённых.
 
 **4. Групповой спавн** (опционально) -- определите кластеры в **cfgeventgroups.xml** и сошлитесь на имя группы в вашем событии.
 
@@ -265,14 +272,14 @@ cd /home/dayz/server && ./DayZServer -config=serverDZ.cfg -profiles=profiles -po
 
 Файл **cfgweather.xml** в вашей папке миссии управляет погодными паттернами. Каждая карта поставляется со своими значениями по умолчанию:
 
-Каждое явление имеет `min`, `max`, `duration_min` и `duration_max` (секунды):
+Каждое явление -- это вложенный элемент (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`), содержащий дочерние элементы `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` и `<changelimits min="" max="" />` (`rain` и `snowfall` также принимают элемент `<thresholds>`). Диапазон значений `<limits>` для каждого явления:
 
-| Явление | Min по умолчанию | Max по умолчанию | Примечания |
+| Явление | Limits Min | Limits Max | Примечания |
 |------------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Определяет плотность облаков и вероятность дождя |
 | `rain` | 0.0 | 1.0 | Включается только при превышении порога облачности. Установите max в `0.0` для отключения дождя |
 | `fog` | 0.0 | 0.3 | Значения выше `0.5` дают почти нулевую видимость |
-| `wind_magnitude` | 0.0 | 18.0 | Влияет на баллистику и передвижение игрока |
+| `windMagnitude` | 0.0 | 20.0 | Скорость ветра в м/с; влияет на баллистику и передвижение игрока |
 
 ---
 

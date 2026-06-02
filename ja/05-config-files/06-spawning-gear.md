@@ -193,7 +193,7 @@ DayZでプレイヤーが新規キャラクターとしてスポーンすると�
 | `quickBarSlot` | integer | Quick bar slot assignment (0-based). Use `-1` for no quickbar assignment |
 | `complexChildrenTypes` | array | Items to spawn nested inside this item. See [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Item classnames to spawn inside this item using default or parent attributes |
-| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use the parent's `attributes`. If `false`, they use configuration defaults |
+| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use configuration defaults. If `false`, they use the parent's `attributes` |
 
 **空アイテムのトリック：** スロットが空になるか埋まるかを50/50の確率にするには、空の`itemType`を使用します：
 
@@ -228,10 +228,10 @@ DayZでプレイヤーが新規キャラクターとしてスポーンすると�
 |-------|------|-------------|
 | `name` | string | Human-readable name (for identification only) |
 | `spawnWeight` | integer | Weight for selection. Minimum `1` |
-| `attributes` | object | デフォルト health/quantity ranges. Used by children when `simpleChildrenUseDefaultAttributes` is `true` |
+| `attributes` | object | デフォルト health/quantity ranges. Used by children when `simpleChildrenUseDefaultAttributes` is `false` |
 | `complexChildrenTypes` | array | Items to spawn into cargo, each with their own attributes and nesting |
 | `simpleChildrenTypes` | array | Item classnames to spawn into cargo |
-| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use this structure's `attributes`. If `false`, they use configuration defaults |
+| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use configuration defaults. If `false`, they use this structure's `attributes` |
 
 ```json
 {
@@ -327,7 +327,7 @@ Complex childrenは、属性、クイックバー割り当て、独自のネス�
 }
 ```
 
-この例では、AKMはバットストック、オプティック（内部にバッテリー付き）、装填済みマガジンをcomplex childrenとして、さらにハンドガードとバヨネットをsimple childrenとしてスポーンします。`simpleChildrenUseDefaultAttributes`が`false`であるため、simple childrenは設定のデフォルト値を使用します。
+この例では、AKMはバットストック、オプティック（内部にバッテリー付き）、装填済みマガジンをcomplex childrenとして、さらにハンドガードとバヨネットをsimple childrenとしてスポーンします。`simpleChildrenUseDefaultAttributes`が`false`であるため、simple childrenは親であるAKMセットの`attributes`を使用します。設定のデフォルト値が使用されるのは、このフラグが`true`の場合のみです。
 
 ### SimpleChildrenTypes
 
@@ -335,8 +335,8 @@ Simple childrenは、個別の属性を指定せずに親アイテム内にア�
 
 属性は`simpleChildrenUseDefaultAttributes`フラグによって決定されます：
 
-- **`true`** --- アイテムは親構造に定義された`attributes`を使用します。
-- **`false`** --- アイテムはエンジンの設定デフォルト値（通常はフルヘルスとフル数量）を使用します。
+- **`true`** --- アイテムはエンジンの設定デフォルト値（通常はフルヘルスとフル数量）を使用します。
+- **`false`** --- アイテムは親構造に定義された`attributes`を使用します。
 
 Simple childrenは独自のネストされた子アイテムやクイックバー割り当てを持つことができません。これらの機能が必要な場合は、代わりに`complexChildrenTypes`を使用してください。
 
@@ -1116,7 +1116,7 @@ If the mod is not loaded on the server, items with unknown classnames will silen
 |---------|-------------|-----|
 | Forgetting `enableCfgGameplayFile = 1` in `serverDZ.cfg` | `cfggameplay.json` is not loaded, presets are ignored | Add the flag and restart the server |
 | Invalid JSON syntax (trailing comma, missing bracket) | All presets in that file silently fail | Validate JSON with an external tool before deploying |
-| Using `spawnGearPresetFiles` without removing `StartingEquipSetup()` code | The scripted loadout is silently overridden by the JSON preset. The init.c code runs but its items are replaced | This is expected behavior, not a bug. Remove or comment out the init.c loadout code to avoid confusion |
+| Using `spawnGearPresetFiles` without removing `StartingEquipSetup()` code | The scripted loadout is silently overridden by the JSON preset. When valid presets are active, `StartingEquipSetup()` is never called at all --- its items are not created and then replaced | This is expected behavior, not a bug. Remove or comment out the init.c loadout code to avoid confusion |
 | Setting `spawnWeight: 0` | 値 below minimum. Behavior is undefined | Always use `spawnWeight: 1` or higher |
 | Referencing a classname that does not exist | That specific item silently fails to spawn, but the rest of the preset works | Double-check classnames against the mod's `config.cpp` or types.xml |
 | Assigning an item to a slot it cannot occupy | Item does not spawn. No error logged | Verify the item's `inventorySlot[]` in config.cpp matches the `slotName` |

@@ -39,11 +39,13 @@ DayZ 中的每个控件都继承自 `Widget` 基类。控件以父子树形结�
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | 流式布局。按顺序排列子控件，支持换行、内边距和外边距。 |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | 网格布局。将子控件排列在由 `Columns` 和 `Rows` 定义的网格中。 |
 | `ScrollWidget` | `ScrollWidgetClass` | 可滚动视口。启用子内容的垂直/水平滚动。 |
-| `SpacerBaseWidget` | -- | `WrapSpacerWidget` 和 `GridSpacerWidget` 的抽象基类。 |
+| `SpacerBaseWidget` | -- | `SpacerWidget` 和 `ScrollWidget` 的抽象基类。`WrapSpacerWidget` 和 `GridSpacerWidget` 都继承自 `SpacerWidget`。 |
 
 ### FrameWidget
 
-DayZ UI 的主力控件。当你需要将控件分组时，使用 `FrameWidget` 作为默认容器。它没有视觉外观——纯粹是结构性的。
+DayZ UI 的主力控件。当你需要将控件分组时，使用框架作为默认容器。它没有视觉外观——纯粹是结构性的。
+
+> **注意：** `FrameWidgetClass` 可在 `.layout` 文件中使用，`FrameWidgetTypeID` 也存在以供 `CreateWidget()` 使用，但不存在 `FrameWidget` 脚本类。与 `PanelWidget` 类似，请将框架作为基础 `Widget` 来使用——不要转换为 `FrameWidget`。
 
 **关键方法：**
 - 所有基础 `Widget` 方法（位置、尺寸、颜色、子控件、标志）
@@ -52,7 +54,7 @@ DayZ UI 的主力控件。当你需要将控件分组时，使用 `FrameWidget` 
 
 ```c
 // 按名称查找框架控件
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +316,8 @@ eb.SetText("default");      // 设置文本内容
 **关键方法：**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // 返回 float (0-1)
+sw.SetMinMax(0, 100);       // 配置取值范围（否则使用默认范围）
+sw.GetCurrent();            // 返回所配置的 min/max 范围内的 float
 sw.SetCurrent(float val);   // 设置位置
 ```
 

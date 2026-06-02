@@ -323,7 +323,7 @@ Für einen Standard-DayZ-Server befindet sich `types.xml` unter:
 ### Häufige usage- und value-Tags
 
 **Usage (wo es spawnt):**
-- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medical`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
+- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medic`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
 
 **Value (Karten-Tier):**
 - `Tier1` -- Küste/Startgebiete

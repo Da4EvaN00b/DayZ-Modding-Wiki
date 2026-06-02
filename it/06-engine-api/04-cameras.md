@@ -77,8 +77,6 @@ Gli ID dei tipi di telecamera sono definiti come costanti:
 | `DayZPlayerCameras.DAYZCAMERA_OPTICS` | Mira con ottica/cannocchiale |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_VEHICLE` | Terza persona veicolo |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE` | Prima persona veicolo |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_SWIM` | Terza persona nuoto |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_UNCONSCIOUS` | Terza persona incosciente |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS` | Prima persona incosciente |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_CLIMB` | Terza persona arrampicata |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_JUMP` | Terza persona salto |
@@ -89,8 +87,8 @@ Gli ID dei tipi di telecamera sono definiti come costanti:
 DayZPlayer player = GetGame().GetPlayer();
 if (player)
 {
-    int cameraType = player.GetCurrentCameraType();
-    if (cameraType == DayZPlayerCameras.DAYZCAMERA_1ST)
+    DayZPlayerCamera cam = player.GetCurrentCamera();
+    if (cam && cam.GetCameraName() == "DayZPlayerCamera1stPerson")
     {
         Print("Player is in first person");
     }
@@ -101,34 +99,30 @@ if (player)
 
 ## FreeDebugCamera
 
-**File:** `5_Mission/gui/scriptconsole/freedebugcamera.c`
+**File:** `3_Game/entities/camera.c`
 
 La telecamera a volo libero utilizzata per il debug e il lavoro cinematografico. Disponibile nelle build diagnostiche o quando abilitata dai mod.
 
 ### Accesso all'istanza
 
 ```c
-FreeDebugCamera GetFreeDebugCamera();
+static proto native FreeDebugCamera GetInstance();
 ```
 
-Questa funzione globale restituisce l'istanza singleton della telecamera libera (o null se non esiste).
+Questo metodo statico restituisce l'istanza singleton della telecamera libera (o null se non esiste). Chiamalo come `FreeDebugCamera.GetInstance()`.
 
 ### Metodi principali
 
 ```c
-// Abilitare/disabilitare la telecamera libera
-static void SetActive(bool active);
-static bool GetActive();
+// Abilitare/disabilitare la telecamera libera (ereditato da Camera)
+proto native void SetActive(bool active);
+proto native bool IsActive();
 
 // Posizione e orientamento
 vector GetPosition();
 void   SetPosition(vector pos);
 vector GetOrientation();
 void   SetOrientation(vector ori);   // imbardata, beccheggio, rollio
-
-// Velocita
-void SetFlySpeed(float speed);
-float GetFlySpeed();
 
 // Direzione della telecamera
 vector GetDirection();
@@ -139,14 +133,12 @@ vector GetDirection();
 ```c
 void ActivateDebugCamera(vector pos)
 {
-    FreeDebugCamera.SetActive(true);
-
-    FreeDebugCamera cam = GetFreeDebugCamera();
+    FreeDebugCamera cam = FreeDebugCamera.GetInstance();
     if (cam)
     {
+        cam.SetActive(true);
         cam.SetPosition(pos);
         cam.SetOrientation(Vector(0, -30, 0));  // Guarda leggermente verso il basso
-        cam.SetFlySpeed(10.0);
     }
 }
 ```
@@ -160,8 +152,8 @@ Il motore controlla il FOV nativamente. Puoi leggerlo e modificarlo tramite il s
 ### Lettura del FOV
 
 ```c
-// Ottenere il FOV della telecamera attuale
-float fov = GetDayZGame().GetFieldOfView();
+// Ottenere il FOV della telecamera attuale (in radianti)
+float fov = Camera.GetCurrentFOV();
 ```
 
 ### Override del FOV in DayZPlayerCamera
@@ -171,9 +163,10 @@ Nelle classi telecamera personalizzate che estendono `DayZPlayerCamera`, puoi so
 ```c
 class MyCustomCamera extends DayZPlayerCamera1stPerson
 {
-    override float GetCurrentFOV()
+    override void OnUpdate(float pDt, out DayZPlayerCameraResult pOutResult)
     {
-        return 0.7854;  // ~45 gradi (radianti)
+        super.OnUpdate(pDt, pOutResult);
+        pOutResult.m_fFovAbsolute = 0.7854;  // ~45 gradi (radianti)
     }
 }
 ```
@@ -184,26 +177,17 @@ class MyCustomCamera extends DayZPlayerCamera1stPerson
 
 La profondita di campo e controllata tramite il sistema di effetti di post-elaborazione (vedi [Capitolo 6.5](05-ppe.md)). Tuttavia, il sistema telecamera lavora con il DOF attraverso questi meccanismi:
 
-### Impostazione del DOF tramite World
+### Impostazione del DOF tramite CGame
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    // SetDOF(distanza_fuoco, lunghezza_fuoco, lunghezza_fuoco_vicino, sfocatura, offset_profondita_fuoco)
-    // Tutti i valori in metri
-    world.SetDOF(5.0, 100.0, 0.5, 0.3, 0.0);
-}
+// OverrideDOF(enable, focusDistance, focusLength, focusLengthNear, blur, focusDepthOffset)
+GetGame().OverrideDOF(true, 5.0, 100.0, 0.5, 0.3, 0.0);
 ```
 
 ### Disabilitazione del DOF
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    world.SetDOF(0, 0, 0, 0, 0);  // Tutti zeri disabilita il DOF
-}
+GetGame().OverrideDOF(false, 0, 0, 0, 0, 1);  // Il primo argomento false disabilita il DOF
 ```
 
 ---
@@ -224,11 +208,13 @@ ScriptCamera camera = ScriptCamera.Cast(
 
 ### Metodi principali
 
+> **Nota:** `ScriptCamera` viene compilato solo sotto `#ifdef GAME_TEMPLATE` e non e presente nella build del gioco DayZ. Si configura tramite i metodi telecamera di `GenericEntity` (`SetCameraVerticalFOV`, `SetCameraNearPlane`, `SetCameraFarPlane`, `SetCameraType`). I metodi seguenti appartengono alla classe del motore `Camera` (`3_Game/entities/camera.c`), che `FreeDebugCamera` estende:
+
 ```c
-proto native void SetFOV(float fov);          // FOV in radianti
-proto native void SetNearPlane(float nearPlane);
-proto native void SetFarPlane(float farPlane);
-proto native void SetFocus(float dist, float len);
+proto native void SetFOV(float fov);                 // FOV in radianti
+proto native void SetNearPlane(float nearPlane);     // limitato internamente a 0.01m
+proto native float GetNearPlane();
+proto native void SetFocus(float distance, float blur);  // profondita di campo
 ```
 
 ### Attivazione di una telecamera
@@ -278,10 +264,10 @@ Object GetObjectInCrosshair(float maxDistance)
 |----------|-------------|
 | Accessori globali | `GetCurrentCameraPosition()`, `GetCurrentCameraDirection()`, `GetScreenPos()` |
 | Tipi di telecamera | Costanti `DayZPlayerCameras` (1ST, 3RD_ERC, IRONSIGHTS, OPTICS, VEHICLE, ecc.) |
-| Tipo attuale | `player.GetCurrentCameraType()` |
-| Telecamera libera | `FreeDebugCamera.SetActive(true)`, poi `GetFreeDebugCamera()` |
-| FOV | `GetDayZGame().GetFieldOfView()` per leggere, sovrascrivere `GetCurrentFOV()` nella classe telecamera |
-| DOF | `GetGame().GetWorld().SetDOF(fuoco, lunghezza, vicino, sfocatura, offset)` |
+| Tipo attuale | `player.GetCurrentCamera().GetCameraName()` |
+| Telecamera libera | `FreeDebugCamera.GetInstance()`, poi `cam.SetActive(true)` |
+| FOV | `Camera.GetCurrentFOV()` per leggere, impostare `pOutResult.m_fFovAbsolute` in `OnUpdate` |
+| DOF | `GetGame().OverrideDOF(enable, focusDist, focusLen, focusLenNear, blur, offset)` |
 | Conversione schermo | `GetScreenPos(worldPos)` restituisce pixel XY + profondita Z |
 
 ---

@@ -174,7 +174,7 @@ Definiuje reguly spawnu dla **kazdego przedmiotu** w grze. Przy okolo 23 000 lin
 
 ### globals.xml
 
-Globalne parametry wplywajace na cala ekonomie: liczba zombie, liczba zwierzat, zegary czyszczenia, zakresy uszkodzen lootu, czas odnowienia. Lacznie 33 parametry. Zobacz [Rozdzial 9.4](04-loot-economy.md) po kompletna dokumentacje.
+Globalne parametry wplywajace na cala ekonomie: liczba zombie, liczba zwierzat, zegary czyszczenia, zakresy uszkodzen lootu, czas odnowienia. Lacznie 30 parametrow. Zobacz [Rozdzial 9.4](04-loot-economy.md) po kompletna dokumentacje.
 
 ### events.xml
 
@@ -258,19 +258,19 @@ Przechowuje trwaly stan serwera miedzy restartami:
 
 ```
 storage_1/
-  players.db         # Baza danych SQLite wszystkich postaci graczy
+  players/           # Binarne rekordy postaci, jeden na gracza
   spawnpoints.bin    # Binarne dane punktow spawnu
   backup/            # Automatyczne kopie zapasowe danych trwalosci
   data/              # Stan swiata (umieszczone przedmioty, budowanie baz, pojazdy)
 ```
 
-**Nigdy nie edytuj `players.db` gdy serwer jest uruchomiony.** To baza danych SQLite zablokowana przez proces serwera. Jesli musisz wyczyscic postacie, najpierw zatrzymaj serwer, a nastepnie usun lub zmien nazwe pliku.
+**Nigdy nie edytuj recznie plikow w `players/` gdy serwer jest uruchomiony.** Sa to nieprzejrzyste rekordy binarne zapisywane wylacznie przez proces serwera. Jesli musisz wyczyscic postacie, najpierw zatrzymaj serwer, a nastepnie usun lub zmien nazwe folderu.
 
 Aby wykonac **pelne czyszczenie trwalosci**, zatrzymaj serwer i usun caly folder `storage_1/`. Serwer odtworzy go przy nastepnym uruchomieniu ze swiezym swiatem.
 
 Aby wykonac **czesciowe czyszczenie** (zachowaj postacie, zresetuj loot):
 1. Zatrzymaj serwer
-2. Usun pliki w `storage_1/data/`, ale zachowaj `players.db`
+2. Usun pliki w `storage_1/data/`, ale zachowaj `storage_1/players/`
 3. Uruchom ponownie
 
 ---

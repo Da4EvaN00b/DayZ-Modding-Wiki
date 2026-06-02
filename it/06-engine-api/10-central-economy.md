@@ -308,10 +308,14 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -320,11 +324,13 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
+I file CE principali (`types.xml`, `events.xml`, `globals.xml`) risiedono nella cartella `db/` per convenzione integrata --- il file vanilla `cfgeconomycore.xml` non contiene alcun elemento `<ce>` che li indichi. L'elemento `<ce>` viene invece usato per registrare file CE personalizzati **aggiuntivi** (introdotti nell'aggiornamento 1.08): l'attributo `folder` indica il nome della cartella che contiene il tuo XML personalizzato, e ogni voce `<file name="..." type="..."/>` annidata si aggiunge o sovrascrive il file vanilla corrispondente (`type` può essere `types`, `spawnabletypes`, `globals`, `economy`, `events` o `messages`).
 
 ---
 

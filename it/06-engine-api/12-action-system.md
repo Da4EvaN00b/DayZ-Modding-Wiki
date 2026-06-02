@@ -482,7 +482,7 @@ I componenti azione controllano _come_ l'azione progredisce nel tempo. Vengono c
 | `CAInteract` | nessuno | Esecuzione istantanea per azioni interact |
 | `CAContinuousTime` | `float time` | Barra progresso, si completa dopo `time` secondi |
 | `CAContinuousRepeat` | `float time` | Cicli ripetuti, lancia `OnFinishProgress` ogni ciclo |
-| `CAContinuousQuantity` | `float quantity, float time` | Consuma quantità nel tempo |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Consuma quantità nel tempo |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Come Quantity ma applica modificatori cibo/bevanda |
 
 ### Costanti di Tempo

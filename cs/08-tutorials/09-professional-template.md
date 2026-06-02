@@ -856,36 +856,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Připojení hráče - dispatch RPC serveru
-    // Voláno enginem, když klient odešle RPC na server.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Zpracovat pouze naše RPC ID. Všechna ostatní RPC projdou.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Přečtení názvu cesty (první string zapsaný odesílatelem).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Dispatch na správný handler podle názvu cesty.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Přidejte další cesty zde jak váš mod roste:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Vypnutí
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +878,47 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Dispatch RPC serveru.
+// DŮLEŽITÉ: OnRPC je metoda DayZGame, NIKOLI MissionServer. Řetězec tříd
+// Mission nemá žádné OnRPC, takže pro příjem RPC musíte modovat DayZGame.
+// Tento hook se spouští jak na klientu, tak na serveru, proto jej chraňte
+// pomocí GetGame().IsServer().
+// ==========================================================================
+modded class DayZGame
+{
+    // Voláno enginem, když dorazí RPC. Na serveru je toto místo, kde
+    // dispatchujeme RPC odeslaná klienty.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Dispatch pouze na straně serveru.
+        if (!IsServer()) return;
+
+        // Zpracovat pouze naše RPC ID. Všechna ostatní RPC projdou.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Přečtení názvu cesty (první string zapsaný odesílatelem).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // Dispatch na správný handler podle názvu cesty.
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Přidejte další cesty zde jak váš mod roste:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -925,8 +936,9 @@ Toto se napojuje na `MissionGameplay` pro inicializaci na straně klienta, zprac
 //
 // PROČ MissionGameplay:
 //   Na klientu je MissionGameplay aktivní třída mise během hry.
-//   Přijímá OnUpdate() každý snímek (pro polling vstupu)
-//   a OnRPC() pro příchozí zprávy ze serveru.
+//   Přijímá OnUpdate() každý snímek (pro polling vstupu).
+//   RPC však dorazí přes DayZGame.OnRPC (nikoli na misi), takže
+//   modovaná DayZGame níže přeposílá příchozí zprávy této třídě.
 //
 // POZNÁMKA K LISTEN SERVERŮM:
 //   Na listen serveru (hostování + hraní) jsou aktivní JAK MissionServer,
@@ -976,15 +988,14 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // Přijímač RPC: zpracovává zprávy ze serveru
+    // Přijímač RPC: zpracovává zprávy ze serveru.
+    // Toto NENÍ override enginu -- skutečný callback enginu se nachází na
+    // DayZGame (viz modovaná DayZGame níže). DayZGame.OnRPC se dostane k
+    // aktivní misi přes GetGame().GetMission() a přeposílá klientská RPC sem,
+    // aby tato metoda mohla pracovat s instančními členy jako m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Zpracovat pouze naše RPC ID.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // Přečtení názvu cesty.
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1058,6 +1069,37 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Dispatch RPC klienta.
+// DŮLEŽITÉ: OnRPC je metoda DayZGame, NIKOLI MissionGameplay. Řetězec tříd
+// Mission nemá žádné OnRPC, takže RPC se přijímají modováním DayZGame. Tento
+// hook se spouští jak na klientu, tak na serveru, proto jej chraňte pomocí
+// GetGame().IsClient(). K aktivní MissionGameplay se dostaneme přes
+// GetGame().GetMission() a přeposíláme do jejího OnMyModRPC, aby členy
+// UI panelu zůstaly přístupné.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Dispatch pouze na straně klienta.
+        if (!IsClient()) return;
+
+        // Zpracovat pouze naše RPC ID.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Přeposlání aktivní misi, aby instanční členy (UI panel) byly
+        // dosažitelné. Přetypování na náš modovaný typ MissionGameplay.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1264,7 +1306,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1280,7 +1322,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1307,7 +1349,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1324,7 +1366,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1677,7 +1719,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }

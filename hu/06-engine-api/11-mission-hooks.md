@@ -39,8 +39,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) ciklus"]
+    E --> G["OnUpdate(timeslice) ciklus"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["Destruktor: ~MissionServer()"]
@@ -58,8 +57,7 @@ flowchart TD
     A["A motor létrehozza a MissionGameplay-t"] --> B["Konstruktor: MissionGameplay()"]
     B --> C["OnInit() — HUD, csevegés, akció menü"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) ciklus"]
+    D --> F["OnUpdate(timeslice) ciklus"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["Destruktor: ~MissionGameplay()"]
@@ -82,7 +80,6 @@ A `Mission` alaposztály definiálja az összes hookelhető metódust. Mindegyik
 |---------|-----------|-------------------|
 | `OnInit` | `void OnInit()` | A konstruktor után, a misszió indulása előtt. Elsődleges beállítási pont. |
 | `OnMissionStart` | `void OnMissionStart()` | Az OnInit után. A misszió világ aktív. |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | Az OnMissionStart után. Minden vanilla rendszer inicializálva van. |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | Szerver: a gameplay adatok (cfggameplay.json) betöltése után. |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | Minden képkockánál. A `timeslice` az előző képkocka óta eltelt idő másodpercben (jellemzően 0.016-0.033). |
 | `OnMissionFinish` | `void OnMissionFinish()` | Leállításkor vagy lekapcsolódáskor. Mindent itt kell eltakarítani. |
@@ -111,7 +108,7 @@ A `Mission` alaposztály definiálja az összes hookelhető metódust. Mindegyik
 | `IsPaused` | `bool IsPaused()` | Szünetel-e a játék (egyjátékos / listen szerver). |
 | `IsServer` | `bool IsServer()` | `true` MissionServer esetén, `false` MissionGameplay esetén. |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | `true` MissionGameplay esetén, `false` MissionServer esetén. |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | Játékos bemenet újra engedélyezése letiltás után. |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | Játékos bemenet újra engedélyezése letiltás után. (A vanillában elavult.) |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | Játékos bemenet letiltása (pl. `INPUT_EXCLUDE_ALL`). |
 | `IsControlDisabled` | `bool IsControlDisabled()` | Le van-e tiltva jelenleg a játékos vezérlés. |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | Visszaadja az aktuális bemenet kizárási módot. |
@@ -190,7 +187,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // A vanilla továbbítja a Hud.KeyPress(key) metódusnak
-    // a key értékek KeyCode konstansok (pl. KeyCode.KC_F1 = 59)
+    // a key értékek KeyCode konstansok (pl. KeyCode.KC_F1 = 58)
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +198,11 @@ override void OnKeyRelease(int key)
 
 ### Esemény hook
 
-A vanilla `MissionGameplay.OnEvent()` kezeli a `ChatMessageEventTypeID`-t (hozzáadja a csevegés widgethez), `ChatChannelEventTypeID`-t (frissíti a csatorna jelzőt), `WindowsResizeEventTypeID`-t (újraépíti a menüket/HUD-ot), `SetFreeCameraEventTypeID`-t (debug kamera) és `VONStateEventTypeID`-t (hang állapot). Felülírásnál ugyanazt a `switch` mintát használd, és mindig hívd meg a `super.OnEvent()` metódust.
+A vanilla `MissionGameplay.OnEvent()` kezeli a `ChatMessageEventTypeID`-t (hozzáadja a csevegés widgethez), `ChatChannelEventTypeID`-t (frissíti a csatorna jelzőt), `WindowsResizeEventTypeID`-t (újraépíti a menüket/HUD-ot), `SetFreeCameraEventTypeID`-t (debug kamera) és `NetworkInputBufferEventTypeID`-t (hálózati beviteli puffer). Felülírásnál ugyanazt a `switch` mintát használd, és mindig hívd meg a `super.OnEvent()` metódust.
 
 ### Beviteli vezérlés
 
-A `PlayerControlDisable(int mode)` aktivál egy bemenet kizárási csoportot (pl. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). A `PlayerControlEnable(bool bForceSuppress)` eltávolítja azt. Ezek a `specific.xml`-ben definiált kizárási csoportokra térképeződnek. Írd felül, ha a modod egyéni bemenet kizárási viselkedést igényel (ahogy az Expansion teszi a menüinél).
+A `PlayerControlDisable(int mode)` aktivál egy bemenet kizárási csoportot (pl. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). A `PlayerControlEnable(bool bForceSupress)` eltávolítja azt. Ezek a `specific.xml`-ben definiált kizárási csoportokra térképeződnek. Mindkettő `//!deprecated` jelölésű a vanillában; az aktuális API az `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()`. Írd felül, ha a modod egyéni bemenet kizárási viselkedést igényel (ahogy az Expansion teszi a menüinél).
 
 ---
 
@@ -493,8 +490,7 @@ modded class MissionServer
 | HUD elemek létrehozása | `OnInit()` | `MissionGameplay` |
 | Takarítás szerver leállításkor | `OnMissionFinish()` | `MissionServer` |
 | Takarítás kliens lekapcsolódáskor | `OnMissionFinish()` | `MissionGameplay` |
-| Kód futtatása egyszer, miután minden rendszer betöltődött | `OnMissionLoaded()` | Bármelyik |
-| Játékos bemenet letiltása/engedélyezése | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| Játékos bemenet letiltása/engedélyezése | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +501,6 @@ modded class MissionServer
 | Konstruktor | Igen | Igen | Különböző osztály mindkét oldalon |
 | `OnInit()` | Igen | Igen | |
 | `OnMissionStart()` | Igen | Igen | |
-| `OnMissionLoaded()` | Igen | Igen | |
 | `OnGameplayDataHandlerLoad()` | Igen | Nem | cfggameplay.json betöltve |
 | `OnUpdate(timeslice)` | Igen | Igen | Mindkettő a saját képkocka ciklusát futtatja |
 | `OnMissionFinish()` | Igen | Igen | |
@@ -785,15 +780,14 @@ Mind a COT, mind az Expansion ugyanazt a mintát követi: a mission hookjaik vé
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | Hook | Mikor | Mire használd |
 |------|-------|--------------|
 | `OnInit()` | Először. A script modulok betöltődtek, a világ még nem aktív. | Menedzserek létrehozása, RPC-k regisztrálása, konfigurációk betöltése. |
 | `OnMissionStart()` | Másodszor. A világ aktív, entitások spawnolhatók. | Entitások spawnolása, gameplay rendszerek indítása, triggerek létrehozása. |
-| `OnMissionLoaded()` | Harmadszor. Minden vanilla rendszer teljesen inicializálva. | Modok közötti lekérdezések, véglegesítés, ami attól függ, hogy minden kész legyen. |
 
-Mindig hívd meg a `super`-t mind a háromnál. Használd az `OnInit`-et elsődleges inicializálási pontként. Az `OnMissionLoaded`-ot csak akkor használd, ha garantálnod kell, hogy más modok már inicializálódtak.
+Mindig hívd meg a `super`-t mindkettőnél. Használd az `OnInit`-et elsődleges inicializálási pontként, az `OnMissionStart`-ot pedig bármihez, aminek aktív világra van szüksége (entitások spawnolása, triggerek létrehozása).
 
 ---
 
@@ -893,7 +887,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Mission hierarchia | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | Szerver osztály | `MissionServer` --- kezeli a játékos csatlakozásokat, spawnokat, tick ütemezést |
 | Kliens osztály | `MissionGameplay` --- kezeli a HUD-ot, bemenetet, csevegést, menüket |
-| Életciklus sorrend | Konstruktor > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > `OnUpdate()` ciklus > `OnMissionFinish()` > Destruktor |
+| Életciklus sorrend | Konstruktor > `OnInit()` > `OnMissionStart()` > `OnUpdate()` ciklus > `OnMissionFinish()` > Destruktor |
 | Játékos csatlakozás (szerver) | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | Játékos távozás (szerver) | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | Hookolási minta | `modded class MissionServer/MissionGameplay` az `override` és `super` hívásokkal |

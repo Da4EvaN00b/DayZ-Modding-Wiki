@@ -194,7 +194,7 @@ Bandaze sa bardzo popularne (40 nominal). Pojawiaja sie w budynkach Medic (szpit
 | `restock` | int | sekundy | Minimalny czas odnowienia zanim CE moze stworzyc zamiennik. 0 = natychmiastowy. |
 | `quantmin` | int | -1 do 100 | Minimalny procent ilosci przy spawnie (% amunicji, % plynu). -1 = nie dotyczy. |
 | `quantmax` | int | -1 do 100 | Maksymalny procent ilosci przy spawnie. -1 = nie dotyczy. |
-| `cost` | int | 0+ | Waga priorytetu do wyboru spawnu. Obecnie wszystkie vanillowe przedmioty uzywaja 100. |
+| `cost` | int | 0+ | Waga priorytetu uzywana podczas respawnu/sprzatania. Prawie wszystkie vanillowe przedmioty uzywaja 100, ale kilka uzywa wyzszych wartosci (np. `Mag_SVD_10Rnd` uzywa 1000). |
 
 ### Flagi
 

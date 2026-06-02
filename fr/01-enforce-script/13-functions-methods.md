@@ -342,7 +342,7 @@ Vous les appelez comme n'importe quelle autre méthode. La règle clé : **n'ess
 // Appeler les méthodes proto native — pas différent des méthodes script
 Object obj = GetGame().CreateObject("AKM", pos, false, false, true);
 vector position = obj.GetPosition();
-string typeName = obj.GetType();     // chaîne owned — retournée à vous
+string typeName = obj.GetType();     // wrapper script autour de g_Game.ObjectGetType()
 obj.SetPosition(newPos);             // native void — pas de retour
 ```
 
@@ -457,8 +457,10 @@ class Calculator
 DayZ vanilla et les mods suivent une convention de nommage où une version étendue d'une méthode ajoute `Ex` au nom :
 
 ```c
-// Depuis les scripts vanilla — version de base vs version étendue
-void ExplosionEffects(Object source, Object directHit, int componentIndex);
+// Depuis DayZGame — version de base vs version étendue
+void ExplosionEffects(Object source, Object directHit, int componentIndex, string surface,
+    vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater,
+    string ammoType);
 void ExplosionEffectsEx(Object source, Object directHit, int componentIndex,
     float energyFactor, float explosionFactor, HitInfo hitInfo);
 ```

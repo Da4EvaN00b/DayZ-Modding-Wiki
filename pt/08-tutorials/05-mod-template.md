@@ -176,7 +176,7 @@ Se seu mod depende de outro mod, adicione o nome de classe CfgPatches dele ao `r
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Depende do Community Framework
+    "JM_CF_Scripts"           // Depende do Community Framework
 };
 ```
 

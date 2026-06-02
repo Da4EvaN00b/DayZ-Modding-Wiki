@@ -95,7 +95,7 @@ class SettingsManager
 | `string` | String |
 | `vector` | Array de 3 números |
 | `array<T>` | Array JSON |
-| `map<string, T>` | Objeto JSON (apenas chaves string) |
+| `map<K, T>` | Objeto JSON (`K` pode ser `string`, `int` ou um `enum`; o JSON representa todas as chaves como strings) |
 | Classe aninhada | Objeto JSON aninhado |
 
 ---

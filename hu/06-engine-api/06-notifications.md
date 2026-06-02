@@ -157,11 +157,13 @@ A vanilla játék előre definiált értesítés típusokat tartalmaz társítot
 
 | Típus | Leírás |
 |-------|--------|
-| `NotificationType.GENERIC` | Általános értesítés |
-| `NotificationType.FRIENDLY_FIRE` | Baráti tűz figyelmeztetés |
-| `NotificationType.JOIN` | Játékos csatlakozás |
-| `NotificationType.LEAVE` | Játékos kilépés |
-| `NotificationType.STATUS` | Állapotfrissítés |
+| `NotificationType.FRIEND_CONNECTED` | Egy barát csatlakozott |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | A meghívás sikertelen (már ugyanazon a szerveren) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | A munkamenet lekérése sikertelen csatlakozáskor |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Általános kapcsolódási hiba |
+| `NotificationType.DISCONNECTED` | Lekapcsolódott a szerverről |
+| `NotificationType.GENERIC_ERROR` | Általános hiba |
+| `NotificationType.NOTIFICATIONS_END` | Őrszem érték (a felsorolás végét jelöli) |
 
 > **Megjegyzés:** Az elérhető típusok a játék verziójától függenek. A maximális rugalmasság érdekében használd az `Extended` változatokat, amelyek egyéni cím és ikon sztringeket fogadnak.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ Az értesítési rendszert minden képkockában frissíteni kell a belépési/ki
 static void Update(float timeslice);
 ```
 
-Ezt automatikusan a vanilla misszió `OnUpdate` metódusa hívja. Ha teljesen egyéni missziót írsz, győződj meg róla, hogy meghívod.
+Ezt automatikusan a `DayZGame.OnUpdate` (a játék frissítési ciklusa) hívja, nem a misszió `OnUpdate` metódusa. Ha teljesen egyéni játékosztályt írsz, győződj meg róla, hogy meghívod.
 
 ---
 

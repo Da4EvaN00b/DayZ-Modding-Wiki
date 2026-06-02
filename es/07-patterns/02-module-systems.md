@@ -219,18 +219,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Registro
 
-VPP registra plugins en el `MissionServer.OnInit()` con modded:
+VPP registra plugins modificando el `PluginManager.Init()` de vanilla. `RegisterPlugin` toma el nombre de clase del plugin como string mas flags de cliente/servidor (no toma una instancia con `new`):
 
 ```c
 // Patron VPP
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+El manager instancia cada plugin registrado por si mismo. Para recuperar un plugin en ejecucion en otro lugar, usa `GetPluginManager().GetPluginByType(VPPESPPlugin)` o el global `GetPlugin(VPPESPPlugin)`.
 
 ### Caracteristicas Clave
 
-- **Registro manual**: cada plugin se instancia explicitamente con `new` y se registra
+- **Registro manual**: cada plugin se registra por nombre de clase en `PluginManager.Init()`; el manager lo instancia
 - **Integracion de config**: `ConfigurablePlugin` fusiona la gestion de configuracion con el ciclo de vida del modulo
 - **Autocontenido**: sin dependencia de CF; el manager de plugins de VPP es su propio sistema
 - **Propiedad clara**: el manager de plugins mantiene `ref` a todos los plugins, controlando su tiempo de vida
@@ -531,7 +541,7 @@ override void OnMissionFinish()
 | **Integracion de config** | Separada | Incorporada en ConfigurablePlugin | Separada | Via MyConfigManager |
 | **Despacho de update** | Automatico | Manager llama `OnUpdate` | Automatico | Manager llama `OnUpdate` |
 | **Limpieza** | CF lo maneja | `OnDestroy` manual | CF lo maneja | `MyModuleManager.Cleanup()` |
-| **Acceso entre mods** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Acceso entre mods** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Elige el enfoque que coincida con el perfil de dependencias de tu mod. Si ya dependes de CF, usa `CF_ModuleCore`. Si quieres cero dependencias externas, construye tu propio sistema siguiendo el patron del manager personalizado o de VPP.
 

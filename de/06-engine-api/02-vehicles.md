@@ -41,16 +41,17 @@ Die abstrakte Basis für alle Fahrzeuge. Bietet Sitzverwaltung und Besatzungszug
 proto native int   CrewSize();                          // Gesamtanzahl der Sitze
 proto native int   CrewMemberIndex(Human crew_member);  // Sitzindex eines Menschen ermitteln
 proto native Human CrewMember(int posIdx);              // Mensch an Sitzindex ermitteln
-proto native void  CrewGetOut(int posIdx);              // Besatzungsmitglied aus dem Sitz zwingen
+proto native Human CrewGetOut(int posIdx);              // Besatzungsmitglied aus dem Sitz zwingen (gibt den ausgeworfenen Menschen zurück)
 proto native void  CrewDeath(int posIdx);               // Besatzungsmitglied im Sitz töten
 ```
 
 ### Besatzungseinstieg
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Skript-Methode (überschreibbar), nicht proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Komponente zu Sitzindex
-proto native vector CrewEntryPoint(int posIdx);         // Welteinstiegspunkt für Sitz
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Einstiegspunkt/-richtung im Modellraum
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Einstiegspunkt/-richtung im Weltraum
 ```
 
 **Beispiel --- alle Passagiere auswerfen:**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // Geschwindigkeit in km/h (Absolutwert)
 ### Steuerung (Simulation)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = alle Räder
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (zusätzliche Parameter ungenutzt)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (zweiter Parameter ungenutzt)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust ist veraltet)
+proto native void  SetClutch(float value);                    // SetClutchState ist veraltet
 ```
 
 ### Räder
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacks (Überschreiben in CarScript)
@@ -219,17 +220,28 @@ Häufige Schadenszonen für Fahrzeuge:
 
 ### Lichter
 
+Die Licht-API befindet sich auf `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = aus, 1 = an
-int  GetLightsState();
+proto native bool LightIsOn();    // True, wenn die Lichter an sind
+proto native void LightOn();      // Lichter einschalten
+proto native void LightOff();     // Lichter ausschalten
+proto native void LightToggle();  // Aktuellen Lichtzustand umschalten
 ```
 
 ### Türsteuerung
 
+Der Türzustand wird mit `GetCarDoorsState` abgefragt, das einen `CarDoorState`-Wert zurückgibt (`DOORS_MISSING`, `DOORS_OPEN` oder `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Gibt einen CarDoorState-Wert zurück
 ```
 
 ### Wichtige Überschreibungen für benutzerdefinierte Fahrzeuge
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Fahrzeugteile, Flüssigkeiten initialisieren
 override void OnEngineStart();             // Benutzerdefiniertes Motorstartverhalten
 override void OnEngineStop();              // Benutzerdefiniertes Motorstoppverhalten
-override void EOnSimulate(IEntity other, float dt);  // Simulation pro Tick
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Simulation pro Tick (CarScript)
 ```
 
 **Beispiel --- ein Fahrzeug mit vollen Flüssigkeiten erstellen:**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### Flüssigkeiten
 
-Boote verwenden dasselbe `CarFluid`-Enum, nutzen aber typischerweise nur `FUEL`:
+Boote verwenden ein separates `BoatFluid`-Enum, das nur `FUEL` definiert:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Geschwindigkeit
+### Geschwindigkeit & Antrieb
+
+`Boat` stellt `GetSpeedometer()` nicht bereit (diese Methode existiert nur auf `Car`). Lesen Sie stattdessen die Motordrehzahl und die Propellergeschwindigkeit:
 
 ```c
-proto native float GetSpeedometer();   // Geschwindigkeit in km/h
+proto native float EngineGetRPM();                   // Motordrehzahl
+proto native float PropellerGetAngularVelocity();    // Winkelgeschwindigkeit des Propellers
 ```
 
 **Beispiel --- ein Boot spawnen:**
+
+`Boat_01` ist keine direkt spawnbare Klasse; spawnen Sie eine der konkreten Farbvarianten (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -479,7 +495,7 @@ Die `Contact`-Klasse wurde modifiziert:
 **Geändert:**
 - `Material1`, `Material2` --- Typ geändert von `dMaterial` zu `SurfaceProperties`
 
-Mods, die `Contact`-Daten in `EOnContact` lesen, müssen auf die neuen Variablennamen und -typen aktualisiert werden.
+Mods, die `Contact`-Daten in `OnContact` lesen, müssen auf die neuen Variablennamen und -typen aktualisiert werden.
 
 ---
 

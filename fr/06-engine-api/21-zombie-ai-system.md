@@ -157,7 +157,7 @@ From `3_Game/constants.c`:
 | `AI_MAX_BLOCKABLE_ANGLE` | `60` | Max angle (degrees) where player block stance works against infected |
 | `AI_CONTAMINATION_DMG_PER_SEC` | `3` | Damage per tick in contaminated zones |
 | `NL_DAMAGE_CLOSECOMBAT_CONVERSION_INFECTED` | `0.20` | Shock-to-health conversion for melee hits on infected |
-| `NL_DAMAGE_FIREARM_CONVERSION_INFECTED` | varies | Shock-to-health conversion for firearm hits on infected |
+| `NL_DAMAGE_FIREARM_CONVERSION_INFECTED` | `0.44` | Shock-to-health conversion for firearm hits on infected (= `PROJECTILE_CONVERSION_INFECTED`) |
 
 ---
 
@@ -327,7 +327,7 @@ class DayZInfectedAttackType
 
 ### Attack Groups
 
-**Chase Group** (`DayZInfectedAttackGroupType.CHASE`): Running attacks at 2.4m range, no cooldown reduction, always center pitch (-1). Two variants: left and right.
+**Chase Group** (`DayZInfectedAttackGroupType.CHASE`): Running attacks at 2.4m range, no cooldown reduction, always pitch -1. Two variants: left and right.
 
 **Fight Group** (`DayZInfectedAttackGroupType.FIGHT`): Standing attacks at 1.4-1.7m range. Ten variants covering up/center/down pitch and left/right/heavy combinations. Cooldowns from 0.1 to 0.6 seconds.
 
@@ -577,7 +577,7 @@ DayZInfected zombie = DayZInfected.Cast(
 );
 
 // Later, initialize AI with a group
-AIWorld aiWorld = g_Game.GetAIWorld();
+AIWorld aiWorld = g_Game.GetWorld().GetAIWorld();
 AIGroup group = aiWorld.CreateDefaultGroup();
 zombie.InitAIAgent(group);
 
@@ -624,10 +624,10 @@ The `type` values must match class names in `cfgVehicles`. The CE handles appari
 
 ### AIWorld
 
-`AIWorld` provides navmesh pathfinding and group management:
+`AIWorld` provides navmesh pathfinding and group management. Il est obtenu depuis l'objet `World` via `g_Game.GetWorld().GetAIWorld()` :
 
 ```csharp
-AIWorld aiWorld = g_Game.GetAIWorld();
+AIWorld aiWorld = g_Game.GetWorld().GetAIWorld();
 
 // Pathfinding
 PGFilter filter = new PGFilter();
@@ -930,7 +930,7 @@ This plugin is an excellent reference for testing any infected-related mod.
 | Aspect | Impact |
 |--------|--------|
 | **Performance** | Each zombie runs its `CommandHandler` every frame on le serveur. Large zombie populations (50+) can cause server lag. |
-| **Network** | Three synced variables per zombie (`m_MindState`, `m_MovementSpeed`, `m_IsCrawling`, `m_OrientationSynced`). Changes trigger `SetSynchDirty()`. |
+| **Network** | Four synced variables per zombie (`m_MindState`, `m_OrientationSynced`, `m_MovementSpeed`, `m_IsCrawling`). Changes trigger `SetSynchDirty()`. |
 | **Mod conflicts** | Multiple mods using `ModCommandHandlerBefore` returning `true` will conflict --- only the last-loaded mod's override runs. |
 | **Client/Server** | Command handler, fight logic, and damage run côté serveur only. Sound events and animation playback are côté client. |
 | **AI engine dependency** | Mind state transitions, pathfinding decisions, and target selection are C++ engine features. Script cannot fully replace or bypass the built-in AI. |

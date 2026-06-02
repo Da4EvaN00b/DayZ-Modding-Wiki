@@ -60,7 +60,7 @@ DayZ richiede queste porte inoltrate e aperte nel tuo firewall:
 |-------|------------|-------|
 | 2302 | UDP | Traffico di gioco |
 | 2303 | UDP | Networking Steam |
-| 2304 | UDP | Query Steam (interna) |
+| 2304 | UDP | Porta di connessione client (`clientPort`) |
 | 27016 | UDP | Query del browser server Steam |
 
 Se hai cambiato la porta base con `-port=`, tutte le altre porte si spostano dello stesso offset.
@@ -124,7 +124,7 @@ Se usi un file types personalizzato (ad esempio **types_custom.xml**), aggiungi 
 
 ### Tag category, usage o value errati
 
-Ogni tag `<category>`, `<usage>` e `<value>` nel tuo types.xml deve corrispondere a un nome definito in **cfglimitsdefinition.xml**. Un errore di battitura come `usage name="Military"` (M maiuscola) quando la definizione dice `military` (minuscola) impedisce silenziosamente all'oggetto di apparire.
+Ogni tag `<category>`, `<usage>` e `<value>` nel tuo types.xml deve corrispondere a un nome definito in **cfglimitsdefinition.xml**. Un errore di battitura come `usage name="military"` (minuscola) quando la definizione dice `Military` (M maiuscola) impedisce silenziosamente all'oggetto di apparire.
 
 ### Nominal impostato a zero
 
@@ -212,7 +212,7 @@ Gli inventari e le posizioni dei giocatori sono memorizzati in `storage_1/player
 
 I server DayZ puntano a 30+ FPS per un gameplay fluido. Cause comuni di FPS bassi del server:
 
-- **Troppi zombie** -- riduci `ZombieMaxCount` in **globals.xml** (predefinito 800, prova 400-600)
+- **Troppi zombie** -- riduci `ZombieMaxCount` in **globals.xml** (predefinito 1000, prova 400-600)
 - **Troppi animali** -- riduci `AnimalMaxCount` (predefinito 200, prova 100)
 - **Loot eccessivo** -- abbassa i valori `nominal` nel tuo types.xml
 - **Troppi oggetti nelle basi** -- basi grandi con centinaia di oggetti affaticano la persistenza

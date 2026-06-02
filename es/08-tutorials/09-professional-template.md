@@ -689,9 +689,35 @@ modded class MissionServer
         }
     }
 
+    override void OnMissionFinish()
+    {
+        MyModManager mgr = MyModManager.GetInstance();
+        if (mgr)
+        {
+            mgr.Shutdown();
+        }
+
+        MyModManager.Cleanup();
+        Print(MYMOD_TAG + " Server mission finished");
+        super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Despacho de RPC del servidor.
+// IMPORTANTE: OnRPC es un método de DayZGame, NO de MissionServer. La cadena
+// de clases Mission no tiene OnRPC, así que debes modificar DayZGame para
+// recibir RPCs. Este hook se dispara tanto en cliente como en servidor, así
+// que protégelo con GetGame().IsServer().
+// ==========================================================================
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Despacho solo del lado del servidor.
+        if (!IsServer()) return;
 
         if (rpc_type != MYMOD_RPC_ID) return;
 
@@ -706,19 +732,6 @@ modded class MissionServer
             mgr.OnUIRequest(sender, ctx);
         }
         // Agrega más rutas aquí a medida que tu mod crece
-    }
-
-    override void OnMissionFinish()
-    {
-        MyModManager mgr = MyModManager.GetInstance();
-        if (mgr)
-        {
-            mgr.Shutdown();
-        }
-
-        MyModManager.Cleanup();
-        Print(MYMOD_TAG + " Server mission finished");
-        super.OnMissionFinish();
     }
 };
 ```
@@ -762,12 +775,14 @@ modded class MissionGameplay
         }
     }
 
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    // Receptor de RPC: maneja los mensajes del servidor.
+    // Esto NO es un override del motor: el callback real del motor vive en
+    // DayZGame (ver el modded DayZGame más abajo). DayZGame.OnRPC alcanza la
+    // misión activa mediante GetGame().GetMission() y reenvía los RPC del
+    // cliente aquí para que este método pueda tocar miembros de instancia como
+    // m_MyModPanel.
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         string routeName;
         if (!ctx.Read(routeName)) return;
 
@@ -826,6 +841,39 @@ modded class MissionGameplay
         m_MyModInitialized = false;
         Print(MYMOD_TAG + " Client mission finished");
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Despacho de RPC del cliente.
+// IMPORTANTE: OnRPC es un método de DayZGame, NO de MissionGameplay. La
+// cadena de clases Mission no tiene OnRPC, así que los RPC se reciben
+// modificando DayZGame. Este hook se dispara tanto en cliente como en
+// servidor, así que protégelo con GetGame().IsClient().
+// Alcanzamos la MissionGameplay activa mediante GetGame().GetMission() y la
+// reenviamos a su OnMyModRPC para que los miembros del panel de UI sigan
+// siendo accesibles.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Despacho solo del lado del cliente.
+        if (!IsClient()) return;
+
+        // Solo maneja nuestro ID de RPC.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Reenvía a la misión activa para que los miembros de instancia (el
+        // panel de UI) sean accesibles. Castea a nuestro tipo modded
+        // MissionGameplay.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -965,7 +1013,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -980,7 +1028,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1005,7 +1053,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1021,7 +1069,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1308,7 +1356,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }

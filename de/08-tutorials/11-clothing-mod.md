@@ -194,9 +194,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Player visibility to AI (lower = harder to detect). |
 | `absorbency` | `0.3` | Water absorption (0 = waterproof, 1 = sponge). Lower is better for rain resistance. |
 
-**Vanilla heatIsolation reference:** T-shirt 0.2, Hoodie 0.5, Gorka Jacket 0.7, Field Jacket 0.8, Wool Coat 0.9.
+**Vanilla heatIsolation reference:** T-shirt 0.1, Hoodie 0.6, Gorka Jacket 0.4, Hiking Jacket 0.8, Wool Coat 0.9.
 
-**Repair:** `repairableWithKits[] = { 5, 2 }` lists kit types (5=Sewing Kit, 2=Leather Sewing Kit). `repairCosts[]` gives material consumed per repair, in matching order.
+**Repair:** `repairableWithKits[] = { 5, 2 }` lists kit types (5=Duct Tape, 2=Sewing Kit). `repairCosts[]` gives material consumed per repair, in matching order.
 
 **Armor:** A `damage` value of 0.8 means der Spieler receives 80% of incoming damage (20% absorbed). Lower values = more protection.
 
@@ -238,7 +238,7 @@ For full material control, create `.rvmat` files and reference them in `hiddenSe
 
 ## Step 4: Add Cargo Space
 
-When extending `GorkaEJacket_ColorBase`, you inherit its cargo grid (4x3) and inventory slot (`"Body"`) automatisch. The `itemSize[] = { 3, 4 }` property defines how large the jacket is when stored as loot -- NOT its cargo capacity.
+When extending `GorkaEJacket_ColorBase`, you inherit its cargo grid (`itemsCargoSize[] = { 6, 4 }`) and inventory slot (`"Body"`) automatisch. The `itemSize[] = { 3, 4 }` property defines how large the jacket is when stored as loot -- NOT its cargo capacity.
 
 Common clothing slots: `"Body"` (jackets), `"Legs"` (pants), `"Feet"` (boots), `"Headgear"` (hats), `"Vest"` (chest rigs), `"Gloves"`, `"Mask"`, `"Back"` (backpacks).
 

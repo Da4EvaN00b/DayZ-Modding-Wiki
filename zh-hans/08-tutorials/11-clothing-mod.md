@@ -198,9 +198,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | 玩家对 AI 的可见度（越低 = 越难被发现）。 |
 | `absorbency` | `0.3` | 吸水性（0 = 防水，1 = 海绵）。越低抗雨性越好。 |
 
-**原版 heatIsolation 参考值：** T 恤 0.2，连帽衫 0.5，Gorka 夹克 0.7，野战夹克 0.8，羊毛大衣 0.9。
+**原版 heatIsolation 参考值：** T 恤 0.1，连帽衫 0.6，Gorka 夹克 0.4，徒步夹克 0.8，羊毛大衣 0.9。
 
-**修复：** `repairableWithKits[] = { 5, 2 }` 列出工具包类型（5=缝纫包，2=皮革缝纫包）。`repairCosts[]` 给出每次修复消耗的材料，按对应顺序。
+**修复：** `repairableWithKits[] = { 5, 2 }` 列出工具包类型（5=胶带，2=缝纫包）。`repairCosts[]` 给出每次修复消耗的材料，按对应顺序。
 
 **护甲：** `damage` 值为 0.8 表示玩家承受 80% 的传入伤害（吸收了 20%）。值越低 = 防护越强。
 
@@ -242,7 +242,7 @@ Gorka 夹克的贴图位于 `DZ\characters\tops\data\` —— 从 P: 盘提取 `
 
 ## 步骤 4：添加储物空间
 
-继承 `GorkaEJacket_ColorBase` 时，你会自动继承其储物网格（4x3）和物品栏栏位（`"Body"`）。`itemSize[] = { 3, 4 }` 属性定义的是夹克作为掉落物时的大小 —— 而**不是**其储物容量。
+继承 `GorkaEJacket_ColorBase` 时，你会自动继承其储物网格（`itemsCargoSize[] = { 6, 4 }`）和物品栏栏位（`"Body"`）。`itemSize[] = { 3, 4 }` 属性定义的是夹克作为掉落物时的大小 —— 而**不是**其储物容量。
 
 常见服装栏位：`"Body"`（夹克）、`"Legs"`（裤子）、`"Feet"`（靴子）、`"Headgear"`（帽子）、`"Vest"`（胸挂）、`"Gloves"`、`"Mask"`、`"Back"`（背包）。
 

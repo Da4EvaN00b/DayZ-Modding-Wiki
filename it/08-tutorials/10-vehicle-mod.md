@@ -752,7 +752,7 @@ Se cambi questo al valore sbagliato, l'animazione del giocatore penetrerà attra
 
 **CrewCanGetThrough** -- Viene chiamato ogni frame per determinare se un giocatore può entrare o uscire da un sedile. I sedili posteriori della Niva (indici 2 e 3) funzionano diversamente da quelli anteriori: lo schienale del sedile anteriore deve essere ribaltato in avanti (fase di animazione > 0.5) prima che i passeggeri posteriori possano passare. Questo rispecchia il comportamento nel mondo reale di una hatchback a 2 porte dove i passeggeri posteriori devono inclinare il sedile anteriore.
 
-**OnDebugSpawn** -- Chiamato quando usi il menu di spawn debug. `SpawnUniversalParts()` aggiunge lampadine dei fari e una batteria. `FillUpCarFluids()` riempie al massimo carburante, liquido di raffreddamento, olio e liquido dei freni. Poi creiamo ruote, porte, cofano e bagagliaio. Questo ti dà un veicolo immediatamente guidabile per i test.
+**OnDebugSpawn** -- Chiamato quando usi il menu di spawn debug. `SpawnUniversalParts()` aggiunge lampadine dei fari e una batteria. `FillUpCarFluids()` riempie al massimo carburante, liquido di raffreddamento e olio (non riempie il liquido dei freni). Poi creiamo ruote, porte, cofano e bagagliaio. Questo ti dà un veicolo immediatamente guidabile per i test.
 
 ---
 

@@ -113,7 +113,7 @@ float value   = input.LocalValue("UAMyAction", false);
 
 Všimněte si mírného rozdílu v pojmenování: `LocalDoubleClick()` na `UAInput` vs `LocalDbl()` na `Input`.
 
-Obě třídy také poskytují varianty `_ID`, které přijímají celočíselná ID akcí místo řetězců (např. `LocalPress_ID(int action)`).
+Třída `Input` také poskytuje varianty `_ID`, které přijímají celočíselná ID akcí místo řetězců (např. `LocalPress_ID(int action, bool check_focus = true)`). `UAInput` nemá žádné přetížení `_ID`; jeho metody (`LocalPress()` atd.) nepřijímají žádné parametry.
 
 ---
 
@@ -203,7 +203,7 @@ modded class MissionGameplay
 Vstupy lze technicky kontrolovat v jakémkoli callbacku per-snímek, ale `MissionGameplay.OnUpdate()` je kanonické umístění. Další platná místa zahrnují:
 
 - `PlayerBase.CommandHandler()` --- běží každý snímek pro lokálního hráče
-- `ScriptedWidgetEventHandler.Update()` --- pro vstup specifický pro UI (ale preferujte handlery událostí widgetů)
+- `ScriptedWidgetEventHandler.OnUpdate(Widget w)` --- pro vstup specifický pro UI (ale preferujte handlery událostí widgetů)
 - `PluginBase.OnUpdate()` --- pro vstup v rozsahu pluginu
 
 Vyhněte se kontrole vstupů v serverovém kódu, konstruktorech entit nebo jednorázových handlerech událostí, kde není zaručeno časování snímků.

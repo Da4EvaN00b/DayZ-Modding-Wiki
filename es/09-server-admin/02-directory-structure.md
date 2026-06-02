@@ -174,7 +174,7 @@ Define las reglas de spawn para **cada item** en el juego. Con aproximadamente 2
 
 ### globals.xml
 
-Parametros globales que afectan toda la economia: conteo de zombis, conteo de animales, temporizadores de limpieza, rangos de dano del loot, tiempo de respawn. Hay 33 parametros en total. Consulta el [Capitulo 9.4](04-loot-economy.md) para la referencia completa.
+Parametros globales que afectan toda la economia: conteo de zombis, conteo de animales, temporizadores de limpieza, rangos de dano del loot, tiempo de respawn. Hay 30 parametros en total. Consulta el [Capitulo 9.4](04-loot-economy.md) para la referencia completa.
 
 ### events.xml
 
@@ -258,19 +258,19 @@ Almacena el estado persistente del servidor entre reinicios:
 
 ```
 storage_1/
-  players.db         # Base de datos SQLite de todos los personajes de jugadores
+  players/           # Registros binarios de personajes, uno por jugador
   spawnpoints.bin    # Datos binarios de puntos de spawn
   backup/            # Copias de seguridad automaticas de datos de persistencia
   data/              # Estado del mundo (items colocados, construccion de bases, vehiculos)
 ```
 
-**Nunca edites `players.db` mientras el servidor esta funcionando.** Es una base de datos SQLite bloqueada por el proceso del servidor. Si necesitas borrar personajes, detiene el servidor primero y elimina o renombra el archivo.
+**Nunca edites manualmente los archivos en `players/` mientras el servidor esta funcionando.** Son registros binarios opacos escritos unicamente por el proceso del servidor. Si necesitas borrar personajes, detiene el servidor primero y elimina o renombra la carpeta.
 
 Para hacer un **borrado completo de persistencia**, detiene el servidor y elimina toda la carpeta `storage_1/`. El servidor la recreara en el proximo inicio con un mundo nuevo.
 
 Para hacer un **borrado parcial** (mantener personajes, reiniciar loot):
 1. Detiene el servidor
-2. Elimina los archivos en `storage_1/data/` pero conserva `players.db`
+2. Elimina los archivos en `storage_1/data/` pero conserva `storage_1/players/`
 3. Reinicia
 
 ---

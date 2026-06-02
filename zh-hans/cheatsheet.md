@@ -30,7 +30,7 @@
 | 方法 | 返回值 | 备注 |
 |------|--------|------|
 | `Insert(item)` | `int`（索引） | 追加 |
-| `InsertAt(item, idx)` | `void` | 在指定位置插入 |
+| `InsertAt(item, idx)` | `int`（数量） | 在指定位置插入 |
 | `Get(idx)` / `arr[idx]` | `T` | 按索引访问 |
 | `Set(idx, item)` | `void` | 替换指定索引的元素 |
 | `Find(item)` | `int` | 返回索引或 -1 |
@@ -45,7 +45,7 @@
 | `Invert()` | `void` | 反转 |
 | `GetRandomElement()` | `T` | 随机选取 |
 | `InsertAll(other)` | `void` | 追加另一个数组的所有元素 |
-| `Copy(other)` | `void` | 替换为副本 |
+| `Copy(other)` | `int`（数量） | 替换为副本 |
 | `Resize(n)` | `void` | 调整大小（填充默认值） |
 | `Reserve(n)` | `void` | 预分配容量 |
 
@@ -147,7 +147,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | 原地修改，返回替换次数 |
 | `s.ToLower()` | `void` | **原地修改！** |
 | `s.ToUpper()` | `void` | **原地修改！** |
-| `s.TrimInPlace()` | `void` | **原地修改！** |
+| `s.TrimInPlace()` | `int`（长度） | **原地修改！** |
 | `s.Split(delim, out arr)` | `void` | 分割为 TStringArray |
 | `s.Get(idx)` | `string` | 单个字符 |
 | `s.Set(idx, ch)` | `void` | 替换字符 |
@@ -212,11 +212,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### 检查 IsAlive（需要 EntityAI）
+### 检查 IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() 定义在基类 Object 上（返回 !IsDamageDestroyed()）
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach Map 迭代

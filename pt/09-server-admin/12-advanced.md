@@ -45,16 +45,19 @@ Estrutura vanilla:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ O servidor carrega e mescla todos os arquivos com `type="types"`.
 
 ## cfgenvironment.xml e Territorios de Animais
 
-O arquivo **cfgenvironment.xml** na sua pasta de missao linka para arquivos de territorio no subdiretorio `env/`:
+O arquivo **cfgenvironment.xml** na sua pasta de missao mapeia arquivos de territorio no subdiretorio `env/` para comportamentos de animais. Cada grupo de animais e um elemento `<territory>` com um filho `<file usable="..." />` (referenciado pelo nome, sem o prefixo `env/` ou a extensao `.xml`):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ Eventos dinamicos (helicrashes, comboios) sao definidos no **events.xml**. Para 
 </event>
 ```
 
-**3. Adicione guardas infectados** (opcional) -- adicione elementos `<secondary type="ZmbM_PatrolNormal_Autumn" />` na definicao do seu evento.
+**3. Adicione guardas infectados** (opcional) -- adicione um elemento `<secondary>InfectedArmy</secondary>` na definicao do seu evento. O conteudo referencia o nome de outro evento no **events.xml**, que spawna os infectados.
 
 **4. Spawns agrupados** (opcional) -- defina clusters no **cfgeventgroups.xml** e referencie o nome do grupo no seu evento.
 
@@ -265,14 +272,14 @@ Sempre faca backup de `storage_1/` antes de cada reinicializacao. Persistencia c
 
 O arquivo **cfgweather.xml** na sua pasta de missao controla padroes de clima. Cada mapa vem com seus proprios padroes:
 
-Cada fenomeno tem `min`, `max`, `duration_min` e `duration_max` (segundos):
+Cada fenomeno e um elemento aninhado (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`) contendo os filhos `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` e `<changelimits min="" max="" />` (`rain` e `snowfall` tambem recebem um elemento `<thresholds>`). A faixa de valores de `<limits>` para cada fenomeno:
 
-| Fenomeno | Min Padrao | Max Padrao | Observacoes |
+| Fenomeno | Limits Min | Limits Max | Observacoes |
 |------------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Controla a densidade de nuvens e probabilidade de chuva |
 | `rain` | 0.0 | 1.0 | So ativa acima de um limite de overcast. Defina max como `0.0` para sem chuva |
 | `fog` | 0.0 | 0.3 | Valores acima de `0.5` produzem visibilidade quase zero |
-| `wind_magnitude` | 0.0 | 18.0 | Afeta balistica e movimento do jogador |
+| `windMagnitude` | 0.0 | 20.0 | Velocidade do vento em m/s; afeta balistica e movimento do jogador |
 
 ---
 

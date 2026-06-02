@@ -41,29 +41,31 @@ Gardez le mot de passe admin long et unique. Quiconque le possède a le contrôl
 
 ## ban.txt
 
-Le fichier **ban.txt** se trouve dans votre répertoire de profil serveur (le chemin défini avec `-profiles=`). Il contient un SteamID64 par ligne :
+Le fichier **ban.txt** se trouve dans le répertoire racine de votre serveur. Il contient un UID de joueur par ligne :
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- Chaque ligne est un SteamID64 brut à 17 chiffres -- pas de noms, pas de commentaires, pas de mots de passe.
-- Les joueurs dont le SteamID apparaît dans ce fichier se voient refuser la connexion.
+- Chaque ligne est un UID de joueur DayZ à 44 caractères -- pas un SteamID64 à 17 chiffres. Vous pouvez trouver l'UID d'un joueur dans les logs `*.ADM` et `*.RPT`.
+- Vous pouvez ajouter un commentaire après un ID en utilisant le préfixe `//` sur la même ligne, ou sur sa propre ligne commentée.
+- Les joueurs dont l'UID apparaît dans ce fichier se voient refuser la connexion.
+- L'utilisation de **ban.txt** peut être activée ou désactivée avec `disableBanlist` dans **serverDZ.cfg** (par défaut `false`).
 - Vous pouvez modifier le fichier pendant que le serveur tourne ; les changements prennent effet à la prochaine tentative de connexion.
 
 ---
 
 ## whitelist.txt
 
-Le fichier **whitelist.txt** se trouve dans le même répertoire de profil. Lorsque vous activez la liste blanche, seuls les SteamID listés dans ce fichier peuvent se connecter :
+Le fichier **whitelist.txt** se trouve dans le même répertoire racine du serveur. Lorsque vous activez la liste blanche (`enableWhitelist = 1` dans **serverDZ.cfg**), seuls les joueurs dont l'UID est listé dans ce fichier peuvent se connecter :
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-Le format est identique à **ban.txt** -- un SteamID64 par ligne, rien d'autre.
+Le format est identique à **ban.txt** -- un UID de joueur à 44 caractères par ligne, avec des commentaires `//` optionnels.
 
 La liste blanche est utile pour les communautés privées, les serveurs de test, ou les événements où vous avez besoin d'une liste de joueurs contrôlée.
 
@@ -79,7 +81,7 @@ BattlEye est le système anti-triche intégré à DayZ. Ses fichiers se trouvent
 | **beserver_x64.cfg** | Fichier de configuration (port RCON, mot de passe RCON) |
 | **bans.txt** | Bans spécifiques à BattlEye (basés sur les GUID, pas les SteamID) |
 
-BattlEye est activé par défaut. Vous lancez le serveur avec `DayZServer_x64.exe` et BattlEye se charge automatiquement. Pour le désactiver explicitement (non recommandé en production), utilisez le paramètre de lancement `-noBE`.
+BattlEye est activé par défaut. Vous lancez le serveur avec `DayZServer_x64.exe` et BattlEye se charge automatiquement. Pour le désactiver explicitement (non recommandé en production), définissez `BattlEye = 0;` dans **serverDZ.cfg**.
 
 Le fichier **bans.txt** dans le dossier `BattlEye/` utilise les GUID BattlEye, qui sont différents des SteamID64. Les bans émis via RCON ou les commandes BattlEye sont écrits automatiquement dans ce fichier.
 
@@ -91,10 +93,10 @@ Le RCON BattlEye vous permet d'administrer le serveur à distance sans être en 
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-Le port RCON par défaut est votre port de jeu plus 4. Si votre serveur tourne sur le port `2302`, le RCON utilise par défaut `2306`.
+BattlEye n'utilise pas de port RCON par défaut fixe -- si vous omettez `RConPort`, il écoute sur un port aléatoire. Définissez-le explicitement. La valeur recommandée est votre port de jeu plus 3, soit `2305` pour un serveur tournant sur le port `2302`. Il ne doit pas entrer en conflit avec le port de jeu ou le port de requête Steam.
 
 ### Commandes RCON disponibles
 
@@ -174,11 +176,11 @@ Ce sont les problèmes que les opérateurs de serveurs rencontrent le plus souve
 | Erreur | Symptôme | Solution |
 |--------|----------|---------|
 | `.bikey` manquant dans `keys/` | Les joueurs sont expulsés à la connexion avec une erreur de signature | Copiez le fichier `.bikey` du mod dans le répertoire `keys/` de votre serveur |
-| Mettre des noms ou mots de passe dans **ban.txt** | Les bans ne fonctionnent pas ; erreurs aléatoires | Utilisez uniquement des valeurs SteamID64 brutes, une par ligne |
+| Utiliser un SteamID64 au lieu de l'UID du joueur dans **ban.txt** | Les bans ne fonctionnent pas | Utilisez l'UID de joueur à 44 caractères, un par ligne (les commentaires après `//` sont autorisés) |
 | Conflit de port RCON | Le client RCON ne peut pas se connecter | Assurez-vous que le port RCON n'est pas utilisé par un autre service ; vérifiez les règles du pare-feu |
 | `verifySignatures = 0` en production | N'importe qui peut rejoindre avec des mods falsifiés | Mettez à `2` sur tout serveur public |
-| Oublier d'ouvrir le port RCON dans le pare-feu | Le client RCON timeout | Ouvrez le port UDP RCON (par défaut 2306) dans votre pare-feu |
-| Modifier **bans.txt** dans `BattlEye/` avec des SteamIDs | Les bans ne fonctionnent pas | Le **bans.txt** de BattlEye utilise des GUID, pas des SteamIDs ; utilisez **ban.txt** dans le répertoire de profil pour les bans par SteamID |
+| Oublier d'ouvrir le port RCON dans le pare-feu | Le client RCON timeout | Ouvrez le port UDP RCON (celui que vous avez défini avec `RConPort`, par ex. `2305`) dans votre pare-feu |
+| Modifier **bans.txt** dans `BattlEye/` avec des UID de joueurs | Les bans ne fonctionnent pas | Le **bans.txt** de BattlEye utilise des GUID, pas des UID ; utilisez **ban.txt** dans le répertoire racine du serveur pour les bans basés sur l'UID |
 
 ---
 

@@ -45,16 +45,19 @@ Vanilla-Struktur:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ Der Server laedt und vereint alle Dateien mit `type="types"`.
 
 ## cfgenvironment.xml und Tierterritorien
 
-Die Datei **cfgenvironment.xml** in Ihrem Missionsordner verlinkt zu Territoriumsdateien im `env/`-Unterverzeichnis:
+Die Datei **cfgenvironment.xml** in Ihrem Missionsordner ordnet Territoriumsdateien im `env/`-Unterverzeichnis Tierverhalten zu. Jede Tiergruppe ist ein `<territory>`-Element mit einem `<file usable="..." />`-Kind (referenziert ueber den Namen, ohne `env/`-Praefix oder `.xml`-Endung):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ Dynamische Events (Heliabstuerze, Konvois) werden in **events.xml** definiert. U
 </event>
 ```
 
-**3. Infizierte Wachen hinzufuegen** (optional) -- fuegen Sie `<secondary type="ZmbM_PatrolNormal_Autumn" />`-Elemente in Ihre Event-Definition ein.
+**3. Infizierte Wachen hinzufuegen** (optional) -- fuegen Sie ein `<secondary>InfectedArmy</secondary>`-Element zu Ihrer Event-Definition hinzu. Der Inhalt referenziert den Namen eines anderen Events in **events.xml**, das die Infizierten spawnt.
 
 **4. Gruppierte Spawns** (optional) -- definieren Sie Cluster in **cfgeventgroups.xml** und referenzieren Sie den Gruppennamen in Ihrem Event.
 
@@ -265,14 +272,14 @@ Erstellen Sie immer ein Backup von `storage_1/` vor jedem Neustart. Beschaedigte
 
 Die Datei **cfgweather.xml** in Ihrem Missionsordner steuert Wettermuster. Jede Karte wird mit eigenen Standardwerten ausgeliefert:
 
-Jedes Phaenomen hat `min`, `max`, `duration_min` und `duration_max` (Sekunden):
+Jedes Phaenomen ist ein verschachteltes Element (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`), das `<current actual="" time="" duration="" />`-, `<limits min="" max="" />`-, `<timelimits min="" max="" />`- und `<changelimits min="" max="" />`-Kinder enthaelt (`rain` und `snowfall` nehmen zusaetzlich ein `<thresholds>`-Element). Der `<limits>`-Wertebereich fuer jedes Phaenomen:
 
-| Phaenomen | Standard Min | Standard Max | Hinweise |
+| Phaenomen | Limits Min | Limits Max | Hinweise |
 |-----------|-------------|-------------|----------|
 | `overcast` | 0.0 | 1.0 | Steuert Wolkendichte und Regenwahrscheinlichkeit |
 | `rain` | 0.0 | 1.0 | Wird erst ueber einem Bewoelkungsschwellenwert ausgeloest. Max auf `0.0` setzen fuer keinen Regen |
 | `fog` | 0.0 | 0.3 | Werte ueber `0.5` erzeugen nahezu Nullsicht |
-| `wind_magnitude` | 0.0 | 18.0 | Beeinflusst Ballistik und Spielerbewegung |
+| `windMagnitude` | 0.0 | 20.0 | Windgeschwindigkeit in m/s; beeinflusst Ballistik und Spielerbewegung |
 
 ---
 

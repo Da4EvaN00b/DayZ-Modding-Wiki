@@ -194,7 +194,7 @@ Les bandages sont très courants (40 nominal). Ils apparaissent dans les bâtime
 | `restock` | int | secondes | Délai minimum avant que le CE puisse faire apparaître un remplacement. 0 = immédiat. |
 | `quantmin` | int | -1 à 100 | Pourcentage de quantité minimum à l'apparition (% munitions, % liquide). -1 = non applicable. |
 | `quantmax` | int | -1 à 100 | Pourcentage de quantité maximum à l'apparition. -1 = non applicable. |
-| `cost` | int | 0+ | Poids de priorité pour la sélection d'apparition. Actuellement tous les objets vanilla utilisent 100. |
+| `cost` | int | 0+ | Poids de priorité utilisé lors du respawn/nettoyage. Presque tous les objets vanilla utilisent 100, mais quelques-uns utilisent des valeurs plus élevées (par ex. `Mag_SVD_10Rnd` utilise 1000). |
 
 ### Flags
 

@@ -121,7 +121,7 @@ The resulting JSON looks like:
 | `string` | String |
 | `vector` | Array of 3 numbers |
 | `array<T>` | JSON array |
-| `map<string, T>` | JSON object (string keys only) |
+| `map<K, T>` | JSON-Objekt (`K` kann `string`, `int` oder ein `enum` sein; JSON stellt alle Schlüssel als Zeichenketten dar) |
 | Nested class | Nested JSON object |
 
 ### Nested Objects

@@ -24,10 +24,11 @@
 
 ## Vista general de cfgplayerspawnpoints.xml
 
-Este archivo vive en tu carpeta de mision (por ejemplo, `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Tiene dos secciones, cada una con sus propios parametros y burbujas de posicion:
+Este archivo vive en tu carpeta de mision (por ejemplo, `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Tiene tres secciones, cada una con sus propios parametros y burbujas de posicion:
 
 - **`<fresh>`** -- personajes completamente nuevos (primera vida o despues de morir)
 - **`<hop>`** -- saltadores de servidor (el jugador tenia un personaje en otro servidor)
+- **`<travel>`** -- spawns de viaje/teletransporte por el mapa dentro del juego
 
 ---
 
@@ -77,12 +78,12 @@ El generador crea una cuadricula de posiciones candidatas alrededor de cada burb
 
 | Parametro | Valor | Significado |
 |-----------|-------|---------|
-| `grid_density` | 4 | Espaciado entre puntos de cuadricula en metros -- mas bajo = mas candidatos, mayor costo de CPU |
-| `grid_width` | 200 | La cuadricula se extiende 200m en el eje X alrededor del centro de cada burbuja |
-| `grid_height` | 200 | La cuadricula se extiende 200m en el eje Z alrededor del centro de cada burbuja |
+| `grid_density` | 4 | Frecuencia de muestreo (numero de subdivisiones) de la cuadricula -- mas alto = mas candidatos, mayor costo de CPU. Espaciado entre puntos = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Ancho total de la cuadricula de candidatos en metros (centrada en la burbuja) -- se extiende ~100m a cada lado en el eje X |
+| `grid_height` | 200 | Alto total de la cuadricula de candidatos en metros (centrada en la burbuja) -- se extiende ~100m a cada lado en el eje Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Rango de pendiente del terreno en grados -- rechaza acantilados y colinas empinadas |
 
-Cada burbuja obtiene una cuadricula de 200x200m con un punto cada 4m (~2,500 candidatos). El motor filtra por pendiente y distancia estatica, luego aplica `spawn_params` en el momento del spawn.
+Cada burbuja obtiene una cuadricula de 200x200m con puntos candidatos espaciados `grid_width` / `grid_density` = 200/4 = 50m entre si (del orden de ~16-25 candidatos). El motor filtra por pendiente y distancia estatica, luego aplica `spawn_params` en el momento del spawn.
 
 #### Parametro `allow_in_water` (1.28+)
 
@@ -111,8 +112,8 @@ Por defecto, el motor rechaza cualquier posicion candidata que caiga en agua (es
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +121,10 @@ Por defecto, el motor rechaza cualquier posicion candidata que caiga en agua (es
 |-----------|-------|---------|
 | `enablegroups` | true | Las burbujas de posicion se organizan en grupos con nombre |
 | `groups_as_regular` | true | Los grupos se tratan como puntos de spawn regulares (cualquier grupo puede ser seleccionado) |
-| `lifetime` | 240 | Segundos antes de que un punto de spawn usado vuelva a estar disponible |
-| `counter` | -1 | Numero de veces que un punto de spawn puede ser usado. -1 = ilimitado |
+| `lifetime` | 120 | Segundos que un grupo de spawn permanece activo antes de que el sistema cambie a otro grupo. -1 = deshabilitado |
+| `counter` | 2 | Numero de inicios de sesion que un grupo permanece activo antes de ser cambiado (por grupo). -1 = deshabilitado |
 
-Una posicion usada queda bloqueada por 240 segundos, previniendo que dos jugadores spawneen uno encima del otro.
+`lifetime` controla cuanto tiempo un grupo de spawn permanece como grupo activo antes de que el sistema cambie a otro grupo; no es un bloqueo por posicion. El espaciado entre spawns simultaneos lo impone `min_dist_player`.
 
 ---
 
@@ -192,7 +193,7 @@ Los spawns de hop son mas permisivos en distancia de jugador y usan cuadriculas 
 
 <!-- Diferencias de group_params de hop -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 Los grupos de hop estan distribuidos **tierra adentro**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Con `enablegroups=false`, el motor trata las 50 posiciones como un pool plano.
@@ -246,7 +247,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Lo que esto da a cada jugador: **BandageDressing** (barra rapida 3), **Chemlight** aleatorio (barra rapida 2), fruta aleatoria -- 35% Apple, 30% Plum, 35% Pear (barra rapida 1). `SetRandomHealth` establece condicion de 45-65% en todos los items.
+Lo que esto da a cada jugador: **BandageDressing** (barra rapida 2), **Chemlight** aleatorio (barra rapida 1), fruta aleatoria -- 35% Apple, 30% Plum, 35% Pear (barra rapida 3). `SetRandomHealth` establece condicion de 45-65% en todos los items.
 
 ### Agregar equipo inicial personalizado
 
@@ -279,7 +280,7 @@ Pasos:
 4. Usa `x` para este-oeste y `z` para norte-sur -- el motor calcula Y (altitud) desde el terreno
 5. Reinicia el servidor -- no se requiere borrado de persistencia
 
-Para un spawn balanceado, manten al menos 4 posiciones por grupo para que el bloqueo de 240 segundos no bloquee todas las posiciones cuando multiples jugadores mueren a la vez.
+Para un spawn balanceado, manten al menos 4 posiciones por grupo para que un solo grupo tenga suficiente dispersion para mantener `min_dist_player` satisfecho cuando multiples jugadores mueren a la vez.
 
 ---
 
@@ -291,7 +292,7 @@ Intercambiaste `z` (norte-sur) con Y (altitud), o usaste coordenadas fuera del r
 
 ### No hay suficientes puntos de spawn
 
-Con solo 2-3 posiciones, el bloqueo de 240 segundos causa agrupamiento. Vanilla usa 49 posiciones nuevas a traves de 11 grupos. Apunta a al menos 20 posiciones en 4+ grupos.
+Con solo 2-3 posiciones, el grupo activo no puede dispersar a los jugadores y se produce agrupamiento. Vanilla usa 49 posiciones nuevas a traves de 11 grupos. Apunta a al menos 20 posiciones en 4+ grupos.
 
 ### Olvidar la seccion hop
 
@@ -303,7 +304,7 @@ El generador rechaza pendientes superiores a 45 grados. Si todas las posiciones 
 
 ### Jugadores siempre spawneando en el mismo punto
 
-Los grupos con 1-2 posiciones quedan bloqueados por el enfriamiento de 240 segundos. Agrega mas posiciones por grupo.
+Los grupos con 1-2 posiciones tienen muy pocos candidatos para que el motor varie la posicion elegida. Agrega mas posiciones por grupo.
 
 ---
 

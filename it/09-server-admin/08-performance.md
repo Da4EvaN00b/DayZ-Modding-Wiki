@@ -30,7 +30,7 @@ Dai dati della community (400+ menzioni su Discord di FPS/prestazioni/lag/desync
 2. **Spawn di eventi** -- troppi eventi dinamici attivi (veicoli, animali, relitti di elicotteri) in `events.xml` consumano cicli di spawn/pulizia e slot di entita.
 3. **Conteggio giocatori + conteggio mod** -- ogni giocatore connesso genera aggiornamenti delle entita, e ogni mod aggiunge classi di script che il motore deve compilare ed eseguire ad ogni tick.
 
-Il game loop del server funziona a un tick rate fisso di 30 FPS. Quando il server non riesce a mantenere 30 FPS, i giocatori sperimentano desync -- rubber-banding, ritardi nel raccogliere oggetti e fallimenti nella registrazione dei colpi. Sotto i 15 FPS del server, il gioco diventa ingiocabile.
+Il game loop del server funziona a un FPS variabile che fluttua in base al carico. Quando il server non riesce a mantenere un FPS sano (la soglia predefinita di `serverFpsWarning` e 15), i giocatori sperimentano desync -- rubber-banding, ritardi nel raccogliere oggetti e fallimenti nella registrazione dei colpi. Sotto i 15 FPS del server, il gioco diventa ingiocabile.
 
 ---
 
@@ -53,7 +53,7 @@ Questi sono i valori predefiniti vanilla per i parametri che influiscono diretta
 | `ZombieMaxCount` | 1000 | Limite per il totale degli infetti sul server. Ogni zombie esegue il pathfinding dell'IA. Ridurre a 500-700 migliora notevolmente gli FPS del server su server popolati. |
 | `AnimalMaxCount` | 200 | Limite per gli animali. Gli animali hanno un'IA piu semplice degli zombie ma consumano comunque tempo di tick. Riduci a 100 se noti problemi di FPS. |
 | `ZoneSpawnDist` | 300 | Distanza in metri alla quale le zone zombie si attivano intorno ai giocatori. Ridurre a 200 significa meno zone attive simultaneamente. |
-| `SpawnInitial` | 1200 | Numero di oggetti che la CE genera al primo avvio. Valori piu alti significano un caricamento iniziale piu lungo. Non influisce sulle prestazioni a regime. |
+| `SpawnInitial` | 1200 | Numero di tentativi di spawn (test) consentiti durante lo spawn iniziale degli oggetti, non un conteggio degli oggetti generati. La quantita di loot generata al primo avvio e governata da `InitialSpawn` (predefinito 100, una percentuale). Valori piu alti significano un caricamento iniziale piu lungo. Non influisce sulle prestazioni a regime. |
 | `CleanupLifetimeDefault` | 45 | Tempo di pulizia predefinito in secondi per gli oggetti senza un lifetime specifico. Valori piu bassi significano cicli di pulizia piu veloci ma elaborazione CE piu frequente. |
 
 **Profilo prestazionale raccomandato** (per server che faticano sopra i 40 giocatori):
@@ -135,7 +135,7 @@ Il file di configurazione principale del server ha opzioni limitate relative all
 | `maxPlayers` | Abbassa questo valore se il server fatica. Ogni giocatore genera traffico di rete e aggiornamenti delle entita. Passare da 60 a 40 giocatori puo recuperare 5-10 FPS del server. |
 | `instanceId` | Determina il percorso di `storage_1/`. Non e un'impostazione prestazionale, ma se il tuo storage e su un disco lento, influisce sull'I/O della persistenza. |
 
-**Cosa non puoi cambiare:** il tick rate del server e fisso a 30 FPS. Non c'e un'impostazione per aumentarlo o diminuirlo. Se il server non riesce a mantenere 30 FPS, semplicemente gira piu lentamente.
+**Cosa non puoi cambiare:** non c'e un'impostazione per forzare un FPS minimo del server piu alto. Gli FPS del server sono variabili e fluttuano in base al carico. Puoi limitare il massimo con il parametro di avvio `-limitFPS=` (il massimo attuale e 200) per ridurre l'uso della CPU su server con poca popolazione, ma se il server non riesce a stare al passo sotto carico, semplicemente gira piu lentamente.
 
 ---
 

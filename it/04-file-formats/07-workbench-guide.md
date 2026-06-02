@@ -242,7 +242,7 @@ ScriptModulePathClass {
 
 Alcuni framework sovrascrivono i punti di ingresso (CF usa `"CF_CreateGame"`).
 
-**imageSets / widgetStyles** -- Necessari per l'anteprima dei layout. Senza i set di immagini vanilla, i file di layout mostrano immagini mancanti. Includi sempre i 14 set di immagini vanilla standard elencati nell'esempio sopra.
+**imageSets / widgetStyles** -- Necessari per l'anteprima dei layout. Senza i set di immagini vanilla, i file di layout mostrano immagini mancanti. Includi i set di immagini vanilla a cui i tuoi layout fanno riferimento; l'elenco esatto varia (il `dayz.gproj` predefinito ne include all'incirca una dozzina, ad esempio `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), poi aggiungi i tuoi.
 
 ### Risoluzione del Prefisso del Percorso
 
@@ -500,7 +500,7 @@ Quando connesso a DayZDiag, Workbench può profilare l'esecuzione degli script.
 
 ### Script Profiler In-Game (Menu Diag)
 
-Oltre al profiler di Workbench, `DayZDiag_x64.exe` ha uno Script Profiler integrato accessibile tramite il Menu Diag (sotto Statistics). Mostra le top-20 per tempo per classe, tempo per funzione, allocazioni per classe, conteggio per funzione e conteggio delle istanze per classe. Usa il parametro di lancio `-profile` per abilitare la profilazione dall'avvio. Il profiler misura solo Enforce Script -- i metodi proto (del motore) non vengono misurati come voci separate, ma il loro tempo di esecuzione è incluso nel tempo totale del metodo script che li chiama. Vedi `EnProfiler.c` negli script vanilla per l'API programmatica (`EnProfiler.Enable`, `EnProfiler.SetModule`, costanti dei flag).
+Oltre al profiler di Workbench, `DayZDiag_x64.exe` ha uno Script Profiler integrato accessibile tramite il Menu Diag (sotto Statistics). Mostra le top-20 per tempo per classe, tempo per funzione, allocazioni per classe e conteggio per funzione, più una top-40 per il conteggio delle istanze per classe (Class count). Usa il parametro di lancio `-profile` per abilitare la profilazione dall'avvio. Il profiler misura solo Enforce Script -- i metodi proto (del motore) non vengono misurati come voci separate, ma il loro tempo di esecuzione è incluso nel tempo totale del metodo script che li chiama. Vedi `EnProfiler.c` negli script vanilla per l'API programmatica (`EnProfiler.Enable`, `EnProfiler.SetModule`, costanti dei flag).
 
 ### Colli di Bottiglia Comuni
 

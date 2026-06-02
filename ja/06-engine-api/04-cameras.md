@@ -77,8 +77,6 @@ DayZ のプレイヤーカメラは、エンジンのプレイヤーコントロ
 | `DayZPlayerCameras.DAYZCAMERA_OPTICS` | 光学/スコープ照準 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_VEHICLE` | 三人称 車両 |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE` | 一人称 車両 |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_SWIM` | 三人称 水泳 |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_UNCONSCIOUS` | 三人称 意識不明 |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS` | 一人称 意識不明 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_CLIMB` | 三人称 登攀 |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_JUMP` | 三人称 ジャンプ |
@@ -89,8 +87,8 @@ DayZ のプレイヤーカメラは、エンジンのプレイヤーコントロ
 DayZPlayer player = GetGame().GetPlayer();
 if (player)
 {
-    int cameraType = player.GetCurrentCameraType();
-    if (cameraType == DayZPlayerCameras.DAYZCAMERA_1ST)
+    DayZPlayerCamera cam = player.GetCurrentCamera();
+    if (cam && cam.GetCameraName() == "DayZPlayerCamera1stPerson")
     {
         Print("Player is in first person");
     }
@@ -101,34 +99,30 @@ if (player)
 
 ## FreeDebugCamera
 
-**ファイル:** `5_Mission/gui/scriptconsole/freedebugcamera.c`
+**ファイル:** `3_Game/entities/camera.c`
 
 デバッグやシネマティック作業に使用されるフリーフライトカメラです。診断ビルドまたは Mod で有効にした場合に利用できます。
 
 ### インスタンスへのアクセス
 
 ```c
-FreeDebugCamera GetFreeDebugCamera();
+static proto native FreeDebugCamera GetInstance();
 ```
 
-このグローバル関数はフリーカメラのシングルトンインスタンスを返します（存在しない場合は null）。
+この静的メソッドはフリーカメラのシングルトンインスタンスを返します（存在しない場合は null）。`FreeDebugCamera.GetInstance()` として呼び出します。
 
 ### 主要メソッド
 
 ```c
-// フリーカメラの有効化/無効化
-static void SetActive(bool active);
-static bool GetActive();
+// フリーカメラの有効化/無効化（Camera から継承）
+proto native void SetActive(bool active);
+proto native bool IsActive();
 
 // 位置と向き
 vector GetPosition();
 void   SetPosition(vector pos);
 vector GetOrientation();
 void   SetOrientation(vector ori);   // ヨー、ピッチ、ロール
-
-// 速度
-void SetFlySpeed(float speed);
-float GetFlySpeed();
 
 // カメラの方向
 vector GetDirection();
@@ -139,14 +133,12 @@ vector GetDirection();
 ```c
 void ActivateDebugCamera(vector pos)
 {
-    FreeDebugCamera.SetActive(true);
-
-    FreeDebugCamera cam = GetFreeDebugCamera();
+    FreeDebugCamera cam = FreeDebugCamera.GetInstance();
     if (cam)
     {
+        cam.SetActive(true);
         cam.SetPosition(pos);
         cam.SetOrientation(Vector(0, -30, 0));  // やや下を見る
-        cam.SetFlySpeed(10.0);
     }
 }
 ```
@@ -160,8 +152,8 @@ void ActivateDebugCamera(vector pos)
 ### FOV の読み取り
 
 ```c
-// 現在のカメラ FOV を取得
-float fov = GetDayZGame().GetFieldOfView();
+// 現在のカメラ FOV を取得（ラジアン単位）
+float fov = Camera.GetCurrentFOV();
 ```
 
 ### DayZPlayerCamera の FOV オーバーライド
@@ -171,9 +163,10 @@ float fov = GetDayZGame().GetFieldOfView();
 ```c
 class MyCustomCamera extends DayZPlayerCamera1stPerson
 {
-    override float GetCurrentFOV()
+    override void OnUpdate(float pDt, out DayZPlayerCameraResult pOutResult)
     {
-        return 0.7854;  // 約45度（ラジアン）
+        super.OnUpdate(pDt, pOutResult);
+        pOutResult.m_fFovAbsolute = 0.7854;  // 約45度（ラジアン）
     }
 }
 ```
@@ -184,26 +177,17 @@ class MyCustomCamera extends DayZPlayerCamera1stPerson
 
 被写界深度はポストプロセスエフェクトシステムを通じて制御されます（[第6.5章](05-ppe.md)を参照）。ただし、カメラシステムは以下のメカニズムを通じて DOF と連携します。
 
-### World を介した DOF の設定
+### CGame を介した DOF の設定
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    // SetDOF(フォーカス距離, フォーカス長, 近距離フォーカス長, ぼかし, フォーカス深度オフセット)
-    // すべての値はメートル単位
-    world.SetDOF(5.0, 100.0, 0.5, 0.3, 0.0);
-}
+// OverrideDOF(enable, focusDistance, focusLength, focusLengthNear, blur, focusDepthOffset)
+GetGame().OverrideDOF(true, 5.0, 100.0, 0.5, 0.3, 0.0);
 ```
 
 ### DOF の無効化
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    world.SetDOF(0, 0, 0, 0, 0);  // すべてゼロで DOF を無効化
-}
+GetGame().OverrideDOF(false, 0, 0, 0, 0, 1);  // 第一引数 false で DOF を無効化
 ```
 
 ---
@@ -224,11 +208,13 @@ ScriptCamera camera = ScriptCamera.Cast(
 
 ### 主要メソッド
 
+> **注意:** `ScriptCamera` は `#ifdef GAME_TEMPLATE` の下でのみコンパイルされ、DayZ のゲームビルドには存在しません。`GenericEntity` のカメラメソッド（`SetCameraVerticalFOV`、`SetCameraNearPlane`、`SetCameraFarPlane`、`SetCameraType`）を通じて自身を構成します。以下のメソッドは、`FreeDebugCamera` が拡張するエンジンの `Camera` クラス（`3_Game/entities/camera.c`）に属します。
+
 ```c
-proto native void SetFOV(float fov);          // ラジアン単位の FOV
-proto native void SetNearPlane(float nearPlane);
-proto native void SetFarPlane(float farPlane);
-proto native void SetFocus(float dist, float len);
+proto native void SetFOV(float fov);                 // ラジアン単位の FOV
+proto native void SetNearPlane(float nearPlane);     // 内部的に 0.01m にクランプされる
+proto native float GetNearPlane();
+proto native void SetFocus(float distance, float blur);  // 被写界深度
 ```
 
 ### カメラのアクティベーション
@@ -278,10 +264,10 @@ Object GetObjectInCrosshair(float maxDistance)
 |---------|-----------|
 | グローバルアクセサー | `GetCurrentCameraPosition()`, `GetCurrentCameraDirection()`, `GetScreenPos()` |
 | カメラの種類 | `DayZPlayerCameras` 定数（1ST, 3RD_ERC, IRONSIGHTS, OPTICS, VEHICLE など） |
-| 現在のタイプ | `player.GetCurrentCameraType()` |
-| フリーカメラ | `FreeDebugCamera.SetActive(true)` → `GetFreeDebugCamera()` |
-| FOV | 読み取り: `GetDayZGame().GetFieldOfView()`、カメラクラスで `GetCurrentFOV()` をオーバーライド |
-| DOF | `GetGame().GetWorld().SetDOF(focus, length, near, blur, offset)` |
+| 現在のタイプ | `player.GetCurrentCamera().GetCameraName()` |
+| フリーカメラ | `FreeDebugCamera.GetInstance()` → `cam.SetActive(true)` |
+| FOV | 読み取り: `Camera.GetCurrentFOV()`、`OnUpdate` で `pOutResult.m_fFovAbsolute` を設定 |
+| DOF | `GetGame().OverrideDOF(enable, focusDist, focusLen, focusLenNear, blur, offset)` |
 | スクリーン変換 | `GetScreenPos(worldPos)` はピクセル XY + 深度 Z を返す |
 
 ---

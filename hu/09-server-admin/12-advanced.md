@@ -45,16 +45,19 @@ Vanilla struktúra:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ A **cfglimitsdefinition.xml** definiálja a `types.xml` kategóriáit/tagjeit, d
 
 ## cfgenvironment.xml és állat területek
 
-A **cfgenvironment.xml** fájl a küldetés mappádban az `env/` alkönyvtárban lévő terület fájlokra hivatkozik:
+A **cfgenvironment.xml** fájl a küldetés mappádban az `env/` alkönyvtárban lévő terület fájlokat társítja állat viselkedésekhez. Minden állatcsoport egy `<territory>` elem, amely egy `<file usable="..." />` gyermeket tartalmaz (névvel hivatkozva, az `env/` előtag és a `.xml` kiterjesztés nélkül):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ A dinamikus események (helikopter roncsok, konvojok) az **events.xml**-ben vann
 </event>
 ```
 
-**3. Adj hozzá fertőzött őröket** (opcionális) -- adj hozzá `<secondary type="ZmbM_PatrolNormal_Autumn" />` elemeket az esemény definíciódban.
+**3. Adj hozzá fertőzött őröket** (opcionális) -- adj hozzá egy `<secondary>InfectedArmy</secondary>` elemet az esemény definíciódhoz. A tartalom egy másik esemény nevére hivatkozik az **events.xml**-ben, amely a fertőzötteket spawnolja.
 
 **4. Csoportos spawnok** (opcionális) -- definiálj klasztereket a **cfgeventgroups.xml**-ben és hivatkozz a csoport nevére az eseményedben.
 
@@ -265,14 +272,14 @@ Mindig mentsd le a `storage_1/` mappát minden újraindítás előtt. A leállí
 
 A **cfgweather.xml** fájl a küldetés mappádban szabályozza az időjárási mintákat. Minden térképhez saját alapértékek tartoznak:
 
-Minden jelenségnek van `min`, `max`, `duration_min` és `duration_max` (másodperc) értéke:
+Minden jelenség egy beágyazott elem (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`), amely `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` és `<changelimits min="" max="" />` gyermekeket tartalmaz (a `rain` és `snowfall` ezenfelül egy `<thresholds>` elemet is kap). A `<limits>` értéktartomány jelenségenként:
 
-| Jelenség | Alapértelmezett Min | Alapértelmezett Max | Megjegyzések |
-|----------|---------------------|---------------------|--------------|
+| Jelenség | Limits Min | Limits Max | Megjegyzések |
+|----------|------------|------------|--------------|
 | `overcast` | 0.0 | 1.0 | Felhősűrűséget és eső valószínűséget vezérli |
 | `rain` | 0.0 | 1.0 | Csak egy borultsági küszöb felett aktiválódik. Állítsd a max-ot `0.0`-ra eső nélküli időjáráshoz |
 | `fog` | 0.0 | 0.3 | `0.5` feletti értékek közel nulla látótávolságot eredményeznek |
-| `wind_magnitude` | 0.0 | 18.0 | Hatással van a ballisztikára és a játékos mozgásra |
+| `windMagnitude` | 0.0 | 20.0 | Szélsebesség m/s-ban; hatással van a ballisztikára és a játékos mozgásra |
 
 ---
 

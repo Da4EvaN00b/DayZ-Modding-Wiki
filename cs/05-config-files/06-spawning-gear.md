@@ -195,7 +195,7 @@ Každá položka v `discreteItemSets` představuje jeden možný předmět pro d
 | `quickBarSlot` | integer | Přiřazení slotu quickbaru (od 0). Použijte `-1` pro žádné přiřazení quickbaru |
 | `complexChildrenTypes` | array | Předměty ke spawnu vnořené uvnitř tohoto předmětu. Viz [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Classnames předmětů ke spawnu uvnitř tohoto předmětu s výchozími nebo rodičovskými atributy |
-| `simpleChildrenUseDefaultAttributes` | bool | Pokud `true`, jednoduché potomky používají `attributes` rodiče. Pokud `false`, používají konfigurační výchozí hodnoty |
+| `simpleChildrenUseDefaultAttributes` | bool | Pokud `true`, jednoduché potomky používají konfigurační výchozí hodnoty. Pokud `false`, používají `attributes` rodiče |
 
 **Trik s prázdným předmětem:** Pro 50/50 šanci, že bude slot prázdný nebo vyplněný, použijte prázdný `itemType`:
 
@@ -230,10 +230,10 @@ Každá položka představuje jednu variantu nákladu a server ji vybírá na z�
 |-------|------|-------------|
 | `name` | string | Lidsky čitelný název (pouze pro identifikaci) |
 | `spawnWeight` | integer | Váha pro výběr. Minimum `1` |
-| `attributes` | object | Výchozí rozsahy zdraví/množství. Používány potomky, když je `simpleChildrenUseDefaultAttributes` `true` |
+| `attributes` | object | Výchozí rozsahy zdraví/množství. Používány potomky, když je `simpleChildrenUseDefaultAttributes` `false` |
 | `complexChildrenTypes` | array | Předměty ke spawnu do nákladu, každý s vlastními atributy a vnořením |
 | `simpleChildrenTypes` | array | Classnames předmětů ke spawnu do nákladu |
-| `simpleChildrenUseDefaultAttributes` | bool | Pokud `true`, jednoduché potomky používají `attributes` této struktury. Pokud `false`, používají konfigurační výchozí hodnoty |
+| `simpleChildrenUseDefaultAttributes` | bool | Pokud `true`, jednoduché potomky používají konfigurační výchozí hodnoty. Pokud `false`, používají `attributes` této struktury |
 
 ```json
 {
@@ -329,7 +329,7 @@ Příklad --- zbraň s příslušenstvím a zásobníkem:
 }
 ```
 
-V tomto příkladu se AKM spawne s pažbou, optikou (s baterií uvnitř) a nabitým zásobníkem jako komplexní potomci, plus předpažbí a bajonet jako jednoduché potomky. Jednoduché potomky používají konfigurační výchozí hodnoty, protože `simpleChildrenUseDefaultAttributes` je `false`.
+V tomto příkladu se AKM spawne s pažbou, optikou (s baterií uvnitř) a nabitým zásobníkem jako komplexní potomci, plus předpažbí a bajonet jako jednoduché potomky. Jednoduché potomky používají `attributes` rodičovské sady AKM, protože `simpleChildrenUseDefaultAttributes` je `false`; konfigurační výchozí hodnoty by se použily pouze tehdy, pokud by byl příznak `true`.
 
 ### SimpleChildrenTypes
 
@@ -337,8 +337,8 @@ Jednoduché potomky jsou zkratkou pro spawning předmětů uvnitř rodiče bez s
 
 Jejich atributy jsou určeny příznakem `simpleChildrenUseDefaultAttributes`:
 
-- **`true`** --- Předměty používají `attributes` definované na rodičovské struktuře.
-- **`false`** --- Předměty používají konfigurační výchozí hodnoty enginu (typicky plné zdraví a množství).
+- **`true`** --- Předměty používají konfigurační výchozí hodnoty enginu (typicky plné zdraví a množství).
+- **`false`** --- Předměty používají `attributes` definované na rodičovské struktuře.
 
 Jednoduché potomky nemohou mít vlastní vnořené potomky ani přiřazení quickbaru. Pro tyto schopnosti použijte místo toho `complexChildrenTypes`.
 
@@ -1118,7 +1118,7 @@ Pokud mod není na serveru načten, předměty s neznámými classnames se tiše
 |---------|-------------|-----|
 | Zapomenutí `enableCfgGameplayFile = 1` v `serverDZ.cfg` | `cfggameplay.json` není načten, presety jsou ignorovány | Přidejte příznak a restartujte server |
 | Neplatná syntaxe JSON (čárka na konci, chybějící závorka) | Všechny presety v daném souboru tiše selžou | Ověřte JSON externím nástrojem před nasazením |
-| Použití `spawnGearPresetFiles` bez odstranění kódu `StartingEquipSetup()` | Skriptovaný loadout je tiše přepsán JSON presetem. Kód init.c se spustí, ale jeho předměty jsou nahrazeny | Toto je očekávané chování, nikoliv chyba. Odstraňte nebo zakomentujte kód loadoutu v init.c, abyste předešli zmatkům |
+| Použití `spawnGearPresetFiles` bez odstranění kódu `StartingEquipSetup()` | Skriptovaný loadout je tiše přepsán JSON presetem. Když jsou aktivní platné presety, `StartingEquipSetup()` není voláno vůbec --- jeho předměty nejsou vytvořeny a poté nahrazeny | Toto je očekávané chování, nikoliv chyba. Odstraňte nebo zakomentujte kód loadoutu v init.c, abyste předešli zmatkům |
 | Nastavení `spawnWeight: 0` | Hodnota pod minimem. Chování je nedefinované | Vždy používejte `spawnWeight: 1` nebo vyšší |
 | Odkazování na classname, který neexistuje | Konkrétní předmět se tiše nespawní, ale zbytek presetu funguje | Zkontrolujte classnames oproti `config.cpp` modu nebo types.xml |
 | Přiřazení předmětu do slotu, který nemůže obsadit | Předmět se nespawní. Žádná chyba v logu | Ověřte, že `inventorySlot[]` předmětu v config.cpp odpovídá `slotName` |

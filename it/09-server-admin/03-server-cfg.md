@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Luminosita notturna (0 = piu chiaro, 1 = 
 | `disable3rdPerson` | int | 0, 1 | 0 | Imposta a 1 per server solo in prima persona. Questa e l'impostazione "hardcore" piu comune. |
 | `disableCrosshair` | int | 0, 1 | 0 | Imposta a 1 per rimuovere il mirino. Spesso abbinato a `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | La "luce personale" e un bagliore sottile intorno al giocatore di notte. La maggior parte dei server la disabilita (valore 1) per realismo. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = notti piu luminose (chiaro di luna visibile). 1 = notti completamente buie (necessaria torcia/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = notti piu luminose (chiaro di luna visibile). 1 = notti completamente buie (necessaria torcia/NVG). 2 = illuminazione specifica di Sakhal. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Salva l'orario tra i riavvii
 | Parametro | Tipo | Valori validi | Predefinito | Note |
 |-----------|------|---------------|-------------|------|
 | `serverTime` | stringa | `"SystemTime"` o `"AAAA/MM/GG/HH/MM"` | `"SystemTime"` | `"SystemTime"` usa l'orologio locale della macchina. Imposta un orario fisso come `"2024/9/15/12/0"` per un server perennemente diurno. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Moltiplicatore per il tempo di gioco. A 12, un ciclo completo di 24 ore dura 2 ore reali. A 1, il tempo e in tempo reale. A 24, un giorno intero passa in 1 ora. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Moltiplicatore per il tempo di gioco. A 12, un ciclo completo di 24 ore dura 2 ore reali. A 1, il tempo e in tempo reale. A 24, un giorno intero passa in 1 ora. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Moltiplicato per `serverTimeAcceleration`. Con valore 4 e accelerazione 12, la notte passa a velocita 48x (notti molto brevi). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Quando e 1, il server salva il suo orologio di gioco su disco e lo riprende dopo il riavvio. Quando e 0, l'orario si resetta a `serverTime` ad ogni riavvio. |
 

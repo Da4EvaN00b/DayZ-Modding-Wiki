@@ -35,7 +35,7 @@ I veicoli **non** sono definiti in `types.xml`. Se aggiungi una classe veicolo a
 
 La CE legge `events.xml`, seleziona un evento che necessita di spawn, cerca le posizioni corrispondenti in `cfgeventspawns.xml`, ne seleziona una a caso che soddisfa i vincoli di `saferadius` e `distanceradius`, poi genera un'entita figlio selezionata casualmente in quella posizione.
 
-Tutti e tre i file si trovano in `mpmissions/<tua_missione>/db/`.
+`events.xml` si trova in `mpmissions/<tua_missione>/db/`, mentre `cfgeventspawns.xml` e `cfgeventgroups.xml` si trovano nella radice della missione (`mpmissions/<tua_missione>/`).
 
 ---
 
@@ -167,17 +167,17 @@ I relitti di elicotteri sono eventi dinamici che generano un relitto con loot mi
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +202,23 @@ I convogli militari sono gruppi statici di veicoli distrutti che appaiono con lo
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-I convogli funzionano in modo identico ai relitti di elicotteri: il tag `<secondary>` genera `InfectedArmy` intorno al sito, e gli oggetti loot con `deloot="1"` appaiono sui relitti. Con `nominal=5`, fino a 5 siti di convoglio esistono sulla mappa contemporaneamente. Ciascuno dura 1800 secondi (30 minuti) prima di ruotare verso una nuova posizione.
+I convogli funzionano come i relitti di elicotteri: il tag `<secondary>` genera `InfectedArmy` intorno al sito, e gli oggetti loot con `deloot="1"` appaiono sui relitti. A differenza del relitto di elicottero, l'evento convoglio ha un elemento `<children/>` vuoto -- i suoi veicoli distrutti sono definiti come gruppo in `cfgeventgroups.xml` e piazzati tramite riferimenti di gruppo in `cfgeventspawns.xml`. Con `nominal=5`, fino a 5 siti di convoglio esistono sulla mappa contemporaneamente. Ciascuno dura 1800 secondi (30 minuti) prima di ruotare verso una nuova posizione.
 
 ---
 
@@ -231,20 +229,21 @@ Gli eventi auto della polizia generano veicoli della polizia distrutti con infet
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +257,15 @@ Gli eventi auto della polizia generano veicoli della polizia distrutti con infet
 Questo file definisce eventi dove piu oggetti appaiono insieme con offset posizionali relativi. L'uso piu comune sono i treni abbandonati.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Il primo figlio viene piazzato nella posizione da `cfgeventspawns.xml`. I figli successivi sono spostati in base ai loro valori `x`, `z`, `a` relativi a quel punto di origine. In questo esempio, i vagoni del treno sono distanziati di 15 metri lungo l'asse z.
+Ogni gruppo e dichiarato con un elemento `<group name="...">` dentro l'elemento radice `<eventgroupdef>` del file, e le sue voci `<child>` sono figli diretti di `<group>` (qui non c'e un contenitore `<children>`). Il primo figlio viene piazzato nella posizione da `cfgeventspawns.xml`. I figli successivi sono spostati in base ai loro valori `x`, `z`, `y`, `a` relativi a quel punto di origine.
 
 Ogni `<child>` in un gruppo ha:
 
@@ -277,7 +274,11 @@ Ogni `<child>` in un gruppo ha:
 | `type` | Nome della classe dell'oggetto da generare. |
 | `x` | Offset X in metri dal punto di origine del gruppo. |
 | `z` | Offset Z in metri dal punto di origine del gruppo. |
+| `y` | Offset Y (verticale) in metri dal punto di origine del gruppo. |
 | `a` | Offset dell'angolo in gradi dal punto di origine del gruppo. |
+| `deloot` | Se il loot di eventi dinamici puo apparire in questo figlio (0 o 1). |
+| `lootmin` | Numero minimo di oggetti loot generati in questo figlio. |
+| `lootmax` | Numero massimo di oggetti loot generati in questo figlio. |
 
 L'evento del gruppo stesso ha comunque bisogno di una voce corrispondente in `events.xml` per controllare i conteggi nominal, il lifetime e lo stato di attivazione.
 

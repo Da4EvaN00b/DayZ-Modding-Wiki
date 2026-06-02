@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Brillo nocturno (0 = mas brillante, 1 = m
 | `disable3rdPerson` | int | 0, 1 | 0 | Pon 1 para servidores solo en primera persona. Esta es la configuracion "hardcore" mas comun. |
 | `disableCrosshair` | int | 0, 1 | 0 | Pon 1 para quitar la mira. A menudo se combina con `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | La "luz personal" es un brillo sutil alrededor del jugador de noche. La mayoria de servidores la desactivan (valor 1) para realismo. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = noches mas brillantes (luz de luna visible). 1 = noches completamente oscuras (requiere linterna/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = noches mas brillantes (luz de luna visible). 1 = noches completamente oscuras (requiere linterna/NVG). 2 = iluminacion especifica de Sakhal. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Guardar hora entre reinicios
 | Parametro | Tipo | Valores validos | Predeterminado | Notas |
 |-----------|------|-------------|---------|-------|
 | `serverTime` | string | `"SystemTime"` o `"AAAA/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` usa el reloj local de la maquina. Establece una hora fija como `"2024/9/15/12/0"` para un servidor permanentemente de dia. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Multiplicador para el tiempo del juego. A 12, un ciclo completo de 24 horas toma 2 horas reales. A 1, el tiempo es en tiempo real. A 24, un dia completo pasa en 1 hora. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Multiplicador para el tiempo del juego. A 12, un ciclo completo de 24 horas toma 2 horas reales. A 1, el tiempo es en tiempo real. A 24, un dia completo pasa en 1 hora. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Se multiplica por `serverTimeAcceleration`. Con valor 4 y aceleracion 12, la noche pasa a velocidad 48x (noches muy cortas). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Cuando es 1, el servidor guarda su reloj del juego en disco y lo retoma despues del reinicio. Cuando es 0, la hora se reinicia a `serverTime` en cada reinicio. |
 

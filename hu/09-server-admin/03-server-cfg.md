@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Éjszakai fényerő (0 = világosabb, 1 =
 | `disable3rdPerson` | int | 0, 1 | 0 | Állítsd 1-re az első személyű szerverekhez. Ez a leggyakoribb "hardcore" beállítás. |
 | `disableCrosshair` | int | 0, 1 | 0 | Állítsd 1-re a célkereszt eltávolításához. Gyakran párosítják a `disable3rdPerson=1` beállítással. |
 | `disablePersonalLight` | int | 0, 1 | 1 | A "személyes fény" egy finom ragyogás a játékos körül éjszaka. A legtöbb szerver letiltja (1-es érték) a realizmus kedvéért. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = világosabb éjszakák (holdfény látható). 1 = koromsötét éjszakák (zseblámpa/éjjellátó szükséges). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = világosabb éjszakák (holdfény látható). 1 = koromsötét éjszakák (zseblámpa/éjjellátó szükséges). 2 = Sakhal-specifikus megvilágítás. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Idő mentése újraindítások kö
 | Paraméter | Típus | Érvényes értékek | Alapértelmezett | Megjegyzések |
 |-----------|-------|-----------------|-----------------|--------------|
 | `serverTime` | string | `"SystemTime"` vagy `"ÉÉÉÉ/HH/NN/ÓÓ/PP"` | `"SystemTime"` | `"SystemTime"` a gép helyi óráját használja. Állíts be fix időt, pl. `"2024/9/15/12/0"` az állandó nappali szerverhez. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Szorzó a játékon belüli időhöz. 12-nél egy teljes 24 órás ciklus 2 valós órát vesz igénybe. 1-nél valós idejű. 24-nél egy teljes nap 1 óra alatt telik el. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Szorzó a játékon belüli időhöz. 12-nél egy teljes 24 órás ciklus 2 valós órát vesz igénybe. 1-nél valós idejű. 24-nél egy teljes nap 1 óra alatt telik el. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Megszorozva a `serverTimeAcceleration` értékével. 4-es értéknél 12-es gyorsítással az éjszaka 48x sebességgel halad (nagyon rövid éjszakák). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Ha 1, a szerver lemezre menti a játékon belüli óráját és újraindítás után onnan folytatja. Ha 0, az idő minden újraindításkor visszaáll a `serverTime` értékre. |
 

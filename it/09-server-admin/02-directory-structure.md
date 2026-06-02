@@ -174,7 +174,7 @@ Definisce le regole di spawn per **ogni oggetto** nel gioco. Con circa 23.000 ri
 
 ### globals.xml
 
-Parametri globali che influenzano l'intera economia: conteggio degli zombie, conteggio degli animali, timer di pulizia, intervalli di danno del loot, tempistiche di respawn. Ci sono 33 parametri in totale. Vedi [Capitolo 9.4](04-loot-economy.md) per il riferimento completo.
+Parametri globali che influenzano l'intera economia: conteggio degli zombie, conteggio degli animali, timer di pulizia, intervalli di danno del loot, tempistiche di respawn. Ci sono 30 parametri in totale. Vedi [Capitolo 9.4](04-loot-economy.md) per il riferimento completo.
 
 ### events.xml
 
@@ -258,19 +258,19 @@ Contiene lo stato persistente del server tra i riavvii:
 
 ```
 storage_1/
-  players.db         # Database SQLite di tutti i personaggi dei giocatori
+  players/           # Record binari dei personaggi, uno per giocatore
   spawnpoints.bin    # Dati binari dei punti di spawn
   backup/            # Backup automatici dei dati di persistenza
   data/              # Stato del mondo (oggetti piazzati, costruzione basi, veicoli)
 ```
 
-**Non modificare mai `players.db` mentre il server e in esecuzione.** E un database SQLite bloccato dal processo del server. Se hai bisogno di cancellare i personaggi, ferma prima il server e cancella o rinomina il file.
+**Non modificare mai manualmente i file in `players/` mentre il server e in esecuzione.** Sono record binari opachi scritti solo dal processo del server. Se hai bisogno di cancellare i personaggi, ferma prima il server e cancella o rinomina la cartella.
 
 Per fare un **wipe completo della persistenza**, ferma il server e cancella l'intera cartella `storage_1/`. Il server la ricreera al prossimo avvio con un mondo nuovo.
 
 Per fare un **wipe parziale** (mantieni i personaggi, resetta il loot):
 1. Ferma il server
-2. Cancella i file in `storage_1/data/` ma mantieni `players.db`
+2. Cancella i file in `storage_1/data/` ma mantieni `storage_1/players/`
 3. Riavvia
 
 ---

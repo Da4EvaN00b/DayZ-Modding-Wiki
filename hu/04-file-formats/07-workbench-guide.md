@@ -242,7 +242,7 @@ ScriptModulePathClass {
 
 Egyes keretrendszerek felülírják a belépési pontokat (a CF a `"CF_CreateGame"`-t használja).
 
-**imageSets / widgetStyles** -- Szükségesek a layout előnézethez. Vanilla imageset-ek nélkül a layout fájlok hiányzó képeket mutatnak. Mindig tartalmazza a fenti példában felsorolt 14 szabványos vanilla imageset-et.
+**imageSets / widgetStyles** -- Szükségesek a layout előnézethez. Vanilla imageset-ek nélkül a layout fájlok hiányzó képeket mutatnak. Vedd fel azokat a vanilla imageset-eket, amelyekre a layoutjaid hivatkoznak; a pontos lista változó (az alapértelmezett `dayz.gproj` nagyjából egy tucatot szállít, pl. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), majd fűzd hozzá a sajátjaidat.
 
 ### Létrehozás és indítás
 
@@ -496,7 +496,7 @@ Ha DayZDiag-hoz csatlakozik, a Workbench képes profilozni a szkript végrehajt�
 
 ### Játékon belüli szkript profilozó (Diag menü)
 
-A Workbench profilozójának kiegészítéseként a `DayZDiag_x64.exe` rendelkezik beépített szkript profilozóval, amely a Diag menüből érhető el (a Statistics alatt). Top-20 listákat mutat az osztályonkénti időhöz, függvényenkénti időhöz, osztály allokációkhoz, függvényenkénti darabszámhoz és osztálypéldány számokhoz. Használd a `-profile` indítási paramétert a profilozás indítástól való engedélyezéséhez. A profilozó csak az Enforce Scriptet méri -- a proto (motor) metódusok nem külön bejegyzésekként mérődnek, de végrehajtási idejük beleszámít az őket meghívó szkript metódus teljes idejébe. Lásd az `EnProfiler.c`-t a vanilla szkriptekben a programozási API-hoz (`EnProfiler.Enable`, `EnProfiler.SetModule`, jelző konstansok).
+A Workbench profilozójának kiegészítéseként a `DayZDiag_x64.exe` rendelkezik beépített szkript profilozóval, amely a Diag menüből érhető el (a Statistics alatt). Top-20 listákat mutat az osztályonkénti időhöz, függvényenkénti időhöz, osztály allokációkhoz és függvényenkénti darabszámhoz, valamint egy top-40 listát az osztálypéldány-számokhoz (Class count). Használd a `-profile` indítási paramétert a profilozás indítástól való engedélyezéséhez. A profilozó csak az Enforce Scriptet méri -- a proto (motor) metódusok nem külön bejegyzésekként mérődnek, de végrehajtási idejük beleszámít az őket meghívó szkript metódus teljes idejébe. Lásd az `EnProfiler.c`-t a vanilla szkriptekben a programozási API-hoz (`EnProfiler.Enable`, `EnProfiler.SetModule`, jelző konstansok).
 
 ### Gyakori szűk keresztmetszetek
 

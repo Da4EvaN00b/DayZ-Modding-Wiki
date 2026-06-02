@@ -45,7 +45,7 @@ class WeatherPhenomenon
     // 当前状态
     proto native float GetActual();          // 当前插值后的值（大多数为 0.0 - 1.0）
     proto native float GetForecast();        // 正在插值趋近的目标值
-    proto native float GetDuration();        // 当前预报持续的时间（秒）
+    proto native float GetNextChange();      // 距离下一次计算预报的剩余秒数
 
     // 设置预报（仅服务端）
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +53,17 @@ class WeatherPhenomenon
     // time：插值到该值的秒数（0 = 即时）
     // minDuration：值在自动更改前保持的最短时间
 
-    // 限制
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // 限制（当前值始终保持在 [fnMin, fnMax] 范围内）
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // 变化速度限制（现象变化的快慢）
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // 预报时间限制（计算下一次预报的时间范围（秒）；默认 300-3600）
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // 变化幅度限制
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // 预报变化限制（每次重新计算时预报值可变化的幅度；默认 0-1）
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +174,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 要手动控制天气（禁用自动天气状态机），调用：
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 当调用 `MissionWeather(true)` 时，引擎会停止自动天气转换，只有你的脚本驱动的 `Set()` 调用才能控制天气。
@@ -229,7 +230,7 @@ serverTimeAcceleration = 12;      // 12倍现实时间
 serverNightTimeAcceleration = 4;  // 夜间4倍加速
 ```
 
-在脚本中，你可以读取当前的时间倍率，但通常无法在运行时更改它。
+在脚本中，你可以通过 `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)` 在运行时更改时间加速（主要用于调试），其中 `timeMultiplier` 是 0-64 的加速值（或 `-1` 以重置回配置文件中的值）。没有用于读取当前倍率的脚本 getter。
 
 ---
 
@@ -240,7 +241,7 @@ serverNightTimeAcceleration = 4;  // 夜间4倍加速
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +251,19 @@ class WorldData
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // 当脚本修改了现象状态时返回 true；
+    // 返回 false 则让引擎应用其计算出的变化。
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // 防止雨量超过 0.5
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

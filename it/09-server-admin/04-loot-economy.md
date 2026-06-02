@@ -194,7 +194,7 @@ Le bende sono molto comuni (40 nominal). Appaiono negli edifici Medic (ospedali,
 | `restock` | int | secondi | Cooldown minimo prima che la CE possa generare un sostituto. 0 = immediato. |
 | `quantmin` | int | da -1 a 100 | Percentuale minima di quantita alla generazione (% munizioni, % liquido). -1 = non applicabile. |
 | `quantmax` | int | da -1 a 100 | Percentuale massima di quantita alla generazione. -1 = non applicabile. |
-| `cost` | int | 0+ | Peso di priorita per la selezione dello spawn. Attualmente tutti gli oggetti vanilla usano 100. |
+| `cost` | int | 0+ | Peso di priorita usato durante il respawn/cleanup. Quasi tutti gli oggetti vanilla usano 100, ma alcuni usano valori piu alti (es. `Mag_SVD_10Rnd` usa 1000). |
 
 ### Flags
 

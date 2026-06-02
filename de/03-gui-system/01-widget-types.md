@@ -39,11 +39,13 @@ Container-Widgets halten und organisieren Kind-Widgets. Sie zeigen selbst keinen
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Fließ-Layout. Ordnet Kinder sequentiell mit Umbruch, Innenabstand und Außenabstand an. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Raster-Layout. Ordnet Kinder in einem Raster an, das durch `Columns` und `Rows` definiert wird. |
 | `ScrollWidget` | `ScrollWidgetClass` | Scrollbarer Ansichtsbereich. Ermöglicht vertikales/horizontales Scrollen von Kindinhalten. |
-| `SpacerBaseWidget` | -- | Abstrakte Basisklasse für `WrapSpacerWidget` und `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Abstrakte Basisklasse für `SpacerWidget` und `ScrollWidget`. `WrapSpacerWidget` und `GridSpacerWidget` erweitern beide `SpacerWidget`. |
 
 ### FrameWidget
 
-Das Arbeitspferd der DayZ-UI. Verwenden Sie `FrameWidget` als Ihren Standard-Container, wenn Sie Widgets gruppieren müssen. Es hat kein visuelles Erscheinungsbild -- es ist rein strukturell.
+Das Arbeitspferd der DayZ-UI. Verwenden Sie einen Frame als Ihren Standard-Container, wenn Sie Widgets gruppieren müssen. Es hat kein visuelles Erscheinungsbild -- es ist rein strukturell.
+
+> **Hinweis:** `FrameWidgetClass` ist in `.layout`-Dateien verwendbar und `FrameWidgetTypeID` existiert für `CreateWidget()`, aber es gibt keine `FrameWidget`-Script-Klasse. Wie bei `PanelWidget` arbeiten Sie mit einem Frame als Basis-`Widget` -- casten Sie nicht zu `FrameWidget`.
 
 **Wichtige Methoden:**
 - Alle Basis-`Widget`-Methoden (Position, Größe, Farbe, Kinder, Flags)
@@ -52,7 +54,7 @@ Das Arbeitspferd der DayZ-UI. Verwenden Sie `FrameWidget` als Ihren Standard-Con
 
 ```c
 // Ein Frame-Widget nach Namen finden
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 

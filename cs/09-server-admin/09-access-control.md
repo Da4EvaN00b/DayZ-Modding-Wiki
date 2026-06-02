@@ -41,29 +41,31 @@ Udrzujte adminské heslo dlouhé a jedinecne. Kdokoliv s nim ma plnou kontrolu n
 
 ## ban.txt
 
-Soubor **ban.txt** se nachazi v adresari profilu vaseho serveru (cesta, kterou nastavite s `-profiles=`). Obsahuje jedno SteamID64 na radek:
+Soubor **ban.txt** se nachazi v korenovem adresari vaseho serveru. Obsahuje jedno hracske UID na radek:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- Kazdy radek je ciste 17mistne SteamID64 -- zadna jmena, zadne komentare, zadna hesla.
-- Hracum, jejichz SteamID se v tomto souboru objevi, je odmitnuto pripojeni.
+- Kazdy radek je 44znakove hracske UID DayZ -- ne 17mistne SteamID64. UID hrace najdete v logach `*.ADM` a `*.RPT`.
+- Za ID muzete pridat komentar pomoci prefixu `//` na stejnem radku nebo na samostatnem zakomentovanem radku.
+- Hracum, jejichz UID se v tomto souboru objevi, je odmitnuto pripojeni.
+- Pouzivani **ban.txt** lze prepnout pomoci `disableBanlist` v **serverDZ.cfg** (vychozi `false`).
 - Soubor muzete upravovat behem behu serveru; zmeny se projevi pri dalsim pokusu o pripojeni.
 
 ---
 
 ## whitelist.txt
 
-Soubor **whitelist.txt** se nachazi ve stejnem adresari profilu. Kdyz povolite whitelist, pripojit se mohou pouze SteamID uvedena v tomto souboru:
+Soubor **whitelist.txt** se nachazi ve stejnem korenovem adresari serveru. Kdyz povolite whitelist (`enableWhitelist = 1` v **serverDZ.cfg**), pripojit se mohou pouze hraci, jejichz UID je uvedeno v tomto souboru:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-Format je identicky s **ban.txt** -- jedno SteamID64 na radek, nic dalsiho.
+Format je identicky s **ban.txt** -- jedno 44znakove hracske UID na radek, s volitelnymi komentari `//`.
 
 Whitelist je uzitecny pro privatni komunity, testovaci servery nebo udalosti, kde potrebujete kontrolovany seznam hracu.
 
@@ -79,7 +81,7 @@ BattlEye je system proti podvodům integrovany do DayZ. Jeho soubory se nachazi 
 | **beserver_x64.cfg** | Konfiguracni soubor (RCON port, RCON heslo) |
 | **bans.txt** | BattlEye-specificke bany (zalozene na GUID, ne SteamID) |
 
-BattlEye je ve vychozim stavu povoleny. Server spustite s `DayZServer_x64.exe` a BattlEye se nacte automaticky. Pro explicitni zakazani (nedoporuceno pro produkci) pouzijte spousteci parametr `-noBE`.
+BattlEye je ve vychozim stavu povoleny. Server spustite s `DayZServer_x64.exe` a BattlEye se nacte automaticky. Pro explicitni zakazani (nedoporuceno pro produkci) nastavte `BattlEye = 0;` v **serverDZ.cfg**.
 
 Soubor **bans.txt** ve slozce `BattlEye/` pouziva BattlEye GUID, ktere se lisi od SteamID64. Bany vydane pres RCON nebo prikazy BattlEye se do tohoto souboru zapisuji automaticky.
 
@@ -91,10 +93,10 @@ BattlEye RCON vam umoznuje spravovat server na dalku bez nutnosti byt ve hre. Na
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-Vychozi port RCON je vas herní port plus 4. Pokud server bezi na portu `2302`, RCON ma vychozi hodnotu `2306`.
+BattlEye nepouziva pevny vychozi port RCON -- pokud `RConPort` vynechate, naslouchá na nahodnem portu. Nastavte jej explicitne. Doporucena hodnota je vas herní port plus 3, tedy `2305` pro server bezici na portu `2302`. Nesmi kolidovat s hernim portem ani se Steam dotazovacim portem.
 
 ### Dostupne prikazy RCON
 
@@ -174,11 +176,11 @@ Toto jsou problemy, na ktere operatori serveru narazi nejcasteji:
 | Chyba | Priznak | Reseni |
 |---------|---------|-----|
 | Chybejici `.bikey` v `keys/` | Hraci jsou pri pripojeni vykopnuti s chybou podpisu | Zkopirujte soubor `.bikey` modu do adresare `keys/` vaseho serveru |
-| Umisteni jmen nebo hesel do **ban.txt** | Bany nefunguji; nahodne chyby | Pouzivejte pouze cisté hodnoty SteamID64, jednu na radek |
+| Pouziti SteamID64 misto hracskeho UID v **ban.txt** | Bany nefunguji | Pouzijte 44znakove hracske UID, jedno na radek (komentare za `//` jsou povoleny) |
 | Konflikt portu RCON | RCON klient se nemuze pripojit | Ujistete se, ze RCON port neni pouzivan jinou sluzbou; zkontrolujte pravidla firewallu |
 | `verifySignatures = 0` v produkci | Kdokoliv se muze pripojit se zmenenymi mody | Nastavte na `2` na jakemkoliv verejnem serveru |
-| Zapomenuti otevrit RCON port ve firewallu | RCON klient vyprsi casem | Otevrte UDP port RCON (vychozi 2306) ve vasem firewallu |
-| Uprava **bans.txt** v `BattlEye/` se SteamID | Bany nefunguji | BattlEye **bans.txt** pouziva GUID, ne SteamID; pouzijte **ban.txt** v adresari profilu pro bany SteamID |
+| Zapomenuti otevrit RCON port ve firewallu | RCON klient vyprsi casem | Otevrte UDP port RCON (ten, ktery nastavite s `RConPort`, napr. `2305`) ve vasem firewallu |
+| Uprava **bans.txt** v `BattlEye/` s hracskymi UID | Bany nefunguji | BattlEye **bans.txt** pouziva GUID, ne UID; pouzijte **ban.txt** v korenovem adresari serveru pro bany zalozene na UID |
 
 ---
 

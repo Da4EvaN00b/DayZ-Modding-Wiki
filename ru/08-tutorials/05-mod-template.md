@@ -176,7 +176,7 @@ class CfgPatches
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Зависит от Community Framework
+    "JM_CF_Scripts"           // Зависит от Community Framework
 };
 ```
 

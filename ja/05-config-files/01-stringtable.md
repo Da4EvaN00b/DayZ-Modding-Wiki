@@ -372,14 +372,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP はカラム数が少ないセット（13カラム、`hungarian` カラムなし）を使用し、キーに `STR_` プレフィックスを付けません：
+VPP はカラム数が少ないセット（14カラム、`hungarian` カラムなし）を使用し、キーに `STR_` プレフィックスを付けません：
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-これは `STR_` プレフィックスが要件ではなく慣例であることを示しています。ただし、これを省略するとレイアウトファイルで `#` プレフィックス解決を使用できなくなります。VPP はスクリプトコードからのみこれらのキーを参照しています。すべての新しい Mod には `STR_` プレフィックスを強く推奨します。
+これは `STR_` プレフィックスが要件ではなく慣例であることを示しています。レイアウトファイルでの `#` プレフィックス解決は stringtable 内の任意のキーで動作し、`STR_` プレフィックスに依存しません。VPP はこれらのキーを inputs.xml の `loc` 属性（例：`loc="vpp_focus_on_game"`）経由とスクリプトコードの両方で参照しています。それでも、すべての新しい Mod には `STR_` プレフィックスを強く推奨します。
 
 ### MyMod Missions
 

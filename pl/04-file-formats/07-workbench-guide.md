@@ -242,7 +242,7 @@ ScriptModulePathClass {
 
 Niektóre frameworki nadpisują punkty wejścia (CF używa `"CF_CreateGame"`).
 
-**imageSets / widgetStyles** -- Wymagane do podglądu layoutów. Bez oryginalnych zestawów obrazów pliki layout pokazują brakujące obrazy. Zawsze dodawaj standardowe 14 oryginalnych zestawów obrazów wymienionych w powyższym przykładzie.
+**imageSets / widgetStyles** -- Wymagane do podglądu layoutów. Bez oryginalnych zestawów obrazów pliki layout pokazują brakujące obrazy. Dodaj te oryginalne zestawy obrazów, do których odwołują się Twoje layouty; dokładna lista się różni (domyślny `dayz.gproj` dostarcza około kilkunastu, np. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), a następnie dołącz własne.
 
 ### Rozwiązywanie prefiksów ścieżek
 
@@ -500,7 +500,7 @@ Po połączeniu z DayZDiag, Workbench może profilować wykonanie skryptów.
 
 ### Wbudowany profiler skryptów (Diag Menu)
 
-Oprócz profilera Workbench, `DayZDiag_x64.exe` ma wbudowany Profiler Skryptów dostępny przez Diag Menu (w sekcji Statistics). Pokazuje listy top-20 dla czasu na klasę, czasu na funkcję, alokacji klas, liczby na funkcję i liczby instancji klas. Użyj parametru uruchomienia `-profile`, aby włączyć profilowanie od startu. Profiler mierzy tylko Enforce Script -- metody proto (silnikowe) nie są mierzone jako oddzielne wpisy, ale ich czas wykonania jest wliczany w łączny czas metody skryptowej, która je wywołuje. Zobacz `EnProfiler.c` w skryptach vanilla dla programistycznego API (`EnProfiler.Enable`, `EnProfiler.SetModule`, stałe flag).
+Oprócz profilera Workbench, `DayZDiag_x64.exe` ma wbudowany Profiler Skryptów dostępny przez Diag Menu (w sekcji Statistics). Pokazuje listy top-20 dla czasu na klasę, czasu na funkcję, alokacji klas i liczby na funkcję, plus listę top-40 dla liczby instancji klas (Class count). Użyj parametru uruchomienia `-profile`, aby włączyć profilowanie od startu. Profiler mierzy tylko Enforce Script -- metody proto (silnikowe) nie są mierzone jako oddzielne wpisy, ale ich czas wykonania jest wliczany w łączny czas metody skryptowej, która je wywołuje. Zobacz `EnProfiler.c` w skryptach vanilla dla programistycznego API (`EnProfiler.Enable`, `EnProfiler.SetModule`, stałe flag).
 
 ### Typowe wąskie gardła
 

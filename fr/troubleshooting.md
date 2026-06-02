@@ -95,11 +95,11 @@ Issues with GUI layouts, widgets, menus, and input.
 
 | Symptome | Cause | Correction |
 |---------|-------|-----|
-| Layout loads but nothing is visible | Widget size is zero | Check `hexactsize` and `vexactsize` values. Both must be greater than zero. Do not use negative sizes. Voir [Chapitre 3.3](03-gui-system/03-sizing-positioning.md). |
+| Layout loads but nothing is visible | Widget size is zero | Check the widget's `size` attribute (the `w h` values must be greater than zero). Do not use negative sizes. (`hexactsize`/`vexactsize` are `0`/`1` flags that choose proportional (`0`) vs pixel (`1`) sizing, not the size itself.) Voir [Chapitre 3.3](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` returns null | Layout file path is wrong or file is missing | Verify the `.layout` file path is correct (forward slashes, no typos). The engine returns `null` silently on bad paths, no error is logged. |
 | Widgets exist but cannot be clicked | Another widget is covering the button | Check widget `priority` (z-order). Higher priority widgets render on top and capture input first. Also check that the button has `ButtonWidget` as its `ScriptClass` or is a `ButtonWidget` type. |
 | Game input is stuck / cannot move after closing UI | `ChangeGameFocus()` calls are imbalanced | Every `GetGame().GetInput().ChangeGameFocus(1)` must be paired with `ChangeGameFocus(-1)`. Track your focus changes and ensure cleanup happens even if the UI is force-closed. |
-| Text shows `#STR_some_key` literally | Stringtable entry is missing or file is not loaded | Add the key to your `stringtable.csv`. Check that the CSV is in your mod root and has the correct `Language,Key,Original` header format. Voir [Chapitre 5.2](05-config-files/02-inputs-xml.md). |
+| Text shows `#STR_some_key` literally | Stringtable entry is missing or file is not loaded | Add the key to your `stringtable.csv`. Check that the CSV is in your mod root and has the correct `"Language","original","english",...` header format (the first column holds the string key, `original` is the fallback, and the remaining columns are per-language translations). Voir [Chapitre 5.1](05-config-files/01-stringtable.md). |
 | Mouse cursor does not appear | `ShowUICursor()` not called | Call `GetGame().GetUIManager().ShowUICursor(true)` when opening your UI. Call it with `false` when closing. |
 | UI flickers or renders behind game world | Layout is not attached to correct parent widget | Attach your layout to a proper parent. For fullscreen overlays, use `GetGame().GetWorkspace()` as the parent. |
 | ScrollWidget content does not scroll | Content is not inside a WrapSpacer or child widget | ScrollWidget needs a single child (usually a `WrapSpacer` or `FrameWidget`) that is larger than the scroll area. Put your content widgets inside that child. Voir [Chapitre 3.3](03-gui-system/03-sizing-positioning.md). |
@@ -178,7 +178,7 @@ Problems with `config.cpp`, `types.xml`, and other configuration files.
 | Items spawn with wrong quantities | `quantmin`/`quantmax` values incorrect | Values are percentages (0-100) in `types.xml`, not absolute counts. `-1` means "use default". |
 | Loot table not spawning items | `nominal` is 0 or missing `category`/`usage`/`tag` | Set `nominal` above 0. Add at least one `<usage>` and `<category>` tag so the Central Economy knows where to spawn items. |
 | JSON config file not loading | Malformed JSON or wrong path | Validate JSON syntax (no trailing commas, proper quoting). Use `$profile:` prefix for server profile paths. Check that the file exists with `FileExist()`. |
-| `cfgGameplay.json` changes ignored | File not enabled or wrong location | Place the file in the mission folder. Set `enableCustomGameplay` to `1` in `serverDZ.cfg`. Restart the server (not just reload). |
+| `cfgGameplay.json` changes ignored | File not enabled or wrong location | Place the file in the mission folder. Set `enableCfgGameplayFile` to `1` in `serverDZ.cfg`. Restart the server (not just reload). |
 | Class inheritance not working in config | `baseClass` misspelled or not loaded | The parent class must exist in the same or earlier addon. Check that `requiredAddons[]` includes the addon defining the parent class. |
 
 ---
@@ -192,7 +192,7 @@ Problems with data saving and loading across server restarts.
 | Player data lost on restart | Not saving to `$profile:` directory | Use `JsonFileLoader<T>.JsonSaveFile()` with a `$profile:` path. Save on player disconnect (`PlayerDisconnected`) and periodically during gameplay. |
 | Saved file is empty or corrupt | Crash during write, or serialization error | Write to a temporary file first, then rename to the final path. Validate data before saving. Always handle `FileExist()` checks on load. |
 | `OnStoreSave`/`OnStoreLoad` mismatch | Version changed but no migration | Always write a version number first. On load, read the version and handle old formats: `if (version < CURRENT) { /* read old format */ }`. |
-| Items disappear from storage | `lifetime` expired in `types.xml` | Increase `lifetime` for persistent items. Default is often too short for base-building containers. Check `globals.xml` `cleanupLifetimeRuin` value. |
+| Items disappear from storage | `lifetime` expired in `types.xml` | Increase `lifetime` for persistent items. Default is often too short for base-building containers. Check `globals.xml` `CleanupLifetimeRuined` value. |
 | Custom variables reset on relog | Variables not synced or stored | Register variables for network sync with `RegisterNetSyncVariable*()`. For persistence, save/load in `OnStoreSave()`/`OnStoreLoad()`. |
 
 ---

@@ -129,7 +129,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // Volume scaling (applied on top of shader volume)
         frequencyFactor = 1.0;       // Frequency scaling
-        volumeCurve = "InverseSquare"; // Predefined attenuation curve name
+        volumeCurve = "InverseSquare2Curve"; // CfgSoundCurves attenuation curve class name
         spatial = 1;                  // 1 = 3D positional, 0 = 2D (HUD/menu)
         doppler = 0;                  // 1 = enable Doppler effect
         loop = 0;                     // 1 = loop continuously
@@ -145,11 +145,11 @@ class CfgSoundSets
 | `volumeFactor` | float | Multiplicador de volume adicional aplicado sobre o volume do shader. |
 | `frequencyFactor` | float | Multiplicador adicional de frequência/tom. |
 | `frequencyRandomizer` | float | Variacao aleatoria de tom (0.0 = nenhuma, 0.1 = +/- 10%). |
-| `volumeCurve` | string | Curva de atenuação nomeada: `"InverseSquare"`, `"Linear"`, `"Logarithmic"`. |
+| `volumeCurve` | string | Nome de uma classe de curva de atenuação definida em `CfgSoundCurves` (ex.: `"InverseSquare2Curve"`, `"LinearCurve"`, `"defaultAmpAttenuationCurve"`). |
 | `spatial` | int | `1` para audio posicional 3D, `0` para 2D (UI, musica). |
 | `doppler` | int | `1` para habilitar mudanca de tom Doppler para fontes em movimento. |
 | `loop` | int | `1` para loop continuo, `0` para reprodução única. |
-| `distanceFilter` | int | `1` para aplicar filtro passa-baixa a distancia (sons distantes abafados). |
+| `distanceFilter` | string | Nome de uma classe de filtro de atenuação de distancia/frequência a aplicar a distancia (ex.: `"defaultDistanceFreqAttenuationFilter"`), abafando sons distantes. |
 | `occlusionFactor` | float | Quanto paredes/terreno abafam o som (0.0 a 1.0). |
 | `obstructionFactor` | float | Quanto obstaculos entre a fonte e o ouvinte afetam o som. |
 
@@ -221,7 +221,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -350,15 +350,15 @@ rangeCurve[] =
 
 O motor interpola linearmente entre os pontos definidos. Você pode criar qualquer curva de queda adicionando mais pontos de controle.
 
-### Curvas de Volume Predefinidas
+### Classes de Curva de Volume
 
-SoundSets podem referênciar curvas nomeadas via a propriedade `volumeCurve`:
+SoundSets referênciam classes de curva de atenuação via a propriedade `volumeCurve`. Os nomes das curvas são nomes de classe definidos em `class CfgSoundCurves` (os sons vanilla do DZ definem muitas), e mods podem referênciar uma existente ou definir a propria. Não existem presets simples literalmente chamados `"InverseSquare"`, `"Linear"` ou `"Logarithmic"`. Classes de curva vanilla comuns incluem:
 
-| Nome da Curva | Comportamento |
-|---------------|---------------|
-| `"InverseSquare"` | Queda realista (volume = 1/distancia^2). Som natural. |
-| `"Linear"` | Queda uniforme de máximo a zero ao longo do alcance. |
-| `"Logarithmic"` | Alto de perto, cai rapidamente em distancia media, depois diminui lentamente. |
+| Classe da Curva | Comportamento |
+|-----------------|---------------|
+| `"InverseSquare2Curve"` | Queda realista (o volume cai aproximadamente com o quadrado da distancia). Som natural. |
+| `"LinearCurve"` | Queda uniforme de máximo a zero ao longo do alcance. |
+| `"defaultAmpAttenuationCurve"` | Alto de perto, cai rapidamente em distancia media, depois diminui lentamente. |
 
 ### Exemplos Praticos de Atenuação
 
@@ -503,14 +503,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **Passo 4: Referencie na configuração da arma/item**
 
-Para armas, o SoundSet e referênciado na classe de configuração da arma:
+Para armas, os SoundSets de disparo são referênciados com um array `soundSetShot[]` dentro da classe de modo de disparo da arma. Use `soundSetShotExt[]` para variantes suprimidas:
 
 ```cpp
 class CfgWeapons
@@ -519,12 +519,9 @@ class CfgWeapons
     {
         // ... other config ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };

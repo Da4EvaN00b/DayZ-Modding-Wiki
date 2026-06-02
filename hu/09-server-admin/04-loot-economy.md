@@ -194,7 +194,7 @@ A `nominal=0` és `min=0` azt jelenti, hogy a CE soha nem fogja spawnolni ezt a 
 | `restock` | int | másodperc | Minimális hűtési idő, mielőtt a CE pótlást spawnolhat. 0 = azonnali. |
 | `quantmin` | int | -1 - 100 | Minimális mennyiség százalék spawnoláskor (lőszer %, folyadék %). -1 = nem alkalmazható. |
 | `quantmax` | int | -1 - 100 | Maximális mennyiség százalék spawnoláskor. -1 = nem alkalmazható. |
-| `cost` | int | 0+ | Prioritás súly a spawn kiválasztáshoz. Jelenleg minden vanilla tárgy 100-at használ. |
+| `cost` | int | 0+ | Prioritás súly, amelyet az újraspawnolás/takarítás során használ. Szinte minden vanilla tárgy 100-at használ, de néhány magasabb értéket (pl. `Mag_SVD_10Rnd` 1000-et használ). |
 
 ### Jelzők
 

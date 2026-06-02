@@ -121,7 +121,7 @@ El JSON resultante se ve asi:
 | `string` | String |
 | `vector` | Array de 3 numeros |
 | `array<T>` | Array JSON |
-| `map<string, T>` | Objeto JSON (solo claves string) |
+| `map<K, T>` | Objeto JSON (`K` puede ser `string`, `int` o un `enum`; JSON representa todas las claves como cadenas) |
 | Clase anidada | Objeto JSON anidado |
 
 ### Objetos Anidados

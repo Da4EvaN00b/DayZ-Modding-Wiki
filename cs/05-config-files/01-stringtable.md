@@ -372,14 +372,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP používá redukovanou sadu sloupců (13 sloupců, bez sloupce `hungarian`) a nepoužívá předponu `STR_` u klíčů:
+VPP používá redukovanou sadu sloupců (14 sloupců, bez sloupce `hungarian`) a nepoužívá předponu `STR_` u klíčů:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-Toto demonstruje, že předpona `STR_` je konvence, nikoli požadavek. Nicméně její vynechání znamená, že nemůžete používat překlad přes předponu `#` v souborech layoutu. VPP odkazuje na tyto klíče pouze prostřednictvím skriptového kódu. Předpona `STR_` je důrazně doporučena pro všechny nové mody.
+Toto demonstruje, že předpona `STR_` je konvence, nikoli požadavek. Překlad přes předponu `#` v souborech layoutu funguje s libovolným klíčem ve stringtable --- nezávisí na předponě `STR_`. VPP odkazuje na tyto klíče prostřednictvím atributu `loc` ve svém inputs.xml (např. `loc="vpp_focus_on_game"`) i prostřednictvím skriptového kódu. Předpona `STR_` je přesto důrazně doporučena pro všechny nové mody.
 
 ### MyMod Missions
 

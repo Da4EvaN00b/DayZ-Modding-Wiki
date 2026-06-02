@@ -30,7 +30,7 @@
 | Metoda | Zwraca | Uwagi |
 |--------|--------|-------|
 | `Insert(item)` | `int` (indeks) | Dodaj na koniec |
-| `InsertAt(item, idx)` | `void` | Wstaw na pozycję |
+| `InsertAt(item, idx)` | `int` (liczba) | Wstaw na pozycję |
 | `Get(idx)` / `arr[idx]` | `T` | Dostęp po indeksie |
 | `Set(idx, item)` | `void` | Zastąp na indeksie |
 | `Find(item)` | `int` | Indeks lub -1 |
@@ -45,7 +45,7 @@
 | `Invert()` | `void` | Odwróć |
 | `GetRandomElement()` | `T` | Losowy wybór |
 | `InsertAll(other)` | `void` | Dodaj wszystko z innej |
-| `Copy(other)` | `void` | Zastąp kopią |
+| `Copy(other)` | `int` (liczba) | Zastąp kopią |
 | `Resize(n)` | `void` | Zmień rozmiar (wypełnia domyślnymi) |
 | `Reserve(n)` | `void` | Wstępna alokacja pojemności |
 
@@ -147,7 +147,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modyfikuje w miejscu, zwraca liczbę |
 | `s.ToLower()` | `void` | **W miejscu!** |
 | `s.ToUpper()` | `void` | **W miejscu!** |
-| `s.TrimInPlace()` | `void` | **W miejscu!** |
+| `s.TrimInPlace()` | `int` (długość) | **W miejscu!** |
 | `s.Split(delim, out arr)` | `void` | Dzieli na TStringArray |
 | `s.Get(idx)` | `string` | Pojedynczy znak |
 | `s.Set(idx, ch)` | `void` | Zastąp znak |
@@ -212,11 +212,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Sprawdzenie IsAlive (wymaga EntityAI)
+### Sprawdzenie IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() jest zdefiniowane na bazowym Object (zwraca !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Iteracja po mapie za pomocą foreach

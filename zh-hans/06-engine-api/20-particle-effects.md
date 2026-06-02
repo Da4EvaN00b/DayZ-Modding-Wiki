@@ -810,14 +810,12 @@ void CleanupExhaust()
 
 ```c
 // From vanilla wreck_uh1y.c
-class Wreck_UH1Y extends Wreck
+// m_ParticleEfx 在父类 CrashBase 中声明
+class Wreck_UH1Y extends CrashBase
 {
-    protected Particle m_ParticleEfx;
-
-    override void EEInit()
+    void Wreck_UH1Y()
     {
-        super.EEInit();
-        if (!GetGame().IsDedicatedServer())
+        if (!g_Game.IsDedicatedServer())
         {
             m_ParticleEfx = ParticleManager.GetInstance().PlayOnObject(
                 ParticleList.SMOKING_HELI_WRECK,

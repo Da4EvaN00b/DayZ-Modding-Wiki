@@ -752,7 +752,7 @@ Pokud toto změníte na špatnou hodnotu, animace hráče bude prostupovat vozid
 
 **CrewCanGetThrough** -- Voláno každý snímek pro určení, zda hráč může nastoupit nebo vystoupit z sedadla. Zadní sedadla Nivy (indexy 2 a 3) fungují odlišně od předních: opěradlo předního sedadla musí být sklopeno dopředu (fáze animace > 0.5), než mohou zadní cestující projít. To odpovídá chování skutečného 2-dveřového hatchbacku, kde zadní cestující musí sklopit přední sedadlo.
 
-**OnDebugSpawn** -- Voláno při použití ladícího spawn menu. `SpawnUniversalParts()` přidá žárovky světlometů a autobaterii. `FillUpCarFluids()` naplní palivo, chladicí kapalinu, olej a brzdovou kapalinu na maximum. Poté vytvoříme kola, dveře, kapotu a kufr. To vám dá okamžitě řiditelné vozidlo pro testování.
+**OnDebugSpawn** -- Voláno při použití ladícího spawn menu. `SpawnUniversalParts()` přidá žárovky světlometů a autobaterii. `FillUpCarFluids()` naplní palivo, chladicí kapalinu a olej na maximum (brzdovou kapalinu nenaplní). Poté vytvoříme kola, dveře, kapotu a kufr. To vám dá okamžitě řiditelné vozidlo pro testování.
 
 ---
 

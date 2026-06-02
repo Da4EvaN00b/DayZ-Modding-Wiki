@@ -116,7 +116,7 @@ modded class MissionGameplay
         // 当玩家发送聊天消息时触发 ChatMessageEventTypeID
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +173,12 @@ modded class MissionGameplay
 
 ### 聊天拦截的工作原理
 
-`MissionGameplay` 上的 `OnEvent` 方法会被各种游戏事件调用。当 `eventTypeId` 为 `ChatMessageEventTypeID` 时，表示玩家刚刚提交了一条聊天消息。`Param3` 包含：
+`MissionGameplay` 上的 `OnEvent` 方法会被各种游戏事件调用。当 `eventTypeId` 为 `ChatMessageEventTypeID` 时，表示玩家刚刚提交了一条聊天消息。这些参数是一个 `ChatMessageEventParams`（即 `Param4<int, string, string, string>`），其中包含：
 
 - `param1` -- 频道（int）：聊天频道（全局、直接等）
 - `param2` -- 发送者名称（string）
 - `param3` -- 消息文本（string）
+- `param4` -- 颜色配置类（string）
 
 我们检查消息是否以 `/` 开头。如果是，我们通过 RPC 将整个字符串转发到服务器。消息仍然会作为普通聊天发送——在生产模组中，你会抑制它（在末尾的注释中介绍）。
 
@@ -644,8 +645,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | 通道 | 颜色 | 典型用途 |
 |---------|-------|-------------|
-| `"colorStatusChannel"` | 黄色/橙色 | 系统消息 |
-| `"colorAction"` | 白色 | 操作反馈 |
+| `"colorStatusChannel"` | 蓝色 | 系统消息 |
+| `"colorAction"` | 黄色 | 操作反馈 |
 | `"colorFriendly"` | 绿色 | 正面反馈 |
 | `"colorImportant"` | 红色 | 警告/错误 |
 
@@ -1352,7 +1353,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1506,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### 管理员被拒绝权限
 
 - **错误的 Steam64 ID：** 仔细检查 `IsCommandAdmin()` 中的管理员 ID。它们必须是精确的 Steam64 ID（以 `7656` 开头的 17 位数字）。
-- **GetPlainId() 与 GetId()：** `GetPlainId()` 返回 Steam64 ID。`GetId()` 返回 DayZ 会话 ID。使用 `GetPlainId()` 进行管理员检查。
+- **GetPlainId() 与 GetId()：** `GetPlainId()` 返回纯文本 Steam64 ID。`GetId()` 返回一个稳定的哈希唯一 ID（可安全用于数据库和日志），而不是会话 ID——玩家断开连接后会被重用的每会话 ID 是 `GetPlayerId()`（一个 int）。使用 `GetPlainId()` 进行管理员检查。
 
 ### 反馈消息未出现在聊天中
 
@@ -1521,20 +1522,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### 命令作为普通消息出现在聊天中
 
-- `OnEvent` 钩子拦截消息但不会抑制它作为聊天发送。要在生产模组中抑制它，你需要修改 `ChatInputMenu` 类以在发送之前过滤 `/` 消息：
+- `OnEvent` 钩子拦截消息但不会抑制它作为聊天发送。要在生产模组中抑制它，你需要修改 `ChatInputMenu` 类以在发送之前过滤 `/` 消息。在原版中，`ChatInputMenu` 从其 `OnChange()` 处理器发送聊天文本，在那里它调用 `g_Game.ChatPlayer(text)`。你可以重写 `OnChange()`，当文本以 `/` 开头时跳过发送：
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // 从编辑控件获取当前文本
-        // 如果以 / 开头，不要调用 super（它会将其作为聊天发送）
+        // 从编辑控件获取当前文本（m_edit_box.GetText()）
+        // 如果以 / 开头，不要调用 super（它会调用 g_Game.ChatPlayer）
         // 而是将其作为命令处理
 
         // 此方法因 DayZ 版本而异——检查原版源代码
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1558,7 @@ modded class ChatInputMenu
 
 - **执行管理员命令前始终检查权限。** 缺少权限检查意味着任何玩家都可以 `/heal` 或 `/kill` 任何人。在处理之前在服务器上验证调用者的 Steam64 ID（通过 `GetPlainId()`）。
 - **即使命令失败也要向管理员发送反馈。** 静默失败使调试不可能。始终发送聊天消息解释出了什么问题（"Player not found"、"Permission denied"）。
-- **使用 `GetPlainId()` 进行管理员检查，而不是 `GetId()`。** `GetId()` 返回每次重新连接都会改变的会话特定 DayZ ID。`GetPlainId()` 返回永久的 Steam64 ID。
+- **使用 `GetPlainId()` 进行管理员检查，而不是 `GetId()`。** `GetId()` 返回一个用于数据库和日志的稳定哈希唯一 ID（玩家断开连接后会被重用的每会话 ID 是 `GetPlayerId()`）。`GetPlainId()` 返回纯文本 Steam64 ID。
 - **将管理员 ID 存储在 JSON 配置文件中，而不是代码中。** 硬编码的 ID 需要重建 PBO 才能更改。`$profile:` JSON 文件可以由服务器管理员在没有模组知识的情况下编辑。
 - **在匹配之前将命令名称转换为小写。** 玩家可能输入 `/Heal`、`/HEAL` 或 `/heal`。规范化为小写可以防止令人沮丧的"未知命令"错误。
 

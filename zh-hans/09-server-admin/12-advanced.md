@@ -45,16 +45,19 @@ enableCfgGameplayFile = 1;
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ class Missions {
 
 ## cfgenvironment.xml 与动物领地
 
-你任务文件夹中的 **cfgenvironment.xml** 文件链接到 `env/` 子目录中的领地文件：
+你任务文件夹中的 **cfgenvironment.xml** 文件将 `env/` 子目录中的领地文件映射到动物行为。每个动物组都是一个 `<territory>` 元素，带有一个 `<file usable="..." />` 子元素（按名称引用，不带 `env/` 前缀或 `.xml` 扩展名）：
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ class Missions {
 </event>
 ```
 
-**3. 添加感染者守卫**（可选）-- 在事件定义中添加 `<secondary type="ZmbM_PatrolNormal_Autumn" />` 元素。
+**3. 添加感染者守卫**（可选）-- 在事件定义中添加一个 `<secondary>InfectedArmy</secondary>` 元素。其内容引用 **events.xml** 中另一个事件的名称，该事件负责刷新感染者。
 
 **4. 分组刷新**（可选）-- 在 **cfgeventgroups.xml** 中定义集群，并在事件中引用组名称。
 
@@ -265,14 +272,14 @@ cd /home/dayz/server && ./DayZServer -config=serverDZ.cfg -profiles=profiles -po
 
 你任务文件夹中的 **cfgweather.xml** 文件控制天气模式。每张地图都有自己的默认值：
 
-每种天气现象都有 `min`、`max`、`duration_min` 和 `duration_max`（秒）：
+每种天气现象都是一个嵌套元素（`overcast`、`fog`、`rain`、`windMagnitude`、`windDirection`、`snowfall`），包含 `<current actual="" time="" duration="" />`、`<limits min="" max="" />`、`<timelimits min="" max="" />` 和 `<changelimits min="" max="" />` 子元素（`rain` 和 `snowfall` 还接受一个 `<thresholds>` 元素）。各天气现象的 `<limits>` 取值范围：
 
-| 天气现象 | 默认最小值 | 默认最大值 | 说明 |
+| 天气现象 | Limits 最小值 | Limits 最大值 | 说明 |
 |----------|-----------|-----------|------|
 | `overcast` | 0.0 | 1.0 | 驱动云密度和降雨概率 |
 | `rain` | 0.0 | 1.0 | 仅在阴天超过阈值时触发。将 max 设为 `0.0` 可禁用降雨 |
 | `fog` | 0.0 | 0.3 | 值超过 `0.5` 产生接近零的能见度 |
-| `wind_magnitude` | 0.0 | 18.0 | 影响弹道和玩家移动 |
+| `windMagnitude` | 0.0 | 20.0 | 风速（米/秒）；影响弹道和玩家移动 |
 
 ---
 

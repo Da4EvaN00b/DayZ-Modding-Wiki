@@ -116,7 +116,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID se déclenche quand le joueur envoie un message
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +173,12 @@ modded class MissionGameplay
 
 ### Comment fonctionne l'interception du chat
 
-La méthode `OnEvent` sur `MissionGameplay` est appelée pour divers événements du jeu. Quand `eventTypeId` est `ChatMessageEventTypeID`, cela signifie que le joueur vient de soumettre un message de chat. Le `Param3` contient :
+La méthode `OnEvent` sur `MissionGameplay` est appelée pour divers événements du jeu. Quand `eventTypeId` est `ChatMessageEventTypeID`, cela signifie que le joueur vient de soumettre un message de chat. Les paramètres sont un `ChatMessageEventParams` (un `Param4<int, string, string, string>`) et contiennent :
 
 - `param1` -- Canal (int) : le canal de chat (global, direct, etc.)
 - `param2` -- Nom de l'expéditeur (string)
 - `param3` -- Texte du message (string)
+- `param4` -- Classe de configuration de couleur (string)
 
 Nous vérifions si le message commence par `/`. Si c'est le cas, nous transmettons la chaîne entière au serveur via RPC. Le message est aussi envoyé comme chat normal -- dans un mod de production, vous le supprimeriez (couvert dans les notes à la fin).
 
@@ -644,8 +645,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | Canal | Couleur | Utilisation typique |
 |-------|---------|---------------------|
-| `"colorStatusChannel"` | Jaune/orange | Messages système |
-| `"colorAction"` | Blanc | Retour d'action |
+| `"colorStatusChannel"` | Bleu | Messages système |
+| `"colorAction"` | Jaune | Retour d'action |
 | `"colorFriendly"` | Vert | Retour positif |
 | `"colorImportant"` | Rouge | Avertissements/erreurs |
 
@@ -1352,7 +1353,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1506,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Permission refusée pour les administrateurs
 
 - **Mauvais Steam64 ID :** Vérifiez bien les identifiants admin dans `IsCommandAdmin()`. Ce doivent être des Steam64 IDs exacts (nombres de 17 chiffres commençant par `7656`).
-- **GetPlainId() vs GetId() :** `GetPlainId()` renvoie le Steam64 ID. `GetId()` renvoie l'identifiant de session DayZ. Utilisez `GetPlainId()` pour les vérifications admin.
+- **GetPlainId() vs GetId() :** `GetPlainId()` renvoie le Steam64 ID en clair. `GetId()` renvoie un identifiant unique haché stable (sûr pour les bases de données et les journaux), pas un identifiant de session -- l'identifiant par session qui est réutilisé après la déconnexion d'un joueur est `GetPlayerId()` (un int). Utilisez `GetPlainId()` pour les vérifications admin.
 
 ### Le message de retour n'apparaît pas dans le chat
 
@@ -1521,20 +1522,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### La commande apparaît dans le chat comme message normal
 
-- Le hook `OnEvent` intercepte le message mais ne le supprime pas de l'envoi en tant que chat. Pour le supprimer dans un mod de production, vous devriez modder la classe `ChatInputMenu` pour filtrer les messages `/` avant leur envoi :
+- Le hook `OnEvent` intercepte le message mais ne le supprime pas de l'envoi en tant que chat. Pour le supprimer dans un mod de production, vous devriez modder la classe `ChatInputMenu` pour filtrer les messages `/` avant leur envoi. En vanilla, `ChatInputMenu` envoie le texte du chat depuis son gestionnaire `OnChange()`, où il appelle `g_Game.ChatPlayer(text)`. Vous pouvez surcharger `OnChange()` et ignorer l'envoi quand le texte commence par `/` :
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Obtenir le texte actuel du widget d'édition
-        // S'il commence par /, NE PAS appeler super (qui l'envoie comme chat)
+        // Obtenir le texte actuel du widget d'édition (m_edit_box.GetText())
+        // S'il commence par /, NE PAS appeler super (qui appelle g_Game.ChatPlayer)
         // À la place, le traiter comme une commande
 
         // Cette approche varie selon la version de DayZ -- vérifiez les sources vanilla
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1558,7 @@ L'implémentation exacte dépend de la version de DayZ et de la façon dont `Cha
 
 - **Vérifiez toujours les permissions avant d'exécuter des commandes admin.** Une vérification de permission manquante signifie que n'importe quel joueur peut `/heal` ou `/kill` n'importe qui. Validez le Steam64 ID de l'appelant (via `GetPlainId()`) sur le serveur avant le traitement.
 - **Envoyez un retour à l'admin même pour les commandes échouées.** Les échecs silencieux rendent le débogage impossible. Envoyez toujours un message de chat expliquant ce qui s'est mal passé ("Player not found", "Permission denied").
-- **Utilisez `GetPlainId()` pour les vérifications admin, pas `GetId()`.** `GetId()` renvoie un identifiant DayZ spécifique à la session qui change à chaque reconnexion. `GetPlainId()` renvoie le Steam64 ID permanent.
+- **Utilisez `GetPlainId()` pour les vérifications admin, pas `GetId()`.** `GetId()` renvoie un identifiant unique haché stable destiné aux bases de données et aux journaux (l'identifiant par session qui est réutilisé après la déconnexion d'un joueur est `GetPlayerId()`). `GetPlainId()` renvoie le Steam64 ID en clair.
 - **Stockez les identifiants admin dans un fichier de configuration JSON, pas dans le code.** Les identifiants codés en dur nécessitent une reconstruction du PBO pour être modifiés. Un fichier JSON `$profile:` peut être édité par les administrateurs de serveur sans connaissances de modding.
 - **Convertissez les noms de commandes en minuscules avant la correspondance.** Les joueurs peuvent taper `/Heal`, `/HEAL` ou `/heal`. La normalisation en minuscules évite les erreurs frustrantes de "commande inconnue".
 

@@ -121,7 +121,7 @@ Le JSON résultant ressemble à :
 | `string` | Chaîne |
 | `vector` | Tableau de 3 nombres |
 | `array<T>` | Tableau JSON |
-| `map<string, T>` | Objet JSON (clés string uniquement) |
+| `map<K, T>` | Objet JSON (`K` peut être `string`, `int` ou un `enum` ; JSON rend toutes les clés sous forme de chaînes) |
 | Classe imbriquée | Objet JSON imbriqué |
 
 ### Objets imbriqués

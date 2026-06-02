@@ -767,7 +767,7 @@ Komponenty akcí řídí _jak_ akce postupuje v čase. Vytvářejí se v metodě
 | `CAInteract` | žádné | Okamžité vykonání pro interaktivní akce |
 | `CAContinuousTime` | `float time` | Progress bar, dokončí se po `time` sekundách |
 | `CAContinuousRepeat` | `float time` | Opakující se cykly, vyvolá `OnFinishProgress` každý cyklus |
-| `CAContinuousQuantity` | `float quantity, float time` | Spotřebovává množství v čase |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Spotřebovává množství v čase |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Jako Quantity, ale aplikuje modifikátory jídla/pití |
 
 ### CAContinuousTime

@@ -19,9 +19,9 @@
 
 ## Visao Geral
 
-Quando um jogador seleciona seu mod no launcher do DayZ ou no menu de mods do jogo, o motor procura um arquivo `Credits.json` dentro do PBO do seu mod. Se encontrado, os creditos são exibidos em uma visualizacao com rolagem organizada em departamentos e seções --- similar a creditos de cinema.
+Quando um jogador visualiza os creditos do seu mod, o motor carrega o arquivo cujo caminho você declara na chave `creditsJson` do seu bloco `CfgMods` no `config.cpp` (por exemplo, `creditsJson = "MyMod/Scripts/Data/Credits.json";`). Os creditos são então exibidos em uma visualizacao com rolagem organizada em departamentos e seções --- similar a creditos de cinema.
 
-O arquivo é opcional. Se ausente, nenhuma seção de creditos aparece para o seu mod. Mas inclui-lo e uma boa prática: reconhece o trabalho da sua equipe e da ao seu mod uma aparência profissional.
+O arquivo é opcional. Se você não declarar uma chave `creditsJson`, o arquivo nunca é carregado e nenhum credito aparece para o seu mod. Mas inclui-lo e uma boa prática: reconhece o trabalho da sua equipe e da ao seu mod uma aparência profissional.
 
 ---
 
@@ -39,7 +39,7 @@ Coloque `Credits.json` dentro de uma subpasta `Data` do seu diretório Scripts, 
         Credits.json         <-- Tambem valido (DabsFramework, Colorful-UI)
 ```
 
-Ambas as localizacoes funcionam. O motor varre o conteúdo do PBO por um arquivo chamado `Credits.json` (case-sensitive em algumas plataformas).
+O arquivo pode ficar em qualquer lugar dentro do PBO. O que importa é que o valor `creditsJson` no seu bloco `CfgMods` aponte para o caminho exato dele (case-sensitive em algumas plataformas).
 
 ---
 
@@ -49,14 +49,13 @@ O arquivo usa uma estrutura JSON direta com três níveis de hierarquia:
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -68,8 +67,9 @@ O arquivo usa uma estrutura JSON direta com três níveis de hierarquia:
 
 | Campo | Tipo | Obrigatorio | Descrição |
 |-------|------|-------------|-----------|
-| `Header` | string | Não | Titulo principal exibido no topo dos creditos. Se omitido, nenhum cabecalho e mostrado. |
 | `Departments` | array | Sim | Array de objetos de departamento |
+
+O parser vanilla (`JsonDataCredits`) reconhece apenas o array `Departments`. Não existe um campo `Header` de nivel superior --- qualquer chave `Header` que você adicione e ignorada silenciosamente. Para mostrar um titulo no topo dos creditos, use o primeiro `DepartmentName`.
 
 ### Objeto Department
 
@@ -80,23 +80,12 @@ O arquivo usa uma estrutura JSON direta com três níveis de hierarquia:
 
 ### Objeto Section
 
-Duas variantes existem na prática para listar nomes. O motor suporta ambas.
-
-**Variante 1: Array `Names`** (usada pelo MyFramework)
-
-| Campo | Tipo | Obrigatorio | Descrição |
-|-------|------|-------------|-----------|
-| `SectionName` | string | Sim | Sub-cabecalho dentro do departamento |
-| `Names` | array de strings | Sim | Lista de nomes de colaboradores |
-
-**Variante 2: Array `SectionLines`** (usada pelo COT, Expansion, DabsFramework)
-
 | Campo | Tipo | Obrigatorio | Descrição |
 |-------|------|-------------|-----------|
 | `SectionName` | string | Sim | Sub-cabecalho dentro do departamento |
 | `SectionLines` | array de strings | Sim | Lista de nomes de colaboradores ou linhas de texto |
 
-Tanto `Names` quanto `SectionLines` servem ao mesmo propósito. Use o que preferir --- o motor os renderiza de forma identica.
+A classe vanilla de seção (`JsonDataCreditsSection`) reconhece apenas `SectionName` e `SectionLines`. Você pode ver alguns mods usarem uma chave `Names`, mas o motor nunca a le --- um array `Names` e ignorado silenciosamente e não renderiza nada. Sempre use `SectionLines` para a lista de nomes.
 
 ---
 
@@ -106,12 +95,10 @@ A exibicao dos creditos segue esta hierarquia visual:
 
 ```
 +==================================+
-|         MEU MOD                   |  <-- Header (grande, centralizado)
-|                                   |
 |     NOME DO DEPARTAMENTO          |  <-- DepartmentName (medio, centralizado)
 |                                   |
 |     Nome da Secao                 |  <-- SectionName (pequeno, centralizado)
-|     Pessoa 1                      |  <-- Names/SectionLines (lista)
+|     Pessoa 1                      |  <-- SectionLines (lista)
 |     Pessoa 2                      |
 |     Pessoa 3                      |
 |                                   |
@@ -124,10 +111,9 @@ A exibicao dos creditos segue esta hierarquia visual:
 +==================================+
 ```
 
-- O `Header` aparece uma vez no topo
 - Cada `DepartmentName` atua como um divisor de seção principal
 - Cada `SectionName` atua como um sub-cabecalho
-- Nomes rolam verticalmente na visualizacao de creditos
+- `SectionLines` rolam verticalmente na visualizacao de creditos
 
 ### Strings Vazias para Espacamento
 
@@ -177,14 +163,13 @@ Nomes de departamento também podem usar referências de stringtable:
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -196,22 +181,21 @@ Nomes de departamento também podem usar referências de stringtable:
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -227,26 +211,25 @@ Nomes de departamento também podem usar referências de stringtable:
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -255,7 +238,7 @@ Nomes de departamento também podem usar referências de stringtable:
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -263,7 +246,7 @@ Nomes de departamento também podem usar referências de stringtable:
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -272,7 +255,7 @@ Nomes de departamento também podem usar referências de stringtable:
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -289,18 +272,17 @@ Nomes de departamento também podem usar referências de stringtable:
 
 ### MyFramework
 
-Um arquivo de creditos mínimo mas completo usando a variante `Names`:
+Um arquivo de creditos mínimo mas completo:
 
 ```json
 {
-    "Header": "MyFramework",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyFramework",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["MyMod Team"]
+                    "SectionLines": ["MyMod Team"]
                 }
             ]
         }
@@ -351,7 +333,7 @@ Usa a variante `SectionLines` com múltiplas seções e agradecimentos:
 }
 ```
 
-Notavel: COT omite o campo `Header` inteiramente. O nome do mod vem de outros metadados (config.cpp `CfgMods`).
+Notavel: COT usa o primeiro `DepartmentName` ("Community Online Tools") como seu titulo. O nome do mod também vem de outros metadados (config.cpp `CfgMods`).
 
 ### DabsFramework
 
@@ -409,19 +391,18 @@ Use um validador de JSON antes de distribuir.
 
 O arquivo deve ser nomeado exatamente `Credits.json` (C maiusculo). Em sistemas de arquivo case-sensitive, `credits.json` ou `CREDITS.JSON` não serão encontrados.
 
-### Misturando Names e SectionLines
+### Usando a Chave `Names`
 
-Dentro de uma única seção, use um ou outro:
+Alguns mods escrevem um array `Names`, mas o motor nunca o le. Apenas `SectionLines` e analisado:
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-Isso é ambiguo. Escolha um formato e use-o consistentemente ao longo do arquivo.
+Neste exemplo, "Dev1" nunca aparece no jogo --- a seção renderiza vazia. Sempre liste os colaboradores em `SectionLines`.
 
 ### Problemas de Codificacao
 

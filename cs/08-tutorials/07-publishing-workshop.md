@@ -109,7 +109,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### Reference polí
@@ -127,7 +126,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | Ne | Velký obrázek zobrazený v panelu přehledu modu |
 | `action` | Ne | URL otevřené při kliknutí na "Website" (typicky vaše stránka Workshopu nebo GitHub) |
 | `version` | Ano | Řetězec aktuální verze (např. `"1.0.0"`) |
-| `versionPath` | Ne | Cesta k textovému souboru obsahujícímu číslo verze (pro automatizované buildy) |
 
 ### Časté chyby
 
@@ -454,7 +452,7 @@ Když váš mod ukládá persistentní data (JSON configy, datové soubory hrá�
 
 Příklad kontroly migrace v Enforce Script:
 
-```csharp
+```c
 // Ve vaší funkci načítání configu
 if (config.configVersion < 2)
 {

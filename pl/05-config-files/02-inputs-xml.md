@@ -38,7 +38,7 @@ Własne wejścia są identyfikowane przez unikalną nazwę akcji (konwencjonalni
 
 ## Lokalizacja pliku
 
-Umieść `inputs.xml` w podfolderze `data` katalogu Scripts:
+Możesz umieścić `inputs.xml` gdziekolwiek wewnątrz PBO twojego moda. Powszechnym układem jest podfolder `data` katalogu Scripts:
 
 ```
 @MyMod/
@@ -52,7 +52,7 @@ Umieść `inputs.xml` w podfolderze `data` katalogu Scripts:
         5_Mission/
 ```
 
-Niektóre mody umieszczają go bezpośrednio w folderze `Scripts/`. Obie lokalizacje działają. Silnik wykrywa plik automatycznie --- rejestracja w config.cpp nie jest wymagana.
+Lokalizacja pliku nie jest ustalona konwencją; silnik nie wykrywa go automatycznie. Musisz zarejestrować plik, wskazując na niego właściwość `inputs` w bloku `CfgMods` twojego `config.cpp`, na przykład `inputs = "MyMod/Scripts/data/inputs.xml";`. Ścieżka jest dowolna --- silnik ładuje plik z miejsca, które wskażesz.
 
 ---
 
@@ -296,7 +296,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-Parametr `false` w `LocalPress("nazwa", false)` oznacza, że sprawdzenie nie powinno konsumować zdarzenia wejścia.
+Parametr `false` w `LocalPress("nazwa", false)` to argument `check_focus`. Przekazanie `false` powoduje ewaluację wejścia nawet wtedy, gdy okno gry nie jest aktywne; gdy ma wartość `true` (domyślną), gra bez fokusu zwraca `false`. Nie kontroluje to konsumpcji wejścia.
 
 ---
 
@@ -338,7 +338,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Akcja na podwójne tapnięcie:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +410,12 @@ Nazwy klawiszy używane w atrybucie `<btn name="">` podążają za określoną k
 | Litery | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Cyfry (górny rząd) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Klawisze funkcyjne | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modyfikatory | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Nawigacja | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modyfikatory | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (lewy Alt), `kRMenu` (prawy Alt) |
+| Nawigacja | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Edycja | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Klawiatura numeryczna | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Klawiatura numeryczna | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (numpad +), `kSubstract` (numpad -, zwróć uwagę na pisownię silnika), `kMultiply` (numpad *), `kDivide` (numpad /), `kDecimal` (numpad .) |
 | Interpunkcja | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Blokady | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Blokady | `kCapital` (Caps Lock), `kNumlock` (zwróć uwagę na małe `l`), `kScrollLock` |
 
 ### Przyciski myszy
 
@@ -424,15 +424,18 @@ Nazwy klawiszy używane w atrybucie `<btn name="">` podążają za określoną k
 | `mBLeft` | Lewy przycisk myszy |
 | `mBRight` | Prawy przycisk myszy |
 | `mBMiddle` | Środkowy przycisk myszy (kliknięcie kółkiem) |
-| `mBExtra1` | Przycisk myszy 4 (boczny przycisk wstecz) |
-| `mBExtra2` | Przycisk myszy 5 (boczny przycisk naprzód) |
+| `mB4` | Przycisk myszy 4 (boczny przycisk wstecz) |
+| `mB5` | Przycisk myszy 5 (boczny przycisk naprzód) |
+| `mB6`, `mB7`, `mB8` | Dodatkowe przyciski myszy |
 
-### Osie myszy
+### Ruch myszy i kółko
 
-| Nazwa | Oś |
-|-------|-----|
-| `mAxisX` | Ruch myszy w poziomie |
-| `mAxisY` | Ruch myszy w pionie |
+| Nazwa | Kierunek |
+|-------|----------|
+| `mLeft` | Mysz przesunięta w lewo |
+| `mRight` | Mysz przesunięta w prawo |
+| `mUp` | Mysz przesunięta w górę |
+| `mDown` | Mysz przesunięta w dół |
 | `mWheelUp` | Kółko przewijania w górę |
 | `mWheelDown` | Kółko przewijania w dół |
 
@@ -440,7 +443,7 @@ Nazwy klawiszy używane w atrybucie `<btn name="">` podążają za określoną k
 
 - **Klawiatura**: prefiks `k` + nazwa klawisza (np. `kT`, `kF5`, `kLControl`)
 - **Przyciski myszy**: prefiks `mB` + nazwa przycisku (np. `mBLeft`, `mBRight`)
-- **Osie myszy**: prefiks `m` + nazwa osi (np. `mAxisX`, `mWheelUp`)
+- **Ruch myszy/kółko**: prefiks `m` + nazwa kierunku (np. `mLeft`, `mWheelUp`)
 
 ---
 

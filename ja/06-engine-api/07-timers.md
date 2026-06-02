@@ -33,7 +33,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**ファイル:** `3_Game/tools/utilityclasses.c`
+**ファイル:** `2_GameLib/tools.c`
 
 遅延関数呼び出しの主要なメカニズムです。ワンショット遅延、繰り返し呼び出し、即時次フレーム実行をサポートしています。
 
@@ -99,16 +99,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-文字列名でメソッドを呼び出します。メソッド参照が直接利用できない場合に便利です。
+文字列名でメソッドを次のフレームで呼び出します。メソッド参照が直接利用できない場合に便利です。遅延または繰り返しの名前指定呼び出しには、代わりに`CallLaterByName`を使用してください：
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **例：**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +152,7 @@ void Tick(float timeslice);
 
 ## Timer
 
-**ファイル:** `3_Game/tools/utilityclasses.c`
+**ファイル:** `3_Game/tools/tools.c`
 
 明示的なスタート/ストップのライフサイクルを持つクラスベースのタイマーです。一時停止や再開が必要な長期間のタイマーに最適です。
 
@@ -161,7 +165,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | パラメータ | 説明 |
@@ -239,15 +243,9 @@ void Continue();
 
 一時停止されたタイマーを中断した場所から再開します。
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-タイマーが現在一時停止中の場合に`true`を返します。
-
 **例 --- 一時停止と再開：**
+
+`Timer`には`IsPaused()`メソッドはありません。`IsRunning()`はタイマーがアクティブな間のみ`true`を返す（一時停止または停止すると`false`になる）ため、これを使って一時停止するか再開するかを判断してください：
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +258,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +285,25 @@ float GetDuration();
 
 ## ScriptInvoker
 
-**ファイル:** `3_Game/tools/utilityclasses.c`
+**ファイル:** `2_GameLib/tools.c`
 
 イベント/デリゲートシステムです。`ScriptInvoker`はコールバック関数のリストを保持し、`Invoke()`が呼び出されるとすべてを実行します。これはDayZにおけるC#イベントやオブザーバーパターンに相当するものです。
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-コールバック関数を登録します。
+コールバック関数を登録します。オプションの`flags`引数は`EScriptInvokerInsertFlags.IMMEDIATE`（デフォルト）または`EScriptInvokerInsertFlags.UNIQUE`を受け付けます。成功時に`true`を返します。
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-コールバック関数の登録を解除します。
+コールバック関数の登録を解除します。オプションの`flags`引数はデフォルトで`EScriptInvokerRemoveFlags.ALL`です。成功時に`true`を返します。
 
 ### Invoke
 
@@ -319,10 +317,10 @@ void Invoke(void param1 = NULL, void param2 = NULL,
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-登録されたコールバックの数です。
+指定した関数`fn`が現在インボーカーに登録されている回数を返します（すべてのコールバックの合計数ではありません）。
 
 ### Clear
 
@@ -387,17 +385,16 @@ updater.Remove(this.OnFrame);
 
 ## WidgetFadeTimer
 
-**ファイル:** `3_Game/tools/utilityclasses.c`
+**ファイル:** `3_Game/tools/tools.c`
 
-ウィジェットのフェードイン/フェードアウト用の特殊なタイマーです。
+ウィジェットのフェードイン/フェードアウト用の特殊なタイマーです。`WidgetFadeTimer`は`TimerBase`を継承しているため、`Stop()`と`IsRunning()`を継承します。
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop()とIsRunning()はTimerBaseから継承されます
 }
 ```
 
@@ -405,7 +402,9 @@ class WidgetFadeTimer
 |-----------|-------------|
 | `w` | フェードするウィジェット |
 | `time` | フェードの持続時間（秒） |
-| `continue_from_current` | `true`の場合、現在のアルファから開始。それ以外の場合は0（フェードイン）または1（フェードアウト）から開始 |
+| `continue_` | `true`の場合、現在のアルファから開始。それ以外の場合は0（フェードイン）または1（フェードアウト）から開始 |
+
+フェードが現在進行中かどうかを確認するには、継承された`IsRunning()`を使用してください。
 
 **例：**
 
@@ -433,17 +432,18 @@ void HideNotification()
 
 ## GetRemainingTime（CallQueue）
 
-`ScriptCallQueue`は、スケジュールされた`CallLater`の残り時間を照会する方法も提供しています：
+`ScriptCallQueue`は、スケジュールされた呼び出しの残り時間（ミリ秒単位）を照会する方法も提供しています。2つのバリアントがあり、1つは関数参照でキー指定し、もう1つは名前でキー指定します：
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **例：**
 
 ```c
-// CallLaterの残り時間を取得
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// 名前でスケジュールされた呼び出しの残り時間を取得
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("Callback fires in %1 ms", remaining));
 ```

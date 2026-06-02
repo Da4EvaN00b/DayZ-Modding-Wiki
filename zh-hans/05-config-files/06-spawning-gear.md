@@ -195,7 +195,7 @@ flowchart TD
 | `quickBarSlot` | integer | 快捷栏槽位分配（从 0 开始）。使用 `-1` 表示不分配快捷栏 |
 | `complexChildrenTypes` | array | 嵌套在此物品内部生成的物品。参见 [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | 使用默认或父级属性在此物品内部生成的物品类名 |
-| `simpleChildrenUseDefaultAttributes` | bool | 如果为 `true`，简单子项使用父级的 `attributes`。如果为 `false`，使用配置默认值 |
+| `simpleChildrenUseDefaultAttributes` | bool | 如果为 `true`，简单子项使用配置默认值。如果为 `false`，使用父级的 `attributes` |
 
 **空物品技巧：** 要让一个槽位有 50/50 的几率为空或被填充，使用空的 `itemType`：
 
@@ -230,10 +230,10 @@ flowchart TD
 |-------|------|-------------|
 | `name` | string | 可读名称（仅用于标识） |
 | `spawnWeight` | integer | 选择权重。最小值 `1` |
-| `attributes` | object | 默认耐久度/数量范围。当 `simpleChildrenUseDefaultAttributes` 为 `true` 时供子项使用 |
+| `attributes` | object | 默认耐久度/数量范围。当 `simpleChildrenUseDefaultAttributes` 为 `false` 时供子项使用 |
 | `complexChildrenTypes` | array | 生成到货物中的物品，每个都有自己的属性和嵌套 |
 | `simpleChildrenTypes` | array | 生成到货物中的物品类名 |
-| `simpleChildrenUseDefaultAttributes` | bool | 如果为 `true`，简单子项使用此结构的 `attributes`。如果为 `false`，使用配置默认值 |
+| `simpleChildrenUseDefaultAttributes` | bool | 如果为 `true`，简单子项使用配置默认值。如果为 `false`，使用此结构的 `attributes` |
 
 ```json
 {
@@ -329,7 +329,7 @@ flowchart TD
 }
 ```
 
-在此示例中，AKM 生成时带有枪托、瞄准镜（内含电池）和装满的弹匣作为复杂子项，加上护木和刺刀作为简单子项。简单子项使用配置默认值，因为 `simpleChildrenUseDefaultAttributes` 是 `false`。
+在此示例中，AKM 生成时带有枪托、瞄准镜（内含电池）和装满的弹匣作为复杂子项，加上护木和刺刀作为简单子项。简单子项使用父级 AKM 套件的 `attributes`，因为 `simpleChildrenUseDefaultAttributes` 是 `false`；只有当该标志为 `true` 时才会使用配置默认值。
 
 ### SimpleChildrenTypes
 
@@ -337,8 +337,8 @@ flowchart TD
 
 它们的属性由 `simpleChildrenUseDefaultAttributes` 标志决定：
 
-- **`true`** --- 物品使用父结构上定义的 `attributes`。
-- **`false`** --- 物品使用引擎的配置默认值（通常为满耐久度和数量）。
+- **`true`** --- 物品使用引擎的配置默认值（通常为满耐久度和数量）。
+- **`false`** --- 物品使用父结构上定义的 `attributes`。
 
 简单子项不能有自己的嵌套子项或快捷栏分配。对于这些功能，请使用 `complexChildrenTypes`。
 
@@ -1118,7 +1118,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 |---------|-------------|-----|
 | 忘记在 `serverDZ.cfg` 中设置 `enableCfgGameplayFile = 1` | `cfggameplay.json` 未加载，预设被忽略 | 添加该标志并重启服务器 |
 | 无效的 JSON 语法（尾随逗号、缺少括号） | 该文件中的所有预设静默失败 | 部署前使用外部工具验证 JSON |
-| 使用 `spawnGearPresetFiles` 而未删除 `StartingEquipSetup()` 代码 | 脚本化装备被 JSON 预设静默覆盖。init.c 代码运行但其物品被替换 | 这是预期行为，不是 bug。删除或注释掉 init.c 装备代码以避免混淆 |
+| 使用 `spawnGearPresetFiles` 而未删除 `StartingEquipSetup()` 代码 | 脚本化装备被 JSON 预设静默覆盖。当有效预设处于活动状态时，`StartingEquipSetup()` 根本不会被调用——其物品不会先被创建再被替换 | 这是预期行为，不是 bug。删除或注释掉 init.c 装备代码以避免混淆 |
 | 设置 `spawnWeight: 0` | 低于最小值。行为未定义 | 始终使用 `spawnWeight: 1` 或更高 |
 | 引用不存在的类名 | 该特定物品静默失败，但预设的其余部分正常工作 | 对照模组的 `config.cpp` 或 types.xml 仔细检查类名 |
 | 将物品分配到它不能占用的槽位 | 物品不出生。没有错误日志 | 验证物品 config.cpp 中的 `inventorySlot[]` 是否与 `slotName` 匹配 |

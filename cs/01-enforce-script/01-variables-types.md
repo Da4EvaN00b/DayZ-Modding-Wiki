@@ -305,8 +305,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Konverze z jiných typů
-    string fromInt = "Score: " + 42;     // NEFUNGUJE -- je nutné explicitně převést
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // funguje -- operátor + převede 42 na "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicitně, stejný výsledek)
 
     // Použití Format je preferovaný přístup
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +464,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Získat typename z řetězce
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Porovnat typy
     if (t == PlayerBase)

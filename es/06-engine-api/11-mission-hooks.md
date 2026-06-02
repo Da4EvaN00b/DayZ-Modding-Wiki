@@ -39,8 +39,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) loop"]
+    E --> G["OnUpdate(timeslice) loop"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["Destructor: ~MissionServer()"]
@@ -58,8 +57,7 @@ flowchart TD
     A["Engine creates MissionGameplay"] --> B["Constructor: MissionGameplay()"]
     B --> C["OnInit() — HUD, chat, action menu"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) loop"]
+    D --> F["OnUpdate(timeslice) loop"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["Destructor: ~MissionGameplay()"]
@@ -82,7 +80,6 @@ The `Mission` base class defines every hookable method. All are virtual with emp
 |--------|-----------|---------------|
 | `OnInit` | `void OnInit()` | After constructor, before mission starts. Primary setup point. |
 | `OnMissionStart` | `void OnMissionStart()` | After OnInit. The mission world is active. |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | After OnMissionStart. All vanilla systems are initialized. |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | Server: after gameplay data (cfggameplay.json) is loaded. |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | Every frame. `timeslice` is seconds since last frame (typically 0.016-0.033). |
 | `OnMissionFinish` | `void OnMissionFinish()` | On shutdown or disconnect. Clean up everything here. |
@@ -111,7 +108,7 @@ The `Mission` base class defines every hookable method. All are virtual with emp
 | `IsPaused` | `bool IsPaused()` | Whether the game is paused (single player / listen server). |
 | `IsServer` | `bool IsServer()` | `true` for MissionServer, `false` for MissionGameplay. |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | `true` for MissionGameplay, `false` for MissionServer. |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | Re-enable player input after disabling. |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | Re-enable player input after disabling. (Obsoleto en vanilla.) |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | Disable player input (e.g., `INPUT_EXCLUDE_ALL`). |
 | `IsControlDisabled` | `bool IsControlDisabled()` | Whether player controls are currently disabled. |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | Returns the current input exclusion mode. |
@@ -190,7 +187,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // Vanilla forwards to Hud.KeyPress(key)
-    // key values are KeyCode constants (e.g., KeyCode.KC_F1 = 59)
+    // key values are KeyCode constants (e.g., KeyCode.KC_F1 = 58)
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +198,11 @@ override void OnKeyRelease(int key)
 
 ### Event Hook
 
-Vanilla `MissionGameplay.OnEvent()` handles `ChatMessageEventTypeID` (adds to chat widget), `ChatChannelEventTypeID` (updates channel indicator), `WindowsResizeEventTypeID` (rebuilds menus/HUD), `SetFreeCameraEventTypeID` (debug camera), and `VONStateEventTypeID` (voice state). Override it with the same `switch` pattern and always call `super.OnEvent()`.
+Vanilla `MissionGameplay.OnEvent()` handles `ChatMessageEventTypeID` (adds to chat widget), `ChatChannelEventTypeID` (updates channel indicator), `WindowsResizeEventTypeID` (rebuilds menus/HUD), `SetFreeCameraEventTypeID` (debug camera), and `NetworkInputBufferEventTypeID` (network input buffer). Override it with the same `switch` pattern and always call `super.OnEvent()`.
 
 ### Input Control
 
-`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSuppress)` removes it. These map to exclude groups defined in `specific.xml`. Override them if your mod needs custom input exclusion behavior (as Expansion does for its menus).
+`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` removes it. These map to exclude groups defined in `specific.xml`. Both are marked `//!deprecated` in vanilla; `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()` are the current API. Override them if your mod needs custom input exclusion behavior (as Expansion does for its menus).
 
 ---
 
@@ -493,8 +490,7 @@ modded class MissionServer
 | Create HUD elements | `OnInit()` | `MissionGameplay` |
 | Clean up on server shutdown | `OnMissionFinish()` | `MissionServer` |
 | Clean up on client disconnect | `OnMissionFinish()` | `MissionGameplay` |
-| Run code once after all systems loaded | `OnMissionLoaded()` | Either |
-| Disable/enable player input | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| Disable/enable player input | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +501,6 @@ modded class MissionServer
 | Constructor | Yes | Yes | Different class on each side |
 | `OnInit()` | Yes | Yes | |
 | `OnMissionStart()` | Yes | Yes | |
-| `OnMissionLoaded()` | Yes | Yes | |
 | `OnGameplayDataHandlerLoad()` | Yes | No | cfggameplay.json loaded |
 | `OnUpdate(timeslice)` | Yes | Yes | Both run their own frame loop |
 | `OnMissionFinish()` | Yes | Yes | |
@@ -785,15 +780,14 @@ Both COT and Expansion follow the same pattern: their mission hooks are thin wra
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | Hook | When | Use For |
 |------|------|---------|
 | `OnInit()` | First. Script modules loaded, world not yet active. | Creating managers, registering RPCs, loading configs. |
 | `OnMissionStart()` | Second. World is active, entities can be spawned. | Spawning entities, starting gameplay systems, creating triggers. |
-| `OnMissionLoaded()` | Third. All vanilla systems fully initialized. | Cross-mod queries, finalization that depends on everything being ready. |
 
-Always call `super` on all three. Use `OnInit` as your primary initialization point. Use `OnMissionLoaded` only when you need to guarantee other mods have already initialized.
+Always call `super` on both. Use `OnInit` as your primary initialization point, and `OnMissionStart` for anything that needs the world to be active (spawning entities, creating triggers).
 
 ---
 
@@ -893,7 +887,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Mission hierarchy | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | Server class | `MissionServer` --- handles player connections, spawns, tick scheduling |
 | Client class | `MissionGameplay` --- handles HUD, input, chat, menus |
-| Lifecycle order | Constructor > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > `OnUpdate()` loop > `OnMissionFinish()` > Destructor |
+| Lifecycle order | Constructor > `OnInit()` > `OnMissionStart()` > `OnUpdate()` loop > `OnMissionFinish()` > Destructor |
 | Player join (server) | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | Player leave (server) | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | Hooking pattern | `modded class MissionServer/MissionGameplay` with `override` and `super` calls |

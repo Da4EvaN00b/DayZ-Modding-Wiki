@@ -174,7 +174,7 @@ Definuje pravidla spawnu pro **kazdy predmet** ve hre. S priblizne 23 000 radky 
 
 ### globals.xml
 
-Globalni parametry ovlivnujici celou ekonomiku: pocty zombie, pocty zvirat, casovace cisteni, rozsahy poskozeni lootu, casovani respawnu. Celkem 33 parametru. Kompletni referenci najdete v [Kapitole 9.4](04-loot-economy.md).
+Globalni parametry ovlivnujici celou ekonomiku: pocty zombie, pocty zvirat, casovace cisteni, rozsahy poskozeni lootu, casovani respawnu. Celkem 30 parametru. Kompletni referenci najdete v [Kapitole 9.4](04-loot-economy.md).
 
 ### events.xml
 
@@ -258,19 +258,19 @@ Uchovava perzistentni stav serveru mezi restarty:
 
 ```
 storage_1/
-  players.db         # SQLite databaze vsech postav hracu
+  players/           # Binarni zaznamy postav, jeden na hrace
   spawnpoints.bin    # Binarni data spawnovacich bodu
   backup/            # Automaticke zalohy dat persistence
   data/              # Stav sveta (umistene predmety, stavba bazi, vozidla)
 ```
 
-**Nikdy neupravujte `players.db` behem behu serveru.** Jde o SQLite databazi zamcenou procesem serveru. Pokud potrebujete vymazat postavy, nejprve zastavte server a soubor smazte nebo prejmennujte.
+**Nikdy rucne neupravujte soubory ve slozce `players/` behem behu serveru.** Jde o neprehledne binarni zaznamy zapisovane vyhradne procesem serveru. Pokud potrebujete vymazat postavy, nejprve zastavte server a slozku smazte nebo prejmennujte.
 
 Pro **uplny wipe** zastavte server a smazte celou slozku `storage_1/`. Server ji vytvori znovu pri dalsim spusteni s cistym svetem.
 
 Pro **castecny wipe** (zachovat postavy, resetovat loot):
 1. Zastavte server
-2. Smazte soubory v `storage_1/data/`, ale ponechte `players.db`
+2. Smazte soubory v `storage_1/data/`, ale ponechte `storage_1/players/`
 3. Restartujte
 
 ---

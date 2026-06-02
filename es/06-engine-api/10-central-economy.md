@@ -312,10 +312,14 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +328,13 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
+Los archivos principales de la CE (`types.xml`, `events.xml`, `globals.xml`) residen en la carpeta `db/` por convención integrada --- el `cfgeconomycore.xml` original no contiene un elemento `<ce>` que apunte a ellos. En cambio, el elemento `<ce>` se usa para registrar archivos CE personalizados **adicionales** (introducido en la actualización 1.08): el atributo `folder` indica el nombre de la carpeta que contiene tu XML personalizado, y cada entrada anidada `<file name="..." type="..."/>` se añade o sobrescribe el archivo original correspondiente (`type` puede ser `types`, `spawnabletypes`, `globals`, `economy`, `events` o `messages`).
 
 ---
 

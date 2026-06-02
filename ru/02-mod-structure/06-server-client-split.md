@@ -174,7 +174,7 @@ void ShowNotification(string text)
         return;
 
     // Только клиент может отображать UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 
 // Защита: корректная обработка обеих сторон

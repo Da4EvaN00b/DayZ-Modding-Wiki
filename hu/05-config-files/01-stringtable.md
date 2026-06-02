@@ -372,14 +372,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-A VPP csökkentett oszlopkészletet használ (13 oszlop, nincs `hungarian` oszlop), és nem használ `STR_` előtagot a kulcsokhoz:
+A VPP csökkentett oszlopkészletet használ (14 oszlop, nincs `hungarian` oszlop), és nem használ `STR_` előtagot a kulcsokhoz:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-Ez bizonyítja, hogy az `STR_` előtag konvenció, nem követelmény. Mindazonáltal ennek elhagyása azt jelenti, hogy nem használhatod a `#` előtagos feloldást layout fájlokban. A VPP ezeket a kulcsokat csak script kódon keresztül hivatkozza. Az `STR_` előtag erősen ajánlott minden új modhoz.
+Ez bizonyítja, hogy az `STR_` előtag konvenció, nem követelmény. A `#` előtagos feloldás layout fájlokban a stringtable bármely kulcsával működik --- nem függ az `STR_` előtagtól. A VPP ezeket a kulcsokat az inputs.xml `loc` attribútumán keresztül hivatkozza (pl. `loc="vpp_focus_on_game"`), valamint script kódon keresztül. Az `STR_` előtag továbbra is erősen ajánlott minden új modhoz.
 
 ### MyMissions Mod
 

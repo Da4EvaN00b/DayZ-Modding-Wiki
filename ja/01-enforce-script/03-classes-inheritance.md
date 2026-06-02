@@ -837,7 +837,7 @@ classDiagram
 
     class PlayerBase {
         +GetIdentity() PlayerIdentity
-        +GetBleeding() bool
+        +IsBleeding() bool
         +IsRestrained() bool
     }
 
@@ -859,7 +859,7 @@ classDiagram
     EntityAI <|-- DayZInfected
     ManBase <|-- PlayerBase
     ItemBase <|-- Weapon_Base
-    ItemBase <|-- ClothingBase
+    ItemBase <|-- Clothing_Base
     EntityAI <|-- CarScript
 ```
 

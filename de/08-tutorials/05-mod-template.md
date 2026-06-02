@@ -180,7 +180,7 @@ Wenn Ihre Mod von einer anderen Mod abhängt, fügen Sie deren CfgPatches-Klasse
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Hängt von Community Framework ab
+    "JM_CF_Scripts"           // Hängt von Community Framework ab
 };
 ```
 

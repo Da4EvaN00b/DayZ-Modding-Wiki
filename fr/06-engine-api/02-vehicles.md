@@ -41,16 +41,17 @@ La base abstraite pour tous les vehicules. Fournit la gestion des sieges et l'ac
 proto native int   CrewSize();                          // Nombre total de sieges
 proto native int   CrewMemberIndex(Human crew_member);  // Obtenir l'indice de siege d'un humain
 proto native Human CrewMember(int posIdx);              // Obtenir l'humain a l'indice de siege
-proto native void  CrewGetOut(int posIdx);              // Forcer un membre d'equipage a sortir
+proto native Human CrewGetOut(int posIdx);              // Forcer un membre d'equipage a sortir (retourne l'humain ejecte)
 proto native void  CrewDeath(int posIdx);               // Tuer le membre d'equipage au siege
 ```
 
 ### Entree de l'equipage
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Methode scriptee (redefinissable), pas proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Composant vers indice de siege
-proto native vector CrewEntryPoint(int posIdx);         // Position d'entree monde pour un siege
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Point/direction d'entree en espace modele
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Point/direction d'entree en espace monde
 ```
 
 **Exemple -- ejecter tous les passagers :**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // Vitesse en km/h (valeur absolue)
 ### Controles (simulation)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = toutes les roues
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (parametres supplementaires inutilises)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (second parametre inutilise)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust est obsolete)
+proto native void  SetClutch(float value);                    // SetClutchState est obsolete
 ```
 
 ### Roues
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacks (a redefinir dans CarScript)
@@ -219,17 +220,28 @@ Zones de degats courantes pour les vehicules :
 
 ### Feux
 
+L'API des feux se trouve sur `Transport` :
+
 ```c
-void SetLightsState(int state);   // 0 = eteints, 1 = allumes
-int  GetLightsState();
+proto native bool LightIsOn();    // Vrai quand les feux sont allumes
+proto native void LightOn();      // Allumer les feux
+proto native void LightOff();     // Eteindre les feux
+proto native void LightToggle();  // Basculer l'etat actuel des feux
 ```
 
 ### Controle des portes
 
+L'etat des portes est interroge avec `GetCarDoorsState`, qui retourne une valeur `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` ou `DOORS_CLOSED`) :
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Retourne une valeur CarDoorState
 ```
 
 ### Redefinitions cles pour les vehicules personnalises
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Initialiser pieces et fluides du vehicule
 override void OnEngineStart();             // Comportement personnalise au demarrage
 override void OnEngineStop();              // Comportement personnalise a l'arret
-override void EOnSimulate(IEntity other, float dt);  // Simulation par tick
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Simulation par tick (CarScript)
 ```
 
 **Exemple -- creer un vehicule avec tous les fluides pleins :**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### Fluides
 
-Les bateaux utilisent la meme enumeration `CarFluid` mais n'utilisent generalement que `FUEL` :
+Les bateaux utilisent une enumeration `BoatFluid` distincte qui ne definit que `FUEL` :
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Vitesse
+### Vitesse et propulsion
+
+`Boat` n'expose pas `GetSpeedometer()` (cette methode n'existe que sur `Car`). Lisez plutot le regime moteur et la velocite de l'helice :
 
 ```c
-proto native float GetSpeedometer();   // Vitesse en km/h
+proto native float EngineGetRPM();                   // Regime moteur (rpm)
+proto native float PropellerGetAngularVelocity();    // Velocite angulaire de l'helice
 ```
 
 **Exemple -- faire apparaitre un bateau :**
+
+`Boat_01` n'est pas une classe directement instanciable ; faites apparaitre l'une des variantes de couleur concretes (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`) :
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -479,7 +495,7 @@ La classe `Contact` a ete modifiee :
 **Modifie :**
 - `Material1`, `Material2` --- type change de `dMaterial` a `SurfaceProperties`
 
-Les mods qui lisent les donnees `Contact` dans `EOnContact` doivent mettre a jour vers les nouveaux noms de variables et types.
+Les mods qui lisent les donnees `Contact` dans `OnContact` doivent mettre a jour vers les nouveaux noms de variables et types.
 
 ---
 

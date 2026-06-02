@@ -195,7 +195,7 @@ Each entry in `discreteItemSets` represents one possible item for that slot. The
 | `quickBarSlot` | integer | Quick bar slot assignment (0-based). Use `-1` for no quickbar assignment |
 | `complexChildrenTypes` | array | Items to spawn nested inside this item. See [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Item classnames to spawn inside this item using default or parent attributes |
-| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use the parent's `attributes`. If `false`, they use configuration defaults |
+| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use configuration defaults. If `false`, they use the parent's `attributes` |
 
 **Empty item trick:** To make a slot have a 50/50 chance of being empty or filled, use an empty `itemType`:
 
@@ -230,10 +230,10 @@ Each entry represents one cargo variant, and the server selects one based on `sp
 |-------|------|-------------|
 | `name` | string | Human-readable name (for identification only) |
 | `spawnWeight` | integer | Weight for selection. Minimum `1` |
-| `attributes` | object | Default health/quantity ranges. Used by children when `simpleChildrenUseDefaultAttributes` is `true` |
+| `attributes` | object | Default health/quantity ranges. Used by children when `simpleChildrenUseDefaultAttributes` is `false` |
 | `complexChildrenTypes` | array | Items to spawn into cargo, each with their own attributes and nesting |
 | `simpleChildrenTypes` | array | Item classnames to spawn into cargo |
-| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use this structure's `attributes`. If `false`, they use configuration defaults |
+| `simpleChildrenUseDefaultAttributes` | bool | If `true`, simple children use configuration defaults. If `false`, they use this structure's `attributes` |
 
 ```json
 {
@@ -329,7 +329,7 @@ Example --- a weapon with attachments and magazine:
 }
 ```
 
-In this example, the AKM spawns with a buttstock, optic (with battery inside), and a loaded magazine as complex children, plus a handguard and bayonet as simple children. The simple children use configuration defaults because `simpleChildrenUseDefaultAttributes` is `false`.
+In this example, the AKM spawns with a buttstock, optic (with battery inside), and a loaded magazine as complex children, plus a handguard and bayonet as simple children. The simple children use the parent AKM set's `attributes` because `simpleChildrenUseDefaultAttributes` is `false`; configuration defaults would be used only if the flag were `true`.
 
 ### SimpleChildrenTypes
 
@@ -337,8 +337,8 @@ Simple children are a shorthand for spawning items inside a parent without speci
 
 Their attributes are determined by the `simpleChildrenUseDefaultAttributes` flag:
 
-- **`true`** --- Items use the `attributes` defined on the parent structure.
-- **`false`** --- Items use the engine's configuration defaults (typically full health and quantity).
+- **`true`** --- Items use the engine's configuration defaults (typically full health and quantity).
+- **`false`** --- Items use the `attributes` defined on the parent structure.
 
 Simple children cannot have their own nested children or quickbar assignments. For those capabilities, use `complexChildrenTypes` instead.
 
@@ -1118,7 +1118,7 @@ If the mod is not loaded on the server, items with unknown classnames will silen
 |---------|-------------|-----|
 | Forgetting `enableCfgGameplayFile = 1` in `serverDZ.cfg` | `cfggameplay.json` is not loaded, presets are ignored | Add the flag and restart the server |
 | Invalid JSON syntax (trailing comma, missing bracket) | All presets in that file silently fail | Validate JSON with an external tool before deploying |
-| Using `spawnGearPresetFiles` without removing `StartingEquipSetup()` code | The scripted loadout is silently overridden by the JSON preset. The init.c code runs but its items are replaced | This is expected behavior, not a bug. Remove or comment out the init.c loadout code to avoid confusion |
+| Using `spawnGearPresetFiles` without removing `StartingEquipSetup()` code | The scripted loadout is silently overridden by the JSON preset. When valid presets are active, `StartingEquipSetup()` is never called at all --- its items are not created and then replaced | This is expected behavior, not a bug. Remove or comment out the init.c loadout code to avoid confusion |
 | Setting `spawnWeight: 0` | Value below minimum. Behavior is undefined | Always use `spawnWeight: 1` or higher |
 | Referencing a classname that does not exist | That specific item silently fails to spawn, but the rest of the preset works | Double-check classnames against the mod's `config.cpp` or types.xml |
 | Assigning an item to a slot it cannot occupy | Item does not spawn. No error logged | Verify the item's `inventorySlot[]` in config.cpp matches the `slotName` |

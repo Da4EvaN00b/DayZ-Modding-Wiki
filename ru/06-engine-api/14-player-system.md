@@ -284,7 +284,7 @@ Default maximums are defined in `PlayerConstants`:
 | Stat | Constant | Default |
 |------|----------|---------|
 | Water max | `PlayerConstants.SL_WATER_MAX` | 5000 |
-| Energy max | `PlayerConstants.SL_ENERGY_MAX` | 20000 |
+| Energy max | `PlayerConstants.SL_ENERGY_MAX` | 5000 |
 
 ### Temperature and Heat Comfort
 
@@ -793,10 +793,8 @@ vector lookDir = player.GetDirection();
 vector headingDir = MiscGameplayFunctions.GetHeadingVector(player);
 
 // Full camera-based aiming direction
-vector cameraPos;
-vector cameraDir;
-GetGame().GetCurrentCameraPosition(cameraPos);
-GetGame().GetCurrentCameraDirection(cameraDir);
+vector cameraPos = GetGame().GetCurrentCameraPosition();
+vector cameraDir = GetGame().GetCurrentCameraDirection();
 // Use cameraDir for raycast aiming
 ```
 
@@ -814,7 +812,7 @@ PlayerBase GetLocalPlayer()
 
 ```c
 // In an RPC handler, the sender identity tells you who sent it
-void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+void OnRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
 {
     if (!sender)
         return;

@@ -23,9 +23,9 @@
 
 ## Áttekintés
 
-Amikor egy játékos kiválasztja a mododat a DayZ launcherben vagy a játékon belüli mod menüben, a motor egy `Credits.json` fájlt keres a mod PBO-jában. Ha megtalálja, a stáblista egy görgethető nézetben jelenik meg, részlegekre és szekciókra bontva --- hasonlóan a filmek stáblistájához.
+Amikor egy játékos megtekinti a modod stáblistáját, a motor azt a fájlt tölti be, amelynek elérési útját a `config.cpp` `CfgMods` blokkjának `creditsJson` kulcsában adod meg (például `creditsJson = "MyMod/Scripts/Data/Credits.json";`). A stáblista ezután egy görgethető nézetben jelenik meg, részlegekre és szekciókra bontva --- hasonlóan a filmek stáblistájához.
 
-A fájl opcionális. Ha hiányzik, nem jelenik meg stáblista szekció a mododhoz. De beletenni jó gyakorlat: elismeri a csapatod munkáját és professzionális megjelenést kölcsönöz a mododnak.
+A fájl opcionális. Ha nem adsz meg `creditsJson` kulcsot, a fájl soha nem töltődik be, és nem jelenik meg stáblista a mododhoz. De beletenni jó gyakorlat: elismeri a csapatod munkáját és professzionális megjelenést kölcsönöz a mododnak.
 
 ---
 
@@ -43,7 +43,7 @@ Helyezd a `Credits.json` fájlt a Scripts könyvtárad `Data` almappájába, vag
         Credits.json         <-- Szintén érvényes (DabsFramework, Colorful-UI)
 ```
 
-Mindkét hely működik. A motor átvizsgálja a PBO tartalmát egy `Credits.json` nevű fájl után (egyes platformokon kis-nagybetű érzékeny).
+A fájl bárhol elhelyezhető a PBO-n belül. Ami számít, az az, hogy a `CfgMods` blokkod `creditsJson` értéke a fájl pontos elérési útjára mutasson (egyes platformokon kis-nagybetű érzékeny).
 
 ---
 
@@ -53,14 +53,13 @@ A fájl egyszerű JSON struktúrát használ három szintű hierarchiával:
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -72,8 +71,9 @@ A fájl egyszerű JSON struktúrát használ három szintű hierarchiával:
 
 | Mező | Típus | Kötelező | Leírás |
 |-------|------|----------|-------------|
-| `Header` | string | Nem | A stáblista tetején megjelenő fő cím. Ha nincs megadva, nem jelenik meg fejléc. |
 | `Departments` | array | Igen | Részleg objektumok tömbje |
+
+A vanilla parser (`JsonDataCredits`) csak a `Departments` tömböt ismeri fel. Nincs felső szintű `Header` mező --- bármilyen `Header` kulcsot is adsz hozzá, azt csendben figyelmen kívül hagyja. Ha címet szeretnél megjeleníteni a stáblista tetején, használd helyette az első `DepartmentName`-et.
 
 ### Részleg objektum
 
@@ -84,23 +84,12 @@ A fájl egyszerű JSON struktúrát használ három szintű hierarchiával:
 
 ### Szekció objektum
 
-Két változat létezik a nevek felsorolására. A motor mindkettőt támogatja.
-
-**1. változat: `Names` tömb** (MyFramework használja)
-
-| Mező | Típus | Kötelező | Leírás |
-|-------|------|----------|-------------|
-| `SectionName` | string | Igen | Al-fejléc a részlegen belül |
-| `Names` | string tömb | Igen | Közreműködők neveinek listája |
-
-**2. változat: `SectionLines` tömb** (COT, Expansion, DabsFramework használja)
-
 | Mező | Típus | Kötelező | Leírás |
 |-------|------|----------|-------------|
 | `SectionName` | string | Igen | Al-fejléc a részlegen belül |
 | `SectionLines` | string tömb | Igen | Közreműködők nevei vagy szöveges sorok listája |
 
-Mind a `Names`, mind a `SectionLines` ugyanazt a célt szolgálja. Használd azt, amelyiket preferálod --- a motor azonosan jeleníti meg őket.
+A vanilla szekció osztály (`JsonDataCreditsSection`) csak a `SectionName` és `SectionLines` mezőket ismeri fel. Láthatsz néhány modot, amely `Names` kulcsot használ, de a motor soha nem olvassa ki azt --- egy `Names` tömböt csendben figyelmen kívül hagy, és semmit nem jelenít meg. A nevek listájához mindig `SectionLines`-t használj.
 
 ---
 
@@ -110,12 +99,10 @@ A stáblista megjelenítése ezt a vizuális hierarchiát követi:
 
 ```
 ╔══════════════════════════════════╗
-║         MY MOD NAME              ║  <-- Header (nagy, középre igazított)
-║                                  ║
 ║     DEPARTMENT NAME              ║  <-- DepartmentName (közepes, középre igazított)
 ║                                  ║
 ║     Section Name                 ║  <-- SectionName (kicsi, középre igazított)
-║     Person 1                     ║  <-- Names/SectionLines (lista)
+║     Person 1                     ║  <-- SectionLines (lista)
 ║     Person 2                     ║
 ║     Person 3                     ║
 ║                                  ║
@@ -128,10 +115,9 @@ A stáblista megjelenítése ezt a vizuális hierarchiát követi:
 ╚══════════════════════════════════╝
 ```
 
-- A `Header` egyszer jelenik meg a tetején
 - Minden `DepartmentName` fő szekcióelválasztóként működik
 - Minden `SectionName` al-címsorként működik
-- A nevek függőlegesen görgethetők a stáblista nézetben
+- A `SectionLines` függőlegesen görgethetők a stáblista nézetben
 
 ### Üres sztringek térközként
 
@@ -181,14 +167,13 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -200,22 +185,21 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -231,26 +215,25 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +242,7 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -267,7 +250,7 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +259,7 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +276,17 @@ A részleg nevek szintén használhatnak stringtable hivatkozásokat:
 
 ### MyFramework
 
-Minimális de teljes stáblista fájl a `Names` változattal:
+Minimális de teljes stáblista fájl:
 
 ```json
 {
-    "Header": "MyFramework",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyFramework",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["MyMod Team"]
+                    "SectionLines": ["MyMod Team"]
                 }
             ]
         }
@@ -355,7 +337,7 @@ A `SectionLines` változatot használja több szekcióval és köszönetnyilván
 }
 ```
 
-Megjegyzés: a COT teljesen kihagyja a `Header` mezőt. A mod neve más metaadatokból származik (config.cpp `CfgMods`).
+Megjegyzés: a COT az első `DepartmentName`-et ("Community Online Tools") használja címként. A mod neve más metaadatokból is származik (config.cpp `CfgMods`).
 
 ### DabsFramework
 
@@ -413,19 +395,18 @@ Használj JSON validátort a kiadás előtt.
 
 A fájl nevének pontosan `Credits.json`-nak kell lennie (nagy C-vel). Kis-nagybetű érzékeny fájlrendszereken a `credits.json` vagy `CREDITS.JSON` nem lesz megtalálva.
 
-### Names és SectionLines keverése
+### A `Names` kulcs használata
 
-Egy szekción belül használj egyet vagy másikat:
+Néhány mod `Names` tömböt ír, de a motor soha nem olvassa ki azt. Csak a `SectionLines` kerül feldolgozásra:
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-Ez kétértelmű. Válassz egy formátumot és használd következetesen az egész fájlban.
+Ebben a példában a "Dev1" soha nem jelenik meg a játékban --- a szekció üresen jelenik meg. A közreműködőket mindig a `SectionLines` alatt sorold fel.
 
 ### Kódolási problémák
 

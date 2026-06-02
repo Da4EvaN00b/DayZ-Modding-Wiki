@@ -129,7 +129,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // 音量缩放（在 shader 音量之上应用）
         frequencyFactor = 1.0;       // 频率缩放
-        volumeCurve = "InverseSquare"; // 预定义衰减曲线名称
+        volumeCurve = "InverseSquare2Curve"; // CfgSoundCurves 衰减曲线类名
         spatial = 1;                  // 1 = 3D 定位，0 = 2D（HUD/菜单）
         doppler = 0;                  // 1 = 启用多普勒效应
         loop = 0;                     // 1 = 连续循环
@@ -145,11 +145,11 @@ class CfgSoundSets
 | `volumeFactor` | float | 在 shader 音量之上应用的额外音量倍数。 |
 | `frequencyFactor` | float | 额外的频率/音调倍数。 |
 | `frequencyRandomizer` | float | 随机音调变化（0.0 = 无，0.1 = +/- 10%）。 |
-| `volumeCurve` | string | 命名衰减曲线：`"InverseSquare"`、`"Linear"`、`"Logarithmic"`。 |
+| `volumeCurve` | string | 在 `CfgSoundCurves` 下定义的衰减曲线类的名称（例如 `"InverseSquare2Curve"`、`"LinearCurve"`、`"defaultAmpAttenuationCurve"`）。 |
 | `spatial` | int | `1` 为 3D 定位音频，`0` 为 2D（UI、音乐）。 |
 | `doppler` | int | `1` 启用移动声源的多普勒音调偏移。 |
 | `loop` | int | `1` 连续循环，`0` 单次播放。 |
-| `distanceFilter` | int | `1` 在远距离应用低通滤波器（远处声音变闷）。 |
+| `distanceFilter` | string | 在远距离应用的距离/频率衰减滤波器类的名称（例如 `"defaultDistanceFreqAttenuationFilter"`），使远处声音变闷。 |
 | `occlusionFactor` | float | 墙壁/地形对声音的消音程度（0.0 到 1.0）。 |
 | `obstructionFactor` | float | 声源和听者之间的障碍物对声音的影响程度。 |
 
@@ -221,7 +221,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -350,15 +350,15 @@ rangeCurve[] =
 
 引擎在定义的点之间进行线性插值。你可以通过添加更多控制点来创建任何衰减曲线。
 
-### 预定义音量曲线
+### 音量曲线类
 
-SoundSets 可以通过 `volumeCurve` 属性引用命名曲线：
+SoundSets 通过 `volumeCurve` 属性引用衰减曲线类。曲线名称是在 `class CfgSoundCurves` 下定义的类名（原版 DZ 声音定义了许多），Mod 可以引用现有的曲线，也可以定义自己的曲线。不存在字面上叫做 `"InverseSquare"`、`"Linear"` 或 `"Logarithmic"` 的纯预设。常见的原版曲线类包括：
 
-| 曲线名称 | 行为 |
+| 曲线类 | 行为 |
 |----------|------|
-| `"InverseSquare"` | 真实衰减（音量 = 1/距离^2）。听起来自然。 |
-| `"Linear"` | 从最大到零在范围内均匀衰减。 |
-| `"Logarithmic"` | 近距离响亮，中距离快速下降，然后缓慢减弱。 |
+| `"InverseSquare2Curve"` | 真实衰减（音量大致随距离的平方下降）。听起来自然。 |
+| `"LinearCurve"` | 从最大到零在范围内均匀衰减。 |
+| `"defaultAmpAttenuationCurve"` | 近距离响亮，中距离快速下降，然后缓慢减弱。 |
 
 ### 实际衰减示例
 
@@ -503,14 +503,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **步骤 4：从武器/物品配置中引用**
 
-对于武器，SoundSet 在武器的配置类中引用：
+对于武器，开火 SoundSets 通过武器开火模式类内部的 `soundSetShot[]` 数组引用。消音变体使用 `soundSetShotExt[]`：
 
 ```cpp
 class CfgWeapons
@@ -519,12 +519,9 @@ class CfgWeapons
     {
         // ... 其他配置 ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };
@@ -658,7 +655,7 @@ frequencyRandomizer = 0.05;    // +/- 5% 音调变化
 | 模式 | Mod | 详情 |
 |------|-----|------|
 | 通过 SoundSets 的自定义通知声音 | Expansion（通知模块） | 为不同通知类型（成功、警告、错误）定义多个 `CfgSoundSets`，使用 `spatial = 0` |
-| 带缓存播放的 UI 点击声音 | VPP Admin Tools | 使用 `SEffectManager.PlaySoundCachedParams()` 进行按钮点击以避免每次重新解析配置 |
+| 通过 2D 声音场景播放 UI 点击声音 | VPP Admin Tools | 使用 `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` 播放 UI 声音（参见 `VPPNotificationUI.c`） |
 | 多层武器音频（射击 + 尾音 + 裂声） | 社区武器包（RFCP、MuchStuffPack） | 每个武器为每次射击事件定义 3-5 个独立的 SoundSets，用于近距离射击、远距离隆隆声、超音速裂声 |
 | 脚步变化的 `frequencyRandomizer` | 原版 DayZ | 在脚步 SoundSets 上使用 0.05-0.08 的音调随机化以防止机械式重复 |
 

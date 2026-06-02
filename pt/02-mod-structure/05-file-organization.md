@@ -130,8 +130,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // Padrao VPP: [Nome] (sem prefixo)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Regras:**
@@ -675,7 +675,7 @@ Mods de conteudo tem um diretorio `Data/` massivo e `Scripts/` relativamente peq
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -685,18 +685,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- Um dos poucos mods usando camada 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Nota: DabsFramework usa nomes de pasta em minusculas (`scripts/`, `gui/`). Isso funciona porque o Windows nao diferencia maiusculas, mas pode causar problemas no Linux. A convencao e usar a capitalizacao canonica (`Scripts/`, `GUI/`).
+Nota: as pastas fisicas do DabsFramework usam a capitalizacao canonica (`Scripts/`, `GUI/`, `1_Core/`), mas os caminhos em `files[]` no seu `config.cpp` as referenciam em minusculas (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). Essa divergencia de capitalizacao funciona porque o Windows nao diferencia maiusculas, mas pode causar problemas no Linux. Mantenha seus caminhos `files[]` correspondendo a capitalizacao real das pastas.
 
 ---
 

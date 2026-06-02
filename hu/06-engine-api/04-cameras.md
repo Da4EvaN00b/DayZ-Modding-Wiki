@@ -77,8 +77,6 @@ A kameratípus-azonosítók konstansként vannak definiálva:
 | `DayZPlayerCameras.DAYZCAMERA_OPTICS` | Optikai/távcsöves célzás |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_VEHICLE` | Harmadik személyű jármű |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE` | Első személyű jármű |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_SWIM` | Harmadik személyű úszás |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_UNCONSCIOUS` | Harmadik személyű eszméletlen |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS` | Első személyű eszméletlen |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_CLIMB` | Harmadik személyű mászás |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_JUMP` | Harmadik személyű ugrás |
@@ -89,8 +87,8 @@ A kameratípus-azonosítók konstansként vannak definiálva:
 DayZPlayer player = GetGame().GetPlayer();
 if (player)
 {
-    int cameraType = player.GetCurrentCameraType();
-    if (cameraType == DayZPlayerCameras.DAYZCAMERA_1ST)
+    DayZPlayerCamera cam = player.GetCurrentCamera();
+    if (cam && cam.GetCameraName() == "DayZPlayerCamera1stPerson")
     {
         Print("Player is in first person");
     }
@@ -101,34 +99,30 @@ if (player)
 
 ## FreeDebugCamera
 
-**Fájl:** `5_Mission/gui/scriptconsole/freedebugcamera.c`
+**Fájl:** `3_Game/entities/camera.c`
 
 A hibakereséshez és filmes munkához használt szabadon repülő kamera. Diagnosztikai buildekben vagy modok által engedélyezve érhető el.
 
 ### A példány elérése
 
 ```c
-FreeDebugCamera GetFreeDebugCamera();
+static proto native FreeDebugCamera GetInstance();
 ```
 
-Ez a globális függvény a szabad kamera singleton példányát adja vissza (vagy null-t, ha nem létezik).
+Ez a statikus metódus a szabad kamera singleton példányát adja vissza (vagy null-t, ha nem létezik). Hívd `FreeDebugCamera.GetInstance()` formában.
 
 ### Fő metódusok
 
 ```c
-// Szabad kamera engedélyezése/letiltása
-static void SetActive(bool active);
-static bool GetActive();
+// Szabad kamera engedélyezése/letiltása (a Camera-tól örökölve)
+proto native void SetActive(bool active);
+proto native bool IsActive();
 
 // Pozíció és orientáció
 vector GetPosition();
 void   SetPosition(vector pos);
 vector GetOrientation();
 void   SetOrientation(vector ori);   // fordulás, dőlés, billentés
-
-// Sebesség
-void SetFlySpeed(float speed);
-float GetFlySpeed();
 
 // Kamera iránya
 vector GetDirection();
@@ -139,14 +133,12 @@ vector GetDirection();
 ```c
 void ActivateDebugCamera(vector pos)
 {
-    FreeDebugCamera.SetActive(true);
-
-    FreeDebugCamera cam = GetFreeDebugCamera();
+    FreeDebugCamera cam = FreeDebugCamera.GetInstance();
     if (cam)
     {
+        cam.SetActive(true);
         cam.SetPosition(pos);
         cam.SetOrientation(Vector(0, -30, 0));  // Enyhén lefelé nézés
-        cam.SetFlySpeed(10.0);
     }
 }
 ```
@@ -160,8 +152,8 @@ A motor natívan vezérli a FOV-ot. A játékos kamerarendszeren keresztül olva
 ### FOV olvasása
 
 ```c
-// Aktuális kamera FOV lekérése
-float fov = GetDayZGame().GetFieldOfView();
+// Aktuális kamera FOV lekérése (radiánban)
+float fov = Camera.GetCurrentFOV();
 ```
 
 ### DayZPlayerCamera FOV felülírás
@@ -171,9 +163,10 @@ A `DayZPlayerCamera`-t kiterjesztő egyéni kameraosztályokban felülírhatod a
 ```c
 class MyCustomCamera extends DayZPlayerCamera1stPerson
 {
-    override float GetCurrentFOV()
+    override void OnUpdate(float pDt, out DayZPlayerCameraResult pOutResult)
     {
-        return 0.7854;  // ~45 fok (radiánban)
+        super.OnUpdate(pDt, pOutResult);
+        pOutResult.m_fFovAbsolute = 0.7854;  // ~45 fok (radiánban)
     }
 }
 ```
@@ -184,26 +177,17 @@ class MyCustomCamera extends DayZPlayerCamera1stPerson
 
 A mélységélességet az utófeldolgozási effektrendszer vezérli (lásd [6.5. fejezet](05-ppe.md)). A kamerarendszer azonban a DOF-fal az alábbi mechanizmusokon keresztül működik együtt:
 
-### DOF beállítása a World-ön keresztül
+### DOF beállítása a CGame-en keresztül
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    // SetDOF(fókusztávolság, fókuszhossz, fókuszhossz_közeli, elmosódás, fókuszmélység_eltolás)
-    // Minden érték méterben
-    world.SetDOF(5.0, 100.0, 0.5, 0.3, 0.0);
-}
+// OverrideDOF(enable, focusDistance, focusLength, focusLengthNear, blur, focusDepthOffset)
+GetGame().OverrideDOF(true, 5.0, 100.0, 0.5, 0.3, 0.0);
 ```
 
 ### DOF letiltása
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    world.SetDOF(0, 0, 0, 0, 0);  // Csupa nulla letiltja a DOF-ot
-}
+GetGame().OverrideDOF(false, 0, 0, 0, 0, 1);  // Az első argumentum false letiltja a DOF-ot
 ```
 
 ---
@@ -224,11 +208,13 @@ ScriptCamera camera = ScriptCamera.Cast(
 
 ### Fő metódusok
 
+> **Megjegyzés:** A `ScriptCamera` csak `#ifdef GAME_TEMPLATE` alatt fordul le, és nincs jelen a DayZ játékbuildben. A `GenericEntity` kamera metódusain keresztül konfigurálja magát (`SetCameraVerticalFOV`, `SetCameraNearPlane`, `SetCameraFarPlane`, `SetCameraType`). Az alábbi metódusok a motor `Camera` osztályához tartoznak (`3_Game/entities/camera.c`), amelyet a `FreeDebugCamera` kiterjeszt:
+
 ```c
-proto native void SetFOV(float fov);          // FOV radiánban
-proto native void SetNearPlane(float nearPlane);
-proto native void SetFarPlane(float farPlane);
-proto native void SetFocus(float dist, float len);
+proto native void SetFOV(float fov);                 // FOV radiánban
+proto native void SetNearPlane(float nearPlane);     // belsőleg 0.01m-re korlátozva
+proto native float GetNearPlane();
+proto native void SetFocus(float distance, float blur);  // mélységélesség
 ```
 
 ### Kamera aktiválása
@@ -278,10 +264,10 @@ Object GetObjectInCrosshair(float maxDistance)
 |---------|--------|
 | Globális hozzáférők | `GetCurrentCameraPosition()`, `GetCurrentCameraDirection()`, `GetScreenPos()` |
 | Kameratípusok | `DayZPlayerCameras` konstansok (1ST, 3RD_ERC, IRONSIGHTS, OPTICS, VEHICLE stb.) |
-| Aktuális típus | `player.GetCurrentCameraType()` |
-| Szabad kamera | `FreeDebugCamera.SetActive(true)`, majd `GetFreeDebugCamera()` |
-| FOV | `GetDayZGame().GetFieldOfView()` olvasáshoz, `GetCurrentFOV()` felülírása a kameraosztályban |
-| DOF | `GetGame().GetWorld().SetDOF(fókusz, hossz, közeli, elmosódás, eltolás)` |
+| Aktuális típus | `player.GetCurrentCamera().GetCameraName()` |
+| Szabad kamera | `FreeDebugCamera.GetInstance()`, majd `cam.SetActive(true)` |
+| FOV | `Camera.GetCurrentFOV()` olvasáshoz, `pOutResult.m_fFovAbsolute` beállítása az `OnUpdate`-ben |
+| DOF | `GetGame().OverrideDOF(enable, focusDist, focusLen, focusLenNear, blur, offset)` |
 | Képernyő konverzió | `GetScreenPos(worldPos)` pixel XY + mélység Z értéket ad vissza |
 
 ---

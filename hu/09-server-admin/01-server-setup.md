@@ -184,7 +184,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Szerver naplózás engedélyezése |
 | `-adminlog` | Admin műveletek naplózása |
 | `-netlog` | Hálózati események naplózása |
-| `-freezecheck` | Automatikus újraindítás lefagyás észlelésekor |
+| `-freezecheck` | Leállítja a szervert és összeomlási memóriaképet ír ki, ha 5 percnél tovább fagyott |
 
 ### 3. lépés: Várakozás az inicializálásra
 
@@ -226,7 +226,7 @@ Nyisd meg a Steamet, menj a **Nézet > Játékszerverek > Kedvencek** menüpontr
 
 ### 4. módszer: Lekérdezési port
 
-Használj külső eszközt, mint a https://www.battlemetrics.com/ vagy a `gamedig` npm csomagot a 27016-os port lekérdezéséhez (Steam lekérdezési port = játékport + 24714).
+Használj külső eszközt, mint a https://www.battlemetrics.com/ vagy a `gamedig` npm csomagot a Steam lekérdezési port lekérdezéséhez. Alapértelmezetten ez a **2305 UDP** (a `serverDZ.cfg` fájl `steamQueryPort` beállításával módosítható), nem a játékport.
 
 ---
 

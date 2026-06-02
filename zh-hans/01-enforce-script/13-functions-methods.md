@@ -560,7 +560,7 @@ proto volatile void Idle();
 // 调用 proto native 方法——与脚本方法没有区别
 Object obj = GetGame().CreateObject("AKM", pos, false, false, true);
 vector position = obj.GetPosition();
-string typeName = obj.GetType();     // owned 字符串——返回给你
+string typeName = obj.GetType();     // 对 g_Game.ObjectGetType() 的脚本包装
 obj.SetPosition(newPos);             // native void——无返回值
 ```
 
@@ -767,17 +767,19 @@ class Calculator
 DayZ 原版和模组遵循一个命名约定，方法的扩展版本在名称后追加 `Ex`：
 
 ```c
-// 来自原版脚本——基本版本与扩展版本
-void ExplosionEffects(Object source, Object directHit, int componentIndex);
+// 来自 DayZGame——基本版本与扩展版本
+void ExplosionEffects(Object source, Object directHit, int componentIndex, string surface,
+    vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater,
+    string ammoType);
 void ExplosionEffectsEx(Object source, Object directHit, int componentIndex,
     float energyFactor, float explosionFactor, HitInfo hitInfo);
 
-// 来自 EffectManager
-static void EffectUnregister(Effect effect);
+// 来自 SEffectManager
+static void EffectUnregister(int id);
 static void EffectUnregisterEx(Effect effect);
 
-// 来自 EntityAI
-void SplitIntoStackMax(EntityAI destination_entity, int slot_id);
+// 基本版本在 ItemBase 上；Ex 变体声明在 EntityAI 上
+void SplitIntoStackMax(EntityAI destination_entity, int slot_id, PlayerBase player);
 void SplitIntoStackMaxEx(EntityAI destination_entity, int slot_id);
 ```
 

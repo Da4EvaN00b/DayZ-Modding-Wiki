@@ -61,8 +61,8 @@
 
 | Metoda | Signatura | Popis |
 |--------|-----------|-------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | Připojit potomka ke kosti |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | Odpojit potomka |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Připojit potomka ke kosti |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Odpojit potomka |
 | `GetParent` | `IEntity GetParent()` | Rodičovská entita nebo null |
 | `GetChildren` | `IEntity GetChildren()` | První potomek |
 | `GetSibling` | `IEntity GetSibling()` | Další sourozenec |
@@ -126,11 +126,11 @@
 | `IsTransport()` | Object | Je to vozidlo? |
 | `IsDayZCreature()` | Object | Je to stvoření (zombie/zvíře)? |
 | `IsKindOf(string)` | Object | Kontrola dědičnosti v konfiguraci |
-| `IsItemBase()` | EntityAI | Je to inventářový předmět? |
-| `IsWeapon()` | EntityAI | Je to zbraň? |
-| `IsMagazine()` | EntityAI | Je to zásobník? |
-| `IsClothing()` | EntityAI | Je to oblečení? |
-| `IsFood()` | EntityAI | Je to jídlo? |
+| `IsItemBase()` | Object | Je to inventářový předmět? |
+| `IsWeapon()` | Object | Je to zbraň? |
+| `IsMagazine()` | Object | Je to zásobník? |
+| `IsClothing()` | Object | Je to oblečení? |
+| `IsFood()` | Object | Je to jídlo? |
 | `Class.CastTo(out, obj)` | Class | Bezpečné přetypování dolů (vrací bool) |
 | `ClassName.Cast(obj)` | Class | Inline přetypování (vrací null při neúspěchu) |
 
@@ -146,12 +146,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Vytvořit předmět v cargo |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | Vytvořit předmět v cargo |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | Vytvořit předmět jako příslušenství |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | Vypsat všechny předměty |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | Vypsat všechny předměty |
 | `CountInventory` | `int CountInventory()` | Počet předmětů |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | Zkontrolovat předmět |
 | `AttachmentCount` | `int AttachmentCount()` | Počet příslušenství |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | Získat příslušenství podle indexu |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | Získat příslušenství podle slotu |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | Získat příslušenství podle slotu |
 
 ---
 
@@ -214,7 +214,7 @@
 | `CrewSize` | `int CrewSize()` | Celkový počet sedadel |
 | `CrewMember` | `Human CrewMember(int idx)` | Získat člověka na sedadle |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | Získat sedadlo člověka |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | Vyhodit ze sedadla |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | Vyhodit ze sedadla |
 | `CrewDeath` | `void CrewDeath(int idx)` | Zabít člena posádky |
 
 ### Motor (Car)
@@ -245,10 +245,10 @@
 
 | Metoda | Signatura | Popis |
 |--------|-----------|-------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0, -1 = všechna kola |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | Vstup řízení |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 plyn |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | Vstup řízení |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 plyn (nahrazuje zastaralý `SetThrust`) |
 
 ---
 
@@ -282,11 +282,11 @@
 |--------|-----------|-------|
 | `GetActual` | `float GetActual()` | Aktuální interpolovaná hodnota |
 | `GetForecast` | `float GetForecast()` | Cílová hodnota |
-| `GetDuration` | `float GetDuration()` | Zbývající doba (sekundy) |
+| `GetNextChange` | `float GetNextChange()` | Čas do další změny (sekundy) |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | Nastavit cíl (pouze server) |
 | `SetLimits` | `void SetLimits(float min, float max)` | Limity rozsahu hodnot |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | Limity rychlosti změny |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | Limity velikosti změny |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | Limity rychlosti změny |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | Limity velikosti změny |
 
 ---
 
@@ -314,7 +314,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | Zapsat text (bez nového řádku) |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | Zapsat text + nový řádek |
 | `FGets` | `int FGets(FileHandle fh, string line)` | Přečíst jeden řádek |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | Přečíst celý soubor |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | Načíst bajty do pole (vrací počet) |
 | `DeleteFile` | `bool DeleteFile(string path)` | Smazat soubor |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | Kopírovat soubor |
 
@@ -354,10 +354,12 @@
 |--------|-----------|-------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | Naplánovat zpožděné/opakující se volání |
 | `Call` | `void Call(func fn, param1..4)` | Spustit příští snímek |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | Zavolat metodu podle názvu řetězce |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | Zavolat metodu podle názvu řetězce |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | Zpožděné/opakující se volání podle názvu řetězce |
 | `Remove` | `void Remove(func fn)` | Zrušit naplánované volání |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | Zrušit podle názvu řetězce |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | Získat zbývající čas CallLater |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | Získat zbývající čas CallLater (ms) |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | Zbývající čas podle názvu řetězce (ms) |
 
 ### Třída Timer
 
@@ -368,18 +370,17 @@
 | `Stop` | `void Stop()` | Zastavit časovač |
 | `Pause` | `void Pause()` | Pozastavit časovač |
 | `Continue` | `void Continue()` | Pokračovat v časovači |
-| `IsPaused` | `bool IsPaused()` | Je časovač pozastaven? |
-| `IsRunning` | `bool IsRunning()` | Je časovač aktivní? |
+| `IsRunning` | `bool IsRunning()` | Je časovač aktivní? (false při pozastavení) |
 | `GetRemaining` | `float GetRemaining()` | Zbývající sekundy |
 
 ### ScriptInvoker
 
 | Metoda | Signatura | Popis |
 |--------|-----------|-------|
-| `Insert` | `void Insert(func fn)` | Zaregistrovat callback |
-| `Remove` | `void Remove(func fn)` | Odregistrovat callback |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | Zaregistrovat callback |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | Odregistrovat callback |
 | `Invoke` | `void Invoke(params...)` | Spustit všechny callbacky |
-| `Count` | `int Count()` | Počet zaregistrovaných callbacků |
+| `Count` | `int Count(func fn)` | Kolikrát je tato fn zaregistrována |
 | `Clear` | `void Clear()` | Odebrat všechny callbacky |
 
 ---
@@ -395,13 +396,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | Najít potomka podle názvu (rekurzivně) |
 | `Show` | `void Show(bool show)` | Zobrazit/skrýt widget |
 | `SetText` | `void TextWidget.SetText(string text)` | Nastavit textový obsah |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | Nastavit index obrázku |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | Nastavit index obrázku |
 | `SetColor` | `void SetColor(int color)` | Nastavit barvu widgetu (ARGB) |
 | `SetAlpha` | `void SetAlpha(float alpha)` | Nastavit průhlednost 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Nastavit velikost widgetu |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Nastavit pozici widgetu |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Nastavit velikost widgetu |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Nastavit pozici widgetu |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Rozlišení obrazovky |
-| `Destroy` | `void Widget.Destroy()` | Odstranit a zničit widget |
+| `Unlink` | `void Widget.Unlink()` | Odstranit a zničit widget (a potomky) |
 
 ### Pomocník ARGB barev
 
@@ -582,7 +583,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | Čas serveru (sekundy) |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | Pracovní prostor UI |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | Výška terénu na pozici |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | Typ povrchového materiálu |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | Typ povrchového materiálu (v `out` parametru) |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | Najít objekty v okolí pozice |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | Získat rozlišení obrazovky |
 | `GetGame().IsServer()` | `bool IsServer()` | Kontrola serveru |
@@ -610,7 +611,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | Události chatu, hlasu |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | Hráč se připojil |
 | `override void InvokeOnDisconnect(PlayerBase player)` | Hráč se odpojil |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | Klient připraven na data |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | Klient připraven na data |
 | `override void PlayerRegistered(int peerId)` | Identita zaregistrována |
 
 ### Klientská strana (modded MissionGameplay)

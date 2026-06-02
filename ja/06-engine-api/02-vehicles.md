@@ -41,16 +41,17 @@ EntityAI
 proto native int   CrewSize();                          // シートの総数
 proto native int   CrewMemberIndex(Human crew_member);  // 人間のシートインデックスを取得
 proto native Human CrewMember(int posIdx);              // シートインデックスの人間を取得
-proto native void  CrewGetOut(int posIdx);              // シートの乗員を強制降車
+proto native Human CrewGetOut(int posIdx);              // シートの乗員を強制降車（排出した人間を返す）
 proto native void  CrewDeath(int posIdx);               // シートの乗員を殺す
 ```
 
 ### 乗車
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // スクリプト化された（オーバーライド可能）メソッド、proto native ではない
 proto native int  CrewPositionIndex(int componentIdx);  // コンポーネントからシートインデックスへ
-proto native vector CrewEntryPoint(int posIdx);         // シートのワールド乗車位置
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // モデル空間での乗車地点/方向
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // ワールド空間での乗車地点/方向
 ```
 
 **例 --- すべての乗客を排出する:**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // km/h での速度（絶対値）
 ### コントロール（シミュレーション）
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0、-1 = 全ホイール
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0（追加パラメータは未使用）
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0（第2パラメータは未使用）
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0（SetThrust は廃止）
+proto native void  SetClutch(float value);                    // SetClutchState は廃止
 ```
 
 ### ホイール
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### コールバック（CarScript でオーバーライド）
@@ -219,17 +220,28 @@ graph TD
 
 ### ライト
 
+ライト API は `Transport` にあります:
+
 ```c
-void SetLightsState(int state);   // 0 = オフ、1 = オン
-int  GetLightsState();
+proto native bool LightIsOn();    // ライトがオンのとき true
+proto native void LightOn();      // ライトをオンにする
+proto native void LightOff();     // ライトをオフにする
+proto native void LightToggle();  // 現在のライト状態を切り替える
 ```
 
 ### ドアコントロール
 
+ドアの状態は `GetCarDoorsState` で問い合わせます。これは `CarDoorState` 値（`DOORS_MISSING`、`DOORS_OPEN`、または `DOORS_CLOSED`）を返します:
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // CarDoorState 値を返す
 ```
 
 ### カスタム車両の主要オーバーライド
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // 車両パーツ、流体の初期化
 override void OnEngineStart();             // カスタムエンジン始動の動作
 override void OnEngineStop();              // カスタムエンジン停止の動作
-override void EOnSimulate(IEntity other, float dt);  // ティックごとのシミュレーション
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // ティックごとのシミュレーション（CarScript）
 ```
 
 **例 --- 流体が満タンの車両を作成する:**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### 流体
 
-ボートは同じ `CarFluid` 列挙を使用しますが、通常は `FUEL` のみを使用します。
+ボートは `FUEL` のみを定義する別の `BoatFluid` 列挙を使用します。
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### 速度
+### 速度と推進
+
+`Boat` は `GetSpeedometer()` を公開していません（このメソッドは `Car` にのみ存在します）。代わりにエンジン RPM とプロペラ速度を読み取ってください:
 
 ```c
-proto native float GetSpeedometer();   // km/h での速度
+proto native float EngineGetRPM();                   // エンジン RPM
+proto native float PropellerGetAngularVelocity();    // プロペラの角速度
 ```
 
 **例 --- ボートをスポーンする:**
+
+`Boat_01` は直接スポーンできるクラスではありません。具体的なカラーバリアント（`Boat_01_Blue`、`Boat_01_Orange`、`Boat_01_Black`、`Boat_01_Camo`）のいずれかをスポーンしてください:
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -478,7 +494,7 @@ Bullet Physics ライブラリが最新の Enfusion バージョンに更新さ�
 **変更:**
 - `Material1`, `Material2` --- 型が `dMaterial` から `SurfaceProperties` に変更
 
-`EOnContact` で `Contact` データを読み取る Mod は、新しい変数名と型に更新する必要があります。
+`OnContact` で `Contact` データを読み取る Mod は、新しい変数名と型に更新する必要があります。
 
 ---
 

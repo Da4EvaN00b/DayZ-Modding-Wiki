@@ -372,14 +372,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP 使用精简的列集（13 列，没有 `hungarian` 列），且键不以 `STR_` 为前缀：
+VPP 使用精简的列集（14 列，没有 `hungarian` 列），且键不以 `STR_` 为前缀：
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-这表明 `STR_` 前缀是惯例，不是要求。然而，省略它意味着你不能在布局文件中使用 `#` 前缀解析。VPP 仅通过脚本代码引用这些键。强烈建议所有新模组使用 `STR_` 前缀。
+这表明 `STR_` 前缀是惯例，不是要求。布局文件中的 `#` 前缀解析适用于 stringtable 中的任何键 --- 它不依赖于 `STR_` 前缀。VPP 通过其 inputs.xml 中的 `loc` 属性（例如 `loc="vpp_focus_on_game"`）以及脚本代码来引用这些键。仍然强烈建议所有新模组使用 `STR_` 前缀。
 
 ### MyMod Missions
 

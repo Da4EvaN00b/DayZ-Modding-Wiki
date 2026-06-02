@@ -103,7 +103,7 @@ lightingConfig = 0;                 // 夜间亮度（0 = 较亮，1 = 较暗）
 | `disable3rdPerson` | int | 0, 1 | 0 | 设为 1 强制第一人称视角。这是最常见的"硬核"设置。 |
 | `disableCrosshair` | int | 0, 1 | 0 | 设为 1 移除准星。通常与 `disable3rdPerson=1` 配合使用。 |
 | `disablePersonalLight` | int | 0, 1 | 1 | "个人灯光"是夜间玩家周围的微弱光晕。大多数服务器出于真实性考虑禁用它（值为 1）。 |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = 较亮的夜晚（可见月光）。1 = 漆黑夜晚（需要手电筒/夜视仪）。 |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = 较亮的夜晚（可见月光）。1 = 漆黑夜晚（需要手电筒/夜视仪）。2 = 萨哈尔专用光照。 |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // 在重启之间保存时间
 | 参数 | 类型 | 有效值 | 默认值 | 说明 |
 |------|------|--------|--------|------|
 | `serverTime` | string | `"SystemTime"` 或 `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` 使用机器的本地时钟。设置固定时间如 `"2024/9/15/12/0"` 可实现永久白天服务器。 |
-| `serverTimeAcceleration` | int | 0-24 | 12 | 游戏内时间倍率。设为 12 时，完整的 24 小时周期需要 2 个现实小时。设为 1 时为实时。设为 24 时，一天在 1 小时内过完。 |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | 游戏内时间倍率。设为 12 时，完整的 24 小时周期需要 2 个现实小时。设为 1 时为实时。设为 24 时，一天在 1 小时内过完。 |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | 与 `serverTimeAcceleration` 相乘。在值为 4 且加速为 12 时，夜晚以 48 倍速度流逝（非常短的夜晚）。 |
 | `serverTimePersistent` | int | 0, 1 | 0 | 设为 1 时，服务器将游戏内时钟保存到磁盘，重启后从该时间恢复。设为 0 时，每次重启都重置为 `serverTime`。 |
 

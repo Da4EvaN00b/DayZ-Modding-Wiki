@@ -310,8 +310,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Преобразование из других типов
-    string fromInt = "Score: " + 42;     // НЕ работает -- нужно преобразовать явно
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // работает -- оператор + приводит 42 к "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (явно, тот же результат)
 
     // Использование Format --- предпочтительный подход
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -472,7 +472,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Получить typename из строки
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Сравнение типов
     if (t == PlayerBase)

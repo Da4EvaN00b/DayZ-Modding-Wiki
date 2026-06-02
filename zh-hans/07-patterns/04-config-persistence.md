@@ -121,7 +121,7 @@ class SettingsManager
 | `string` | 字符串 |
 | `vector` | 3 个数字的数组 |
 | `array<T>` | JSON 数组 |
-| `map<string, T>` | JSON 对象（仅字符串键） |
+| `map<K, T>` | JSON 对象（`K` 可以是 `string`、`int` 或 `enum`；JSON 将所有键渲染为字符串） |
 | 嵌套类 | 嵌套 JSON 对象 |
 
 ### 嵌套对象

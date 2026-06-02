@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Brilho noturno (0 = mais claro, 1 = mais 
 | `disable3rdPerson` | int | 0, 1 | 0 | Defina como 1 para servidores somente primeira pessoa. Esta e a configuracao "hardcore" mais comum. |
 | `disableCrosshair` | int | 0, 1 | 0 | Defina como 1 para remover a mira. Frequentemente combinado com `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | A "luz pessoal" e um brilho sutil ao redor do jogador a noite. A maioria dos servidores desativa (valor 1) por realismo. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = noites mais claras (luar visivel). 1 = noites completamente escuras (necessita lanterna/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = noites mais claras (luar visivel). 1 = noites completamente escuras (necessita lanterna/NVG). 2 = iluminacao especifica de Sakhal. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Salvar hora entre reinicializacoes
 | Parametro | Tipo | Valores Validos | Padrao | Observacoes |
 |-----------|------|-------------|---------|-------|
 | `serverTime` | string | `"SystemTime"` ou `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` usa o relogio local da maquina. Defina um horario fixo como `"2024/9/15/12/0"` para um servidor permanentemente diurno. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Multiplicador para o tempo in-game. Em 12, um ciclo completo de 24 horas leva 2 horas reais. Em 1, o tempo e real. Em 24, um dia completo passa em 1 hora. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Multiplicador para o tempo in-game. Em 12, um ciclo completo de 24 horas leva 2 horas reais. Em 1, o tempo e real. Em 24, um dia completo passa em 1 hora. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Multiplicado por `serverTimeAcceleration`. Com valor 4 e aceleracao 12, a noite passa a 48x de velocidade (noites muito curtas). |
 | `serverTimePersistent` | int | 0, 1 | 0 | Quando 1, o servidor salva o relogio in-game em disco e retoma dele apos reiniciar. Quando 0, o tempo reseta para `serverTime` a cada reinicializacao. |
 

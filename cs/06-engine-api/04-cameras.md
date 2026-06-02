@@ -77,8 +77,6 @@ ID typů kamer jsou definovány jako konstanty:
 | `DayZPlayerCameras.DAYZCAMERA_OPTICS` | Míření přes optiku/puškohled |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_VEHICLE` | Třetí osoba ve vozidle |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE` | První osoba ve vozidle |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_SWIM` | Třetí osoba plavání |
-| `DayZPlayerCameras.DAYZCAMERA_3RD_UNCONSCIOUS` | Třetí osoba v bezvědomí |
 | `DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS` | První osoba v bezvědomí |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_CLIMB` | Třetí osoba lezení |
 | `DayZPlayerCameras.DAYZCAMERA_3RD_JUMP` | Třetí osoba skok |
@@ -89,8 +87,8 @@ ID typů kamer jsou definovány jako konstanty:
 DayZPlayer player = GetGame().GetPlayer();
 if (player)
 {
-    int cameraType = player.GetCurrentCameraType();
-    if (cameraType == DayZPlayerCameras.DAYZCAMERA_1ST)
+    DayZPlayerCamera cam = player.GetCurrentCamera();
+    if (cam && cam.GetCameraName() == "DayZPlayerCamera1stPerson")
     {
         Print("Player is in first person");
     }
@@ -101,34 +99,30 @@ if (player)
 
 ## FreeDebugCamera
 
-**Soubor:** `5_Mission/gui/scriptconsole/freedebugcamera.c`
+**Soubor:** `3_Game/entities/camera.c`
 
 Kamera volného letu používaná pro ladění a filmovou práci. Dostupná v diagnostických buildech nebo při povolení mody.
 
 ### Přístup k instanci
 
 ```c
-FreeDebugCamera GetFreeDebugCamera();
+static proto native FreeDebugCamera GetInstance();
 ```
 
-Tato globální funkce vrací singleton instanci volné kamery (nebo null, pokud neexistuje).
+Tato statická metoda vrací singleton instanci volné kamery (nebo null, pokud neexistuje). Volejte ji jako `FreeDebugCamera.GetInstance()`.
 
 ### Klíčové metody
 
 ```c
-// Povolit/zakázat volnou kameru
-static void SetActive(bool active);
-static bool GetActive();
+// Povolit/zakázat volnou kameru (zděděno z Camera)
+proto native void SetActive(bool active);
+proto native bool IsActive();
 
 // Pozice a orientace
 vector GetPosition();
 void   SetPosition(vector pos);
 vector GetOrientation();
 void   SetOrientation(vector ori);   // otočení, náklon, naklonění
-
-// Rychlost
-void SetFlySpeed(float speed);
-float GetFlySpeed();
 
 // Směr kamery
 vector GetDirection();
@@ -139,14 +133,12 @@ vector GetDirection();
 ```c
 void ActivateDebugCamera(vector pos)
 {
-    FreeDebugCamera.SetActive(true);
-
-    FreeDebugCamera cam = GetFreeDebugCamera();
+    FreeDebugCamera cam = FreeDebugCamera.GetInstance();
     if (cam)
     {
+        cam.SetActive(true);
         cam.SetPosition(pos);
         cam.SetOrientation(Vector(0, -30, 0));  // Mírně pohled dolů
-        cam.SetFlySpeed(10.0);
     }
 }
 ```
@@ -160,8 +152,8 @@ Engine řídí FOV nativně. Můžete jej číst a upravovat prostřednictvím s
 ### Čtení FOV
 
 ```c
-// Získat aktuální FOV kamery
-float fov = GetDayZGame().GetFieldOfView();
+// Získat aktuální FOV kamery (v radiánech)
+float fov = Camera.GetCurrentFOV();
 ```
 
 ### Přepsání FOV v DayZPlayerCamera
@@ -171,9 +163,10 @@ Ve vlastních třídách kamery, které rozšiřují `DayZPlayerCamera`, můžet
 ```c
 class MyCustomCamera extends DayZPlayerCamera1stPerson
 {
-    override float GetCurrentFOV()
+    override void OnUpdate(float pDt, out DayZPlayerCameraResult pOutResult)
     {
-        return 0.7854;  // ~45 stupňů (radiány)
+        super.OnUpdate(pDt, pOutResult);
+        pOutResult.m_fFovAbsolute = 0.7854;  // ~45 stupňů (radiány)
     }
 }
 ```
@@ -184,26 +177,17 @@ class MyCustomCamera extends DayZPlayerCamera1stPerson
 
 Hloubka ostrosti je řízena prostřednictvím systému post-processingových efektů (viz [Kapitola 6.5](05-ppe.md)). Systém kamer však pracuje s DOF prostřednictvím těchto mechanismů:
 
-### Nastavení DOF přes World
+### Nastavení DOF přes CGame
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    // SetDOF(vzdálenost_zaostření, délka_zaostření, délka_zaostření_blízko, rozmazání, offset_hloubky_zaostření)
-    // Všechny hodnoty v metrech
-    world.SetDOF(5.0, 100.0, 0.5, 0.3, 0.0);
-}
+// OverrideDOF(enable, focusDistance, focusLength, focusLengthNear, blur, focusDepthOffset)
+GetGame().OverrideDOF(true, 5.0, 100.0, 0.5, 0.3, 0.0);
 ```
 
 ### Vypnutí DOF
 
 ```c
-World world = GetGame().GetWorld();
-if (world)
-{
-    world.SetDOF(0, 0, 0, 0, 0);  // Samé nuly vypnou DOF
-}
+GetGame().OverrideDOF(false, 0, 0, 0, 0, 1);  // První argument false vypne DOF
 ```
 
 ---
@@ -224,11 +208,13 @@ ScriptCamera camera = ScriptCamera.Cast(
 
 ### Klíčové metody
 
+> **Poznámka:** `ScriptCamera` se kompiluje pouze pod `#ifdef GAME_TEMPLATE` a není přítomna v herním buildu DayZ. Konfiguruje se prostřednictvím kamerových metod třídy `GenericEntity` (`SetCameraVerticalFOV`, `SetCameraNearPlane`, `SetCameraFarPlane`, `SetCameraType`). Níže uvedené metody patří k enginové třídě `Camera` (`3_Game/entities/camera.c`), kterou `FreeDebugCamera` rozšiřuje:
+
 ```c
-proto native void SetFOV(float fov);          // FOV v radiánech
-proto native void SetNearPlane(float nearPlane);
-proto native void SetFarPlane(float farPlane);
-proto native void SetFocus(float dist, float len);
+proto native void SetFOV(float fov);                 // FOV v radiánech
+proto native void SetNearPlane(float nearPlane);     // interně omezeno na 0.01m
+proto native float GetNearPlane();
+proto native void SetFocus(float distance, float blur);  // hloubka ostrosti
 ```
 
 ### Aktivace kamery
@@ -278,10 +264,10 @@ Object GetObjectInCrosshair(float maxDistance)
 |---------|-------------|
 | Globální přístupové metody | `GetCurrentCameraPosition()`, `GetCurrentCameraDirection()`, `GetScreenPos()` |
 | Typy kamer | Konstanty `DayZPlayerCameras` (1ST, 3RD_ERC, IRONSIGHTS, OPTICS, VEHICLE atd.) |
-| Aktuální typ | `player.GetCurrentCameraType()` |
-| Volná kamera | `FreeDebugCamera.SetActive(true)`, pak `GetFreeDebugCamera()` |
-| FOV | `GetDayZGame().GetFieldOfView()` pro čtení, přepsat `GetCurrentFOV()` ve třídě kamery |
-| DOF | `GetGame().GetWorld().SetDOF(zaostření, délka, blízko, rozmazání, offset)` |
+| Aktuální typ | `player.GetCurrentCamera().GetCameraName()` |
+| Volná kamera | `FreeDebugCamera.GetInstance()`, pak `cam.SetActive(true)` |
+| FOV | `Camera.GetCurrentFOV()` pro čtení, nastavit `pOutResult.m_fFovAbsolute` v `OnUpdate` |
+| DOF | `GetGame().OverrideDOF(enable, focusDist, focusLen, focusLenNear, blur, offset)` |
 | Převod na obrazovku | `GetScreenPos(worldPos)` vrací pixel XY + hloubku Z |
 
 ---

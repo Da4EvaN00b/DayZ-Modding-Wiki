@@ -533,25 +533,27 @@ modded class CarScript
 
 ## `#ifdef`-Guards für optionale Abhängigkeiten
 
-Wenn Ihre Mod optional eine andere Mod unterstützt, verwenden Sie Präprozessor-Guards. Wenn die andere Mod ein Symbol in ihrer `config.cpp` (via `CfgPatches`) definiert, können Sie es zur Kompilierzeit prüfen.
+Wenn Ihre Mod optional eine andere Mod unterstützt, verwenden Sie Präprozessor-Guards. Wenn die andere Mod ein Symbol in ihrer `config.cpp` (via des `defines[]`-Arrays in `CfgMods`) deklariert, können Sie es zur Kompilierzeit prüfen.
 
 ### Wie es funktioniert
 
-Jeder `CfgPatches`-Klassenname einer Mod wird zu einem Präprozessor-Symbol. Wenn eine Mod zum Beispiel folgendes hat:
+Eine Mod deklariert ihre Präprozessor-Symbole explizit über das `defines[]`-Array innerhalb ihres `CfgMods`-Eintrags. Wenn eine Mod zum Beispiel folgendes hat:
 
 ```cpp
-class CfgPatches
+class CfgMods
 {
-    class MyAI_Scripts
+    class MyMod_AI
     {
+        type = "mod";
+        defines[] = { "MYMOD_AI" };
         // ...
     };
 };
 ```
 
-Dann wird `#ifdef MyAI_Scripts` `true` sein, wenn diese Mod geladen ist.
+Dann wird `#ifdef MYMOD_AI` `true` sein, wenn diese Mod geladen ist.
 
-Viele Mods definieren auch explizite Symbole. Die Konvention variiert --- prüfen Sie die Dokumentation oder `config.cpp` der Mod.
+Beachten Sie, dass `CfgPatches`-Klassennamen den Addon-Inhalt einer Mod registrieren, aber **keine** `#ifdef`-Symbole erzeugen --- nur `defines[]` tut dies. Die Symbolnamen werden vom Mod-Autor gewählt und müssen mit keinem Klassennamen übereinstimmen, daher variiert die Konvention --- prüfen Sie die Dokumentation oder `config.cpp` der Mod.
 
 ### Grundmuster
 

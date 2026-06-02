@@ -107,16 +107,18 @@ graph TB
 
 ### Come Funzionano Insert/Remove
 
-`Insert` aggiunge un riferimento a funzione in una lista interna. `Remove` cerca nella lista e rimuove la voce corrispondente. Se chiami `Insert` due volte con la stessa funzione, verrà chiamata due volte ad ogni `Invoke`. Se chiami `Remove` una volta, rimuove una sola voce.
+`Insert` aggiunge un riferimento a funzione in una lista interna. `Remove` cerca nella lista e rimuove le voci corrispondenti. Se chiami `Insert` due volte con la stessa funzione, verrà chiamata due volte ad ogni `Invoke`. Per impostazione predefinita `Remove(fn)` usa `EScriptInvokerRemoveFlags.ALL`, quindi rimuove ogni voce corrispondente. Per rimuovere solo la singola voce più recente, chiama `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Iscrivere lo stesso handler due volte è un bug:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Ora chiamato 2 volte per Invoke
 
-// Un Remove rimuove solo una voce:
+// Il flag predefinito ALL rimuove ogni voce corrispondente:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Ancora chiamato 1 volta per Invoke — il secondo Insert è ancora presente
+// Chiamato 0 volte per Invoke — entrambi gli Insert sono spariti.
+// Per lasciare una voce, passa NONE:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Signature Tipizzate
@@ -135,13 +137,11 @@ Se un iscritto ha la signature sbagliata, il comportamento è indefinito a runti
 Molte classi vanilla di DayZ espongono eventi `ScriptInvoker`:
 
 ```c
-// UIScriptedMenu ha OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer espone uno ScriptInvoker tramite GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Iscrizione
 
-// MissionBase ha hook per eventi
+// MissionBase ha hook per eventi (metodi virtuali, non ScriptInvoker)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,7 +546,7 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | Iscriversi con `Insert()` ma non chiamare mai `Remove()` | Memory leak: l'invoker mantiene un riferimento all'oggetto morto; su `Invoke()`, chiama in memoria liberata (crash) o non fa nulla con iterazione sprecata | Accoppia ogni `Insert()` con un `Remove()` in `OnMissionFinish` o nel distruttore |
 | Chiamare `Remove()` su un invoker EventBus null durante lo shutdown | `MyEventBus.Cleanup()` potrebbe aver già annullato l'invoker; chiamare `.Remove()` su null causa crash | Controlla sempre null sull'invoker prima di `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Doppio `Insert()` dello stesso handler | L'handler viene chiamato due volte per `Invoke()`; un `Remove()` rimuove solo una voce, lasciando un'iscrizione stantia | Controlla prima di inserire, o assicurati che `Insert()` venga chiamato una sola volta (es. in `OnInit` con un flag di guardia) |
+| Doppio `Insert()` dello stesso handler | L'handler viene chiamato due volte per `Invoke()`; un `Remove()` predefinito (flag `ALL`) cancella tutte le voci in una volta, rimuovendo tutte le iscrizioni | Controlla prima di inserire, o assicurati che `Insert()` venga chiamato una sola volta (es. in `OnInit` con un flag di guardia) |
 | Usare funzioni anonime/lambda come handler | Non possono essere rimosse perché non c'è un riferimento da passare a `Remove()` | Usa sempre metodi nominati come event handler |
 | Lanciare eventi con signature degli argomenti non corrispondenti | Gli iscritti ricevono dati spazzatura o crashano a runtime; nessun controllo in fase di compilazione | Documenta la signature attesa sopra ogni dichiarazione `ScriptInvoker` e falla corrispondere esattamente in tutti gli handler |
 

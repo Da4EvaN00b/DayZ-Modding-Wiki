@@ -266,20 +266,9 @@ modded class PlayerBase
 
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // Encontrar o objeto jogador do requisitante para enviar resposta
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
+        // target = null para que o DayZGame.OnRPC do cliente execute seu próprio switch;
+        // o destinatário (requestor) restringe a entrega a esse único cliente.
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
     }
 };
 ```
@@ -314,6 +303,15 @@ modded class MissionGameplay
         }
     }
 
+    // Expõe o painel para que o handler de RPC do DayZGame possa alcançá-lo
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
@@ -323,8 +321,9 @@ modded class MissionGameplay
             Param2<int, string> data = new Param2<int, string>(0, "");
             if (!ctx.Read(data)) return;
 
-            if (m_AdminDemoPanel)
-                m_AdminDemoPanel.OnPlayerInfoReceived(data.param1, data.param2);
+            MissionGameplay mission = MissionGameplay.Cast(GetMission());
+            if (mission && mission.GetAdminDemoPanel())
+                mission.GetAdminDemoPanel().OnPlayerInfoReceived(data.param1, data.param2);
         }
     }
 };

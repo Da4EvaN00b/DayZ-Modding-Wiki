@@ -219,18 +219,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Registrace
 
-VPP registruje pluginy v moddovaném `MissionServer.OnInit()`:
+VPP registruje pluginy moddováním vanilla `PluginManager.Init()`. `RegisterPlugin` přijímá název třídy pluginu jako řetězec plus příznaky klient/server (nepřijímá instanci vytvořenou pomocí `new`):
 
 ```c
 // Vzor VPP
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+Manažer instancuje každý registrovaný plugin sám. Pro získání běžícího pluginu jinde použijte `GetPluginManager().GetPluginByType(VPPESPPlugin)` nebo globální `GetPlugin(VPPESPPlugin)`.
 
 ### Klíčové charakteristiky
 
-- **Manuální registrace**: každý plugin je explicitně instanciován pomocí `new` a registrován
+- **Manuální registrace**: každý plugin je registrován podle názvu třídy v `PluginManager.Init()`; manažer jej instancuje
 - **Integrace konfigurace**: `ConfigurablePlugin` slučuje správu konfigurace s životním cyklem modulu
 - **Samostatný**: žádná závislost na CF; manažer pluginů VPP je vlastní systém
 - **Jasné vlastnictví**: manažer pluginů drží `ref` na všechny pluginy, čímž kontroluje jejich životnost
@@ -529,7 +539,7 @@ override void OnMissionFinish()
 | **Integrace konfigurace** | Oddělená | Vestavěna v ConfigurablePlugin | Oddělená | Přes MyConfigManager |
 | **Dispečování update** | Automatické | Manažer volá `OnUpdate` | Automatické | Manažer volá `OnUpdate` |
 | **Úklid** | CF to řeší | Manuální `OnDestroy` | CF to řeší | `MyModuleManager.Cleanup()` |
-| **Přístup mezi mody** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Přístup mezi mody** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Zvolte přístup, který odpovídá profilu závislostí vašeho modu. Pokud již závisíte na CF, použijte `CF_ModuleCore`. Pokud chcete nulové externí závislosti, vytvořte vlastní systém podle vzoru vlastního manažera nebo VPP.
 

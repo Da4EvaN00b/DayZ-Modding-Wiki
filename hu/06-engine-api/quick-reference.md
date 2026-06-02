@@ -61,8 +61,8 @@
 
 | Metodus | Szignatura | Leiras |
 |---------|------------|--------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | Gyermek csatolasa csonthoz |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | Gyermek levalasztasa |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Gyermek csatolasa csonthoz |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Gyermek levalasztasa |
 | `GetParent` | `IEntity GetParent()` | Szulo entitas vagy null |
 | `GetChildren` | `IEntity GetChildren()` | Elso gyermek entitas |
 | `GetSibling` | `IEntity GetSibling()` | Kovetkezo testver entitas |
@@ -126,11 +126,11 @@
 | `IsTransport()` | Object | Ez jarmu? |
 | `IsDayZCreature()` | Object | Ez leny (zombi/allat)? |
 | `IsKindOf(string)` | Object | Konfiguracios oroklodes ellenorzese |
-| `IsItemBase()` | EntityAI | Ez inventar targy? |
-| `IsWeapon()` | EntityAI | Ez fegyver? |
-| `IsMagazine()` | EntityAI | Ez tar? |
-| `IsClothing()` | EntityAI | Ez ruha? |
-| `IsFood()` | EntityAI | Ez etel? |
+| `IsItemBase()` | Object | Ez inventar targy? |
+| `IsWeapon()` | Object | Ez fegyver? |
+| `IsMagazine()` | Object | Ez tar? |
+| `IsClothing()` | Object | Ez ruha? |
+| `IsFood()` | Object | Ez etel? |
 | `Class.CastTo(out, obj)` | Class | Biztonsagos lefele tipuskenyszerites (bool-t ad vissza) |
 | `ClassName.Cast(obj)` | Class | Inline tipuskenyszerites (null-t ad vissza sikertelen esetben) |
 
@@ -146,12 +146,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Targy letrehozasa cargoban |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | Targy letrehozasa cargoban |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | Targy letrehozasa csatolmanykent |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | Osszes targy listazasa |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | Osszes targy listazasa |
 | `CountInventory` | `int CountInventory()` | Targyak szama |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | Targy ellenorzese |
 | `AttachmentCount` | `int AttachmentCount()` | Csatolmanyok szama |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | Csatolmany lekerdezese index alapjan |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | Csatolmany lekerdezese slot alapjan |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | Csatolmany lekerdezese slot alapjan |
 
 ---
 
@@ -214,7 +214,7 @@
 | `CrewSize` | `int CrewSize()` | Osszes ulesszam |
 | `CrewMember` | `Human CrewMember(int idx)` | Ember lekerdezese az ulesen |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | Ember ulesszama |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | Kenyszeritett kiszallas |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | Kenyszeritett kiszallas |
 | `CrewDeath` | `void CrewDeath(int idx)` | Szemelyzet tag megolese |
 
 ### Motor (Car)
@@ -245,10 +245,10 @@
 
 | Metodus | Szignatura | Leiras |
 |---------|------------|--------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0, -1 = mind |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | Kormanyzas bemenet |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 gaz |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | Kormanyzas bemenet |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 gaz (helyettesiti az elavult `SetThrust`-ot) |
 
 ---
 
@@ -282,11 +282,11 @@
 |---------|------------|--------|
 | `GetActual` | `float GetActual()` | Jelenlegi interpolalt ertek |
 | `GetForecast` | `float GetForecast()` | Cel ertek |
-| `GetDuration` | `float GetDuration()` | Hatralevo idotartam (masodpercben) |
+| `GetNextChange` | `float GetNextChange()` | Ido a kovetkezo valtozasig (masodpercben) |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | Cel beallitasa (csak szerver) |
 | `SetLimits` | `void SetLimits(float min, float max)` | Ertekhatar korlatok |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | Valtozasi sebesseg korlatok |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | Valtozas mertek korlatok |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | Valtozasi sebesseg korlatok |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | Valtozas mertek korlatok |
 
 ---
 
@@ -314,7 +314,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | Szoveg irasa (ujsor nelkul) |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | Szoveg irasa + ujsor |
 | `FGets` | `int FGets(FileHandle fh, string line)` | Egy sor olvasasa |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | Teljes fajl olvasasa |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | Bajtok beolvasasa tombbe (a szamot adja vissza) |
 | `DeleteFile` | `bool DeleteFile(string path)` | Fajl torlese |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | Fajl masolasa |
 
@@ -354,10 +354,12 @@
 |---------|------------|--------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | Kesleltetett/ismetlodo hivas utemezese |
 | `Call` | `void Call(func fn, param1..4)` | Vegrehajtas a kovetkezo frame-ben |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | Metodus hivasa nev alapjan |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | Metodus hivasa nev alapjan |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | Kesleltetett/ismetlodo hivas nev alapjan |
 | `Remove` | `void Remove(func fn)` | Utemezett hivas torlese |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | Torles nev alapjan |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | CallLater hatralevo ideje |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | CallLater hatralevo ideje (ms) |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | Hatralevo ido nev alapjan (ms) |
 
 ### Timer osztaly
 
@@ -368,18 +370,17 @@
 | `Stop` | `void Stop()` | Timer megallitasa |
 | `Pause` | `void Pause()` | Timer szuneteltetese |
 | `Continue` | `void Continue()` | Timer folytatas |
-| `IsPaused` | `bool IsPaused()` | Timer szunetel? |
-| `IsRunning` | `bool IsRunning()` | Timer aktiv? |
+| `IsRunning` | `bool IsRunning()` | Timer aktiv? (hamis szuneteltetes alatt) |
 | `GetRemaining` | `float GetRemaining()` | Hatralevo masodpercek |
 
 ### ScriptInvoker
 
 | Metodus | Szignatura | Leiras |
 |---------|------------|--------|
-| `Insert` | `void Insert(func fn)` | Callback regisztralasa |
-| `Remove` | `void Remove(func fn)` | Callback torlese |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | Callback regisztralasa |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | Callback torlese |
 | `Invoke` | `void Invoke(params...)` | Osszes callback hivasa |
-| `Count` | `int Count()` | Regisztralt callbackok szama |
+| `Count` | `int Count(func fn)` | Hanyszor van regisztralva ez az fn |
 | `Clear` | `void Clear()` | Osszes callback eltavolitasa |
 
 ---
@@ -395,13 +396,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | Gyermek keresese nev alapjan (rekurziv) |
 | `Show` | `void Show(bool show)` | Widget megjelenitese/elrejtese |
 | `SetText` | `void TextWidget.SetText(string text)` | Szoveges tartalom beallitasa |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | Kep index beallitasa |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | Kep index beallitasa |
 | `SetColor` | `void SetColor(int color)` | Widget szin beallitasa (ARGB) |
 | `SetAlpha` | `void SetAlpha(float alpha)` | Atlatszosag beallitasa 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Widget meret beallitasa |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Widget pozicio beallitasa |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Widget meret beallitasa |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Widget pozicio beallitasa |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Kepernyo felbontas |
-| `Destroy` | `void Widget.Destroy()` | Widget eltavolitasa es megsemmisitese |
+| `Unlink` | `void Widget.Unlink()` | Widget eltavolitasa es megsemmisitese (a gyermekeivel egyutt) |
 
 ### ARGB szin segedo
 
@@ -582,7 +583,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | Szerver ido (masodpercben) |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | UI munkaterulet |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | Terep magassag a pozicion |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | Felszini anyag tipusa |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | Felszini anyag tipusa (`out` parameterben) |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | Objektumok keresese pozicio kornyeken |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | Kepernyo felbontas lekerdezese |
 | `GetGame().IsServer()` | `bool IsServer()` | Szerver ellenorzes |
@@ -610,7 +611,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | Chat, hang esemenyek |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | Jatekos csatlakozott |
 | `override void InvokeOnDisconnect(PlayerBase player)` | Jatekos killepett |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | Kliens kesz az adatokra |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | Kliens kesz az adatokra |
 | `override void PlayerRegistered(int peerId)` | Identitas regisztralva |
 
 ### Kliens oldal (modded MissionGameplay)

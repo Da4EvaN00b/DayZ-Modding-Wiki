@@ -41,29 +41,31 @@ Tartsd az admin jelszót hosszúnak és egyedinek. Bárki, aki ismeri, teljes ir
 
 ## ban.txt
 
-A **ban.txt** fájl a szerver profil könyvtáradban található (az útvonal, amelyet a `-profiles=` paraméterrel állítottál be). Soronként egy SteamID64-et tartalmaz:
+A **ban.txt** fájl a szerver gyökérkönyvtáradban található. Soronként egy játékos UID-t tartalmaz:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- Minden sor egy csupasz 17 jegyű SteamID64 -- nincs név, megjegyzés vagy jelszó.
-- Azok a játékosok, akiknek a SteamID-ja megjelenik ebben a fájlban, csatlakozáskor elutasításra kerülnek.
+- Minden sor egy 44 karakteres DayZ játékos UID -- nem egy 17 jegyű SteamID64. Egy játékos UID-ját megtalálhatod a `*.ADM` és `*.RPT` naplókban.
+- Egy ID után megjegyzést fűzhetsz a `//` előtaggal ugyanabban a sorban, vagy egy külön kikommentezett sorban.
+- Azok a játékosok, akiknek az UID-ja megjelenik ebben a fájlban, csatlakozáskor elutasításra kerülnek.
+- A **ban.txt** használata a **serverDZ.cfg**-ben lévő `disableBanlist` paraméterrel kapcsolható ki vagy be (alapértelmezett `false`).
 - A fájlt szerkesztheted, amíg a szerver fut; a változások a következő csatlakozási kísérletnél lépnek életbe.
 
 ---
 
 ## whitelist.txt
 
-A **whitelist.txt** fájl ugyanabban a profil könyvtárban található. Amikor engedélyezed a fehérlistát, csak az ebben a fájlban felsorolt SteamID-k csatlakozhatnak:
+A **whitelist.txt** fájl ugyanabban a szerver gyökérkönyvtárban található. Amikor engedélyezed a fehérlistát (`enableWhitelist = 1` a **serverDZ.cfg**-ben), csak azok a játékosok csatlakozhatnak, akiknek az UID-ja szerepel ebben a fájlban:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-A formátum azonos a **ban.txt**-vel -- soronként egy SteamID64, semmi más.
+A formátum azonos a **ban.txt**-vel -- soronként egy 44 karakteres játékos UID, opcionális `//` megjegyzésekkel.
 
 A fehérlista hasznos privát közösségekhez, tesztelő szerverekhez vagy eseményekhez, ahol kontrollált játékos listára van szükséged.
 
@@ -79,7 +81,7 @@ A BattlEye a DayZ-be integrált csalásellenes rendszer. Fájljai a szerver kön
 | **beserver_x64.cfg** | Konfigurációs fájl (RCON port, RCON jelszó) |
 | **bans.txt** | BattlEye-specifikus kitiltások (GUID alapú, nem SteamID) |
 
-A BattlEye alapértelmezés szerint engedélyezett. A szervert a `DayZServer_x64.exe` fájllal indítod és a BattlEye automatikusan betöltődik. Explicit letiltásához (éles szerveren nem ajánlott) használd a `-noBE` indítási paramétert.
+A BattlEye alapértelmezés szerint engedélyezett. A szervert a `DayZServer_x64.exe` fájllal indítod és a BattlEye automatikusan betöltődik. Explicit letiltásához (éles szerveren nem ajánlott) állítsd be a `BattlEye = 0;` értéket a **serverDZ.cfg**-ben.
 
 A `BattlEye/` mappában lévő **bans.txt** fájl BattlEye GUID-okat használ, amelyek különböznek a SteamID64-ektől. Az RCON-on vagy BattlEye parancsokon keresztül kiadott kitiltások automatikusan ebbe a fájlba íródnak.
 
@@ -91,10 +93,10 @@ A BattlEye RCON lehetővé teszi a szerver távoli adminisztrálását anélkül
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-Az alapértelmezett RCON port a játékport plusz 4. Ha a szervered a `2302`-es porton fut, az RCON alapértelmezés szerint a `2306`-os portra áll.
+A BattlEye nem használ fix alapértelmezett RCON portot -- ha kihagyod a `RConPort`-ot, egy véletlenszerű porton figyel. Állítsd be explicit módon. Az ajánlott érték a játékport plusz 3, tehát `2305` egy `2302`-es porton futó szerverhez. Nem ütközhet a játékporttal vagy a Steam lekérdezési porttal.
 
 ### Elérhető RCON parancsok
 
@@ -174,11 +176,11 @@ Ezek a problémák érintik leggyakrabban a szerver üzemeltetőket:
 | Hiba | Tünet | Javítás |
 |------|-------|---------|
 | Hiányzó `.bikey` a `keys/` mappából | A játékosokat aláírás hibával kirúgja csatlakozáskor | Másold be a mod `.bikey` fájlját a szervered `keys/` könyvtárába |
-| Nevek vagy jelszavak a **ban.txt**-ben | A kitiltások nem működnek; véletlenszerű hibák | Csak csupasz SteamID64 értékeket használj, soronként egyet |
+| SteamID64 használata a játékos UID helyett a **ban.txt**-ben | A kitiltások nem működnek | Használj 44 karakteres játékos UID-t, soronként egyet (a `//` utáni megjegyzések engedélyezettek) |
 | RCON port ütközés | Az RCON kliens nem tud csatlakozni | Győződj meg róla, hogy az RCON portot más szolgáltatás nem használja; ellenőrizd a tűzfal szabályokat |
 | `verifySignatures = 0` éles szerveren | Bárki csatlakozhat manipulált modokkal | Állítsd 2-re minden nyilvános szerveren |
-| RCON port megnyitásának elfelejtése a tűzfalban | Az RCON kliens időtúllépéssel megszakad | Nyisd meg az RCON UDP portot (alapértelmezés szerint 2306) a tűzfalban |
-| A `BattlEye/` mappában lévő **bans.txt** szerkesztése SteamID-kkal | A kitiltások nem működnek | A BattlEye **bans.txt** GUID-okat használ, nem SteamID-kat; használd a profil könyvtárban lévő **ban.txt**-t SteamID kitiltásokhoz |
+| RCON port megnyitásának elfelejtése a tűzfalban | Az RCON kliens időtúllépéssel megszakad | Nyisd meg az RCON UDP portot (amelyet a `RConPort`-tal állítottál be, pl. `2305`) a tűzfalban |
+| A `BattlEye/` mappában lévő **bans.txt** szerkesztése játékos UID-kkal | A kitiltások nem működnek | A BattlEye **bans.txt** GUID-okat használ, nem UID-kat; használd a szerver gyökerében lévő **ban.txt**-t UID alapú kitiltásokhoz |
 
 ---
 

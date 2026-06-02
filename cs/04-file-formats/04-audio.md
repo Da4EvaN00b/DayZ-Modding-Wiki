@@ -129,7 +129,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // Škálování hlasitosti (aplikováno nad hlasitost shaderu)
         frequencyFactor = 1.0;       // Škálování frekvence
-        volumeCurve = "InverseSquare"; // Název předdefinované křivky útlumu
+        volumeCurve = "InverseSquare2Curve"; // Název třídy křivky útlumu z CfgSoundCurves
         spatial = 1;                  // 1 = 3D polohový, 0 = 2D (HUD/menu)
         doppler = 0;                  // 1 = povolit Dopplerův efekt
         loop = 0;                     // 1 = nepřetržitá smyčka
@@ -145,11 +145,11 @@ class CfgSoundSets
 | `volumeFactor` | float | Další násobič hlasitosti aplikovaný nad hlasitost shaderu. |
 | `frequencyFactor` | float | Další násobič frekvence/tónu. |
 | `frequencyRandomizer` | float | Náhodná variace tónu (0.0 = žádná, 0.1 = +/- 10%). |
-| `volumeCurve` | string | Pojmenovaná křivka útlumu: `"InverseSquare"`, `"Linear"`, `"Logarithmic"`. |
+| `volumeCurve` | string | Název třídy křivky útlumu definované pod `CfgSoundCurves` (např. `"InverseSquare2Curve"`, `"LinearCurve"`, `"defaultAmpAttenuationCurve"`). |
 | `spatial` | int | `1` pro 3D polohový zvuk, `0` pro 2D (UI, hudba). |
 | `doppler` | int | `1` pro povolení Dopplerova posunu tónu pro pohybující se zdroje. |
 | `loop` | int | `1` pro nepřetržitou smyčku, `0` pro jednorázové přehrání. |
-| `distanceFilter` | int | `1` pro aplikaci dolní propusti na dálku (ztlumené vzdálené zvuky). |
+| `distanceFilter` | string | Název třídy filtru útlumu vzdálenosti/frekvence, který se aplikuje na dálku (např. `"defaultDistanceFreqAttenuationFilter"`), tlumící vzdálené zvuky. |
 | `occlusionFactor` | float | Jak moc zdi/terén tlumí zvuk (0.0 až 1.0). |
 | `obstructionFactor` | float | Jak moc překážky mezi zdrojem a posluchačem ovlivňují zvuk. |
 
@@ -262,15 +262,15 @@ rangeCurve[] =
 
 Engine interpoluje lineárně mezi definovanými body. Jakoukoliv křivku útlumu můžete vytvořit přidáním více kontrolních bodů.
 
-### Předdefinované křivky hlasitosti
+### Třídy křivek hlasitosti
 
-SoundSety mohou odkazovat na pojmenované křivky přes vlastnost `volumeCurve`:
+SoundSety odkazují na třídy křivek útlumu přes vlastnost `volumeCurve`. Názvy křivek jsou názvy tříd definovaných pod `class CfgSoundCurves` (vanilla DZ zvuky jich definují mnoho) a mody mohou buď odkazovat na existující, nebo definovat vlastní. Neexistují žádné holé předdefinované hodnoty doslova pojmenované `"InverseSquare"`, `"Linear"` nebo `"Logarithmic"`. Mezi běžné vanilla třídy křivek patří:
 
-| Název křivky | Chování |
+| Třída křivky | Chování |
 |------------|----------|
-| `"InverseSquare"` | Realistický útlum (hlasitost = 1/vzdálenost^2). Přirozeně znějící. |
-| `"Linear"` | Rovnoměrný útlum od maxima k nule přes dosah. |
-| `"Logarithmic"` | Hlasité zblízka, rychle klesá na střední vzdálenosti, pak se pomalu stlumí. |
+| `"InverseSquare2Curve"` | Realistický útlum (hlasitost klesá přibližně s druhou mocninou vzdálenosti). Přirozeně znějící. |
+| `"LinearCurve"` | Rovnoměrný útlum od maxima k nule přes dosah. |
+| `"defaultAmpAttenuationCurve"` | Hlasité zblízka, rychle klesá na střední vzdálenosti, pak se pomalu stlumí. |
 
 ---
 
@@ -395,14 +395,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **Krok 4: Odkaz z konfigurace zbraně/předmětu**
 
-Pro zbraně je SoundSet odkazován ve třídě konfigurace zbraně:
+Pro zbraně jsou SoundSety výstřelu odkazovány polem `soundSetShot[]` uvnitř třídy režimu střelby zbraně. Pro tlumené varianty použijte `soundSetShotExt[]`:
 
 ```cpp
 class CfgWeapons
@@ -411,12 +411,9 @@ class CfgWeapons
     {
         // ... ostatní konfigurace ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };
@@ -550,7 +547,7 @@ frequencyRandomizer = 0.05;    // +/- 5% variace tónu
 | Vzor | Mod | Detail |
 |---------|-----|--------|
 | Vlastní zvuky notifikací přes SoundSety | Expansion (modul notifikací) | Definuje více `CfgSoundSets` pro různé typy notifikací (úspěch, varování, chyba) s `spatial = 0` |
-| UI zvuky kliknutí s kešovaným přehráváním | VPP Admin Tools | Používá `SEffectManager.PlaySoundCachedParams()` pro kliknutí tlačítek, aby se předešlo opakovanému parsování konfigurace |
+| UI zvuky přes 2D zvukovou scénu | VPP Admin Tools | Přehrává UI zvuky pomocí `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` (viz `VPPNotificationUI.c`) |
 | Vícevrstevný zvuk zbraní (výstřel + dozvuk + prasknutí) | Komunitní balíčky zbraní (RFCP, MuchStuffPack) | Každá zbraň definuje 3-5 oddělených SoundSetů na událost výstřelu pro blízký výstřel, vzdálené dunění, nadzvukové prasknutí |
 | `frequencyRandomizer` pro variaci kroků | Vanilla DayZ | Používá randomizaci tónu 0.05-0.08 na SoundSetech kroků pro prevenci robotického opakování |
 

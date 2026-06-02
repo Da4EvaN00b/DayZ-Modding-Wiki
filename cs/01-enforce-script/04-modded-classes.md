@@ -533,25 +533,27 @@ modded class CarScript
 
 ## `#ifdef` stráže pro volitelné závislosti
 
-When your mod optionally supports another mod, use preprocessor guards. If the other mod defines a symbol in its `config.cpp` (via `CfgPatches`), you can check for it at compile time.
+When your mod optionally supports another mod, use preprocessor guards. If the other mod declares a symbol in its `config.cpp` (via the `defines[]` array in `CfgMods`), you can check for it at compile time.
 
 ### Jak to funguje
 
-Every mod's `CfgPatches` class name becomes a preprocessor symbol. For example, if a mod has:
+A mod declares its preprocessor symbols explicitly through the `defines[]` array inside its `CfgMods` entry. For example, if a mod has:
 
 ```cpp
-class CfgPatches
+class CfgMods
 {
-    class MyAI_Scripts
+    class MyAI
     {
+        type = "mod";
+        defines[] = { "MyAI" };
         // ...
     };
 };
 ```
 
-Then `#ifdef MyAI_Scripts` will be `true` when that mod is loaded.
+Then `#ifdef MyAI` will be `true` when that mod is loaded.
 
-Many mods also define explicit symbols. The convention varies --- check the mod's documentation or `config.cpp`.
+Note that `CfgPatches` class names register a mod's addon content but do **not** create `#ifdef` symbols --- only `defines[]` does. The symbol names are chosen by the mod author and need not match any class name, so the convention varies --- check the mod's documentation or `config.cpp`.
 
 ### Základní vzor
 

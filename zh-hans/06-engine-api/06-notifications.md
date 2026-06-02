@@ -157,11 +157,13 @@ static void AddNotification(
 
 | 类型 | 描述 |
 |------|------|
-| `NotificationType.GENERIC` | 通用通知 |
-| `NotificationType.FRIENDLY_FIRE` | 友军误伤警告 |
-| `NotificationType.JOIN` | 玩家加入 |
-| `NotificationType.LEAVE` | 玩家离开 |
-| `NotificationType.STATUS` | 状态更新 |
+| `NotificationType.FRIEND_CONNECTED` | 好友已连接 |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | 邀请失败（已在同一服务器） |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | 加入时获取会话失败 |
+| `NotificationType.CONNECT_FAIL_GENERIC` | 通用连接失败 |
+| `NotificationType.DISCONNECTED` | 已从服务器断开 |
+| `NotificationType.GENERIC_ERROR` | 通用错误 |
+| `NotificationType.NOTIFICATIONS_END` | 哨兵值（标记枚举的结尾） |
 
 > **注意：** 可用类型取决于游戏版本。为了最大灵活性，请使用 `Extended` 变体，它接受自定义标题和图标字符串。
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ void OnNotifRemoved()
 static void Update(float timeslice);
 ```
 
-这由原版任务的 `OnUpdate` 方法自动调用。如果你编写了完全自定义的任务，请确保调用它。
+这由 `DayZGame.OnUpdate`（游戏的更新循环）自动调用，而非任务的 `OnUpdate`。如果你编写了完全自定义的游戏类，请确保调用它。
 
 ---
 

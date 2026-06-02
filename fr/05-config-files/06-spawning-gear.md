@@ -195,7 +195,7 @@ Chaque entrée dans `discreteItemSets` représente un objet possible pour ce slo
 | `quickBarSlot` | integer | Attribution de slot de barre rapide (base 0). Utilisez `-1` pour pas d'attribution |
 | `complexChildrenTypes` | array | Objets à faire apparaître imbriqués dans cet objet. Voir [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Noms de classes d'objets à faire apparaître dans cet objet en utilisant les attributs par défaut ou du parent |
-| `simpleChildrenUseDefaultAttributes` | bool | Si `true`, les enfants simples utilisent les `attributes` du parent. Si `false`, ils utilisent les valeurs par défaut de la configuration |
+| `simpleChildrenUseDefaultAttributes` | bool | Si `true`, les enfants simples utilisent les valeurs par défaut de la configuration. Si `false`, ils utilisent les `attributes` du parent |
 
 **Astuce de l'objet vide :** Pour donner à un slot une chance 50/50 d'être vide ou rempli, utilisez un `itemType` vide :
 
@@ -230,10 +230,10 @@ Chaque entrée représente une variante de cargo, et le serveur en sélectionne 
 |-------|------|-------------|
 | `name` | string | Nom lisible (pour identification uniquement) |
 | `spawnWeight` | integer | Poids pour la sélection. Minimum `1` |
-| `attributes` | object | Plages de santé/quantité par défaut. Utilisées par les enfants quand `simpleChildrenUseDefaultAttributes` est `true` |
+| `attributes` | object | Plages de santé/quantité par défaut. Utilisées par les enfants quand `simpleChildrenUseDefaultAttributes` est `false` |
 | `complexChildrenTypes` | array | Objets à faire apparaître dans le cargo, chacun avec ses propres attributs et imbrication |
 | `simpleChildrenTypes` | array | Noms de classes d'objets à faire apparaître dans le cargo |
-| `simpleChildrenUseDefaultAttributes` | bool | Si `true`, les enfants simples utilisent les `attributes` de cette structure. Si `false`, ils utilisent les valeurs par défaut de la configuration |
+| `simpleChildrenUseDefaultAttributes` | bool | Si `true`, les enfants simples utilisent les valeurs par défaut de la configuration. Si `false`, ils utilisent les `attributes` de cette structure |
 
 ### ComplexChildrenTypes
 
@@ -299,7 +299,7 @@ Exemple --- une arme avec accessoires et chargeur :
 }
 ```
 
-Dans cet exemple, l'AKM apparaît avec une crosse, une lunette (avec une pile à l'intérieur) et un chargeur plein comme enfants complexes, plus un garde-main et une baïonnette comme enfants simples. Les enfants simples utilisent les valeurs par défaut de la configuration car `simpleChildrenUseDefaultAttributes` est `false`.
+Dans cet exemple, l'AKM apparaît avec une crosse, une lunette (avec une pile à l'intérieur) et un chargeur plein comme enfants complexes, plus un garde-main et une baïonnette comme enfants simples. Les enfants simples utilisent les `attributes` de l'ensemble AKM parent car `simpleChildrenUseDefaultAttributes` est `false` ; les valeurs par défaut de la configuration ne seraient utilisées que si le drapeau était `true`.
 
 ### SimpleChildrenTypes
 
@@ -307,8 +307,8 @@ Les enfants simples sont un raccourci pour faire apparaître des objets à l'int
 
 Leurs attributs sont déterminés par le drapeau `simpleChildrenUseDefaultAttributes` :
 
-- **`true`** --- Les objets utilisent les `attributes` définis sur la structure parent.
-- **`false`** --- Les objets utilisent les valeurs par défaut de la configuration du moteur (typiquement santé et quantité complètes).
+- **`true`** --- Les objets utilisent les valeurs par défaut de la configuration du moteur (typiquement santé et quantité complètes).
+- **`false`** --- Les objets utilisent les `attributes` définis sur la structure parent.
 
 Les enfants simples ne peuvent pas avoir leurs propres enfants imbriqués ou attributions de barre rapide. Pour ces capacités, utilisez `complexChildrenTypes` à la place.
 

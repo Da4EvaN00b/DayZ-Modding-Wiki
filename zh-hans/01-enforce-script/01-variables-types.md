@@ -305,8 +305,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // 从其他类型转换
-    string fromInt = "Score: " + 42;     // 不起作用 -- 必须显式转换
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // 起作用 -- + 运算符会将 42 强制转换为 "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42"（显式转换，结果相同）
 
     // 使用 Format 是推荐的方法
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +464,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // 从字符串获取 typename
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // 比较类型
     if (t == PlayerBase)

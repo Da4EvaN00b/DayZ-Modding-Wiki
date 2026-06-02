@@ -852,36 +852,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Játékos csatlakozás - szerver RPC diszpécser
-    // A motor hívja, amikor egy kliens RPC-t küld a szervernek.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Csak a mi RPC ID-nkat kezeljük. Minden más RPC áthalad.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Az útvonal név olvasása (a küldő által írt első sztring).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // A megfelelő kezelőhöz irányítás az útvonal név alapján.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Adj hozzá több útvonalat, ahogy a modod növekszik:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Leállítás
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -904,6 +874,47 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Szerver RPC diszpécser.
+// FONTOS: az OnRPC a DayZGame metódusa, NEM a MissionServeré. A Mission
+// osztálylánc nem rendelkezik OnRPC-vel, ezért a DayZGame-et kell moddolnod
+// az RPC-k fogadásához. Ez a hook a kliensen és a szerveren is lefut, ezért
+// védd a GetGame().IsServer()-rel.
+// ==========================================================================
+modded class DayZGame
+{
+    // A motor hívja, amikor egy RPC megérkezik. A szerveren itt
+    // irányítjuk a kliensek által küldött RPC-ket.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Csak szerver oldali diszpécselés.
+        if (!IsServer()) return;
+
+        // Csak a mi RPC ID-nkat kezeljük. Minden más RPC áthalad.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Az útvonal név olvasása (a küldő által írt első sztring).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // A megfelelő kezelőhöz irányítás az útvonal név alapján.
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Adj hozzá több útvonalat, ahogy a modod növekszik:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -921,8 +932,9 @@ Ez a `MissionGameplay`-be hookol kliens oldali inicializáláshoz, input kezelé
 //
 // MIÉRT MissionGameplay:
 //   A kliensen a MissionGameplay az aktív mission osztály a
-//   játékmenet során. Az OnUpdate() minden frame-ben fogad (input lekérdezéshez)
-//   és az OnRPC() a bejövő szerver üzenetekhez.
+//   játékmenet során. Az OnUpdate() minden frame-ben fogad (input lekérdezéshez).
+//   Az RPC-k azonban a DayZGame.OnRPC-n keresztül érkeznek (nem a missionön),
+//   ezért az alábbi moddolt DayZGame továbbítja a bejövő üzeneteket ennek az osztálynak.
 //
 // MEGJEGYZÉS A LISTEN SZERVEREKRŐL:
 //   Listen szerveren (hoszt + játék) MIND a MissionServer, mind a
@@ -972,15 +984,15 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // RPC fogadó: a szerver üzeneteinek kezelése
+    // RPC fogadó: a szerver üzeneteinek kezelése.
+    // Ez NEM egy motor override -- a tényleges motor callback a DayZGame-en
+    // található (lásd az alábbi moddolt DayZGame-et). A DayZGame.OnRPC a
+    // GetGame().GetMission() segítségével éri el az aktív missiont, és ide
+    // továbbítja a kliens RPC-ket, hogy ez a metódus hozzáférhessen a
+    // példánytagokhoz, mint az m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Csak a mi RPC ID-nkat kezeljük.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // Az útvonal név olvasása.
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1056,6 +1068,37 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Kliens RPC diszpécser.
+// FONTOS: az OnRPC a DayZGame metódusa, NEM a MissionGameplay-é. A Mission
+// osztálylánc nem rendelkezik OnRPC-vel, ezért az RPC-ket a DayZGame
+// moddolásával fogadjuk. Ez a hook a kliensen és a szerveren is lefut, ezért
+// védd a GetGame().IsClient()-tel. Az aktív MissionGameplay-t a
+// GetGame().GetMission() segítségével érjük el, és továbbítunk az OnMyModRPC
+// metódusának, hogy az UI panel tagjai elérhetők maradjanak.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Csak kliens oldali diszpécselés.
+        if (!IsClient()) return;
+
+        // Csak a mi RPC ID-nkat kezeljük.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Továbbítás az aktív missionnek, hogy a példánytagok (az UI panel)
+        // elérhetők legyenek. Castolás a moddolt MissionGameplay típusunkra.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1262,7 +1305,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1278,7 +1321,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1305,7 +1348,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1322,7 +1365,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1676,7 +1719,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }

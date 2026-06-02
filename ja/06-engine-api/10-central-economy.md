@@ -312,10 +312,14 @@ flowchart TD
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +328,13 @@ flowchart TD
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-`<ce folder="db"/>` タグはCEに `types.xml`、`events.xml`、`globals.xml` の場所を伝えます。
+コアのCEファイル（`types.xml`、`events.xml`、`globals.xml`）は、組み込みの規約により `db/` フォルダに配置されています。バニラの `cfgeconomycore.xml` には、これらを指し示す `<ce>` 要素は含まれていません。代わりに `<ce>` 要素は、**追加の**カスタムCEファイルを登録するために使用されます（アップデート1.08で導入）。`folder` 属性はカスタムXMLを格納するフォルダ名を指定し、ネストされた各 `<file name="..." type="..."/>` エントリは、対応するバニラファイルに追加または上書きします（`type` は `types`、`spawnabletypes`、`globals`、`economy`、`events`、`messages` のいずれかです）。
 
 ---
 

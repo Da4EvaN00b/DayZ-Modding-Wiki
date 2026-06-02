@@ -60,7 +60,7 @@
 **答：** 当你需要更改或扩展现有的原版行为时（向 `PlayerBase` 添加方法、挂钩 `MissionServer`），使用 `modded class`。对于不需要重写任何内容的自包含系统，创建新类。modded class 会自动链式调用 --- 始终调用 `super` 以避免破坏其他 Mod。参见 [第 1.4 章](01-enforce-script/04-modded-classes.md)。
 
 ### 问：如何组织客户端和服务器端代码？
-**答：** 对于只应在一端运行的代码，使用 `#ifdef SERVER` 和 `#ifdef CLIENT` 预处理器保护。对于较大的 Mod，分成单独的 PBO：客户端 Mod（UI、渲染、本地效果）和服务器 Mod（生成、逻辑、持久化）。这可以防止服务器逻辑泄露给客户端。参见 [第 2.5 章](02-mod-structure/05-file-organization.md) 和 [第 6.9 章](06-engine-api/09-networking.md)。
+**答：** 对于只应在一端运行的代码，使用 `#ifdef SERVER` 和 `#ifndef SERVER` 预处理器保护。对于较大的 Mod，分成单独的 PBO：客户端 Mod（UI、渲染、本地效果）和服务器 Mod（生成、逻辑、持久化）。这可以防止服务器逻辑泄露给客户端。参见 [第 2.5 章](02-mod-structure/05-file-organization.md) 和 [第 6.9 章](06-engine-api/09-networking.md)。
 
 ### 问：什么时候应该使用单例模式，什么时候使用模块/插件？
 **答：** 当需要生命周期管理（`OnInit`、`OnUpdate`、`OnMissionFinish`）时使用模块（注册到 CF 的 `PluginManager` 或你自己的模块系统）。对于只需要全局访问的无状态工具服务，使用独立的单例。对于有状态或需要清理的任何东西，优先使用模块。参见 [第 7.1 章](07-patterns/01-singletons.md) 和 [第 7.2 章](07-patterns/02-module-systems.md)。

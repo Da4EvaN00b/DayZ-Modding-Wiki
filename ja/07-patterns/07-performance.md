@@ -442,7 +442,8 @@ class ProximityChecker
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +614,7 @@ void OnPlayerScoreChanged()
 
 ```c
 // 絶対にやってはいけません
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 代わりに登録ベースのレジストリを使用してください（[車両レジストリパターン](#vehicle-registry-pattern)を参照）。

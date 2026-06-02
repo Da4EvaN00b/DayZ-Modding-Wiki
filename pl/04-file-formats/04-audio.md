@@ -107,7 +107,7 @@ class CfgSoundSets
 | `spatial` | int | `1` dla audio pozycyjnego 3D, `0` dla 2D (UI, muzyka). |
 | `doppler` | int | `1` aby włączyć przesunięcie tonalne Dopplera. |
 | `loop` | int | `1` dla ciągłego zapętlania, `0` dla jednorazowego odtworzenia. |
-| `distanceFilter` | int | `1` aby zastosować filtr dolnoprzepustowy na odległość. |
+| `distanceFilter` | string | Nazwa klasy filtra tłumienia odległości/częstotliwości stosowanego na dystansie (np. `"defaultDistanceFreqAttenuationFilter"`), tłumiąca odległe dźwięki. |
 
 ---
 
@@ -188,13 +188,15 @@ rangeCurve[] =
 };
 ```
 
-### Predefiniowane krzywe głośności
+### Klasy krzywych głośności
 
-| Nazwa krzywej | Zachowanie |
+SoundSety odwołują się do klas krzywych tłumienia przez właściwość `volumeCurve`. Nazwy krzywych to nazwy klas definiowanych w `class CfgSoundCurves` (waniliowe dźwięki DZ definiują ich wiele), a mody mogą albo odwołać się do istniejącej, albo zdefiniować własną. Nie istnieją gołe presety dosłownie nazwane `"InverseSquare"`, `"Linear"` ani `"Logarithmic"`. Typowe waniliowe klasy krzywych obejmują:
+
+| Klasa krzywej | Zachowanie |
 |------------|----------|
-| `"InverseSquare"` | Realistyczny spadek (głośność = 1/odległość^2). Naturalne brzmienie. |
-| `"Linear"` | Równomierny spadek od maksimum do zera w zasięgu. |
-| `"Logarithmic"` | Głośny z bliska, szybko spada na średniej odległości, potem powoli zanika. |
+| `"InverseSquare2Curve"` | Realistyczny spadek (głośność spada mniej więcej z kwadratem odległości). Naturalne brzmienie. |
+| `"LinearCurve"` | Równomierny spadek od maksimum do zera w zasięgu. |
+| `"defaultAmpAttenuationCurve"` | Głośny z bliska, szybko spada na średniej odległości, potem powoli zanika. |
 
 ---
 

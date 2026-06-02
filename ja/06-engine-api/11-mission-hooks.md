@@ -39,8 +39,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) ループ"]
+    E --> G["OnUpdate(timeslice) ループ"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["デストラクタ: ~MissionServer()"]
@@ -58,8 +57,7 @@ flowchart TD
     A["エンジンがMissionGameplayを作成"] --> B["コンストラクタ: MissionGameplay()"]
     B --> C["OnInit() — HUD、チャット、アクションメニュー"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) ループ"]
+    D --> F["OnUpdate(timeslice) ループ"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["デストラクタ: ~MissionGameplay()"]
@@ -82,7 +80,6 @@ flowchart TD
 |--------|-----------|---------------|
 | `OnInit` | `void OnInit()` | コンストラクタの後、ミッション開始前。主要なセットアップポイントです。 |
 | `OnMissionStart` | `void OnMissionStart()` | OnInitの後。ミッションワールドがアクティブです。 |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | OnMissionStartの後。すべてのバニラシステムが初期化済みです。 |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | サーバー：ゲームプレイデータ（cfggameplay.json）がロードされた後。 |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | 毎フレーム。`timeslice`は前フレームからの秒数です（通常0.016-0.033）。 |
 | `OnMissionFinish` | `void OnMissionFinish()` | シャットダウンまたは切断時。ここですべてをクリーンアップします。 |
@@ -111,7 +108,7 @@ flowchart TD
 | `IsPaused` | `bool IsPaused()` | ゲームが一時停止しているかどうか（シングルプレイヤー/リッスンサーバー）。 |
 | `IsServer` | `bool IsServer()` | MissionServerの場合`true`、MissionGameplayの場合`false`。 |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | MissionGameplayの場合`true`、MissionServerの場合`false`。 |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | 無効化後にプレイヤー入力を再有効化します。 |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | 無効化後にプレイヤー入力を再有効化します。（バニラでは非推奨。） |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | プレイヤー入力を無効化します（例：`INPUT_EXCLUDE_ALL`）。 |
 | `IsControlDisabled` | `bool IsControlDisabled()` | プレイヤーコントロールが現在無効かどうか。 |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | 現在の入力除外モードを返します。 |
@@ -190,7 +187,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // バニラはHud.KeyPress(key)に転送します
-    // key値はKeyCode定数です（例：KeyCode.KC_F1 = 59）
+    // key値はKeyCode定数です（例：KeyCode.KC_F1 = 58）
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +198,11 @@ override void OnKeyRelease(int key)
 
 ### イベントフック
 
-バニラの`MissionGameplay.OnEvent()`は`ChatMessageEventTypeID`（チャットウィジェットに追加）、`ChatChannelEventTypeID`（チャンネルインジケーターを更新）、`WindowsResizeEventTypeID`（メニュー/HUDを再構築）、`SetFreeCameraEventTypeID`（デバッグカメラ）、`VONStateEventTypeID`（ボイスステート）を処理します。同じ`switch`パターンでオーバーライドし、常に`super.OnEvent()`を呼び出してください。
+バニラの`MissionGameplay.OnEvent()`は`ChatMessageEventTypeID`（チャットウィジェットに追加）、`ChatChannelEventTypeID`（チャンネルインジケーターを更新）、`WindowsResizeEventTypeID`（メニュー/HUDを再構築）、`SetFreeCameraEventTypeID`（デバッグカメラ）、`NetworkInputBufferEventTypeID`（ネットワーク入力バッファ）を処理します。同じ`switch`パターンでオーバーライドし、常に`super.OnEvent()`を呼び出してください。
 
 ### 入力制御
 
-`PlayerControlDisable(int mode)`は入力除外グループ（例：`INPUT_EXCLUDE_ALL`、`INPUT_EXCLUDE_INVENTORY`）を有効化します。`PlayerControlEnable(bool bForceSuppress)`はそれを解除します。これらは`specific.xml`で定義された除外グループにマッピングされます。Modがカスタム入力除外動作を必要とする場合はオーバーライドしてください（Expansionがメニューで行っているように）。
+`PlayerControlDisable(int mode)`は入力除外グループ（例：`INPUT_EXCLUDE_ALL`、`INPUT_EXCLUDE_INVENTORY`）を有効化します。`PlayerControlEnable(bool bForceSupress)`はそれを解除します。これらは`specific.xml`で定義された除外グループにマッピングされます。どちらもバニラでは`//!deprecated`とマークされており、`AddActiveInputExcludes()` / `RemoveActiveInputExcludes()`が現行のAPIです。Modがカスタム入力除外動作を必要とする場合はオーバーライドしてください（Expansionがメニューで行っているように）。
 
 ---
 
@@ -493,8 +490,7 @@ modded class MissionServer
 | HUD要素を作成 | `OnInit()` | `MissionGameplay` |
 | サーバーシャットダウン時にクリーンアップ | `OnMissionFinish()` | `MissionServer` |
 | クライアント切断時にクリーンアップ | `OnMissionFinish()` | `MissionGameplay` |
-| すべてのシステムロード後に1回コードを実行 | `OnMissionLoaded()` | どちらでも |
-| プレイヤー入力を無効化/有効化 | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| プレイヤー入力を無効化/有効化 | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +501,6 @@ modded class MissionServer
 | コンストラクタ | はい | はい | 各側で異なるクラス |
 | `OnInit()` | はい | はい | |
 | `OnMissionStart()` | はい | はい | |
-| `OnMissionLoaded()` | はい | はい | |
 | `OnGameplayDataHandlerLoad()` | はい | いいえ | cfggameplay.jsonのロード |
 | `OnUpdate(timeslice)` | はい | はい | 両方が独自のフレームループを実行 |
 | `OnMissionFinish()` | はい | はい | |
@@ -785,15 +780,14 @@ COTとExpansionはどちらも同じパターンに従います：ミッショ�
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | フック | タイミング | 用途 |
 |------|------|---------|
 | `OnInit()` | 最初。スクリプトモジュールがロード済み、ワールドはまだアクティブではない。 | マネージャーの作成、RPCの登録、configのロード。 |
 | `OnMissionStart()` | 2番目。ワールドがアクティブ、エンティティをスポーンできる。 | エンティティのスポーン、ゲームプレイシステムの開始、トリガーの作成。 |
-| `OnMissionLoaded()` | 3番目。すべてのバニラシステムが完全に初期化済み。 | クロスModクエリ、すべてが準備完了であることに依存するファイナライゼーション。 |
 
-3つすべてで常に`super`を呼び出してください。主要な初期化ポイントとして`OnInit`を使用してください。他のModがすでに初期化されていることを保証する必要がある場合にのみ`OnMissionLoaded`を使用してください。
+両方で常に`super`を呼び出してください。主要な初期化ポイントとして`OnInit`を使用し、ワールドがアクティブであることを必要とするもの（エンティティのスポーン、トリガーの作成）には`OnMissionStart`を使用してください。
 
 ---
 
@@ -893,7 +887,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Mission階層 | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | サーバークラス | `MissionServer` --- プレイヤー接続、スポーン、ティックスケジューリングを処理 |
 | クライアントクラス | `MissionGameplay` --- HUD、入力、チャット、メニューを処理 |
-| ライフサイクル順序 | コンストラクタ > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > `OnUpdate()`ループ > `OnMissionFinish()` > デストラクタ |
+| ライフサイクル順序 | コンストラクタ > `OnInit()` > `OnMissionStart()` > `OnUpdate()`ループ > `OnMissionFinish()` > デストラクタ |
 | プレイヤー参加（サーバー） | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | プレイヤー退出（サーバー） | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | フックパターン | `modded class MissionServer/MissionGameplay`で`override`と`super`呼び出し |

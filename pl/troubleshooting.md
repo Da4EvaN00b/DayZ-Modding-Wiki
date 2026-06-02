@@ -76,7 +76,7 @@ Pojawiaja sie w logu skryptow jako linie `SCRIPT (E):` lub `SCRIPT ERROR:`.
 
 | Objaw | Przyczyna | Rozwiazanie |
 |-------|-----------|-------------|
-| Layout laduje sie, ale nic nie jest widoczne | Rozmiar widgetu wynosi zero | Sprawdz wartosci `hexactsize` i `vexactsize`. Bez ujemnych rozmiarow. Patrz [Rozdzial 3.3](03-gui-system/03-sizing-positioning.md). |
+| Layout laduje sie, ale nic nie jest widoczne | Rozmiar widgetu wynosi zero | Sprawdz atrybut `size` widgetu (wartosci `w h` musza byc wieksze od zera). Bez ujemnych rozmiarow. (`hexactsize`/`vexactsize` to flagi `0`/`1`, ktore wybieraja rozmiar proporcjonalny (`0`) lub w pikselach (`1`), a nie sam rozmiar.) Patrz [Rozdzial 3.3](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` zwraca null | Sciezka do pliku layout jest zla lub plik brakuje | Zweryfikuj sciezke do pliku `.layout` (ukosniki, bez literowek). Silnik cicho zwraca `null` przy zlych sciezkach. |
 | Widgety istnieja, ale nie mozna ich kliknac | Inny widget zaslania przycisk | Sprawdz `priority` widgetu (porzadek z). Wyzszy priorytet = renderowane na wierzchu i przechwytuja wejscie jako pierwsze. |
 | Wejscie gry jest zablokowane po zamknieciu UI | Wywolania `ChangeGameFocus()` sa niezrownowazone | Kazde `ChangeGameFocus(1)` musi miec odpowiadajace `ChangeGameFocus(-1)`. |

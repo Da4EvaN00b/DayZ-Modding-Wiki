@@ -109,7 +109,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### Referencia de Campos
@@ -127,7 +126,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | No | Imagen grande mostrada en el panel de resumen del mod |
 | `action` | No | URL abierta cuando el jugador hace clic en "Website" (tipicamente tu pagina del Workshop o GitHub) |
 | `version` | Si | String de version actual (ej., `"1.0.0"`) |
-| `versionPath` | No | Ruta a un archivo de texto que contiene el numero de version (para builds automatizados) |
 
 ### Errores Comunes
 
@@ -454,7 +452,7 @@ Cuando tu mod guarda datos persistentes (configs JSON, archivos de datos de juga
 
 Ejemplo de verificacion de migracion en Enforce Script:
 
-```csharp
+```c
 // En tu funcion de carga de config
 if (config.configVersion < 2)
 {

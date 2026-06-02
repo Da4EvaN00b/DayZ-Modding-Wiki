@@ -195,7 +195,7 @@ Każdy wpis w `discreteItemSets` reprezentuje jedną możliwą opcję przedmiotu
 | `quickBarSlot` | integer | Przypisanie do slotu paska szybkiego dostępu (indeks od 0). Użyj `-1`, aby nie przypisywać do paska |
 | `complexChildrenTypes` | array | Przedmioty do stworzenia wewnątrz tego przedmiotu. Zobacz [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Nazwy klas przedmiotów do stworzenia wewnątrz tego przedmiotu z domyślnymi lub rodzicielskimi atrybutami |
-| `simpleChildrenUseDefaultAttributes` | bool | Jeśli `true`, proste dzieci używają `attributes` rodzica. Jeśli `false`, używają domyślnych wartości konfiguracji |
+| `simpleChildrenUseDefaultAttributes` | bool | Jeśli `true`, proste dzieci używają domyślnych wartości konfiguracji. Jeśli `false`, używają `attributes` rodzica |
 
 **Sztuczka z pustym przedmiotem:** Aby slot miał 50/50 szans na bycie pustym lub wypełnionym, użyj pustego `itemType`:
 
@@ -230,10 +230,10 @@ Każdy wpis reprezentuje jeden wariant cargo, a serwer wybiera jeden na podstawi
 |-------|------|-------------|
 | `name` | string | Czytelna nazwa (tylko do identyfikacji) |
 | `spawnWeight` | integer | Waga dla wyboru. Minimum `1` |
-| `attributes` | object | Domyślne zakresy zdrowia/ilości. Używane przez dzieci gdy `simpleChildrenUseDefaultAttributes` jest `true` |
+| `attributes` | object | Domyślne zakresy zdrowia/ilości. Używane przez dzieci gdy `simpleChildrenUseDefaultAttributes` jest `false` |
 | `complexChildrenTypes` | array | Przedmioty do stworzenia w cargo, każdy z własnymi atrybutami i zagnieżdżeniem |
 | `simpleChildrenTypes` | array | Nazwy klas przedmiotów do stworzenia w cargo |
-| `simpleChildrenUseDefaultAttributes` | bool | Jeśli `true`, proste dzieci używają `attributes` tej struktury. Jeśli `false`, używają domyślnych wartości konfiguracji |
+| `simpleChildrenUseDefaultAttributes` | bool | Jeśli `true`, proste dzieci używają domyślnych wartości konfiguracji. Jeśli `false`, używają `attributes` tej struktury |
 
 ```json
 {
@@ -329,7 +329,7 @@ Przykład --- broń z akcesoriami i magazynkiem:
 }
 ```
 
-W tym przykładzie AKM pojawia się z kolbą, celownikiem (z baterią w środku) i załadowanym magazynkiem jako złożone dzieci, plus chwyt i bagnet jako proste dzieci. Proste dzieci używają domyślnych wartości konfiguracji, ponieważ `simpleChildrenUseDefaultAttributes` jest ustawione na `false`.
+W tym przykładzie AKM pojawia się z kolbą, celownikiem (z baterią w środku) i załadowanym magazynkiem jako złożone dzieci, plus chwyt i bagnet jako proste dzieci. Proste dzieci używają `attributes` zestawu nadrzędnego AKM, ponieważ `simpleChildrenUseDefaultAttributes` jest ustawione na `false`; domyślne wartości konfiguracji zostałyby użyte tylko gdyby flaga miała wartość `true`.
 
 ### SimpleChildrenTypes
 
@@ -337,8 +337,8 @@ Proste dzieci to skrócony zapis tworzenia przedmiotów wewnątrz rodzica bez ok
 
 Ich atrybuty są określane przez flagę `simpleChildrenUseDefaultAttributes`:
 
-- **`true`** --- Przedmioty używają `attributes` zdefiniowanych w strukturze nadrzędnej.
-- **`false`** --- Przedmioty używają domyślnych wartości konfiguracji silnika (zwykle pełne zdrowie i ilość).
+- **`true`** --- Przedmioty używają domyślnych wartości konfiguracji silnika (zwykle pełne zdrowie i ilość).
+- **`false`** --- Przedmioty używają `attributes` zdefiniowanych w strukturze nadrzędnej.
 
 Proste dzieci nie mogą mieć własnych zagnieżdżonych dzieci ani przypisań do paska szybkiego dostępu. Dla tych możliwości użyj zamiast tego `complexChildrenTypes`.
 
@@ -1118,7 +1118,7 @@ Jeśli mod nie jest załadowany na serwerze, przedmioty z nieznanymi nazwami kla
 |---------|-------------|-----|
 | Zapomnienie `enableCfgGameplayFile = 1` w `serverDZ.cfg` | `cfggameplay.json` nie jest ładowane, presety są ignorowane | Dodaj flagę i zrestartuj serwer |
 | Nieprawidłowa składnia JSON (końcowy przecinek, brakujący nawias) | Wszystkie presety w tym pliku po cichu nie działają | Zwaliduj JSON zewnętrznym narzędziem przed wdrożeniem |
-| Używanie `spawnGearPresetFiles` bez usunięcia kodu `StartingEquipSetup()` | Skryptowy loadout jest po cichu nadpisywany przez preset JSON. Kod init.c działa, ale jego przedmioty są zastępowane | To oczekiwane zachowanie, nie błąd. Usuń lub zakomentuj kod loadoutu w init.c, aby uniknąć zamieszania |
+| Używanie `spawnGearPresetFiles` bez usunięcia kodu `StartingEquipSetup()` | Skryptowy loadout jest po cichu nadpisywany przez preset JSON. Gdy prawidłowe presety są aktywne, `StartingEquipSetup()` nie jest wywoływane w ogóle --- jego przedmioty nie są tworzone, a następnie zastępowane | To oczekiwane zachowanie, nie błąd. Usuń lub zakomentuj kod loadoutu w init.c, aby uniknąć zamieszania |
 | Ustawienie `spawnWeight: 0` | Wartość poniżej minimum. Zachowanie jest niezdefiniowane | Zawsze używaj `spawnWeight: 1` lub wyższego |
 | Odwołanie do nazwy klasy, która nie istnieje | Ten konkretny przedmiot po cichu nie pojawi się, ale reszta presetu działa | Sprawdź dwukrotnie nazwy klas z `config.cpp` moda lub types.xml |
 | Przypisanie przedmiotu do slotu, którego nie może zajmować | Przedmiot nie pojawia się. Brak zalogowanego błędu | Sprawdź, czy `inventorySlot[]` przedmiotu w config.cpp odpowiada `slotName` |

@@ -24,10 +24,11 @@
 
 ## Visao Geral do cfgplayerspawnpoints.xml
 
-Este arquivo fica na sua pasta de missao (ex.: `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ele tem duas secoes, cada uma com seus proprios parametros e bolhas de posicao:
+Este arquivo fica na sua pasta de missao (ex.: `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ele tem tres secoes, cada uma com seus proprios parametros e bolhas de posicao:
 
 - **`<fresh>`** -- personagens novos (primeira vida ou apos morte)
 - **`<hop>`** -- server hoppers (jogador tinha um personagem em outro servidor)
+- **`<travel>`** -- spawns de viagem/teleporte no mapa in-game
 
 ---
 
@@ -77,12 +78,12 @@ O gerador cria uma grade de posicoes candidatas ao redor de cada bolha:
 
 | Parametro | Valor | Significado |
 |-----------|-------|---------|
-| `grid_density` | 4 | Espacamento entre pontos da grade em metros -- menor = mais candidatos, maior custo de CPU |
-| `grid_width` | 200 | A grade se estende 200m no eixo X ao redor do centro de cada bolha |
-| `grid_height` | 200 | A grade se estende 200m no eixo Z ao redor do centro de cada bolha |
+| `grid_density` | 4 | Frequencia de amostragem (numero de subdivisoes) da grade -- maior = mais candidatos, maior custo de CPU. Espacamento entre pontos = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Largura total da grade de candidatos em metros (centrada na bolha) -- estende ~100m para cada lado no eixo X |
+| `grid_height` | 200 | Altura total da grade de candidatos em metros (centrada na bolha) -- estende ~100m para cada lado no eixo Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Faixa de inclinacao do terreno em graus -- rejeita faces de penhasco e encostas ingremes |
 
-Cada bolha recebe uma grade de 200x200m com um ponto a cada 4m (~2.500 candidatos). O engine filtra por inclinacao e distancia estatica, depois aplica `spawn_params` no momento do spawn.
+Cada bolha recebe uma grade de 200x200m com pontos candidatos espacados `grid_width` / `grid_density` = 200/4 = 50m entre si (na ordem de ~16-25 candidatos). O engine filtra por inclinacao e distancia estatica, depois aplica `spawn_params` no momento do spawn.
 
 #### Parametro `allow_in_water` (1.28+)
 
@@ -111,8 +112,8 @@ Por padrao, o engine rejeita qualquer posicao candidata que caia na agua (lagos,
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +121,10 @@ Por padrao, o engine rejeita qualquer posicao candidata que caia na agua (lagos,
 |-----------|-------|---------|
 | `enablegroups` | true | Bolhas de posicao sao organizadas em grupos nomeados |
 | `groups_as_regular` | true | Grupos sao tratados como pontos de spawn regulares (qualquer grupo pode ser selecionado) |
-| `lifetime` | 240 | Segundos antes de um ponto de spawn usado ficar disponivel novamente |
-| `counter` | -1 | Numero de vezes que um ponto de spawn pode ser usado. -1 = ilimitado |
+| `lifetime` | 120 | Segundos que um grupo de spawn permanece ativo antes do sistema trocar para outro grupo. -1 = desabilitado |
+| `counter` | 2 | Numero de logins que um grupo permanece ativo antes de ser trocado (por grupo). -1 = desabilitado |
 
-Uma posicao usada fica bloqueada por 240 segundos, prevenindo dois jogadores de spawnarem um em cima do outro.
+`lifetime` controla por quanto tempo um grupo de spawn permanece como o grupo ativo antes do sistema trocar para outro grupo; nao e um bloqueio por posicao. O espacamento entre spawns simultaneos e imposto por `min_dist_player`.
 
 ---
 
@@ -192,7 +193,7 @@ Spawns de hop sao mais lenientes na distancia de jogadores e usam grades menores
 
 <!-- Diferencas de group_params do hop -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 Grupos de hop sao espalhados **no interior**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Com `enablegroups=false`, o engine trata todas as 50 posicoes como um pool plano.
@@ -246,7 +247,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-O que isso da a cada jogador: **BandageDressing** (quickbar 3), **Chemlight** aleatorio (quickbar 2), fruta aleatoria -- 35% Apple, 30% Plum, 35% Pear (quickbar 1). `SetRandomHealth` define 45-65% de condicao em todos os itens.
+O que isso da a cada jogador: **BandageDressing** (quickbar 2), **Chemlight** aleatorio (quickbar 1), fruta aleatoria -- 35% Apple, 30% Plum, 35% Pear (quickbar 3). `SetRandomHealth` define 45-65% de condicao em todos os itens.
 
 ### Adicionando equipamento inicial customizado
 
@@ -279,7 +280,7 @@ Passos:
 4. Use `x` para leste-oeste e `z` para norte-sul -- o engine calcula Y (altitude) a partir do terreno
 5. Reinicie o servidor -- nenhum wipe de persistencia e necessario
 
-Para spawn balanceado, mantenha pelo menos 4 posicoes por grupo para que o bloqueio de 240 segundos nao bloqueie todas as posicoes quando multiplos jogadores morrem de uma vez.
+Para spawn balanceado, mantenha pelo menos 4 posicoes por grupo para que um unico grupo tenha espalhamento suficiente para manter `min_dist_player` satisfeito quando multiplos jogadores morrem de uma vez.
 
 ---
 
@@ -291,7 +292,7 @@ Voce trocou `z` (norte-sul) com Y (altitude), ou usou coordenadas fora da faixa 
 
 ### Pontos de spawn insuficientes
 
-Com apenas 2-3 posicoes, o bloqueio de 240 segundos causa agrupamento. O vanilla usa 49 posicoes de spawn para novos jogadores em 11 grupos. Tente ter pelo menos 20 posicoes em 4+ grupos.
+Com apenas 2-3 posicoes, o grupo ativo nao consegue espalhar os jogadores e ocorre agrupamento. O vanilla usa 49 posicoes de spawn para novos jogadores em 11 grupos. Tente ter pelo menos 20 posicoes em 4+ grupos.
 
 ### Esquecendo a secao hop
 
@@ -303,7 +304,7 @@ O gerador rejeita inclinacoes acima de 45 graus. Se todas as posicoes customizad
 
 ### Jogadores sempre spawnando no mesmo lugar
 
-Grupos com 1-2 posicoes ficam bloqueados pelo cooldown de 240 segundos. Adicione mais posicoes por grupo.
+Grupos com 1-2 posicoes tem poucos candidatos para o engine variar a posicao escolhida. Adicione mais posicoes por grupo.
 
 ---
 

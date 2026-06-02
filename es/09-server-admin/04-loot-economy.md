@@ -194,7 +194,7 @@ Los vendajes son muy comunes (40 nominal). Spawnean en edificios Medic (hospital
 | `restock` | int | segundos | Tiempo de enfriamiento minimo antes de que la CE pueda spawnear un reemplazo. 0 = inmediato. |
 | `quantmin` | int | -1 a 100 | Porcentaje de cantidad minima al spawnear (% municion, % liquido). -1 = no aplica. |
 | `quantmax` | int | -1 a 100 | Porcentaje de cantidad maxima al spawnear. -1 = no aplica. |
-| `cost` | int | 0+ | Peso de prioridad para la seleccion de spawn. Actualmente todos los items vanilla usan 100. |
+| `cost` | int | 0+ | Peso de prioridad usado durante el respawn/limpieza. Casi todos los items vanilla usan 100, pero algunos usan valores mas altos (p. ej. `Mag_SVD_10Rnd` usa 1000). |
 
 ### Flags
 

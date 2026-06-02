@@ -198,9 +198,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Játékos láthatósága az AI számára (alacsonyabb = nehezebben észlelhető). |
 | `absorbency` | `0.3` | Vízfelszívás (0 = vízálló, 1 = szivacs). Alacsonyabb jobb az esőállósághoz. |
 
-**Vanilla heatIsolation referencia:** Póló 0.2, Kapucnis pulóver 0.5, Gorka kabát 0.7, Tábori kabát 0.8, Gyapjú kabát 0.9.
+**Vanilla heatIsolation referencia:** Póló 0.1, Kapucnis pulóver 0.6, Gorka kabát 0.4, Túrakabát 0.8, Gyapjú kabát 0.9.
 
-**Javítás:** A `repairableWithKits[] = { 5, 2 }` felsorolja a készlet típusokat (5=Varródoboz, 2=Bőrvarró készlet). A `repairCosts[]` megadja a javításonként felhasznált anyagot, egyező sorrendben.
+**Javítás:** A `repairableWithKits[] = { 5, 2 }` felsorolja a készlet típusokat (5=Ragasztószalag, 2=Varródoboz). A `repairCosts[]` megadja a javításonként felhasznált anyagot, egyező sorrendben.
 
 **Páncélzat:** A `damage` 0.8-as értéke azt jelenti, hogy a játékos a beérkező sérülés 80%-át kapja meg (20% elnyelve). Alacsonyabb értékek = több védelem.
 
@@ -242,7 +242,7 @@ Teljes anyagvezérléshez hozz létre `.rvmat` fájlokat és hivatkozz rájuk a 
 
 ## 4. lépés: Rakodótér hozzáadása
 
-A `GorkaEJacket_ColorBase` kiterjesztésekor automatikusan örökölöd annak rakodórácsát (4x3) és inventory slotját (`"Body"`). Az `itemSize[] = { 3, 4 }` tulajdonság azt határozza meg, milyen nagy a kabát lootként tárolva -- NEM a rakodókapacitását.
+A `GorkaEJacket_ColorBase` kiterjesztésekor automatikusan örökölöd annak rakodórácsát (`itemsCargoSize[] = { 6, 4 }`) és inventory slotját (`"Body"`). Az `itemSize[] = { 3, 4 }` tulajdonság azt határozza meg, milyen nagy a kabát lootként tárolva -- NEM a rakodókapacitását.
 
 Gyakori ruházati slotok: `"Body"` (kabátok), `"Legs"` (nadrágok), `"Feet"` (csizmák), `"Headgear"` (kalapok), `"Vest"` (mellkaskosarak), `"Gloves"`, `"Mask"`, `"Back"` (hátizsákok).
 

@@ -41,29 +41,31 @@ passwordAdmin = "YourSecretPassword";
 
 ## ban.txt
 
-**ban.txt** 文件位于你的服务器配置目录中（你用 `-profiles=` 设置的路径）。它每行包含一个 SteamID64：
+**ban.txt** 文件位于你的服务器根目录中。它每行包含一个玩家 UID：
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- 每行是一个纯粹的 17 位 SteamID64 -- 没有名称、没有注释、没有密码。
-- SteamID 出现在此文件中的玩家在加入时被拒绝连接。
+- 每行是一个 44 位字符的 DayZ 玩家 UID -- 而不是 17 位的 SteamID64。你可以在 `*.ADM` 和 `*.RPT` 日志中找到玩家的 UID。
+- 你可以在同一行使用 `//` 前缀在 ID 之后添加注释，或在单独的注释行中添加。
+- UID 出现在此文件中的玩家在加入时被拒绝连接。
+- 是否使用 **ban.txt** 可以通过 **serverDZ.cfg** 中的 `disableBanlist` 切换（默认 `false`）。
 - 你可以在服务器运行时编辑此文件；更改在下次连接尝试时生效。
 
 ---
 
 ## whitelist.txt
 
-**whitelist.txt** 文件位于同一配置目录中。当你启用白名单时，只有此文件中列出的 SteamID 才能连接：
+**whitelist.txt** 文件位于同一服务器根目录中。当你启用白名单时（**serverDZ.cfg** 中的 `enableWhitelist = 1`），只有 UID 列在此文件中的玩家才能连接：
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-格式与 **ban.txt** 相同 -- 每行一个 SteamID64，没有其他内容。
+格式与 **ban.txt** 相同 -- 每行一个 44 位字符的玩家 UID，可选带 `//` 注释。
 
 白名单适用于私人社区、测试服务器或需要受控玩家列表的活动。
 
@@ -79,7 +81,7 @@ BattlEye 是集成在 DayZ 中的反作弊系统。其文件位于服务器目�
 | **beserver_x64.cfg** | 配置文件（RCON 端口、RCON 密码） |
 | **bans.txt** | BattlEye 特有的封禁（基于 GUID，不是 SteamID） |
 
-BattlEye 默认启用。你使用 `DayZServer_x64.exe` 启动服务器，BattlEye 自动加载。要显式禁用它（不推荐用于生产环境），使用 `-noBE` 启动参数。
+BattlEye 默认启用。你使用 `DayZServer_x64.exe` 启动服务器，BattlEye 自动加载。要显式禁用它（不推荐用于生产环境），在 **serverDZ.cfg** 中设置 `BattlEye = 0;`。
 
 `BattlEye/` 文件夹中的 **bans.txt** 文件使用 BattlEye GUID，这与 SteamID64 不同。通过 RCON 或 BattlEye 命令发出的封禁会自动写入此文件。
 
@@ -91,10 +93,10 @@ BattlEye RCON 让你无需在游戏中即可远程管理服务器。在 `BattlEy
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-默认 RCON 端口是游戏端口加 4。如果你的服务器运行在端口 `2302`，RCON 默认为 `2306`。
+BattlEye 没有固定的默认 RCON 端口 -- 如果你省略 `RConPort`，它会监听一个随机端口。请显式设置它。推荐值是游戏端口加 3，因此运行在端口 `2302` 的服务器为 `2305`。它不得与游戏端口或 Steam 查询端口冲突。
 
 ### 可用的 RCON 命令
 
@@ -174,11 +176,11 @@ DayZServer/
 | 错误 | 症状 | 修复 |
 |------|------|------|
 | `keys/` 中缺少 `.bikey` | 玩家加入时被踢出，显示签名错误 | 将 mod 的 `.bikey` 文件复制到服务器的 `keys/` 目录 |
-| 在 **ban.txt** 中放入名称或密码 | 封禁不起作用；随机错误 | 只使用纯粹的 SteamID64 值，每行一个 |
+| 在 **ban.txt** 中使用 SteamID64 而不是玩家 UID | 封禁不起作用 | 使用 44 位字符的玩家 UID，每行一个（允许 `//` 之后的注释） |
 | RCON 端口冲突 | RCON 客户端无法连接 | 确保 RCON 端口未被其他服务使用；检查防火墙规则 |
 | 生产环境中 `verifySignatures = 0` | 任何人可以携带篡改过的 mod 加入 | 在任何面向公众的服务器上设为 `2` |
-| 忘记在防火墙中开放 RCON 端口 | RCON 客户端超时 | 在防火墙中开放 RCON UDP 端口（默认 2306） |
-| 用 SteamID 编辑 `BattlEye/` 中的 **bans.txt** | 封禁不起作用 | BattlEye 的 **bans.txt** 使用 GUID，不是 SteamID；使用配置目录中的 **ban.txt** 进行 SteamID 封禁 |
+| 忘记在防火墙中开放 RCON 端口 | RCON 客户端超时 | 在防火墙中开放 RCON UDP 端口（你用 `RConPort` 设置的端口，例如 `2305`） |
+| 用玩家 UID 编辑 `BattlEye/` 中的 **bans.txt** | 封禁不起作用 | BattlEye 的 **bans.txt** 使用 GUID，不是 UID；使用服务器根目录中的 **ban.txt** 进行基于 UID 的封禁 |
 
 ---
 

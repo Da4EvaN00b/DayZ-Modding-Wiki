@@ -112,7 +112,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID fires when the player sends a chat message
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -169,11 +169,12 @@ modded class MissionGameplay
 
 ### How Chat Interception Works
 
-The `OnEvent` method on `MissionGameplay` is called for various game events. When `eventTypeId` is `ChatMessageEventTypeID`, it means the player just submitted a chat message. The `Param3` contains:
+The `OnEvent` method on `MissionGameplay` is called for various game events. When `eventTypeId` is `ChatMessageEventTypeID`, it means the player just submitted a chat message. The params are a `ChatMessageEventParams` (a `Param4<int, string, string, string>`) and contain:
 
 - `param1` -- Channel (int): the chat channel (global, direct, etc.)
 - `param2` -- Sender name (string)
 - `param3` -- Message text (string)
+- `param4` -- Color config class (string)
 
 We check if the message starts with `/`. If it does, we forward the entire string to the server via RPC. The message is still sent as normal chat as well -- in a production mod, you would suppress it (covered in the notes at the end).
 
@@ -640,8 +641,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | Channel | Color | Typical Use |
 |---------|-------|-------------|
-| `"colorStatusChannel"` | Yellow/orange | System messages |
-| `"colorAction"` | White | Action feedback |
+| `"colorStatusChannel"` | Blue | System messages |
+| `"colorAction"` | Yellow | Action feedback |
 | `"colorFriendly"` | Green | Positive feedback |
 | `"colorImportant"` | Red | Warnings/errors |
 
@@ -1348,7 +1349,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1501,7 +1502,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Permission Denied for Admins
 
 - **Wrong Steam64 ID:** Double-check the admin IDs in `IsCommandAdmin()`. They must be exact Steam64 IDs (17-digit numbers starting with `7656`).
-- **GetPlainId() vs GetId():** `GetPlainId()` returns the Steam64 ID. `GetId()` returns the DayZ session ID. Use `GetPlainId()` for admin checks.
+- **GetPlainId() vs GetId():** `GetPlainId()` returns the plaintext Steam64 ID. `GetId()` returns a stable hashed unique ID (safe for databases and logs), not a session ID -- the per-session ID that is reused after a player disconnects is `GetPlayerId()` (an int). Use `GetPlainId()` for admin checks.
 
 ### Feedback Message Does Not Appear in Chat
 
@@ -1517,20 +1518,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### Command Appears in Chat as Regular Message
 
-- The `OnEvent` hook intercepts the message but does not suppress it from being sent as chat. To suppress it in a production mod, you would need to mod the `ChatInputMenu` class to filter `/` messages before they are sent:
+- The `OnEvent` hook intercepts the message but does not suppress it from being sent as chat. To suppress it in a production mod, you would need to mod the `ChatInputMenu` class to filter `/` messages before they are sent. In vanilla, `ChatInputMenu` sends chat text from its `OnChange()` handler, where it calls `g_Game.ChatPlayer(text)`. You can override `OnChange()` and skip the send when the text starts with `/`:
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Get the current text from the edit widget
-        // If it starts with /, do NOT call super (which sends it as chat)
+        // Get the current text from the edit widget (m_edit_box.GetText())
+        // If it starts with /, do NOT call super (which calls g_Game.ChatPlayer)
         // Instead, handle it as a command
 
         // This approach varies by DayZ version -- check vanilla sources
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```

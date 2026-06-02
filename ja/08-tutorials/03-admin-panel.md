@@ -312,7 +312,7 @@ DayZはデータ送信用のテンプレート `Param` クラスを提供しま�
 
 ### クライアントサイドRPC受信の仕組み
 
-1. **`MissionGameplay.OnRPC()`** はクライアントで受信されるRPCのキャッチオールハンドラです。
+1. **`DayZGame.OnRPC()`** はクライアントで受信されるRPCのエンジンのキャッチオールハンドラです。すべての受信RPCに対して発火します。ミッションクラス（`MissionGameplay`）には `OnRPC` メソッドがないため、受信側は `DayZGame` をmodする必要があります。`DayZGame.OnRPC` がそれ自身のswitchを実行するのは、RPCにターゲットオブジェクトがない場合のみであることに注意してください。ターゲットが設定されている場合、エンジンは代わりにRPCを `target.OnRPC(sender, rpc_type, ctx)` に転送します。
 2. **`ParamsReadContext ctx`** にはサーバーが送信したシリアル化データが含まれます。一致する `Param` 型で `ctx.Read()` を使用してデシリアル化する必要があります。
 3. **Param型の一致が重要です。** サーバーが `Param2<int, string>` を送信した場合、クライアントは `Param2<int, string>` で読み取る必要があります。
 4. **データをパネルにルーティングします。** デシリアル化後、パネルオブジェクトのメソッドを呼び出してUIを更新します。
@@ -426,7 +426,7 @@ class CfgMods
 
 5. [NETWORK] RPCがサーバーからクライアントに伝送
 
-6. [CLIENT] MissionGameplay.OnRPC()が発火
+6. [CLIENT] DayZGame.OnRPC()が発火 (ターゲットがnullのため、そのswitchが実行される)
    --> rpc_typeがRESPONSE_PLAYER_INFOと一致
    --> HandlePlayerInfoResponse(ctx)が呼び出される
    --> ParamsReadContextからデータがデシリアル化
@@ -462,7 +462,7 @@ class CfgMods
 
 - **受信者パラメータを確認:** `RPCSingleParam` の第5パラメータはターゲットクライアントの `PlayerIdentity` である必要があります。
 - **Param型の一致を確認:** サーバーが `Param2<int, string>` を送信し、クライアントが `Param2<int, string>` で読み取ること。
-- **MissionGameplay.OnRPCオーバーライドを確認:** `super.OnRPC()` を呼び出し、メソッドシグネチャが正しいことを確認。
+- **DayZGame.OnRPCオーバーライドを確認:** `super.OnRPC()` を呼び出し、メソッドシグネチャが正しいこと、そしてサーバーがレスポンスを `null` ターゲットで送信したことを確認（そうでない場合、エンジンはRPCをターゲットの `OnRPC` にルーティングし、`DayZGame` のswitchは実行されません）。
 
 ---
 

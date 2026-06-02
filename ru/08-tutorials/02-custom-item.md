@@ -330,7 +330,7 @@ Open `types.xml` and add this block inside the root `<types>` element:
 ### Common Usage and Value Tags
 
 **Usage (where it spawns):**
-- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medical`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
+- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medic`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
 
 **Value (map tier):**
 - `Tier1` -- coast/starter areas

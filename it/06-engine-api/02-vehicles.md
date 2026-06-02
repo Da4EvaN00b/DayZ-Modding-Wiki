@@ -41,16 +41,17 @@ La base astratta per tutti i veicoli. Fornisce gestione dei posti e accesso all'
 proto native int   CrewSize();                          // Numero totale di posti
 proto native int   CrewMemberIndex(Human crew_member);  // Ottenere l'indice del posto di un umano
 proto native Human CrewMember(int posIdx);              // Ottenere l'umano all'indice del posto
-proto native void  CrewGetOut(int posIdx);              // Forzare l'uscita dal posto
+proto native Human CrewGetOut(int posIdx);              // Forzare l'uscita dal posto (restituisce l'umano espulso)
 proto native void  CrewDeath(int posIdx);               // Uccidere il membro dell'equipaggio nel posto
 ```
 
 ### Entrata dell'equipaggio
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Metodo scriptato (sovrascrivibile), non proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Componente a indice del posto
-proto native vector CrewEntryPoint(int posIdx);         // Posizione mondiale di ingresso per il posto
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Punto/direzione di ingresso nello spazio del modello
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Punto/direzione di ingresso nello spazio del mondo
 ```
 
 **Esempio --- espellere tutti i passeggeri:**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // Velocita in km/h (valore assoluto)
 ### Controlli (simulazione)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = tutte le ruote
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (parametri extra inutilizzati)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (secondo parametro inutilizzato)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust e obsoleto)
+proto native void  SetClutch(float value);                    // SetClutchState e obsoleto
 ```
 
 ### Ruote
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callback (da sovrascrivere in CarScript)
@@ -219,17 +220,28 @@ Zone di danno comuni per i veicoli:
 
 ### Luci
 
+L'API delle luci risiede in `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = spente, 1 = accese
-int  GetLightsState();
+proto native bool LightIsOn();    // Vero quando le luci sono accese
+proto native void LightOn();      // Accendere le luci
+proto native void LightOff();     // Spegnere le luci
+proto native void LightToggle();  // Commutare lo stato corrente delle luci
 ```
 
 ### Controllo porte
 
+Lo stato delle porte viene interrogato con `GetCarDoorsState`, che restituisce un valore `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` o `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Restituisce un valore CarDoorState
 ```
 
 ### Override principali per veicoli personalizzati
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Inizializzare parti del veicolo, fluidi
 override void OnEngineStart();             // Comportamento avvio motore personalizzato
 override void OnEngineStop();              // Comportamento arresto motore personalizzato
-override void EOnSimulate(IEntity other, float dt);  // Simulazione per-tick
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Simulazione per-tick (CarScript)
 ```
 
 **Esempio --- creare un veicolo con fluidi pieni:**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### Fluidi
 
-Le barche usano lo stesso enum `CarFluid` ma tipicamente usano solo `FUEL`:
+Le barche usano un enum separato `BoatFluid` che definisce solo `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Velocita
+### Velocita e propulsione
+
+`Boat` non espone `GetSpeedometer()` (quel metodo esiste solo su `Car`). Leggi invece l'RPM del motore e la velocita dell'elica:
 
 ```c
-proto native float GetSpeedometer();   // Velocita in km/h
+proto native float EngineGetRPM();                   // RPM del motore
+proto native float PropellerGetAngularVelocity();    // Velocita angolare dell'elica
 ```
 
 **Esempio --- spawnare una barca:**
+
+`Boat_01` non e una classe spawnabile direttamente; spawna una delle varianti di colore concrete (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -492,7 +508,7 @@ La classe `Contact` e stata modificata:
 **Modificati:**
 - `Material1`, `Material2` — tipo cambiato da `dMaterial` a `SurfaceProperties`
 
-I mod che leggono dati `Contact` in `EOnContact` devono aggiornare ai nuovi nomi di variabili e tipi.
+I mod che leggono dati `Contact` in `OnContact` devono aggiornare ai nuovi nomi di variabili e tipi.
 
 ---
 

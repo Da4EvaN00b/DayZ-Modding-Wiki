@@ -35,7 +35,7 @@ Veiculos **nao** sao definidos no `types.xml`. Se voce adicionar uma classe de v
 
 O CE le o `events.xml`, escolhe um evento que precisa spawnar, busca posicoes correspondentes no `cfgeventspawns.xml`, seleciona uma aleatoriamente que satisfaca as restricoes de `saferadius` e `distanceradius`, e entao spawna uma entidade filha selecionada aleatoriamente naquela posicao.
 
-Todos os tres arquivos ficam em `mpmissions/<sua_missao>/db/`.
+O `events.xml` fica em `mpmissions/<sua_missao>/db/`, enquanto o `cfgeventspawns.xml` e o `cfgeventgroups.xml` ficam na raiz da missao (`mpmissions/<sua_missao>/`).
 
 ---
 
@@ -167,17 +167,17 @@ Helicrashes sao eventos dinamicos que spawnam destrocos com loot militar e infec
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +202,23 @@ Comboios militares sao grupos de veiculos destruidos estaticos que spawnam com l
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Comboios funcionam de forma identica a helicrashes: a tag `<secondary>` spawna `InfectedArmy` ao redor do local, e itens de loot com `deloot="1"` aparecem nos destrocos. Com `nominal=5`, ate 5 locais de comboio existem no mapa simultaneamente. Cada um dura 1800 segundos (30 minutos) antes de mudar para um novo local.
+Comboios funcionam como helicrashes: a tag `<secondary>` spawna `InfectedArmy` ao redor do local, e itens de loot com `deloot="1"` aparecem nos destrocos. Ao contrario do helicrash, o evento de comboio tem um elemento `<children/>` vazio -- seus veiculos destruidos sao definidos como um grupo no `cfgeventgroups.xml` e colocados via referencias de grupo no `cfgeventspawns.xml`. Com `nominal=5`, ate 5 locais de comboio existem no mapa simultaneamente. Cada um dura 1800 segundos (30 minutos) antes de mudar para um novo local.
 
 ---
 
@@ -231,20 +229,21 @@ Eventos de carros de policia spawnam veiculos policiais destruidos com infectado
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +257,15 @@ Eventos de carros de policia spawnam veiculos policiais destruidos com infectado
 Este arquivo define eventos onde multiplos objetos spawnam juntos com offsets posicionais relativos. O uso mais comum sao trens abandonados.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-O primeiro filho e colocado na posicao do `cfgeventspawns.xml`. Filhos subsequentes sao deslocados pelos seus valores `x`, `z`, `a` relativos a essa origem. Neste exemplo, os vagoes estao espacados 15 metros ao longo do eixo z.
+Cada grupo e declarado com um elemento `<group name="...">` dentro do `<eventgroupdef>` raiz do arquivo, e suas entradas `<child>` sao filhos diretos de `<group>` (nao ha um wrapper `<children>` aqui). O primeiro filho e colocado na posicao do `cfgeventspawns.xml`. Filhos subsequentes sao deslocados pelos seus valores `x`, `z`, `y`, `a` relativos a essa origem.
 
 Cada `<child>` em um grupo tem:
 
@@ -277,7 +274,11 @@ Cada `<child>` em um grupo tem:
 | `type` | Nome de classe do objeto a spawnar. |
 | `x` | Deslocamento X em metros da origem do grupo. |
 | `z` | Deslocamento Z em metros da origem do grupo. |
+| `y` | Deslocamento Y (vertical) em metros da origem do grupo. |
 | `a` | Deslocamento de angulo em graus da origem do grupo. |
+| `deloot` | Se loot de evento dinamico pode spawnar neste filho (0 ou 1). |
+| `lootmin` | Numero minimo de itens de loot spawnados neste filho. |
+| `lootmax` | Numero maximo de itens de loot spawnados neste filho. |
 
 O evento de grupo ainda precisa de uma entrada correspondente no `events.xml` para controlar contagens nominais, lifetime e estado ativo.
 

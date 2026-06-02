@@ -134,8 +134,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // Pattern VPP : [Nom] (pas de préfixe)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Règles :**
@@ -736,7 +736,7 @@ Avant de publier votre mod, vérifiez :
 |---------|-----|--------|
 | Dossiers de sous-systèmes profonds dans `3_Game` | StarDZ Core | 15+ dossiers sous `3_Game/` (Config, RPC, Events, Logging, Permissions, etc.) |
 | Dossier `Common/` partagé | COT | Inclus dans les `files[]` de chaque module de script pour fournir des types utilitaires inter-couches |
-| Noms de dossiers en minuscules | DabsFramework | Utilise `scripts/`, `gui/` au lieu de `Scripts/`, `GUI/` -- fonctionne sous Windows mais risque des problèmes sous Linux |
+| Chemins en minuscules dans `files[]` | DabsFramework | Les dossiers physiques sont `Scripts/`, `GUI/`, mais les `files[]` de `config.cpp` les référencent en minuscules (`scripts/`, `gui/`, `1_core`) -- fonctionne sous Windows mais risque des problèmes sous Linux |
 | PBO GUI séparé | Expansion, COT | Les ressources GUI (layouts, imagesets, styles) empaquetées dans un PBO dédié avec son propre config.cpp |
 | Scripts minimaux pour les mods de contenu | Packs d'armes | Le répertoire `Data/` domine ; `Scripts/` n'a qu'un mince config.cpp et des overrides de comportement optionnels |
 

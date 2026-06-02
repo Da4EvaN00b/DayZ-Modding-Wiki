@@ -30,7 +30,7 @@
 | Méthode | Retourne | Notes |
 |---------|----------|-------|
 | `Insert(item)` | `int` (index) | Ajouter à la fin |
-| `InsertAt(item, idx)` | `void` | Insérer à une position |
+| `InsertAt(item, idx)` | `int` (count) | Insérer à une position |
 | `Get(idx)` / `arr[idx]` | `T` | Accès par index |
 | `Set(idx, item)` | `void` | Remplacer à l'index |
 | `Find(item)` | `int` | Index ou -1 |
@@ -45,7 +45,7 @@
 | `Invert()` | `void` | Inverser |
 | `GetRandomElement()` | `T` | Sélection aléatoire |
 | `InsertAll(other)` | `void` | Ajouter tout depuis un autre tableau |
-| `Copy(other)` | `void` | Remplacer par une copie |
+| `Copy(other)` | `int` (count) | Remplacer par une copie |
 | `Resize(n)` | `void` | Redimensionner (remplit avec les valeurs par défaut) |
 | `Reserve(n)` | `void` | Pré-allouer la capacité |
 
@@ -147,7 +147,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifie sur place, retourne le nombre |
 | `s.ToLower()` | `void` | **Sur place !** |
 | `s.ToUpper()` | `void` | **Sur place !** |
-| `s.TrimInPlace()` | `void` | **Sur place !** |
+| `s.TrimInPlace()` | `int` (length) | **Sur place !** |
 | `s.Split(delim, out arr)` | `void` | Découpe en TStringArray |
 | `s.Get(idx)` | `string` | Caractère unique |
 | `s.Set(idx, ch)` | `void` | Remplacer un caractère |
@@ -212,11 +212,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Vérifier IsAlive (nécessite EntityAI)
+### Vérifier IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() est défini sur la classe de base Object (retourne !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Itération foreach sur une map

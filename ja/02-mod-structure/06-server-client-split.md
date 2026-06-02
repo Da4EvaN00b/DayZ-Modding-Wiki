@@ -159,7 +159,7 @@ void ShowNotification(string text)
         return;
 
     // クライアントのみがUIを表示可能
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 ```
 

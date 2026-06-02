@@ -173,7 +173,7 @@ void ShowNotification(string text)
         return;
 
     // Nur der Client kann UI anzeigen
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 
 // Guard: beide Seiten korrekt behandeln

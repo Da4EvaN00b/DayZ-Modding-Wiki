@@ -381,7 +381,7 @@ class AdminDemoPanel extends ScriptedWidgetEventHandler
     }
 
     // -------------------------------------------------------
-    // 当服务器响应到达时调用（来自 Mission 的 OnRPC）
+    // 当服务器响应到达时调用（来自 DayZGame 的 OnRPC 处理器）
     // -------------------------------------------------------
     void OnPlayerInfoReceived(int playerCount, string playerNames)
     {
@@ -565,24 +565,11 @@ modded class PlayerBase
         // --- 将响应发送回请求客户端 ---
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // 使用请求者的玩家对象调用 RPCSingleParam 以发送到特定客户端
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
+        // target = null 使客户端的 DayZGame.OnRPC 运行其自己的 switch；
+        // 接收者（requestor）将送达限制为该单个客户端。
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
 
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -603,7 +590,7 @@ modded class PlayerBase
 
 ```c
 GetGame().RPCSingleParam(
-    requestorPlayer,                        // 目标对象（玩家）
+    null,                                   // 目标对象（null -> 由客户端 DayZGame.OnRPC 处理）
     AdminDemoRPC.RESPONSE_PLAYER_INFO,      // RPC ID
     responseData,                           // 数据负载
     true,                                   // 保证送达
@@ -611,7 +598,7 @@ GetGame().RPCSingleParam(
 );
 ```
 
-第五个参数 `requestor`（一个 `PlayerIdentity`）使其成为定向响应。没有它，RPC 将发送给所有客户端。
+第五个参数 `requestor`（一个 `PlayerIdentity`）使其成为定向响应。没有它，RPC 将发送给所有客户端。第一个参数为 `null`，因为该响应由客户端的 `DayZGame.OnRPC` switch 处理 —— 如果你改为传入一个目标对象，引擎会将 RPC 转发到该对象的 `OnRPC`（三参数形式），而 `DayZGame` 的 switch 将永远不会运行。
 
 ---
 
@@ -620,6 +607,8 @@ GetGame().RPCSingleParam(
 回到客户端，我们需要拦截服务器的响应 RPC 并将其路由到面板。
 
 ### 创建 `Scripts/5_Mission/AdminDemo/AdminDemoMission.c`
+
+面板及其键盘切换功能存在于 mission 上，但 RPC 响应是在 `DayZGame` 上接收的 —— 它才是引擎真正的 RPC 全局处理器。因此我们相应地将文件拆分为两个 `modded` 类。
 
 ```c
 modded class MissionGameplay
@@ -668,8 +657,19 @@ modded class MissionGameplay
         }
     }
 
+    // 暴露该面板，以便 DayZGame 的 RPC 处理器能够访问它
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     // -------------------------------------------------------
-    // 在客户端接收服务器 RPC
+    // 在客户端接收服务器 RPC。
+    // DayZGame.OnRPC 是引擎的全局处理器；只有当
+    // RPC 没有目标时（target = null），它才会运行此 switch。
     // -------------------------------------------------------
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
@@ -700,15 +700,16 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
 
 ### 客户端 RPC 接收的工作原理
 
-1. **`MissionGameplay.OnRPC()`** 是客户端接收 RPC 的通用处理器。它会为每个传入的 RPC 触发。
+1. **`DayZGame.OnRPC()`** 是引擎在客户端接收 RPC 的全局处理器。它会为每个传入的 RPC 触发。任务类（`MissionGameplay`）没有 `OnRPC` 方法，因此接收方必须对 `DayZGame` 进行 mod。请注意，`DayZGame.OnRPC` 仅在 RPC 没有目标对象时才运行其自己的 switch；如果设置了目标，引擎会改为将 RPC 转发到 `target.OnRPC(sender, rpc_type, ctx)`。
 
 2. **`ParamsReadContext ctx`** 包含服务器发送的序列化数据。你必须使用匹配的 `Param` 类型通过 `ctx.Read()` 来反序列化它。
 
@@ -897,22 +898,8 @@ modded class PlayerBase
 
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -1091,6 +1078,14 @@ modded class MissionGameplay
         }
     }
 
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
@@ -1117,8 +1112,9 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
@@ -1152,7 +1148,7 @@ modded class MissionGameplay
 
 5. [网络] RPC 从服务器传输到客户端
 
-6. [客户端] MissionGameplay.OnRPC() 触发
+6. [客户端] DayZGame.OnRPC() 触发（target 为 null，因此其 switch 运行）
    --> rpc_type 匹配 RESPONSE_PLAYER_INFO
    --> HandlePlayerInfoResponse(ctx) 被调用
    --> 从 ParamsReadContext 反序列化数据
@@ -1188,7 +1184,7 @@ modded class MissionGameplay
 
 - **检查接收者参数：** `RPCSingleParam` 的第五个参数必须是目标客户端的 `PlayerIdentity`。
 - **检查 Param 类型匹配：** 服务器发送 `Param2<int, string>`，客户端读取 `Param2<int, string>`。类型不匹配会导致 `ctx.Read()` 失败。
-- **检查 MissionGameplay.OnRPC 重写：** 确保你调用了 `super.OnRPC()` 并且方法签名正确。
+- **检查 DayZGame.OnRPC 重写：** 确保你调用了 `super.OnRPC()`、方法签名正确，并且服务器以 `null` 目标发送了响应（否则引擎会将其路由到目标的 `OnRPC`，而 `DayZGame` 的 switch 将永远不会运行）。
 
 ### UI 显示但数据不更新
 

@@ -84,101 +84,95 @@ ServerInfoHUD/
 
 ## Шаг 1: Создание файла макета
 
-Файлы макетов (`.layout`) определяют иерархию виджетов в XML. GUI-система DayZ использует координатную модель, где каждый виджет имеет позицию и размер, выраженные как пропорциональные значения (от 0.0 до 1.0 родительского элемента) плюс пиксельные смещения.
+Файлы макетов (`.layout`) определяют иерархию виджетов в формате на основе фигурных скобок. Каждый виджет объявляется как `WidgetClass WidgetName { ... }`, атрибуты — это голые строки вида `name value` (заключаются в кавычки только если имя содержит пробелы), а дочерние виджеты вкладываются во внутренний блок `{ }`. GUI-система DayZ использует координатную модель, где каждый виджет имеет позицию и размер, выраженные как пропорциональные значения (от 0.0 до 1.0 родительского элемента) плюс пиксельные смещения.
 
 ### `GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <!-- Корневой фрейм: покрывает весь экран, не перехватывает ввод -->
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <!-- Фоновая панель: правый верхний угол -->
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <!-- Текст названия сервера -->
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Текст количества игроков -->
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Текст внутриигрового времени -->
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  // Фоновая панель: правый верхний угол
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    // Текст названия сервера
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+     "text halign" left
+     "text valign" top
+    }
+    // Текст количества игроков
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+    // Текст внутриигрового времени
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+   }
+  }
+ }
+}
 ```
 
 ### Ключевые концепции макета
 
 | Атрибут | Значение |
 |---------|----------|
-| `halign="2"` | Горизонтальное выравнивание: **вправо**. Виджет привязывается к правому краю родителя. |
-| `valign="0"` | Вертикальное выравнивание: **вверх**. |
-| `hexactpos="0"` + `vexactpos="1"` | Горизонтальная позиция пропорциональная (1.0 = правый край), вертикальная -- в пикселях. |
-| `hexactsize="1"` + `vexactsize="1"` | Ширина и высота в пикселях (220 x 70). |
-| `color="0 0 0 0.55"` | RGBA в виде дробных чисел. Чёрный с 55% непрозрачности для фоновой панели. |
+| `halign right` | Горизонтальное выравнивание: **вправо**. Виджет привязывается к правому краю родителя. |
+| `valign top` | Вертикальное выравнивание: **вверх**. |
+| `hexactpos 0` + `vexactpos 1` | Горизонтальная позиция пропорциональная (1.0 = правый край), вертикальная -- в пикселях. |
+| `hexactsize 1` + `vexactsize 1` | Ширина и высота в пикселях (220 x 70). |
+| `color 0 0 0 0.55` | RGBA в виде дробных чисел. Чёрный с 55% непрозрачности для фоновой панели. |
 
-`ServerInfoPanel` позиционирован с пропорциональным X=1.0 (правый край) и `halign="2"` (выравнивание вправо), поэтому правый край панели касается правой стороны экрана. Позиция Y -- 0 пикселей от верха. Это размещает наш HUD в правом верхнем углу.
+`ServerInfoPanel` позиционирован с пропорциональным X=1.0 (правый край) и `halign right` (выравнивание вправо), поэтому правый край панели касается правой стороны экрана. Позиция Y -- 0 пикселей от верха. Это размещает наш HUD в правом верхнем углу.
 
 **Почему пиксельные размеры для панели?** Пропорциональное масштабирование заставило бы панель изменяться с разрешением, но для небольших информационных виджетов нужен фиксированный пиксельный размер, чтобы текст оставался читаемым при любом разрешении.
 
@@ -485,6 +479,11 @@ ID RPC должны быть уникальными для всех модов. 
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Максимум слотов игроков. Нативной функции GetGame().GetMaxPlayers() нет,
+// поэтому задайте это значение в соответствии с конфигурацией сервера
+// (значение в параметрах запуска).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 **Почему `3_Game`?** Константы и перечисления должны находиться в самом нижнем слое, доступном и клиенту, и серверу. Слой `3_Game` загружается до `4_World` и `5_Mission`, поэтому обе стороны могут видеть эти значения.
@@ -532,8 +531,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // Максимум игроков из конфигурации сервера
-        maxPlayers = GetGame().GetMaxPlayers();
+        // Нативной функции GetGame().GetMaxPlayers() нет. Настроенное число
+        // слотов хранится в конфигурации сервера, а не в доступной из
+        // скрипта нативной функции CGame, поэтому здесь используем известную константу.
+        maxPlayers = SIH_MAX_PLAYERS;
 
         // Отправка ответа запрашивающему клиенту
         ScriptRPC rpc = new ScriptRPC();
@@ -933,6 +934,11 @@ class CfgMods
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Максимум слотов игроков. Нативной функции GetGame().GetMaxPlayers() нет,
+// поэтому задайте это значение в соответствии с конфигурацией сервера
+// (значение в параметрах запуска).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 ### Файл 5: `ServerInfoHUD/Scripts/4_World/ServerInfoHUD/ServerInfoServer.c`
@@ -972,8 +978,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         int playerCount = players.Count();
 
-        // Получение максимального количества слотов
-        int maxPlayers = GetGame().GetMaxPlayers();
+        // Нативной функции GetGame().GetMaxPlayers() нет. Настроенное число слотов
+        // хранится в конфигурации сервера, а не в доступной из скрипта нативной
+        // функции CGame, поэтому здесь используем известную константу.
+        int maxPlayers = SIH_MAX_PLAYERS;
 
         // Отправка данных обратно запрашивающему клиенту
         ScriptRPC rpc = new ScriptRPC();
@@ -1282,73 +1290,68 @@ modded class MissionGameplay
 
 ### Файл 8: `ServerInfoHUD/GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-            </Widget>
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+    }
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+    }
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+    }
+   }
+  }
+ }
+}
 ```
 
 ---
@@ -1369,31 +1372,22 @@ protected void RefreshFPS()
     if (!m_FPSText)
         return;
 
-    float fps = 1.0 / GetGame().GetDeltaT();
+    float fps = GetGame().GetLastFPS();
     m_FPSText.SetText("FPS: " + Math.Round(fps).ToString());
 }
 ```
 
-Вызывайте `RefreshFPS()` наряду с `RefreshTime()` в методе обновления. Обратите внимание, что `GetDeltaT()` возвращает время текущего кадра, поэтому значение FPS будет колебаться. Для более плавного отображения усредняйте за несколько кадров:
+Вызывайте `RefreshFPS()` наряду с `RefreshTime()` в методе обновления. Обратите внимание, что `GetLastFPS()` возвращает частоту кадров последнего кадра, поэтому значение будет колебаться. Для более плавного отображения используйте встроенное в движок скользящее среднее:
 
 ```c
-protected float m_FPSAccum;
-protected int m_FPSFrames;
-
 protected void RefreshFPS()
 {
     if (!m_FPSText)
         return;
 
-    m_FPSAccum += GetGame().GetDeltaT();
-    m_FPSFrames++;
-
-    float avgFPS = m_FPSFrames / m_FPSAccum;
+    // GetAvgFPS усредняет по заданному числу последних кадров.
+    float avgFPS = GetGame().GetAvgFPS(64);
     m_FPSText.SetText("FPS: " + Math.Round(avgFPS).ToString());
-
-    // Сброс каждую секунду (при срабатывании основного таймера)
-    m_FPSAccum = 0;
-    m_FPSFrames = 0;
 }
 ```
 
@@ -1481,7 +1475,7 @@ class DraggableHUD : ScriptedWidgetEventHandler
         return false;
     }
 
-    override bool OnUpdate(Widget w, int x, int y, int oldX, int oldY)
+    override bool OnDrag(Widget w, int x, int y)
     {
         if (m_Dragging && m_DragWidget)
         {
@@ -1598,7 +1592,7 @@ override void OnInit()
 |-----------|--------|------------|
 | `OnUpdate(float timeslice)` | Вызывается раз в кадр с дельтой времени кадра | На клиенте с 144 FPS это срабатывает 144 раза в секунду. Отправка RPC при каждом вызове создаёт 144 сетевых пакета в секунду на игрока. Всегда накапливайте `timeslice` и действуйте только когда сумма превышает ваш интервал. |
 | Путь макета `CreateWidgets()` | Загружает макет по указанному пути | Путь задаётся относительно префикса PBO, а не файловой системы. Если префикс PBO не совпадает со строкой пути, `CreateWidgets` молча возвращает NULL без ошибки в логе. |
-| `WidgetFadeTimer` | Плавно анимирует непрозрачность виджета | `FadeOut` скрывает виджет после завершения анимации, но `FadeIn` НЕ вызывает `Show(true)` предварительно. Вы должны вручную показать виджет перед вызовом `FadeIn`, иначе ничего не появится. |
+| `WidgetFadeTimer` | Плавно анимирует непрозрачность виджета | `FadeOut` скрывает виджет, когда альфа достигает значения, близкого к нулю, а `FadeIn` вызывает `Show(true)` на самом виджете перед анимацией альфы от 0 до 1. Поэтому дополнительный вызов `m_Root.Show(true)` перед `FadeIn` избыточен (безвреден, но не обязателен). |
 | `GetUApi().GetInputByName()` | Возвращает действие ввода для вашей пользовательской привязки клавиш | Если `inputs.xml` не указан в `config.cpp` в разделе `class inputs`, имя действия неизвестно и `GetInputByName` возвращает null, вызывая крах при `.LocalPress()`. |
 
 ---

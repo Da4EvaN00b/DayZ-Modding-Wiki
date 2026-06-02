@@ -45,16 +45,19 @@ Struktura vanillowa:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ Serwer laduje i laczy wszystkie pliki z `type="types"`.
 
 ## cfgenvironment.xml i terytoria zwierzat
 
-Plik **cfgenvironment.xml** w folderze misji odnosi sie do plikow terytoriow w podkatalogu `env/`:
+Plik **cfgenvironment.xml** w folderze misji mapuje pliki terytoriow w podkatalogu `env/` na zachowania zwierzat. Kazda grupa zwierzat to element `<territory>` z dzieckiem `<file usable="..." />` (przywolywanym po nazwie, bez prefiksu `env/` ani rozszerzenia `.xml`):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ Zdarzenia dynamiczne (rozbicia helikopterow, konwoje) sa zdefiniowane w **events
 </event>
 ```
 
-**3. Dodaj zarazonych straznikow** (opcjonalnie) -- dodaj elementy `<secondary type="ZmbM_PatrolNormal_Autumn" />` w definicji zdarzenia.
+**3. Dodaj zarazonych straznikow** (opcjonalnie) -- dodaj element `<secondary>InfectedArmy</secondary>` do definicji zdarzenia. Tresc odwoluje sie do nazwy innego zdarzenia w **events.xml**, ktore spawnuje zarazonych.
 
 **4. Spawny grupowe** (opcjonalnie) -- zdefiniuj klastry w **cfgeventgroups.xml** i odwolaj sie do nazwy grupy w swoim zdarzeniu.
 
@@ -265,14 +272,14 @@ Zawsze rob kopie zapasowa `storage_1/` przed kazdym restartem. Uszkodzona trwalo
 
 Plik **cfgweather.xml** w folderze misji kontroluje wzorce pogody. Kazda mapa jest dostarczana z wlasnymi domyslnymi wartosciami:
 
-Kazde zjawisko ma `min`, `max`, `duration_min` i `duration_max` (sekundy):
+Kazde zjawisko to zagniezdzony element (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`) zawierajacy dzieci `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` oraz `<changelimits min="" max="" />` (`rain` i `snowfall` przyjmuja takze element `<thresholds>`). Zakres wartosci `<limits>` dla kazdego zjawiska:
 
-| Zjawisko | Domyslne Min | Domyslne Max | Uwagi |
+| Zjawisko | Limity Min | Limity Max | Uwagi |
 |----------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Okresla gestosc chmur i prawdopodobienstwo deszczu |
 | `rain` | 0.0 | 1.0 | Wlacza sie dopiero powyzej progu zachmurzenia. Ustaw max na `0.0` dla braku deszczu |
 | `fog` | 0.0 | 0.3 | Wartosci powyzej `0.5` daja prawie zerowa widocznosc |
-| `wind_magnitude` | 0.0 | 18.0 | Wplywa na balistyke i ruch gracza |
+| `windMagnitude` | 0.0 | 20.0 | Predkosc wiatru w m/s; wplywa na balistyke i ruch gracza |
 
 ---
 

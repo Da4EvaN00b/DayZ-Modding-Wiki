@@ -219,18 +219,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Rejestracja
 
-VPP rejestruje wtyczki w zmoddowanym `MissionServer.OnInit()`:
+VPP rejestruje wtyczki poprzez zmoddowanie wanilowej metody `PluginManager.Init()`. `RegisterPlugin` przyjmuje nazwę klasy wtyczki jako ciąg znaków oraz flagi klient/serwer (nie przyjmuje instancji `new`):
 
 ```c
 // Wzorzec VPP
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Nazwa klasy        Klient  Serwer
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+Manager sam instancjonuje każdą zarejestrowaną wtyczkę. Aby pobrać działającą wtyczkę w innym miejscu, użyj `GetPluginManager().GetPluginByType(VPPESPPlugin)` lub globalnej funkcji `GetPlugin(VPPESPPlugin)`.
 
 ### Kluczowe cechy
 
-- **Ręczna rejestracja**: każda wtyczka jest jawnie tworzona przez `new` i rejestrowana
+- **Ręczna rejestracja**: każda wtyczka jest rejestrowana po nazwie klasy w `PluginManager.Init()`; manager ją instancjonuje
 - **Integracja z konfiguracją**: `ConfigurablePlugin` łączy zarządzanie konfiguracją z cyklem życia modułu
 - **Samodzielna**: brak zależności od CF; manager wtyczek VPP jest własnym systemem
 - **Jasna własność**: manager wtyczek trzyma `ref` do wszystkich wtyczek, kontrolując ich czas życia
@@ -532,7 +542,7 @@ override void OnMissionFinish()
 | **Integracja z konfiguracją** | Oddzielna | Wbudowana w ConfigurablePlugin | Oddzielna | Przez MyConfigManager |
 | **Rozsyłanie aktualizacji** | Automatyczne | Manager wywołuje `OnUpdate` | Automatyczne | Manager wywołuje `OnUpdate` |
 | **Czyszczenie** | CF to obsługuje | Ręczne `OnDestroy` | CF to obsługuje | `MyModuleManager.Cleanup()` |
-| **Dostęp między modami** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Dostęp między modami** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Wybierz podejście odpowiadające profilowi zależności twojego moda. Jeśli już zależysz od CF, użyj `CF_ModuleCore`. Jeśli chcesz zero zewnętrznych zależności, zbuduj własny system wzorowany na własnym managerze lub wzorcu VPP.
 

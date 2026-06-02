@@ -65,6 +65,7 @@ class ScriptedWidgetEventHandler
     // Egyéb
     bool OnUpdate(Widget w);
     bool OnModalResult(Widget w, int x, int y, int code, int result);
+    bool OnEvent(EventType eventType, Widget target, int parameter0, int parameter1);
 }
 ```
 

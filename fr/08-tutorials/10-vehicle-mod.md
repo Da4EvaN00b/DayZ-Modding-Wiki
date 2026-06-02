@@ -752,7 +752,7 @@ Si vous changez cette valeur pour la mauvaise, l'animation du joueur traversera 
 
 **CrewCanGetThrough** -- Cette méthode est appelée à chaque frame pour déterminer si un joueur peut entrer ou sortir d'un siège. Les sièges arrière de la Niva (indices 2 et 3) fonctionnent différemment des sièges avant : le dossier du siège avant doit être rabattu vers l'avant (phase d'animation > 0.5) avant que les passagers arrière puissent passer. Cela reproduit le comportement réel d'un hatchback 2 portes où les passagers arrière doivent incliner le siège avant.
 
-**OnDebugSpawn** -- Appelé lorsque vous utilisez le menu d'apparition de débogage. `SpawnUniversalParts()` ajoute des ampoules de phares et une batterie de voiture. `FillUpCarFluids()` remplit le carburant, le liquide de refroidissement, l'huile et le liquide de frein au maximum. Nous créons ensuite les roues, les portes, le capot et le coffre. Cela vous donne un véhicule immédiatement conduisible pour les tests.
+**OnDebugSpawn** -- Appelé lorsque vous utilisez le menu d'apparition de débogage. `SpawnUniversalParts()` ajoute des ampoules de phares et une batterie de voiture. `FillUpCarFluids()` remplit le carburant, le liquide de refroidissement et l'huile au maximum (il ne remplit pas le liquide de frein). Nous créons ensuite les roues, les portes, le capot et le coffre. Cela vous donne un véhicule immédiatement conduisible pour les tests.
 
 ---
 

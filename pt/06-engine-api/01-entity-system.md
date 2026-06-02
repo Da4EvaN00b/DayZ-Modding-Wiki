@@ -90,10 +90,10 @@ classDiagram
 
 | Método | Assinatura | Descrição |
 |--------|-----------|-------------|
-| `GetOrigin` | `proto native vector GetOrigin()` | Posição no mundo da entidade |
+| `GetOrigin` | `proto native external vector GetOrigin()` | Posição no mundo da entidade |
 | `SetOrigin` | `proto native external void SetOrigin(vector orig)` | Define a posição no mundo |
-| `GetYawPitchRoll` | `proto native vector GetYawPitchRoll()` | Rotação como yaw/pitch/roll em graus |
-| `GetTransform` | `proto native external void GetTransform(out vector mat[4])` | Matriz de transformação 4x3 completa |
+| `GetYawPitchRoll` | `proto native external vector GetYawPitchRoll()` | Rotação como yaw/pitch/roll em graus |
+| `GetTransform` | `proto external void GetTransform(out vector mat[])` | Matriz de transformação 4x3 completa |
 | `SetTransform` | `proto native external void SetTransform(vector mat[4])` | Define a transformação completa |
 
 ### Conversão de Coordenadas
@@ -109,8 +109,8 @@ classDiagram
 
 | Método | Assinatura | Descrição |
 |--------|-----------|-------------|
-| `AddChild` | `proto native external void AddChild(IEntity child, int pivot, bool positionOnly = false)` | Anexa entidade filha a um bone pivot |
-| `RemoveChild` | `proto native external void RemoveChild(IEntity child, bool keepTransform = false)` | Desanexa entidade filha |
+| `AddChild` | `proto native external bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Anexa entidade filha a um bone pivot |
+| `RemoveChild` | `proto native external bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Desanexa entidade filha |
 | `GetParent` | `proto native IEntity GetParent()` | Entidade pai (ou null) |
 | `GetChildren` | `proto native IEntity GetChildren()` | Primeira entidade filha |
 | `GetSibling` | `proto native IEntity GetSibling()` | Próxima entidade irmã |
@@ -119,8 +119,8 @@ classDiagram
 
 | Método | Assinatura | Descrição |
 |--------|-----------|-------------|
-| `SetEventMask` | `proto native external void SetEventMask(EntityEvent e)` | Habilita callbacks de eventos |
-| `ClearEventMask` | `proto native external void ClearEventMask(EntityEvent e)` | Desabilita callbacks de eventos |
+| `SetEventMask` | `proto native external EntityEvent SetEventMask(EntityEvent e)` | Habilita callbacks de eventos |
+| `ClearEventMask` | `proto native external EntityEvent ClearEventMask(EntityEvent e)` | Desabilita callbacks de eventos |
 | `SetFlags` | `proto native external EntityFlags SetFlags(EntityFlags flags, bool recursivelyApply)` | Define flags da entidade (VISIBLE, SOLID, etc.) |
 | `ClearFlags` | `proto native external EntityFlags ClearFlags(EntityFlags flags, bool recursivelyApply)` | Limpa flags da entidade |
 
@@ -266,10 +266,10 @@ TStringArray GetHiddenSelectionsMaterials();
 ### Acesso a Config (na própria entidade)
 
 ```c
-proto native bool   ConfigGetBool(string entryName);
-proto native int    ConfigGetInt(string entryName);
-proto native float  ConfigGetFloat(string entryName);
-proto native owned string ConfigGetString(string entryName);
+bool ConfigGetBool(string entryName);   // método de script comum: retorna ConfigGetInt(entryName) == 1
+proto int    ConfigGetInt(string entryName);
+proto float  ConfigGetFloat(string entryName);
+proto string ConfigGetString(string entryName);
 proto native void   ConfigGetTextArray(string entryName, out TStringArray values);
 proto native void   ConfigGetIntArray(string entryName, out TIntArray values);
 proto native void   ConfigGetFloatArray(string entryName, out TFloatArray values);
@@ -279,7 +279,7 @@ proto native bool   ConfigIsExisting(string entryName);
 ### ID de Rede
 
 ```c
-proto native int GetNetworkID(out int id_low, out int id_high);
+proto void GetNetworkID(out int lowBits, out int highBits);
 ```
 
 ### Exclusão
@@ -380,7 +380,7 @@ Registre variáveis no construtor para sincronizá-las automaticamente entre ser
 ```c
 proto native void RegisterNetSyncVariableBool(string variableName);
 proto native void RegisterNetSyncVariableInt(string variableName, int minValue = 0, int maxValue = 0);
-proto native void RegisterNetSyncVariableFloat(string variableName, float minValue = 0, float maxValue = 0);
+proto native void RegisterNetSyncVariableFloat(string variableName, float minValue = 0, float maxValue = 0, int precision = 1);
 ```
 
 Sobrescreva `OnVariablesSynchronized()` no cliente para reagir a mudanças:
@@ -413,7 +413,7 @@ class MyItem extends ItemBase
 ### Energy Manager
 
 ```c
-proto native ComponentEnergyManager GetCompEM();
+ComponentEnergyManager GetCompEM();   // método de script comum (retorna m_EM ou faz cast do componente do energy manager), não é proto native
 ```
 
 Uso:
@@ -471,7 +471,7 @@ Base para todos os itens de inventário. `typedef ItemBase Inventory_Base;` é u
 ### Sistema de Quantidade
 
 ```c
-void  SetQuantity(float value, bool destroy_config = true, bool destroy_forced = false);
+bool  SetQuantity(float value, bool destroy_config = true, bool destroy_forced = false, bool allow_client = false, bool clamp_to_stack_max = true);
 float GetQuantity();
 int   GetQuantityMin();
 int   GetQuantityMax();
@@ -530,11 +530,12 @@ class MyItem extends ItemBase
 ### Som
 
 ```c
-void PlaySoundSet(out EffectSound effect_sound, string sound_set,
-                  float fade_in, float fade_out);
-void PlaySoundSetLoop(out EffectSound effect_sound, string sound_set,
+// Herdado de Object.
+bool PlaySoundSet(out EffectSound effect_sound, string sound_set,
+                  float fade_in, float fade_out, bool loop = false);
+bool PlaySoundSetLoop(out EffectSound effect_sound, string sound_set,
                       float fade_in, float fade_out);
-void StopSoundSet(EffectSound effect_sound);
+bool StopSoundSet(out EffectSound effect_sound);
 ```
 
 ### Economia / Persistência
@@ -689,7 +690,7 @@ void Init()
 
 **Arquivo:** `4_World/entities/creatures/animals/`
 
-Base para todas as entidades animais. Estende `DayZAnimal` que estende `EntityAI`.
+Base para todas as entidades animais. Estende `DayZAnimal`, que estende `DayZCreatureAI` (descendendo, em última instância, de `EntityAI` via `DayZCreature`).
 
 Animais usam as mesmas APIs de vida, posição e dano que outras entidades. Seu comportamento é controlado pelo sistema de IA e por arquivos de território configurados pelo CE.
 

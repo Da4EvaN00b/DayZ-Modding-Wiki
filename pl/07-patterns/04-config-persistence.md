@@ -121,7 +121,7 @@ Wynikowy JSON wygląda tak:
 | `string` | String |
 | `vector` | Tablica 3 liczb |
 | `array<T>` | Tablica JSON |
-| `map<string, T>` | Obiekt JSON (tylko klucze stringowe) |
+| `map<K, T>` | Obiekt JSON (`K` może być `string`, `int` lub `enum`; JSON renderuje wszystkie klucze jako stringi) |
 | Zagnieżdżona klasa | Zagnieżdżony obiekt JSON |
 
 ### Zagnieżdżone obiekty

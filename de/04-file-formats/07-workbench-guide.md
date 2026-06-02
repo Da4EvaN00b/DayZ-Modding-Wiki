@@ -242,7 +242,7 @@ ScriptModulePathClass {
 
 Some frameworks override entry points (CF uses `"CF_CreateGame"`).
 
-**imageSets / widgetStyles** -- Erforderlich für layout preview. Without vanilla image sets, layout files show missing images. Always include the standard 14 vanilla image sets listed in the example above.
+**imageSets / widgetStyles** -- Erforderlich für layout preview. Without vanilla image sets, layout files show missing images. Include the vanilla image sets your layouts reference; the exact list varies (the default `dayz.gproj` ships roughly a dozen, e.g. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), then append your own.
 
 ### Path Prefix Resolution
 
@@ -500,7 +500,7 @@ When connected to DayZDiag, Workbench can profile script execution.
 
 ### In-Game Script Profiler (Diag Menu)
 
-In addition to Workbench's profiler, `DayZDiag_x64.exe` has a built-in Script Profiler accessible through the Diag Menu (under Statistics). It shows top-20 lists for time per class, time per function, class allocations, count per function, and class instance counts. Use the `-profile` launch parameter to enable profiling from startup. The profiler only measures Enforce Script -- proto (engine) methods sind nicht measured as separate entries, but their execution time is included in the total time of the script method that calls them. See `EnProfiler.c` in Vanilla scripts for the programmatic API (`EnProfiler.Enable`, `EnProfiler.SetModule`, flag constants).
+In addition to Workbench's profiler, `DayZDiag_x64.exe` has a built-in Script Profiler accessible through the Diag Menu (under Statistics). It shows top-20 lists for time per class, time per function, class allocations, and count per function, plus a top-40 list for class instance counts (Class count). Use the `-profile` launch parameter to enable profiling from startup. The profiler only measures Enforce Script -- proto (engine) methods sind nicht measured as separate entries, but their execution time is included in the total time of the script method that calls them. See `EnProfiler.c` in Vanilla scripts for the programmatic API (`EnProfiler.Enable`, `EnProfiler.SetModule`, flag constants).
 
 ### Common Bottlenecks
 

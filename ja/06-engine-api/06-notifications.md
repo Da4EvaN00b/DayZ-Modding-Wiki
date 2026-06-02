@@ -157,11 +157,13 @@ static void AddNotification(
 
 | タイプ | 説明 |
 |------|-------------|
-| `NotificationType.GENERIC` | 汎用通知 |
-| `NotificationType.FRIENDLY_FIRE` | フレンドリーファイア警告 |
-| `NotificationType.JOIN` | プレイヤー参加 |
-| `NotificationType.LEAVE` | プレイヤー退出 |
-| `NotificationType.STATUS` | ステータス更新 |
+| `NotificationType.FRIEND_CONNECTED` | フレンドが接続した |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | 招待失敗（既に同じサーバーにいる） |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | 参加時のセッション取得に失敗 |
+| `NotificationType.CONNECT_FAIL_GENERIC` | 汎用的な接続失敗 |
+| `NotificationType.DISCONNECTED` | サーバーから切断された |
+| `NotificationType.GENERIC_ERROR` | 汎用エラー |
+| `NotificationType.NOTIFICATIONS_END` | センチネル値（列挙の末尾を示す） |
 
 > **注意:** 利用可能なタイプはゲームバージョンによって異なります。最大限の柔軟性を得るには、カスタムのタイトルとアイコン文字列を受け付ける `Extended` バリアントを使用してください。
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ void OnNotifRemoved()
 static void Update(float timeslice);
 ```
 
-これはバニラミッションの `OnUpdate` メソッドによって自動的に呼び出されます。完全にカスタムのミッションを作成する場合は、必ず呼び出してください。
+これは（ゲームの更新ループである）`DayZGame.OnUpdate` から自動的に呼び出されます。ミッションの `OnUpdate` からではありません。完全にカスタムのゲームクラスを作成する場合は、必ず呼び出してください。
 
 ---
 

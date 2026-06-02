@@ -39,11 +39,13 @@ A konténer widgetek gyermek widgeteket tartalmaznak és rendszereznek. Önmaguk
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Folyam elrendezés. Gyermekeket sorban rendez el tördeléssel, kitöltéssel és margóval. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Rács elrendezés. Gyermekeket `Columns` és `Rows` által meghatározott rácsba rendezi. |
 | `ScrollWidget` | `ScrollWidgetClass` | Görgethető nézet. Függőleges/vízszintes görgetést tesz lehetővé a gyermek tartalom számára. |
-| `SpacerBaseWidget` | -- | Absztrakt alaposztály a `WrapSpacerWidget` és a `GridSpacerWidget` számára. |
+| `SpacerBaseWidget` | -- | Absztrakt alaposztály a `SpacerWidget` és a `ScrollWidget` számára. A `WrapSpacerWidget` és a `GridSpacerWidget` egyaránt a `SpacerWidget` osztályt bővíti. |
 
 ### FrameWidget
 
-A DayZ UI munkálója. Használd a `FrameWidget`-et alapértelmezett konténerként, amikor widgeteket kell csoportosítanod. Nincs vizuális megjelenése -- tisztán strukturális.
+A DayZ UI munkálója. Használj keretet alapértelmezett konténerként, amikor widgeteket kell csoportosítanod. Nincs vizuális megjelenése -- tisztán strukturális.
+
+> **Megjegyzés:** A `FrameWidgetClass` használható `.layout` fájlokban, és a `FrameWidgetTypeID` létezik a `CreateWidget()` számára, de nincs `FrameWidget` script osztály. A `PanelWidget`-hez hasonlóan a kerettel alap `Widget`-ként dolgozz -- ne konvertáld `FrameWidget`-té.
 
 **Fő metódusok:**
 - Minden alap `Widget` metódus (pozíció, méret, szín, gyermekek, jelzők)
@@ -52,7 +54,7 @@ A DayZ UI munkálója. Használd a `FrameWidget`-et alapértelmezett konténerk�
 
 ```c
 // Frame widget keresése név alapján
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +316,8 @@ Vízszintes csúszka numerikus értékekhez.
 **Fő metódusok:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // float-ot ad vissza (0-1)
+sw.SetMinMax(0, 100);       // Az értéktartomány beállítása (egyébként alapértelmezett tartomány)
+sw.GetCurrent();            // float-ot ad vissza a beállított min/max tartományon belül
 sw.SetCurrent(float val);   // Pozíció beállítása
 ```
 

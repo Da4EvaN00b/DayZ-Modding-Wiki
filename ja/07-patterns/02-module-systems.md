@@ -219,18 +219,28 @@ class ConfigurablePlugin : PluginBase
 
 ### 登録
 
-VPPは modded `MissionServer.OnInit()` でプラグインを登録します:
+VPPは vanilla の `PluginManager.Init()` を modded してプラグインを登録します。`RegisterPlugin` はプラグインのクラス名を文字列で受け取り、さらにクライアント/サーバーのフラグを受け取ります(`new` インスタンスは受け取りません):
 
 ```c
 // VPPパターン
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+マネージャーは登録された各プラグインを自身でインスタンス化します。実行中のプラグインを他の場所から取得するには、`GetPluginManager().GetPluginByType(VPPESPPlugin)` またはグローバルの `GetPlugin(VPPESPPlugin)` を使用します。
 
 ### 主な特徴
 
-- **手動登録**: 各プラグインは明示的に `new` され、登録されます
+- **手動登録**: 各プラグインは `PluginManager.Init()` でクラス名により登録され、マネージャーがそれをインスタンス化します
 - **設定の統合**: `ConfigurablePlugin` は設定管理とモジュールライフサイクルを統合します
 - **自己完結型**: CFへの依存なし。VPPのプラグインマネージャーは独自のシステムです
 - **明確な所有権**: プラグインマネージャーがすべてのプラグインへの `ref` を保持し、ライフタイムを制御します
@@ -529,7 +539,7 @@ override void OnMissionFinish()
 | **設定統合** | 別途 | ConfigurablePluginに組み込み | 別途 | MyConfigManager経由 |
 | **更新ディスパッチ** | 自動 | マネージャーが `OnUpdate` を呼び出す | 自動 | マネージャーが `OnUpdate` を呼び出す |
 | **クリーンアップ** | CFが処理 | 手動 `OnDestroy` | CFが処理 | `MyModuleManager.Cleanup()` |
-| **クロスMODアクセス** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **クロスMODアクセス** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 MODの依存プロファイルに合ったアプローチを選択してください。既にCFに依存している場合は `CF_ModuleCore` を使用します。外部依存ゼロを望む場合は、カスタムマネージャーまたはVPPパターンに従って独自のシステムを構築してください。
 

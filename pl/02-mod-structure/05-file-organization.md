@@ -130,8 +130,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPP pattern: [Name] (no prefix)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Rules:**
@@ -675,7 +675,7 @@ Content mods have a massive `Data/` directory and relatively small `Scripts/`.
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -685,18 +685,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- One of few mods using layer 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Note: DabsFramework uses lowercase folder names (`scripts/`, `gui/`). This works because Windows is case-insensitive, but may cause issues on Linux. The convention is to use the canonical casing (`Scripts/`, `GUI/`).
+Note: DabsFramework's physical folders use the canonical casing (`Scripts/`, `GUI/`, `1_Core/`), but its `config.cpp` `files[]` paths reference them in lowercase (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). This case mismatch works because Windows is case-insensitive, but may cause issues on Linux. Keep your `files[]` paths matching the actual folder casing.
 
 ---
 

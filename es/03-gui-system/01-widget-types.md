@@ -39,11 +39,13 @@ Container widgets hold and organize child widgets. They do not display content t
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Flow layout. Arranges children sequentially with wrapping, padding, and margins. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Grid layout. Arranges children in a grid defined by `Columns` and `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Scrollable viewport. Enables vertical/horizontal scrolling of child content. |
-| `SpacerBaseWidget` | -- | Abstract base class for `WrapSpacerWidget` and `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Abstract base class for `SpacerWidget` and `ScrollWidget`. `WrapSpacerWidget` and `GridSpacerWidget` both extend `SpacerWidget`. |
 
 ### FrameWidget
 
-The workhorse of DayZ UI. Use `FrameWidget` as your default container when you need to group widgets together. It has no visual appearance -- it is purely structural.
+The workhorse of DayZ UI. Use a frame as your default container when you need to group widgets together. It has no visual appearance -- it is purely structural.
+
+> **Note:** `FrameWidgetClass` is usable in `.layout` files and `FrameWidgetTypeID` exists for `CreateWidget()`, but there is no `FrameWidget` script class. Like `PanelWidget`, work with a frame as a base `Widget` -- do not cast to `FrameWidget`.
 
 **Key methods:**
 - All base `Widget` methods (position, size, color, children, flags)
@@ -52,7 +54,7 @@ The workhorse of DayZ UI. Use `FrameWidget` as your default container when you n
 
 ```c
 // Find a frame widget by name
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +316,8 @@ A horizontal slider for numeric values.
 **Key methods:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Returns float (0-1)
+sw.SetMinMax(0, 100);       // Configure the value range (default range otherwise)
+sw.GetCurrent();            // Returns float within the configured min/max range
 sw.SetCurrent(float val);   // Set position
 ```
 

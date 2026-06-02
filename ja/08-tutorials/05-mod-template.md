@@ -180,7 +180,7 @@ Mod が別の Mod に依存する場合、その CfgPatches クラス名を `req
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Community Framework に依存
+    "JM_CF_Scripts"           // Community Framework に依存
 };
 ```
 

@@ -347,7 +347,7 @@ Logging torna a depuração direta. Todo módulo deve fazer log quando inicializ
 | **Integração config** | Separada | Integrada no ConfigurablePlugin | Separada | Via MyConfigManager |
 | **Despacho de update** | Automático | Manager chama `OnUpdate` | Automático | Manager chama `OnUpdate` |
 | **Limpeza** | CF trata | Manual `OnDestroy` | CF trata | `MyModuleManager.Cleanup()` |
-| **Acesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Acesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Escolha a abordagem que corresponde ao perfil de dependências do seu mod. Se você já depende do CF, use `CF_ModuleCore`. Se quer zero dependências externas, construa seu próprio sistema seguindo o padrão MyMod ou VPP.
 

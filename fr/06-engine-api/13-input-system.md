@@ -113,7 +113,7 @@ float value   = input.LocalValue("UAMyAction", false);
 
 Note the slight naming difference: `LocalDoubleClick()` on `UAInput` vs `LocalDbl()` on `Input`.
 
-Both classes also provide `_ID` variants that accept integer action IDs instead of strings (e.g., `LocalPress_ID(int action)`).
+La classe `Input` fournit également des variantes `_ID` qui acceptent des identifiants d'action entiers au lieu de chaînes (par exemple, `LocalPress_ID(int action, bool check_focus = true)`). `UAInput` n'a pas de surcharges `_ID` ; ses méthodes (`LocalPress()`, etc.) ne prennent aucun paramètre.
 
 ---
 
@@ -203,7 +203,7 @@ modded class MissionGameplay
 Inputs can technically be checked in any per-frame callback, but `MissionGameplay.OnUpdate()` is the canonical location. Other valid places include:
 
 - `PlayerBase.CommandHandler()` --- runs every frame for the local player
-- `ScriptedWidgetEventHandler.Update()` --- for UI-specific input (but prefer widget event handlers)
+- `ScriptedWidgetEventHandler.OnUpdate(Widget w)` --- for UI-specific input (but prefer widget event handlers)
 - `PluginBase.OnUpdate()` --- for plugin-scoped input
 
 Avoid checking inputs in côté serveur code, entity constructors, or one-off event handlers where frame timing is not guaranteed.

@@ -39,11 +39,13 @@ DayZ のすべてのウィジェットは `Widget` ベースクラスを継承�
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | フローレイアウト。折り返し、パディング、マージン付きで子を順次配置。 |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | グリッドレイアウト。`Columns` と `Rows` で定義されたグリッドに子を配置。 |
 | `ScrollWidget` | `ScrollWidgetClass` | スクロール可能なビューポート。子コンテンツの縦/横スクロールを有効化。 |
-| `SpacerBaseWidget` | -- | `WrapSpacerWidget` と `GridSpacerWidget` の抽象ベースクラス。 |
+| `SpacerBaseWidget` | -- | `SpacerWidget` と `ScrollWidget` の抽象ベースクラス。`WrapSpacerWidget` と `GridSpacerWidget` はどちらも `SpacerWidget` を継承します。 |
 
 ### FrameWidget
 
-DayZ UI の主力です。ウィジェットをグループ化する必要がある場合、デフォルトのコンテナとして `FrameWidget` を使用してください。視覚的な外観はありません --- 純粋に構造的です。
+DayZ UI の主力です。ウィジェットをグループ化する必要がある場合、デフォルトのコンテナとしてフレームを使用してください。視覚的な外観はありません --- 純粋に構造的です。
+
+> **注意:** `FrameWidgetClass` は `.layout` ファイルで使用でき、`CreateWidget()` 用に `FrameWidgetTypeID` も存在しますが、`FrameWidget` スクリプトクラスは存在しません。`PanelWidget` と同様に、フレームはベースの `Widget` として扱ってください --- `FrameWidget` にキャストしないでください。
 
 **主要メソッド:**
 - すべてのベース `Widget` メソッド（位置、サイズ、色、子、フラグ）
@@ -52,7 +54,7 @@ DayZ UI の主力です。ウィジェットをグループ化する必要があ
 
 ```c
 // 名前でフレームウィジェットを検索
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +316,8 @@ eb.SetText("default");      // テキスト内容を設定
 **主要メソッド:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // float を返す（0-1）
+sw.SetMinMax(0, 100);       // 値の範囲を設定（指定しない場合はデフォルト範囲）
+sw.GetCurrent();            // 設定された min/max 範囲内の float を返す
 sw.SetCurrent(float val);   // 位置を設定
 ```
 

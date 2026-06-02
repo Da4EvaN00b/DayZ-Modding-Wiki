@@ -83,9 +83,9 @@ class Stage1                               // Texture stage: Normal map
     };
 };
 
-class Stage2                               // Texture stage: Diffuse/Color map
+class Stage2                               // Texture stage: Detail map (the base _co color comes from the model texture / hiddenSelectionsTextures[], not a Stage)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -138,24 +138,25 @@ Os valores `PixelShaderID` e `VertexShaderID` determinam qual pipeline de render
 | **Super** | Superficies opacas padrão (armas, roupas, itens) | Normal, Diffuse, Specular/Metallic |
 | **Multi** | Terreno multicamada e superfícies complexas | Multiplos pares diffuse/normal |
 | **Glass** | Superficies transparentes e semi-transparentes | Diffuse com alfa |
-| **Watér** | Superficies de agua com reflexao e refracao | Texturas especiais de agua |
-| **Terrain** | Superficies de solo do terreno | Satélite, mascara, camadas de matérial |
+| **CalmWater** | Superficies de agua com reflexao e refracao | Texturas especiais de agua |
+| **TerrainX** | Superficies de solo do terreno (pixel shader; o vertex shader e `Terrain`) | Satélite, mascara, camadas de matérial |
 | **NormalMap** | Superficie simplificada com normal map | Normal, Diffuse |
-| **NormalMapSpecular** | Normal map com specular | Normal, Diffuse, Specular |
-| **Hair** | Renderizacao de cabelo de personagem | Diffuse com alfa, translucencia especial |
+| **NormalMapSpecularMap** | Normal map com specular | Normal, Diffuse, Specular |
+| **SuperHair** | Renderizacao de cabelo de personagem | Diffuse com alfa, translucencia especial |
 | **Skin** | Pele de personagem com espalhamento subsuperficial | Diffuse, Normal, Specular |
-| **AlphaTest** | Transparencia de borda rigida (folhagem, cercas) | Diffuse com alfa |
-| **AlphaBlend** | Transparencia suave (vidro, fumaca) | Diffuse com alfa |
+| **AlphaShadow / AlphaNoShadow** | Transparencia por alfa (folhagem, cercas) com ou sem projecao de sombra | Diffuse com alfa |
 
 ### Shader Super (Mais Comum)
 
-O shader **Super** e o shader padrão de renderizacao baseada em física usado para a grande maioria dos itens no DayZ. Ele espera três estágios de textura:
+O shader **Super** e o shader padrão de renderizacao baseada em física usado para a grande maioria dos itens no DayZ. Ele espera estes estágios de textura principais (correspondendo a rvmats vanilla reais como `DZ\weapons\ammunition\data\00buck_box.rvmat`):
 
 ```
 Stage1 = Normal map (_nohq)
-Stage2 = Diffuse/Color map (_co)
+Stage2 = Detail map (_dt)
 Stage3 = Specular/Metallic map (_smdi)
 ```
+
+A cor base (`_co`) não é atribuida atraves de um Stage no shader Super -- ela vem da textura base do modelo ou de `hiddenSelectionsTextures[]`.
 
 Se você esta criando um item de mod (arma, roupa, ferramenta, container), você quase sempre usara o shader Super.
 
@@ -193,7 +194,7 @@ Cada classe `Stage` no RVMAT atribui uma textura a uma entrada específica do sh
 | Estagio | Função da Textura | Sufixo Típico | Descrição |
 |---------|-------------------|---------------|-----------|
 | **Stage1** | Normal map | `_nohq` | Detalhe de superfície, relevos, sulcos |
-| **Stage2** | Mapa diffuse / cor | `_co` ou `_ca` | Cor base da superfície |
+| **Stage2** | Mapa de detalhe | `_dt` | Detalhe fino de superfície (a cor base `_co` e fornecida pela textura base do modelo / `hiddenSelectionsTextures[]`, não por um Stage) |
 | **Stage3** | Mapa specular / metálico | `_smdi` | Brilho, propriedades metálicas, detalhe |
 | **Stage4** | Ambient Shadow | `_as` | Oclusao ambiental pre-assada (opcional) |
 | **Stage5** | Mapa macro | `_mc` | Variacao de cor em larga escala (opcional) |
@@ -267,10 +268,10 @@ A cor emissiva e adicionada a cor final do pixel independentemente da iluminacao
 Para superfícies finas que devem ser visíveis de ambos os lados (bandeiras, folhagem, tecido):
 
 ```cpp
-renderFlags[] = {"noZWrite", "noAlpha", "twoSided"};
+renderFlags[] = {"NoZWrite"};
 ```
 
-Esta não é uma propriedade de nível superior do RVMAT, mas e configurada no config.cpp ou atraves das configurações de shader do matérial dependendo do caso de uso.
+`renderFlags[]` e uma propriedade de nível superior do RVMAT (um irmao de `ambient[]` e `PixelShaderID`). Os valores vanilla são em PascalCase, como `"NoZWrite"`, `"NoAlphaWrite"`, `"NoColorWrite"` e `"AddBlend"`. Não existe uma flag `"twoSided"` -- a renderizacao em dois lados e controlada em outro lugar (por exemplo nas propriedades de face do Object Builder), não atraves de `renderFlags[]`.
 
 ---
 
@@ -285,15 +286,25 @@ class MyItem: Inventory_Base
 {
     // ... other config ...
 
-    healthLevels[] =
+    class DamageSystem
     {
-        // {health_threshold, {"material_set"}},
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    // {health_threshold, {"material_set"}},
 
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+                };
+            };
+        };
     };
 };
 ```
@@ -341,16 +352,16 @@ data/
 
 ### Usando Matériais de Dano Vanilla
 
-O DayZ fornece um conjunto de matériais genericos de overlay de dano que podem ser usados se você não quiser criar texturas de dano personalizadas:
+Itens vanilla não usam um conjunto de overlays genericos nomeados por nível. Em vez disso, cada nível de saude aponta para um RVMAT específico do item (típicamente `<item>.rvmat`, `<item>_damage.rvmat` e `<item>_destruct.rvmat`), reutilizando o mesmo arquivo entre níveis adjacentes. O único matérial generico em `DZ\data\data\` e `default_destruct.rvmat` (junto com `default.rvmat`):
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -575,7 +586,7 @@ VertexShaderID = "Super";
 ### 1. Ordem de Stage Errada
 
 **Sintoma:** Textura aparece embaralhada, normal map mostra como cor, cor mostra como relevos.
-**Correção:** Garanta que Stage1 = normal, Stage2 = diffuse, Stage3 = specular (para o shader Super).
+**Correção:** Garanta que Stage1 = normal, Stage2 = detalhe, Stage3 = macro, Stage5 = specular (para o shader Super). A cor base `_co` vem da textura do modelo / `hiddenSelectionsTextures[]`, não de um Stage. Veja a tabela de Atribuicoes de Estagio acima.
 
 ### 2. Grafia Errada de `emmisive`
 
@@ -595,7 +606,7 @@ VertexShaderID = "Super";
 ### 5. Usando Shader Errado para Itens Transparentes
 
 **Sintoma:** Textura transparente aparece opaca, ou toda a superfície desaparece.
-**Correção:** Use o shader `Glass`, `AlphaTest` ou `AlphaBlend` em vez de `Super` para superfícies transparentes. Use texturas com sufixo `_ca` com canais alfa adequados.
+**Correção:** Use o shader `Glass`, `AlphaShadow` ou `AlphaNoShadow` em vez de `Super` para superfícies transparentes. Use texturas com sufixo `_ca` com canais alfa adequados.
 
 ---
 

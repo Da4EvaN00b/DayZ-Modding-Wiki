@@ -138,7 +138,7 @@ When a player is inside a contaminated trigger zone without proper protection:
 - The PPE effect tints the player's vision (green/yellow tint standardmäßig)
 - Gas particles appear around der Spieler character
 
-**Protection:** Gas masks with intact filters and NBC suits provide protection. The protection logic is handled in script (`ContaminatedAreaAgent` and related classes), not in the JSON configuration.
+**Protection:** Gas masks with intact filters and NBC suits provide protection. Der Schadens-Tick wird im Skript von der Klasse `ContaminatedTrigger` verarbeitet (unter Verwendung von `GameConstants.AI_CONTAMINATION_DMG_PER_SEC`), und der Schutz kommt von getragener NBC-Ausrüstung --- keines von beidem wird in der JSON-Konfiguration festgelegt.
 
 ### Multiple Zones
 
@@ -499,7 +499,7 @@ The `cfgGameplay.json` file provides server admins with a way to tweak gameplay 
 |------|-----------|---------|-------------|
 | float | `sprintStaminaModifierErc` | `1.0` | Stamina consumption rate during standing sprint |
 | float | `sprintStaminaModifierCro` | `1.0` | Stamina consumption rate during crouched sprint |
-| float | `staminaWeightLimitThreshold` | `6000.0` | Stamina points (divided by 1000) exempt from weight deduction |
+| float | `staminaWeightLimitThreshold` | `6000.0` | Tragegewichtsschwelle in Gramm (6000 g = 6 kg), unterhalb derer die Last die Ausdauer nicht beeinträchtigt |
 | float | `staminaMax` | `100.0` | Maximum stamina (mache nicht set to 0) |
 | float | `staminaKgToStaminaPercentPenalty` | `1.75` | Multiplier for stamina deduction based on player load |
 | float | `staminaMinCap` | `5.0` | Minimum stamina cap (mache nicht set to 0) |

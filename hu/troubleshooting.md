@@ -71,7 +71,7 @@
 
 | Tunet | Ok | Javitas |
 |-------|-----|---------|
-| Layout betoltodik, de semmi nem lathato | A widget merete nulla | Ellenorizd a `hexactsize` es `vexactsize` ertekeket. Nincs negativ meret. Lasd [3.3 Fejezet](03-gui-system/03-sizing-positioning.md). |
+| Layout betoltodik, de semmi nem lathato | A widget merete nulla | Ellenorizd a widget `size` attributumat (a `w h` ertekeknek nullanal nagyobbnak kell lenniuk). Ne hasznalj negativ meretet. (A `hexactsize`/`vexactsize` `0`/`1` jelzok, amelyek a proporcionalis (`0`) es a pixel (`1`) alapu meretezes kozott valasztanak, nem maga a meret.) Lasd [3.3 Fejezet](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` null-t ad vissza | A layout fajl utvonala helytelen vagy a fajl hianzik | Ellenorizd a `.layout` fajl utvonalat. A motor csendben `null`-t ad vissza rossz utvonalaknal. |
 | Widgetek leteznek, de nem kattinthatoak | Masik widget takarja a gombot | Ellenorizd a widget `priority`-jat (z-sorrend). |
 | Jatek bevitel beragadt a UI bezarasa utan | A `ChangeGameFocus()` hivasok nincsenek egyensulyban | Minden `ChangeGameFocus(1)`-nek megfelelo `ChangeGameFocus(-1)` kell. |

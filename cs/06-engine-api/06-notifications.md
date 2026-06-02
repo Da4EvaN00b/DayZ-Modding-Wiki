@@ -157,11 +157,13 @@ Vanilla hra definuje typy notifikací s přiřazenými titulky a ikonami. Běžn
 
 | Typ | Popis |
 |-----|-------|
-| `NotificationType.GENERIC` | Obecná notifikace |
-| `NotificationType.FRIENDLY_FIRE` | Varování přátelské palby |
-| `NotificationType.JOIN` | Připojení hráče |
-| `NotificationType.LEAVE` | Odpojení hráče |
-| `NotificationType.STATUS` | Aktualizace stavu |
+| `NotificationType.FRIEND_CONNECTED` | Přítel se připojil |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Pozvánka selhala (již na stejném serveru) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Nepodařilo se získat relaci při připojování |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Obecné selhání připojení |
+| `NotificationType.DISCONNECTED` | Odpojeno od serveru |
+| `NotificationType.GENERIC_ERROR` | Obecná chyba |
+| `NotificationType.NOTIFICATIONS_END` | Hraniční hodnota (označuje konec výčtu) |
 
 > **Poznámka:** Dostupné typy závisí na verzi hry. Pro maximální flexibilitu používejte varianty `Extended`, které přijímají vlastní řetězce titulku a ikony.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ Systém notifikací musí být tiknut každý snímek pro zpracování animací 
 static void Update(float timeslice);
 ```
 
-Toto je automaticky voláno metodou `OnUpdate` vanilla mise. Pokud píšete zcela vlastní misi, ujistěte se, že ji voláte.
+Toto je automaticky voláno z `DayZGame.OnUpdate` (aktualizační smyčky hry), nikoli z metody `OnUpdate` mise. Pokud píšete zcela vlastní herní třídu, ujistěte se, že ji voláte.
 
 ---
 

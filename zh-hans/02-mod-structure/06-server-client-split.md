@@ -172,7 +172,7 @@ void ShowNotification(string text)
         return;
 
     // 只有客户端可以显示 UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 ```
 

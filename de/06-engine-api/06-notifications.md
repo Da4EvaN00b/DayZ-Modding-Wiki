@@ -157,11 +157,13 @@ Das Vanilla-Spiel definiert Benachrichtigungstypen mit zugehörigen Titeln und I
 
 | Typ | Beschreibung |
 |-----|--------------|
-| `NotificationType.GENERIC` | Allgemeine Benachrichtigung |
-| `NotificationType.FRIENDLY_FIRE` | Friendly-Fire-Warnung |
-| `NotificationType.JOIN` | Spieler beigetreten |
-| `NotificationType.LEAVE` | Spieler verlassen |
-| `NotificationType.STATUS` | Status-Aktualisierung |
+| `NotificationType.FRIEND_CONNECTED` | Ein Freund hat sich verbunden |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Einladung fehlgeschlagen (bereits auf demselben Server) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Sitzung beim Beitreten konnte nicht abgerufen werden |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Allgemeiner Verbindungsfehler |
+| `NotificationType.DISCONNECTED` | Vom Server getrennt |
+| `NotificationType.GENERIC_ERROR` | Allgemeiner Fehler |
+| `NotificationType.NOTIFICATIONS_END` | Sentinel-Wert (markiert das Ende des Enums) |
 
 > **Hinweis:** Die verfügbaren Typen hängen von der Spielversion ab. Für maximale Flexibilität verwenden Sie die `Extended`-Varianten, die benutzerdefinierte Titel- und Icon-Strings akzeptieren.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ Das Benachrichtigungssystem muss jeden Frame getaktet werden, um Ein-/Ausblendan
 static void Update(float timeslice);
 ```
 
-Dies wird automatisch von der `OnUpdate`-Methode der Vanilla-Mission aufgerufen. Wenn Sie eine vollständig benutzerdefinierte Mission schreiben, stellen Sie sicher, dass Sie es aufrufen.
+Dies wird automatisch von `DayZGame.OnUpdate` (der Update-Schleife des Spiels) aufgerufen, nicht von der `OnUpdate`-Methode der Mission. Wenn Sie eine vollständig benutzerdefinierte Spielklasse schreiben, stellen Sie sicher, dass Sie es aufrufen.
 
 ---
 

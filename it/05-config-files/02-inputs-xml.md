@@ -38,7 +38,7 @@ Gli input personalizzati sono identificati da un nome di azione unico (convenzio
 
 ## Posizione del File
 
-Posiziona `inputs.xml` dentro una sottocartella `data` della tua directory Scripts:
+Puoi posizionare `inputs.xml` ovunque all'interno del PBO della tua mod. Una disposizione comune è una sottocartella `data` della tua directory Scripts:
 
 ```
 @MyMod/
@@ -52,7 +52,7 @@ Posiziona `inputs.xml` dentro una sottocartella `data` della tua directory Scrip
         5_Mission/
 ```
 
-Alcune mod lo posizionano direttamente nella cartella `Scripts/`. Entrambe le posizioni funzionano. Il motore individua il file automaticamente --- non è necessaria alcuna registrazione in config.cpp.
+La posizione del file non è fissata per convenzione; il motore non lo individua automaticamente. Devi registrare il file puntando la proprietà `inputs` del blocco `CfgMods` del tuo `config.cpp` ad esso, ad esempio `inputs = "MyMod/Scripts/data/inputs.xml";`. Il percorso è arbitrario --- il motore carica il file da dove lo specifichi.
 
 ---
 
@@ -296,7 +296,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-Il parametro `false` in `LocalPress("name", false)` indica che il controllo non dovrebbe consumare l'evento di input.
+Il parametro `false` in `LocalPress("name", false)` è l'argomento `check_focus`. Passando `false` l'input viene valutato anche quando la finestra di gioco non è a fuoco; quando è `true` (il valore predefinito), un gioco non a fuoco restituisce `false`. Non controlla il consumo dell'input.
 
 ---
 
@@ -338,7 +338,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Azione con doppio tap:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +410,12 @@ I nomi dei tasti usati nell'attributo `<btn name="">` seguono una convenzione di
 | Lettere | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Numeri (riga superiore) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Tasti funzione | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modificatori | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navigazione | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modificatori | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (Alt sinistro), `kRMenu` (Alt destro) |
+| Navigazione | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Editing | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Tastierino numerico | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Tastierino numerico | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (+ del tastierino), `kSubstract` (- del tastierino, nota l'ortografia del motore), `kMultiply` (* del tastierino), `kDivide` (/ del tastierino), `kDecimal` (. del tastierino) |
 | Punteggiatura | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Blocchi | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Blocchi | `kCapital` (Caps Lock), `kNumlock` (nota la `l` minuscola), `kScrollLock` |
 
 ### Pulsanti del Mouse
 
@@ -424,15 +424,18 @@ I nomi dei tasti usati nell'attributo `<btn name="">` seguono una convenzione di
 | `mBLeft` | Pulsante sinistro del mouse |
 | `mBRight` | Pulsante destro del mouse |
 | `mBMiddle` | Pulsante centrale del mouse (clic della rotella) |
-| `mBExtra1` | Pulsante mouse 4 (pulsante laterale indietro) |
-| `mBExtra2` | Pulsante mouse 5 (pulsante laterale avanti) |
+| `mB4` | Pulsante mouse 4 (pulsante laterale indietro) |
+| `mB5` | Pulsante mouse 5 (pulsante laterale avanti) |
+| `mB6`, `mB7`, `mB8` | Pulsanti aggiuntivi del mouse |
 
-### Assi del Mouse
+### Movimento e Rotella del Mouse
 
-| Nome | Asse |
-|------|------|
-| `mAxisX` | Movimento orizzontale del mouse |
-| `mAxisY` | Movimento verticale del mouse |
+| Nome | Direzione |
+|------|-----------|
+| `mLeft` | Mouse spostato a sinistra |
+| `mRight` | Mouse spostato a destra |
+| `mUp` | Mouse spostato in alto |
+| `mDown` | Mouse spostato in basso |
 | `mWheelUp` | Rotella di scorrimento su |
 | `mWheelDown` | Rotella di scorrimento giù |
 
@@ -440,7 +443,7 @@ I nomi dei tasti usati nell'attributo `<btn name="">` seguono una convenzione di
 
 - **Tastiera**: prefisso `k` + nome del tasto (es. `kT`, `kF5`, `kLControl`)
 - **Pulsanti mouse**: prefisso `mB` + nome del pulsante (es. `mBLeft`, `mBRight`)
-- **Assi mouse**: prefisso `m` + nome dell'asse (es. `mAxisX`, `mWheelUp`)
+- **Movimento/rotella mouse**: prefisso `m` + nome della direzione (es. `mLeft`, `mWheelUp`)
 
 ---
 
@@ -626,7 +629,7 @@ Scegliere tasti che entrano in conflitto con le associazioni vanilla (come `W`, 
 |----------|--------|--------|
 | `visible="false"` nasconde dal menù Controlli | L'input è registrato ma invisibile | Gli input nascosti appaiono comunque nell'elenco del blocco `<sorting>` in alcune versioni di DayZ. Ometterlo dal `<sorting>` è il modo affidabile per nascondere gli input |
 | `LocalPress()` si attiva una volta alla pressione | Trigger singolo nel frame in cui il tasto viene premuto | Se il gioco ha un singhiozzo (FPS bassi), `LocalPress()` può essere completamente mancato. Per azioni critiche, controlla anche `LocalValue() > 0` come fallback |
-| Combinazioni con modificatori tramite `<btn>` annidati | L'esterno è il modificatore, l'interno è il trigger | Il tasto modificatore da solo registra anche una pressione sul suo input (es. `kLControl` è anche l'accovacciamento vanilla). I giocatori che tengono Ctrl+Clic si accovacceranno anche |
+| Combinazioni con modificatori tramite `<btn>` annidati | L'esterno è il modificatore, l'interno è il trigger | Il tasto modificatore da solo registra anche una pressione sul suo input (es. `kLControl` è il Trattieni il Respiro vanilla, associato a `UAHoldBreath`; l'accovacciamento/postura vanilla `UAStance` è su `kC`). I giocatori che tengono Ctrl+Clic attiveranno anche Trattieni il Respiro |
 | `ForceDisable(true)` sopprime l'input | L'input è completamente ignorato | `ForceDisable` persiste fino a quando non viene esplicitamente riabilitato. Se la tua mod va in crash o l'UI si chiude senza chiamare `ForceDisable(false)`, l'input resta disabilitato fino al riavvio del gioco |
 | Più `<btn>` fratelli | Entrambi i tasti attivano la stessa azione | Funziona correttamente, ma il menù Controlli mostra solo il primo tasto. Il giocatore può vedere e riassegnare il primo tasto ma potrebbe non rendersi conto che il secondo predefinito esiste |
 

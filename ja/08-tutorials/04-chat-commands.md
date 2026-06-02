@@ -116,7 +116,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID はプレイヤーがチャットメッセージを送信した時に発火する
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +173,12 @@ modded class MissionGameplay
 
 ### チャット傍受の仕組み
 
-`MissionGameplay` の `OnEvent` メソッドは、様々なゲームイベントに対して呼び出されます。`eventTypeId` が `ChatMessageEventTypeID` の場合、プレイヤーがチャットメッセージを送信したことを意味します。`Param3` には以下が含まれます：
+`MissionGameplay` の `OnEvent` メソッドは、様々なゲームイベントに対して呼び出されます。`eventTypeId` が `ChatMessageEventTypeID` の場合、プレイヤーがチャットメッセージを送信したことを意味します。params は `ChatMessageEventParams`（`Param4<int, string, string, string>`）であり、以下が含まれます：
 
 - `param1` -- チャンネル（int）：チャットチャンネル（グローバル、ダイレクトなど）
 - `param2` -- 送信者名（string）
 - `param3` -- メッセージテキスト（string）
+- `param4` -- 色設定クラス（string）
 
 メッセージが `/` で始まるかを確認します。該当する場合、文字列全体をRPC経由でサーバーに転送します。メッセージは通常のチャットとしても送信されます -- 本番のModでは、これを抑制する必要があります（末尾のノートで説明します）。
 
@@ -644,8 +645,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | チャンネル | 色 | 一般的な用途 |
 |---------|-------|-------------|
-| `"colorStatusChannel"` | 黄色/オレンジ | システムメッセージ |
-| `"colorAction"` | 白 | アクションフィードバック |
+| `"colorStatusChannel"` | 青 | システムメッセージ |
+| `"colorAction"` | 黄色 | アクションフィードバック |
 | `"colorFriendly"` | 緑 | ポジティブなフィードバック |
 | `"colorImportant"` | 赤 | 警告/エラー |
 
@@ -1352,7 +1353,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1506,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### 管理者の権限が拒否される
 
 - **Steam64 IDの誤り:** `IsCommandAdmin()` の管理者IDを再確認してください。正確なSteam64 ID（`7656` で始まる17桁の数字）である必要があります。
-- **GetPlainId() と GetId() の違い:** `GetPlainId()` はSteam64 IDを返します。`GetId()` はDayZセッションIDを返します。管理者チェックには `GetPlainId()` を使用してください。
+- **GetPlainId() と GetId() の違い:** `GetPlainId()` はプレーンテキストのSteam64 IDを返します。`GetId()` は安定したハッシュ化された一意のID（データベースやログに安全）を返し、セッションIDではありません -- プレイヤーが切断した後に再利用されるセッションごとのIDは `GetPlayerId()`（int）です。管理者チェックには `GetPlainId()` を使用してください。
 
 ### フィードバックメッセージがチャットに表示されない
 
@@ -1521,20 +1522,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### コマンドが通常のメッセージとしてチャットに表示される
 
-- `OnEvent` フックはメッセージを傍受しますが、チャットとしての送信は抑制しません。本番のModでこれを抑制するには、`ChatInputMenu` クラスをmodして `/` メッセージを送信前にフィルタリングする必要があります：
+- `OnEvent` フックはメッセージを傍受しますが、チャットとしての送信は抑制しません。本番のModでこれを抑制するには、`ChatInputMenu` クラスをmodして `/` メッセージを送信前にフィルタリングする必要があります。バニラでは、`ChatInputMenu` は `OnChange()` ハンドラーからチャットテキストを送信し、その中で `g_Game.ChatPlayer(text)` を呼び出します。`OnChange()` をオーバーライドし、テキストが `/` で始まる場合に送信をスキップできます：
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // エディットウィジェットから現在のテキストを取得する
-        // / で始まる場合、super を呼び出さない（superがチャットとして送信する）
+        // エディットウィジェットから現在のテキストを取得する（m_edit_box.GetText()）
+        // / で始まる場合、super を呼び出さない（superが g_Game.ChatPlayer を呼び出す）
         // 代わりにコマンドとして処理する
 
         // このアプローチはDayZのバージョンによって異なる -- バニラソースを確認すること
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1558,7 @@ modded class ChatInputMenu
 
 - **管理者コマンドを実行する前に必ず権限を確認してください。** 権限チェックが欠落していると、任意のプレイヤーが誰でも `/heal` や `/kill` できてしまいます。処理前にサーバー上で呼び出し元のSteam64 ID（`GetPlainId()` 経由）を検証してください。
 - **失敗したコマンドでも管理者にフィードバックを送信してください。** サイレントな失敗はデバッグを不可能にします。何が問題だったかを説明するチャットメッセージ（「Player not found」、「Permission denied」）を必ず送信してください。
-- **管理者チェックには `GetId()` ではなく `GetPlainId()` を使用してください。** `GetId()` は再接続のたびに変わるセッション固有のDayZ IDを返します。`GetPlainId()` は永続的なSteam64 IDを返します。
+- **管理者チェックには `GetId()` ではなく `GetPlainId()` を使用してください。** `GetId()` はデータベースやログ用に意図された安定したハッシュ化された一意のIDを返します（プレイヤーが切断した後に再利用されるセッションごとのIDは `GetPlayerId()` です）。`GetPlainId()` はプレーンテキストのSteam64 IDを返します。
 - **管理者IDはコード内ではなくJSON設定ファイルに保存してください。** ハードコードされたIDは変更にPBOの再ビルドが必要です。`$profile:` のJSONファイルはModの知識がなくてもサーバー管理者が編集できます。
 - **マッチング前にコマンド名を小文字に変換してください。** プレイヤーは `/Heal`、`/HEAL`、`/heal` と入力する可能性があります。小文字への正規化により、苛立たしい「unknown command」エラーを防ぎます。
 

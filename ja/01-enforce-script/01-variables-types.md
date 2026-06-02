@@ -305,8 +305,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // 他の型からの変換
-    string fromInt = "Score: " + 42;     // 動作しない -- 明示的に変換が必要
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // 動作する -- + 演算子が 42 を "42" に変換する
+    string correct = "Score: " + 42.ToString();  // "Score: 42"（明示的、結果は同じ）
 
     // Format の使用が推奨されるアプローチ
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +464,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // 文字列から typename を取得
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // 型の比較
     if (t == PlayerBase)

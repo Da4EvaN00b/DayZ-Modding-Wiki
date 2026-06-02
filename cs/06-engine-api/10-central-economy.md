@@ -312,10 +312,14 @@ Root-level CE configuration. Defines výchozí values, CE classes, and logging f
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +328,13 @@ Root-level CE configuration. Defines výchozí values, CE classes, and logging f
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globálnís.xml`.
+Hlavní CE soubory (`types.xml`, `events.xml`, `globals.xml`) se podle vestavěné konvence nacházejí ve složce `db/` --- vanilla `cfgeconomycore.xml` neobsahuje element `<ce>`, který by na ně odkazoval. Element `<ce>` se místo toho používá k registraci **dodatečných** vlastních CE souborů (zaveden v aktualizaci 1.08): atribut `folder` pojmenovává složku obsahující vaše vlastní XML a každý vnořený záznam `<file name="..." type="..."/>` přidává k odpovídajícímu vanilla souboru nebo jej přepisuje (`type` může být `types`, `spawnabletypes`, `globals`, `economy`, `events` nebo `messages`).
 
 ---
 

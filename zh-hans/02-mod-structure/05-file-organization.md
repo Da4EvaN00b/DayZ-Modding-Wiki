@@ -134,8 +134,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPP 模式：[名称]（无前缀）
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **规则：**
@@ -679,7 +679,7 @@ MyMod_Weapons/
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -689,18 +689,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- 少数使用第 2 层的模组之一
     3_Game/
     4_World/
     5_Mission/
 ```
 
-注意：DabsFramework 使用小写文件夹名（`scripts/`、`gui/`）。这在 Windows 上可以工作，因为 Windows 不区分大小写，但在 Linux 上可能会出问题。约定是使用标准大小写（`Scripts/`、`GUI/`）。
+注意：DabsFramework 的物理文件夹使用标准大小写（`Scripts/`、`GUI/`、`1_Core/`），但其 `config.cpp` 的 `files[]` 路径以小写引用它们（`DabsFramework/scripts/1_core`、`DabsFramework/gui/...`）。这种大小写不匹配在 Windows 上可以工作，因为 Windows 不区分大小写，但在 Linux 上可能会出问题。请让你的 `files[]` 路径与实际的文件夹大小写保持一致。
 
 ---
 
@@ -845,7 +845,7 @@ MyModPanel.c
 |---------|-----|--------|
 | `3_Game` 中的深层子系统文件夹 | StarDZ Core | `3_Game/` 下有 15+ 文件夹（Config、RPC、Events、Logging、Permissions 等） |
 | `Common/` 共享文件夹 | COT | 包含在每个脚本模块的 `files[]` 中，提供跨层工具类型 |
-| 小写文件夹名 | DabsFramework | 使用 `scripts/`、`gui/` 而非 `Scripts/`、`GUI/`——在 Windows 上可以工作但在 Linux 上有风险 |
+| `files[]` 中的小写路径 | DabsFramework | 物理文件夹为 `Scripts/`、`GUI/`，但 `config.cpp` 的 `files[]` 以小写引用它们（`scripts/`、`gui/`、`1_core`）——在 Windows 上可以工作但在 Linux 上有风险 |
 | 独立的 GUI PBO | Expansion、COT | GUI 资源（布局、图像集、样式）打包到专用 PBO 中，有自己的 config.cpp |
 | 内容模组的最少脚本 | 武器包 | `Data/` 目录占主导；`Scripts/` 只有薄薄的 config.cpp 和可选的行为覆盖 |
 

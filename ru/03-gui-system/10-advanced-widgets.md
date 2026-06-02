@@ -623,13 +623,16 @@ override void Update(float timeslice)
 | `MARKERTYPE_MAP_GOVOFFICE` | `\dz\gear\navigation\data\map_govoffice_ca.paa` |
 | `MARKERTYPE_MAP_HILL` | `\dz\gear\navigation\data\map_hill_ca.paa` |
 | `MARKERTYPE_MAP_MONUMENT` | `\dz\gear\navigation\data\map_monument_ca.paa` |
+| `MARKERTYPE_MAP_PALM` | `\dz\gear\navigation\data\map_palm_ca.paa` |
 | `MARKERTYPE_MAP_POLICE` | `\dz\gear\navigation\data\map_police_ca.paa` |
 | `MARKERTYPE_MAP_STATION` | `\dz\gear\navigation\data\map_station_ca.paa` |
 | `MARKERTYPE_MAP_STORE` | `\dz\gear\navigation\data\map_store_ca.paa` |
 | `MARKERTYPE_MAP_TOURISM` | `\dz\gear\navigation\data\map_tourism_ca.paa` |
 | `MARKERTYPE_MAP_TRANSMITTER` | `\dz\gear\navigation\data\map_transmitter_ca.paa` |
-| `MARKERTYPE_MAP_TREE` | `\dz\gear\navigation\data\map_tree_ca.paa` |
+| `MARKERTYPE_MAP_TSHELTER` | `\dz\gear\navigation\data\map_tshelter_ca.paa` |
+| `MARKERTYPE_MAP_TSIGN` | `\dz\gear\navigation\data\map_tsign_ca.paa` |
 | `MARKERTYPE_MAP_VIEWPOINT` | `\dz\gear\navigation\data\map_viewpoint_ca.paa` |
+| `MARKERTYPE_MAP_VINEYARD` | `\dz\gear\navigation\data\map_vineyard_ca.paa` |
 | `MARKERTYPE_MAP_WATERPUMP` | `\dz\gear\navigation\data\map_waterpump_ca.paa` |
 
 Доступ к ним по перечислению через `MapMarkerTypes.GetMarkerTypeFromID(eMapMarkerTypes.MARKERTYPE_MAP_CAMP)`.

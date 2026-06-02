@@ -60,7 +60,7 @@ DayZ 需要以下端口在防火墙中转发和开放：
 |------|------|------|
 | 2302 | UDP | 游戏流量 |
 | 2303 | UDP | Steam 网络 |
-| 2304 | UDP | Steam 查询（内部） |
+| 2304 | UDP | 客户端连接端口（`clientPort`） |
 | 27016 | UDP | Steam 服务器浏览器查询 |
 
 如果你使用 `-port=` 更改了基础端口，所有其他端口按相同偏移量移动。
@@ -124,7 +124,7 @@ DayZ 需要以下端口在防火墙中转发和开放：
 
 ### 错误的 Category、Usage 或 Value 标签
 
-你的 types.xml 中的每个 `<category>`、`<usage>` 和 `<value>` 标签必须与 **cfglimitsdefinition.xml** 中定义的名称匹配。像 `usage name="Military"`（大写 M）这样的拼写错误，当定义中写的是 `military`（小写）时，会导致物品静默地无法刷新。
+你的 types.xml 中的每个 `<category>`、`<usage>` 和 `<value>` 标签必须与 **cfglimitsdefinition.xml** 中定义的名称匹配。像 `usage name="military"`（小写）这样的拼写错误，当定义中写的是 `Military`（大写 M）时，会导致物品静默地无法刷新。
 
 ### Nominal 设为零
 
@@ -212,7 +212,7 @@ DayZ 需要以下端口在防火墙中转发和开放：
 
 DayZ 服务器的目标是 30+ FPS 以实现流畅的游戏体验。低服务器 FPS 的常见原因：
 
-- **僵尸太多** -- 降低 **globals.xml** 中的 `ZombieMaxCount`（默认 800，尝试 400-600）
+- **僵尸太多** -- 降低 **globals.xml** 中的 `ZombieMaxCount`（默认 1000，尝试 400-600）
 - **动物太多** -- 降低 `AnimalMaxCount`（默认 200，尝试 100）
 - **战利品过多** -- 降低 types.xml 中的 `nominal` 值
 - **基地物体过多** -- 拥有数百物品的大型基地给持久化带来压力

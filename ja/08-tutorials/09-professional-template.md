@@ -856,36 +856,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // プレイヤー接続 - サーバーRPCディスパッチ
-    // クライアントがサーバーにRPCを送信したときにエンジンから呼び出されます。
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // 自分のRPC IDのみを処理します。他のRPCはすべてパススルーします。
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // ルート名を読み取ります（送信側が最初に書き込んだ文字列）。
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // ルート名に基づいて正しいハンドラーにディスパッチします。
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Modが成長するにつれてここにルートを追加します:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // シャットダウン
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +878,47 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// サーバーRPCディスパッチ。
+// 重要: OnRPC は MissionServer ではなく DayZGame のメソッドです。Mission
+// クラスチェーンには OnRPC が存在しないため、RPCを受信するには DayZGame を
+// modする必要があります。このフックはクライアントとサーバーの両方で
+// 発火するため、GetGame().IsServer() でガードしてください。
+// ==========================================================================
+modded class DayZGame
+{
+    // RPCが到着したときにエンジンから呼び出されます。サーバー上では、
+    // ここでクライアントから送信されたRPCをディスパッチします。
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // サーバーサイドのディスパッチのみ。
+        if (!IsServer()) return;
+
+        // 自分のRPC IDのみを処理します。他のRPCはすべてパススルーします。
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // ルート名を読み取ります（送信側が最初に書き込んだ文字列）。
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // ルート名に基づいて正しいハンドラーにディスパッチします。
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Modが成長するにつれてここにルートを追加します:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -925,8 +936,9 @@ modded class MissionServer
 //
 // なぜ MissionGameplay なのか:
 //   クライアント上では、MissionGameplayがゲームプレイ中のアクティブなミッションクラスです。
-//   毎フレームOnUpdate()を受信し（入力ポーリング用）、
-//   受信サーバーメッセージ用のOnRPC()も受信します。
+//   毎フレームOnUpdate()を受信します（入力ポーリング用）。
+//   ただしRPCは（ミッションではなく）DayZGame.OnRPC経由で到着するため、
+//   以下のmodされたDayZGameが受信メッセージをこのクラスに転送します。
 //
 // リッスンサーバーに関する注意:
 //   リッスンサーバー（ホスト + プレイ）では、MissionServerと
@@ -976,15 +988,15 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // RPCレシーバー: サーバーからのメッセージを処理する
+    // RPCレシーバー: サーバーからのメッセージを処理する。
+    // これはエンジンのoverrideではありません。実際のエンジンコールバックは
+    // DayZGameに存在します（下のmodされたDayZGameを参照）。DayZGame.OnRPC は
+    // GetGame().GetMission() を介してアクティブなミッションに到達し、
+    // クライアントRPCをここに転送するため、このメソッドは m_MyModPanel のような
+    // インスタンスメンバーに触れることができます。
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // 自分のRPC IDのみを処理します。
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // ルート名を読み取ります。
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1060,6 +1072,37 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// クライアントRPCディスパッチ。
+// 重要: OnRPC は MissionGameplay ではなく DayZGame のメソッドです。Mission
+// クラスチェーンには OnRPC が存在しないため、RPCは DayZGame を modすることで
+// 受信します。このフックはクライアントとサーバーの両方で発火するため、
+// GetGame().IsClient() でガードしてください。GetGame().GetMission() を介して
+// アクティブな MissionGameplay に到達し、その OnMyModRPC に転送することで
+// UIパネルのメンバーにアクセスできるようにします。
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // クライアントサイドのディスパッチのみ。
+        if (!IsClient()) return;
+
+        // 自分のRPC IDのみを処理します。
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // インスタンスメンバー（UIパネル）に到達できるよう、アクティブな
+        // ミッションに転送します。modされた MissionGameplay 型にキャストします。
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1266,7 +1309,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1282,7 +1325,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1309,7 +1352,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1326,7 +1369,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1680,7 +1723,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }

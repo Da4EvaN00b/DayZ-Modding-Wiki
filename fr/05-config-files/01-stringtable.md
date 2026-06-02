@@ -372,14 +372,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP utilise un jeu de colonnes réduit (13 colonnes, pas de colonne `hungarian`) et ne préfixe pas les clés avec `STR_` :
+VPP utilise un jeu de colonnes réduit (14 colonnes, pas de colonne `hungarian`) et ne préfixe pas les clés avec `STR_` :
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-Cela démontre que le préfixe `STR_` est une convention, pas une exigence. Cependant, l'omettre signifie que vous ne pouvez pas utiliser la résolution par préfixe `#` dans les fichiers de layout. VPP référence ces clés uniquement via le code de script. Le préfixe `STR_` est fortement recommandé pour tous les nouveaux mods.
+Cela démontre que le préfixe `STR_` est une convention, pas une exigence. La résolution par préfixe `#` dans les fichiers de layout fonctionne avec n'importe quelle clé de la stringtable --- elle ne dépend pas du préfixe `STR_`. VPP référence ces clés via l'attribut `loc` dans son inputs.xml (ex. `loc="vpp_focus_on_game"`) ainsi que via le code de script. Le préfixe `STR_` reste fortement recommandé pour tous les nouveaux mods.
 
 ### MyMod Missions
 

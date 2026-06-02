@@ -303,8 +303,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Conversion desde otros tipos
-    string fromInt = "Score: " + 42;     // NO funciona -- debes convertir explicitamente
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // funciona -- el operador + convierte 42 a "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicito, mismo resultado)
 
     // Usar Format es el enfoque preferido
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -462,7 +462,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Obtener typename desde un string
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Comparar tipos
     if (t == PlayerBase)

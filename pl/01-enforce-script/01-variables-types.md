@@ -305,8 +305,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Konwersja z innych typów
-    string fromInt = "Score: " + 42;     // NIE działa -- trzeba jawnie skonwertować
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // działa -- operator + konwertuje 42 na "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (jawnie, ten sam wynik)
 
     // Użycie Format to preferowane podejście
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +464,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Uzyskaj typename z łańcucha
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Porównaj typy
     if (t == PlayerBase)

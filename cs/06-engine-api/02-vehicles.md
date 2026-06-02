@@ -41,16 +41,17 @@ Abstraktní základ pro všechna vozidla. Poskytuje správu sedadel a přístup 
 proto native int   CrewSize();                          // Total number of seats
 proto native int   CrewMemberIndex(Human crew_member);  // Get seat index of a human
 proto native Human CrewMember(int posIdx);              // Get human at seat index
-proto native void  CrewGetOut(int posIdx);              // Force crew member out of seat
+proto native Human CrewGetOut(int posIdx);              // Force crew member out of seat (returns the ejected human)
 proto native void  CrewDeath(int posIdx);               // Kill crew member in seat
 ```
 
 #### Nastupování posádky
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Scripted (overridable) method, not proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Component to seat index
-proto native vector CrewEntryPoint(int posIdx);         // World entry position for seat
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Entry point/direction in model space
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Entry point/direction in world space
 ```
 
 **Příklad --- eject all passengers:**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // Speed in km/h (absolute value)
 ### Ovládání (simulace)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = all wheels
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (extra params unused)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (second param unused)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust is obsolete)
+proto native void  SetClutch(float value);                    // SetClutchState is obsolete
 ```
 
 ### Kola
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Zpětná volání (přepsat v CarScript)
@@ -219,17 +220,28 @@ Běžné damage zones for vehicles:
 
 ### Světla
 
+Světelné API se nachází na `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = off, 1 = on
-int  GetLightsState();
+proto native bool LightIsOn();    // True when lights are on
+proto native void LightOn();      // Turn lights on
+proto native void LightOff();     // Turn lights off
+proto native void LightToggle();  // Toggle current light state
 ```
 
 ### Ovládání dveří
 
+Stav dveří se zjišťuje pomocí `GetCarDoorsState`, které vrací hodnotu `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN`, nebo `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Returns a CarDoorState value
 ```
 
 ### Klíčová přepsání pro vlastní vozidla
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Initialize vehicle parts, fluids
 override void OnEngineStart();             // Custom engine start behavior
 override void OnEngineStop();              // Custom engine stop behavior
-override void EOnSimulate(IEntity other, float dt);  // Per-tick simulation
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Per-tick simulation (CarScript)
 ```
 
 **Příklad --- create a vehicle with plný fluids:**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### Kapaliny
 
-Boats use the stejný `CarFluid` enum but typicky pouze use `FUEL`:
+Boats use a separate `BoatFluid` enum that only defines `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Rychlost
+### Rychlost a pohon
+
+`Boat` neposkytuje `GetSpeedometer()` (tato metoda existuje pouze na `Car`). Místo toho čtěte otáčky motoru a rychlost vrtule:
 
 ```c
-proto native float GetSpeedometer();   // Speed in km/h
+proto native float EngineGetRPM();                   // Engine rpm
+proto native float PropellerGetAngularVelocity();    // Propeller angular velocity
 ```
 
 **Příklad --- spawn a boat:**
+
+`Boat_01` není přímo spawnovatelná třída; spawnujte jednu z konkrétních barevných variant (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -492,7 +508,7 @@ Třída `Contact` byla upravena:
 **Změněno:**
 - `Material1`, `Material2` --- typ změněn z `dMaterial` na `SurfaceProperties`
 
-Mody, které čtou data `Contact` v `EOnContact`, musí aktualizovat názvy a typy nových proměnných.
+Mody, které čtou data `Contact` v `OnContact`, musí aktualizovat názvy a typy nových proměnných.
 
 ---
 

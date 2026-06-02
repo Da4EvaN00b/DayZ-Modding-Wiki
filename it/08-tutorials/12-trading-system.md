@@ -316,7 +316,7 @@ modded class PlayerBase
 
     protected void OnShopDataReq(PlayerIdentity requestor)
     {
-        PlayerBase player = PlayerBase.GetPlayerByUID(requestor.GetId());
+        PlayerBase player = PlayerBase.Cast(requestor.GetPlayer());
         if (!player) return;
         ShopDemoManager mgr = ShopDemoManager.Get();
         ShopConfig cfg = mgr.GetConfig();
@@ -342,7 +342,7 @@ modded class PlayerBase
     {
         Param2<string, int> d = new Param2<string, int>("", 0);
         if (!ctx.Read(d)) return;
-        PlayerBase p = PlayerBase.GetPlayerByUID(sender.GetId());
+        PlayerBase p = PlayerBase.Cast(sender.GetPlayer());
         if (p) ShopDemoManager.Get().HandleBuy(p, d.param1, d.param2);
     }
 
@@ -350,7 +350,7 @@ modded class PlayerBase
     {
         Param2<string, int> d = new Param2<string, int>("", 0);
         if (!ctx.Read(d)) return;
-        PlayerBase p = PlayerBase.GetPlayerByUID(sender.GetId());
+        PlayerBase p = PlayerBase.Cast(sender.GetPlayer());
         if (p) ShopDemoManager.Get().HandleSell(p, d.param1, d.param2);
     }
 };
@@ -595,9 +595,9 @@ modded class MissionGameplay
         if (key == KeyCode.KC_F6 && m_ShopDemoMenu) m_ShopDemoMenu.Toggle();
     }
 
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    // Chiamata dall'override DayZGame.OnRPC qui sotto. MissionGameplay non ha un proprio OnRPC.
+    void HandleShopRPC(int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
         if (rpc_type == ShopDemoRPC.SHOP_DATA_RESPONSE)
         {
             Param2<int, string> d = new Param2<int, string>(0, "");
@@ -608,6 +608,20 @@ modded class MissionGameplay
             Param3<bool, string, int> r = new Param3<bool, string, int>(false, "", 0);
             if (ctx.Read(r) && m_ShopDemoMenu) m_ShopDemoMenu.OnTransactionResult(r.param1, r.param2, r.param3);
         }
+    }
+};
+
+// OnRPC(PlayerIdentity, Object, int, ParamsReadContext) risiede su DayZGame, non sulla gerarchia
+// Mission. Il server invia con target=player, quindi DayZGame inoltra target.OnRPC a PlayerBase;
+// per raggiungere il menu del client agganciamo DayZGame direttamente e instradiamo verso la mission.
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+        if (rpc_type != ShopDemoRPC.SHOP_DATA_RESPONSE && rpc_type != ShopDemoRPC.TRANSACTION_RESULT) return;
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission) mission.HandleShopRPC(rpc_type, ctx);
     }
 };
 ```

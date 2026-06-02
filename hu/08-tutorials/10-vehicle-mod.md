@@ -753,7 +753,7 @@ Ha ezt rossz értékre állítod, a játékos animációja átlóg a járművön
 
 **CrewCanGetThrough** -- Minden frame-ben meghívásra kerül annak meghatározására, hogy egy játékos be tud-e szállni vagy ki tud-e szállni egy ülésből. A Niva hátsó ülései (2-es és 3-as index) másként működnek, mint az első ülések: az első ülés háttámláját előre kell hajtani (animáció fázis > 0.5), mielőtt a hátsó utasok átjuthatnának. Ez megegyezik a 2 ajtós ferdehátú valós viselkedésével, ahol a hátsó utasoknak meg kell dönteniük az első ülést.
 
-**OnDebugSpawn** -- A debug spawn menü használatakor hívódik meg. A `SpawnUniversalParts()` hozzáad fényszóró izzókat és akkumulátort. A `FillUpCarFluids()` feltölti az üzemanyagot, hűtőfolyadékot, olajat és fékfolyadékot maximumra. Ezután kerekeket, ajtókat, motorházat és csomagtartót hozunk létre. Így azonnal vezethető járművet kapsz teszteléshez.
+**OnDebugSpawn** -- A debug spawn menü használatakor hívódik meg. A `SpawnUniversalParts()` hozzáad fényszóró izzókat és akkumulátort. A `FillUpCarFluids()` feltölti az üzemanyagot, hűtőfolyadékot és olajat maximumra (a fékfolyadékot nem tölti fel). Ezután kerekeket, ajtókat, motorházat és csomagtartót hozunk létre. Így azonnal vezethető járművet kapsz teszteléshez.
 
 ---
 

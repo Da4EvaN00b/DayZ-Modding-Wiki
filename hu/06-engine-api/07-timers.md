@@ -33,7 +33,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**Fájl:** `3_Game/tools/utilityclasses.c`
+**Fájl:** `2_GameLib/tools.c`
 
 Az elsődleges mechanizmus késleltetett függvényhívásokhoz. Támogatja az egyszeri késleltetéseket, ismétlődő hívásokat és azonnali következő-képkockás végrehajtást.
 
@@ -99,16 +99,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-Metódus hívása a string neve alapján. Hasznos, ha a metódushivatkozás nem érhető el közvetlenül.
+Metódus hívása a string neve alapján a következő képkockán. Hasznos, ha a metódushivatkozás nem érhető el közvetlenül. Késleltetett vagy ismétlődő név szerinti híváshoz használd helyette a `CallLaterByName`-t:
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **Példa:**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +152,7 @@ A motor minden képkockában belsőleg hívja. Soha nem szabad manuálisan megh�
 
 ## Timer
 
-**Fájl:** `3_Game/tools/utilityclasses.c`
+**Fájl:** `3_Game/tools/tools.c`
 
 Osztályalapú időzítő explicit start/stop életciklussal. Tisztább megoldás hosszú életű időzítőkhöz, amelyeket szüneteltetni vagy újraindítani kell.
 
@@ -161,7 +165,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | Paraméter | Leírás |
@@ -239,15 +243,9 @@ void Continue();
 
 Folytatja a szüneteltetett időzítőt onnan, ahol megállt.
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-`true`-t ad vissza, ha az időzítő jelenleg szünetel.
-
 **Példa --- szüneteltetés és folytatás:**
+
+A `Timer`-nek nincs `IsPaused()` metódusa. Mivel az `IsRunning()` csak akkor ad vissza `true`-t, amikor az időzítő aktív (és `false`-t, ha szünetel vagy leállt), használd ezt annak eldöntésére, hogy szüneteltetni vagy folytatni kell-e:
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +258,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +285,25 @@ A `Run()` által beállított teljes időtartamot adja vissza.
 
 ## ScriptInvoker
 
-**Fájl:** `3_Game/tools/utilityclasses.c`
+**Fájl:** `2_GameLib/tools.c`
 
 Egy esemény/delegált rendszer. A `ScriptInvoker` visszahívási függvények listáját tartja, és mindegyiket meghívja, amikor az `Invoke()` hívásra kerül. Ez a DayZ megfelelője a C# eseményeknek vagy a megfigyelő mintának.
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-Visszahívási függvény regisztrálása.
+Visszahívási függvény regisztrálása. Az opcionális `flags` argumentum elfogadja az `EScriptInvokerInsertFlags.IMMEDIATE` (alapértelmezett) vagy `EScriptInvokerInsertFlags.UNIQUE` értéket. Sikeres esetben `true`-t ad vissza.
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-Visszahívási függvény regisztrációjának törlése.
+Visszahívási függvény regisztrációjának törlése. Az opcionális `flags` argumentum alapértelmezett értéke `EScriptInvokerRemoveFlags.ALL`. Sikeres esetben `true`-t ad vissza.
 
 ### Invoke
 
@@ -319,10 +317,10 @@ Az összes regisztrált függvény hívása a megadott paraméterekkel.
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-A regisztrált visszahívások száma.
+Azt adja vissza, hogy a megadott `fn` függvény hányszor van jelenleg regisztrálva az invokerben (nem az összes visszahívás teljes száma).
 
 ### Clear
 
@@ -387,17 +385,16 @@ A frissítési sorba regisztrált függvények minden képkockában meghívódna
 
 ## WidgetFadeTimer
 
-**Fájl:** `3_Game/tools/utilityclasses.c`
+**Fájl:** `3_Game/tools/tools.c`
 
-Speciális időzítő widgetek be- és kihalványításához.
+Speciális időzítő widgetek be- és kihalványításához. A `WidgetFadeTimer` a `TimerBase`-ből származik, így örökli a `Stop()` és `IsRunning()` metódusokat.
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // A Stop() és IsRunning() a TimerBase-ből öröklődik
 }
 ```
 
@@ -405,7 +402,9 @@ class WidgetFadeTimer
 |-----------|-------------|
 | `w` | A halványítandó widget |
 | `time` | A halványítás időtartama másodpercben |
-| `continue_from_current` | Ha `true`, az aktuális alfa értéktől indul; egyébként 0-ról (behalványítás) vagy 1-ről (kihalványítás) |
+| `continue_` | Ha `true`, az aktuális alfa értéktől indul; egyébként 0-ról (behalványítás) vagy 1-ről (kihalványítás) |
+
+Használd az örökölt `IsRunning()` metódust annak ellenőrzésére, hogy egy halványítás éppen folyamatban van-e.
 
 **Példa:**
 
@@ -433,17 +432,18 @@ void HideNotification()
 
 ## GetRemainingTime (CallQueue)
 
-A `ScriptCallQueue` lehetőséget biztosít arra is, hogy lekérdezd, mennyi idő van hátra egy ütemezett `CallLater`-ból:
+A `ScriptCallQueue` lehetőséget biztosít arra is, hogy lekérdezd, mennyi idő van hátra (milliszekundumban) egy ütemezett hívásból. Két változata van --- az egyik függvényhivatkozással, a másik névvel kulcsozva:
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **Példa:**
 
 ```c
-// Mennyi idő van hátra egy CallLater-ből
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// Mennyi idő van hátra egy név szerint ütemezett hívásból
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("A visszahívás %1 ms múlva fut le", remaining));
 ```

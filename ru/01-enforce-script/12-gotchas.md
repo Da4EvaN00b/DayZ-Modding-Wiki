@@ -624,27 +624,27 @@ class EntityContainer<Class T>
 
 **Что вы бы написали:**
 ```c
-EDamageState state = (EDamageState)999;  // Ожидаете ошибку или исключение
+DamageType type = (DamageType)999;  // Ожидаете ошибку или исключение
 ```
 
 **Что происходит:** Без ошибки. Любое значение `int` может быть присвоено переменной enum, даже значения за пределами определённого диапазона.
 
 **Правильное решение:** Валидируйте вручную:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // запасное значение
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // запасное значение
 }
 ```
 

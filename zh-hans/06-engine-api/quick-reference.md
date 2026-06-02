@@ -65,8 +65,8 @@
 
 | 方法 | 签名 | 描述 |
 |------|------|------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | 将子对象附加到骨骼 |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | 分离子对象 |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | 将子对象附加到骨骼 |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | 分离子对象 |
 | `GetParent` | `IEntity GetParent()` | 父实体或 null |
 | `GetChildren` | `IEntity GetChildren()` | 第一个子实体 |
 | `GetSibling` | `IEntity GetSibling()` | 下一个兄弟实体 |
@@ -130,11 +130,11 @@
 | `IsTransport()` | Object | 这是载具吗？ |
 | `IsDayZCreature()` | Object | 这是生物（僵尸/动物）吗？ |
 | `IsKindOf(string)` | Object | 配置继承检查 |
-| `IsItemBase()` | EntityAI | 这是背包物品吗？ |
-| `IsWeapon()` | EntityAI | 这是武器吗？ |
-| `IsMagazine()` | EntityAI | 这是弹匣吗？ |
-| `IsClothing()` | EntityAI | 这是衣物吗？ |
-| `IsFood()` | EntityAI | 这是食物吗？ |
+| `IsItemBase()` | Object | 这是背包物品吗？ |
+| `IsWeapon()` | Object | 这是武器吗？ |
+| `IsMagazine()` | Object | 这是弹匣吗？ |
+| `IsClothing()` | Object | 这是衣物吗？ |
+| `IsFood()` | Object | 这是食物吗？ |
 | `Class.CastTo(out, obj)` | Class | 安全向下转型（返回 bool） |
 | `ClassName.Cast(obj)` | Class | 内联转型（失败返回 null） |
 
@@ -150,12 +150,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | 在货物中创建物品 |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | 在货物中创建物品 |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | 作为附件创建物品 |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | 列出所有物品 |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | 列出所有物品 |
 | `CountInventory` | `int CountInventory()` | 计算物品数量 |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | 检查物品是否存在 |
 | `AttachmentCount` | `int AttachmentCount()` | 附件数量 |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | 按索引获取附件 |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | 按插槽获取附件 |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | 按插槽获取附件 |
 
 ---
 
@@ -218,7 +218,7 @@
 | `CrewSize` | `int CrewSize()` | 总座位数 |
 | `CrewMember` | `Human CrewMember(int idx)` | 获取座位上的人员 |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | 获取人员的座位 |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | 强制弹出座位 |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | 强制弹出座位 |
 | `CrewDeath` | `void CrewDeath(int idx)` | 击杀乘员 |
 
 ### 引擎（Car）
@@ -249,10 +249,10 @@
 
 | 方法 | 签名 | 描述 |
 |------|------|------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0，-1 = 所有车轮 |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | 转向输入 |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 油门 |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | 转向输入 |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 油门（取代已废弃的 `SetThrust`） |
 
 ---
 
@@ -286,11 +286,11 @@
 |------|------|------|
 | `GetActual` | `float GetActual()` | 当前插值后的值 |
 | `GetForecast` | `float GetForecast()` | 目标值 |
-| `GetDuration` | `float GetDuration()` | 剩余持续时间（秒） |
+| `GetNextChange` | `float GetNextChange()` | 距离下次变化的时间（秒） |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | 设置目标（仅服务端） |
 | `SetLimits` | `void SetLimits(float min, float max)` | 值范围限制 |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | 变化速度限制 |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | 变化幅度限制 |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | 变化速度限制 |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | 变化幅度限制 |
 
 ---
 
@@ -318,7 +318,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | 写入文本（无换行） |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | 写入文本 + 换行 |
 | `FGets` | `int FGets(FileHandle fh, string line)` | 读取一行 |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | 读取整个文件 |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | 将字节读入数组（返回数量） |
 | `DeleteFile` | `bool DeleteFile(string path)` | 删除文件 |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | 复制文件 |
 
@@ -358,10 +358,12 @@
 |------|------|------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | 调度延迟/重复调用 |
 | `Call` | `void Call(func fn, param1..4)` | 下一帧执行 |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | 按字符串名称调用方法 |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | 按字符串名称调用方法 |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | 按字符串名称延迟/重复调用 |
 | `Remove` | `void Remove(func fn)` | 取消已调度的调用 |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | 按字符串名称取消 |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | 获取 CallLater 的剩余时间 |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | 获取 CallLater 的剩余时间（毫秒） |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | 按字符串名称获取剩余时间（毫秒） |
 
 ### Timer 类
 
@@ -372,18 +374,17 @@
 | `Stop` | `void Stop()` | 停止定时器 |
 | `Pause` | `void Pause()` | 暂停定时器 |
 | `Continue` | `void Continue()` | 恢复定时器 |
-| `IsPaused` | `bool IsPaused()` | 定时器是否暂停？ |
-| `IsRunning` | `bool IsRunning()` | 定时器是否活动？ |
+| `IsRunning` | `bool IsRunning()` | 定时器是否活动？（暂停时为 false） |
 | `GetRemaining` | `float GetRemaining()` | 剩余秒数 |
 
 ### ScriptInvoker
 
 | 方法 | 签名 | 描述 |
 |------|------|------|
-| `Insert` | `void Insert(func fn)` | 注册回调 |
-| `Remove` | `void Remove(func fn)` | 取消注册回调 |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | 注册回调 |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | 取消注册回调 |
 | `Invoke` | `void Invoke(params...)` | 触发所有回调 |
-| `Count` | `int Count()` | 已注册回调数 |
+| `Count` | `int Count(func fn)` | 此 fn 被注册的次数 |
 | `Clear` | `void Clear()` | 移除所有回调 |
 
 ---
@@ -399,13 +400,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | 按名称查找子控件（递归） |
 | `Show` | `void Show(bool show)` | 显示/隐藏控件 |
 | `SetText` | `void TextWidget.SetText(string text)` | 设置文本内容 |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | 设置图片索引 |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | 设置图片索引 |
 | `SetColor` | `void SetColor(int color)` | 设置控件颜色（ARGB） |
 | `SetAlpha` | `void SetAlpha(float alpha)` | 设置透明度 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | 设置控件大小 |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | 设置控件位置 |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | 设置控件大小 |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | 设置控件位置 |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | 屏幕分辨率 |
-| `Destroy` | `void Widget.Destroy()` | 移除并销毁控件 |
+| `Unlink` | `void Widget.Unlink()` | 移除并销毁控件（及其子控件） |
 
 ### ARGB 颜色辅助函数
 
@@ -586,7 +587,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | 服务器时间（秒） |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | UI 工作区 |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | 指定位置的地形高度 |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | 地表材质类型 |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | 地表材质类型（在 `out` 参数中） |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | 查找附近物体 |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | 获取屏幕分辨率 |
 | `GetGame().IsServer()` | `bool IsServer()` | 服务端检查 |
@@ -614,7 +615,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | 聊天、语音事件 |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | 玩家加入 |
 | `override void InvokeOnDisconnect(PlayerBase player)` | 玩家离开 |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | 客户端准备好接收数据 |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | 客户端准备好接收数据 |
 | `override void PlayerRegistered(int peerId)` | 身份已注册 |
 
 ### 客户端（modded MissionGameplay）

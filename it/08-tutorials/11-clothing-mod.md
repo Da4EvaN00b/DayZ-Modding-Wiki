@@ -198,9 +198,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Visibilità del giocatore per l'IA (più basso = più difficile da rilevare). |
 | `absorbency` | `0.3` | Assorbimento d'acqua (0 = impermeabile, 1 = spugna). Più basso è meglio per la resistenza alla pioggia. |
 
-**Riferimento vanilla heatIsolation:** T-shirt 0.2, Felpa 0.5, Giacca Gorka 0.7, Giacca da Campo 0.8, Cappotto di Lana 0.9.
+**Riferimento vanilla heatIsolation:** T-shirt 0.1, Felpa 0.6, Giacca Gorka 0.4, Giacca da Trekking 0.8, Cappotto di Lana 0.9.
 
-**Riparazione:** `repairableWithKits[] = { 5, 2 }` elenca i tipi di kit (5=Kit da Cucito, 2=Kit da Cucito in Pelle). `repairCosts[]` indica il materiale consumato per riparazione, nello stesso ordine.
+**Riparazione:** `repairableWithKits[] = { 5, 2 }` elenca i tipi di kit (5=Nastro Adesivo, 2=Kit da Cucito). `repairCosts[]` indica il materiale consumato per riparazione, nello stesso ordine.
 
 **Armatura:** Un valore `damage` di 0.8 significa che il giocatore riceve l'80% del danno in arrivo (20% assorbito). Valori più bassi = più protezione.
 
@@ -242,7 +242,7 @@ Per il controllo completo dei materiali, crea file `.rvmat` e riferiscili in `hi
 
 ## Passo 4: Aggiungere Spazio Cargo
 
-Quando estendi `GorkaEJacket_ColorBase`, erediti la sua griglia cargo (4x3) e lo slot inventario (`"Body"`) automaticamente. La proprietà `itemSize[] = { 3, 4 }` definisce quanto è grande la giacca quando conservata come bottino -- NON la sua capacità cargo.
+Quando estendi `GorkaEJacket_ColorBase`, erediti la sua griglia cargo (`itemsCargoSize[] = { 6, 4 }`) e lo slot inventario (`"Body"`) automaticamente. La proprietà `itemSize[] = { 3, 4 }` definisce quanto è grande la giacca quando conservata come bottino -- NON la sua capacità cargo.
 
 Slot comuni per l'abbigliamento: `"Body"` (giacche), `"Legs"` (pantaloni), `"Feet"` (stivali), `"Headgear"` (cappelli), `"Vest"` (chest rig), `"Gloves"`, `"Mask"`, `"Back"` (zaini).
 

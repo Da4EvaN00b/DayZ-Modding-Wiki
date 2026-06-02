@@ -35,7 +35,7 @@ A járművek **nincsenek** a `types.xml`-ben definiálva. Ha jármű osztályt a
 
 A CE olvassa az `events.xml`-t, kiválaszt egy spawnolásra szoruló eseményt, megkeresi a megfelelő pozíciókat a `cfgeventspawns.xml`-ben, véletlenszerűen kiválaszt egyet, amely kielégíti a `saferadius` és `distanceradius` feltételeket, majd spawnol egy véletlenszerűen kiválasztott gyerek entitást azon a pozíción.
 
-Mindhárom fájl a `mpmissions/<a_te_küldetésed>/db/` mappában található.
+Az `events.xml` a `mpmissions/<a_te_küldetésed>/db/` mappában található, míg a `cfgeventspawns.xml` és a `cfgeventgroups.xml` a küldetés gyökerében (`mpmissions/<a_te_küldetésed>/`) található.
 
 ---
 
@@ -167,17 +167,17 @@ A helikopter roncsok dinamikus események, amelyek egy roncsot spawnolnak katona
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +202,23 @@ A katonai konvojok statikus roncsolt jármű csoportok, amelyek katonai zsákmá
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-A konvojok azonosan működnek a helikopter roncsokkal: a `<secondary>` tag `InfectedArmy`-t spawnol a helyszín körül, és a `deloot="1"` jelzővel ellátott zsákmány tárgyak a roncsokra kerülnek. `nominal=5` mellett egyszerre legfeljebb 5 konvoj helyszín létezik a térképen. Mindegyik 1800 másodpercig (30 perc) tart, mielőtt új helyre ciklizál.
+A konvojok a helikopter roncsokhoz hasonlóan működnek: a `<secondary>` tag `InfectedArmy`-t spawnol a helyszín körül, és a `deloot="1"` jelzővel ellátott zsákmány tárgyak a roncsokra kerülnek. A helikopter roncstól eltérően a konvoj eseménynek üres `<children/>` eleme van -- a roncsolt járművei csoportként vannak definiálva a `cfgeventgroups.xml`-ben, és csoport hivatkozásokon keresztül kerülnek elhelyezésre a `cfgeventspawns.xml`-ben. `nominal=5` mellett egyszerre legfeljebb 5 konvoj helyszín létezik a térképen. Mindegyik 1800 másodpercig (30 perc) tart, mielőtt új helyre ciklizál.
 
 ---
 
@@ -231,20 +229,21 @@ A rendőrautó események roncsolt rendőr járműveket spawnolnak rendőr típu
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +257,15 @@ A rendőrautó események roncsolt rendőr járműveket spawnolnak rendőr típu
 Ez a fájl olyan eseményeket definiál, ahol több objektum jelenik meg együtt relatív pozíció eltolással. A leggyakoribb felhasználás az elhagyott vonatok.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Az első gyerek a `cfgeventspawns.xml` pozíciójára kerül. A további gyerekek az `x`, `z`, `a` értékeikkel eltolva az eredeti ponthoz képest. Ebben a példában a vagonok 15 méteres távolságra vannak egymástól a z-tengely mentén.
+Minden csoport egy `<group name="...">` elemmel van deklarálva a fájl gyökér `<eventgroupdef>` elemén belül, és a `<child>` bejegyzései a `<group>` közvetlen gyerekei (itt nincs `<children>` burkoló elem). Az első gyerek a `cfgeventspawns.xml` pozíciójára kerül. A további gyerekek az `x`, `z`, `y`, `a` értékeikkel eltolva az eredeti ponthoz képest.
 
 Minden csoportbeli `<child>` elemnek van:
 
@@ -277,7 +274,11 @@ Minden csoportbeli `<child>` elemnek van:
 | `type` | A spawnolni kívánt objektum osztályneve. |
 | `x` | X eltolás méterben a csoport origójától. |
 | `z` | Z eltolás méterben a csoport origójától. |
+| `y` | Y (függőleges) eltolás méterben a csoport origójától. |
 | `a` | Szög eltolás fokban a csoport origójától. |
+| `deloot` | Hogy spawnolhat-e dinamikus esemény zsákmány ebben a gyerekben (0 vagy 1). |
+| `lootmin` | A gyerekben spawnolt zsákmány tárgyak minimális száma. |
+| `lootmax` | A gyerekben spawnolt zsákmány tárgyak maximális száma. |
 
 A csoport eseménynek magának továbbra is szüksége van egy megfelelő bejegyzésre az `events.xml`-ben a nominal számok, élettartam és aktív állapot szabályozásához.
 

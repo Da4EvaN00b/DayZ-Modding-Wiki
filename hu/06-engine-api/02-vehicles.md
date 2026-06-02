@@ -41,16 +41,17 @@ Az absztrakt alap minden járműhöz. Üléskezelést és személyzet hozzáfér
 proto native int   CrewSize();                          // Ülések összes száma
 proto native int   CrewMemberIndex(Human crew_member);  // Személy ülésindexe
 proto native Human CrewMember(int posIdx);              // Személy az adott ülésindexen
-proto native void  CrewGetOut(int posIdx);              // Személyzettag kiszállítása
+proto native Human CrewGetOut(int posIdx);              // Személyzettag kiszállítása (visszaadja a kidobott személyt)
 proto native void  CrewDeath(int posIdx);               // Személyzettag megölése az ülésben
 ```
 
 ### Beszállás
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Szkriptelt (felülírható) metódus, nem proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Komponensből ülésindex
-proto native vector CrewEntryPoint(int posIdx);         // Világ belépési pont az üléshez
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Belépési pont/irány modelltérben
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Belépési pont/irány világtérben
 ```
 
 **Példa --- minden utas kiszállítása:**
@@ -132,11 +133,11 @@ proto native float GetSpeedometer();    // Sebesség km/h-ban (abszolút érték
 ### Vezérlés (szimuláció)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = minden kerék
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (extra paraméterek nem használtak)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (második paraméter nem használt)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (a SetThrust elavult)
+proto native void  SetClutch(float value);                    // A SetClutchState elavult
 ```
 
 ### Kerekek
@@ -144,7 +145,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Visszahívások (CarScript-ben felülírandó)
@@ -219,17 +220,28 @@ Járművek gyakori sérülési zónái:
 
 ### Lámpák
 
+A lámpa API a `Transport`-on található:
+
 ```c
-void SetLightsState(int state);   // 0 = ki, 1 = be
-int  GetLightsState();
+proto native bool LightIsOn();    // Igaz, ha a lámpák be vannak kapcsolva
+proto native void LightOn();      // Lámpák bekapcsolása
+proto native void LightOff();     // Lámpák kikapcsolása
+proto native void LightToggle();  // Aktuális lámpaállapot átkapcsolása
 ```
 
 ### Ajtóvezérlés
 
+Az ajtóállapotot a `GetCarDoorsState` kéri le, amely egy `CarDoorState` értéket ad vissza (`DOORS_MISSING`, `DOORS_OPEN` vagy `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // CarDoorState értéket ad vissza
 ```
 
 ### Főbb felülírások egyéni járművekhez
@@ -238,8 +250,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Jármű alkatrészek, folyadékok inicializálása
 override void OnEngineStart();             // Egyéni motorindítási viselkedés
 override void OnEngineStop();              // Egyéni motorleállítási viselkedés
-override void EOnSimulate(IEntity other, float dt);  // Képkockánkénti szimuláció
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Képkockánkénti szimuláció (CarScript)
 ```
 
 **Példa --- jármű létrehozása teljes folyadékkal:**
@@ -286,31 +297,36 @@ proto native float EngineGetRPM();
 
 ### Folyadékok
 
-A hajók ugyanazt a `CarFluid` felsorolást használják, de jellemzően csak a `FUEL`-t:
+A hajók külön `BoatFluid` felsorolást használnak, amely csak a `FUEL`-t definiálja:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Sebesség
+### Sebesség és meghajtás
+
+A `Boat` nem teszi elérhetővé a `GetSpeedometer()` metódust (az csak a `Car`-on létezik). Olvasd ki helyette a motor RPM-jét és a propeller sebességét:
 
 ```c
-proto native float GetSpeedometer();   // Sebesség km/h-ban
+proto native float EngineGetRPM();                   // Motor fordulatszáma (rpm)
+proto native float PropellerGetAngularVelocity();    // Propeller szögsebessége
 ```
 
 **Példa --- hajó spawnja:**
+
+A `Boat_01` nem közvetlenül spawnolható osztály; spawnold valamelyik konkrét színváltozatát (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -492,7 +508,7 @@ A `Contact` osztaly modositva lett:
 **Megvaltoztatva:**
 - `Material1`, `Material2` — a tipus `dMaterial`-rol `SurfaceProperties`-ra valtozott
 
-Azoknak a modoknak, amelyek `Contact` adatokat olvasnak az `EOnContact`-ban, frissiteniuk kell az uj valtozonevekre es tipusokra.
+Azoknak a modoknak, amelyek `Contact` adatokat olvasnak az `OnContact`-ban, frissiteniuk kell az uj valtozonevekre es tipusokra.
 
 ---
 

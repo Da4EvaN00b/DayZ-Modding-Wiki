@@ -323,7 +323,7 @@ Abre `types.xml` y agrega este bloque dentro del elemento raiz `<types>`:
 ### Tags Comunes de Usage y Value
 
 **Usage (donde spawnea):**
-- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medical`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
+- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medic`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
 
 **Value (tier del mapa):**
 - `Tier1` -- costa/areas iniciales

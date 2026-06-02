@@ -60,7 +60,7 @@ DayZ benoetigt diese Ports weitergeleitet und in Ihrer Firewall geoeffnet:
 |------|-----------|-------|
 | 2302 | UDP | Spielverkehr |
 | 2303 | UDP | Steam-Networking |
-| 2304 | UDP | Steam-Query (intern) |
+| 2304 | UDP | Client-Verbindungsport (`clientPort`) |
 | 27016 | UDP | Steam-Server-Browser-Query |
 
 Wenn Sie den Basisport mit `-port=` geaendert haben, verschieben sich alle anderen Ports um denselben Offset.
@@ -124,7 +124,7 @@ Wenn Sie eine benutzerdefinierte Types-Datei verwenden (z.B. **types_custom.xml*
 
 ### Falsche Kategorie-, Usage- oder Value-Tags
 
-Jedes `<category>`-, `<usage>`- und `<value>`-Tag in Ihrer types.xml muss mit einem in **cfglimitsdefinition.xml** definierten Namen uebereinstimmen. Ein Tippfehler wie `usage name="Military"` (grosses M), wenn die Definition `military` (Kleinbuchstaben) sagt, verhindert stillschweigend das Spawnen des Items.
+Jedes `<category>`-, `<usage>`- und `<value>`-Tag in Ihrer types.xml muss mit einem in **cfglimitsdefinition.xml** definierten Namen uebereinstimmen. Ein Tippfehler wie `usage name="military"` (Kleinbuchstaben), wenn die Definition `Military` (grosses M) sagt, verhindert stillschweigend das Spawnen des Items.
 
 ### Nominal auf Null gesetzt
 
@@ -212,7 +212,7 @@ Spielerinventare und -positionen werden in `storage_1/players/` gespeichert. Wen
 
 DayZ-Server zielen auf 30+ FPS fuer fluessiges Gameplay. Haeufige Ursachen fuer niedrige Server-FPS:
 
-- **Zu viele Zombies** -- reduzieren Sie `ZombieMaxCount` in **globals.xml** (Standard 800, versuchen Sie 400-600)
+- **Zu viele Zombies** -- reduzieren Sie `ZombieMaxCount` in **globals.xml** (Standard 1000, versuchen Sie 400-600)
 - **Zu viele Tiere** -- reduzieren Sie `AnimalMaxCount` (Standard 200, versuchen Sie 100)
 - **Uebermaessiges Loot** -- senken Sie `nominal`-Werte in Ihrer types.xml
 - **Zu viele Basis-Objekte** -- grosse Basen mit Hunderten von Items belasten die Persistenz

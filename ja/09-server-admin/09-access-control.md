@@ -41,29 +41,31 @@ passwordAdmin = "YourSecretPassword";
 
 ## ban.txt
 
-**ban.txt** ファイルはサーバープロファイルディレクトリ（`-profiles=` で設定したパス）にあります。1行に1つのSteamID64が含まれます:
+**ban.txt** ファイルはサーバールートディレクトリにあります。1行に1つのプレイヤーUIDが含まれます:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- 各行は17桁のSteamID64のみです -- 名前、コメント、パスワードは含みません。
-- このファイルにSteamIDが記載されているプレイヤーは、接続時に拒否されます。
+- 各行は44文字のDayZプレイヤーUIDです -- 17桁のSteamID64ではありません。プレイヤーのUIDは `*.ADM` および `*.RPT` ログで確認できます。
+- 同じ行に `//` プレフィックスを付けてIDの後ろにコメントを追加するか、独立したコメント行として記述できます。
+- このファイルにUIDが記載されているプレイヤーは、接続時に拒否されます。
+- **ban.txt** の使用は **serverDZ.cfg** の `disableBanlist` で切り替えられます（デフォルト `false`）。
 - サーバーの実行中にファイルを編集できます。変更は次の接続試行時に有効になります。
 
 ---
 
 ## whitelist.txt
 
-**whitelist.txt** ファイルは同じプロファイルディレクトリにあります。ホワイトリストを有効にすると、このファイルにリストされたSteamIDのみ接続できます:
+**whitelist.txt** ファイルは同じサーバールートディレクトリにあります。ホワイトリストを有効にすると（**serverDZ.cfg** で `enableWhitelist = 1`）、UIDがこのファイルにリストされたプレイヤーのみ接続できます:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-形式は **ban.txt** と同一です -- 1行に1つのSteamID64のみ、それ以外は含みません。
+形式は **ban.txt** と同一です -- 1行に1つの44文字のプレイヤーUIDで、オプションで `//` コメントを付けられます。
 
 ホワイトリストは、プライベートコミュニティ、テストサーバー、または管理されたプレイヤーリストが必要なイベントに便利です。
 
@@ -79,7 +81,7 @@ BattlEyeはDayZに統合されたアンチチートシステムです。その�
 | **beserver_x64.cfg** | 設定ファイル（RCONポート、RCONパスワード） |
 | **bans.txt** | BattlEye固有のBAN（GUIDベース、SteamIDではない） |
 
-BattlEyeはデフォルトで有効です。`DayZServer_x64.exe` でサーバーを起動すると、BattlEyeが自動的にロードされます。明示的に無効にするには（本番環境では非推奨）、`-noBE` 起動パラメータを使用します。
+BattlEyeはデフォルトで有効です。`DayZServer_x64.exe` でサーバーを起動すると、BattlEyeが自動的にロードされます。明示的に無効にするには（本番環境では非推奨）、**serverDZ.cfg** で `BattlEye = 0;` を設定します。
 
 `BattlEye/` フォルダ内の **bans.txt** ファイルはBattlEye GUIDを使用しており、SteamID64とは異なります。RCONまたはBattlEyeコマンドを通じて発行されたBANは、このファイルに自動的に書き込まれます。
 
@@ -91,10 +93,10 @@ BattlEye RCONを使用すると、ゲーム内にいなくてもサーバーを�
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-デフォルトのRCONポートはゲームポート + 4です。サーバーがポート `2302` で動作している場合、RCONのデフォルトは `2306` です。
+BattlEyeには固定のデフォルトRCONポートがありません -- `RConPort` を省略すると、ランダムなポートでリッスンします。明示的に設定してください。推奨値はゲームポート + 3で、ポート `2302` で動作しているサーバーの場合は `2305` です。ゲームポートやSteamクエリポートと競合してはいけません。
 
 ### 利用可能なRCONコマンド
 
@@ -174,11 +176,11 @@ DayZServer/
 | 間違い | 症状 | 対処法 |
 |---------|---------|-----|
 | `keys/` に `.bikey` がない | プレイヤーが署名エラーで参加時にキックされる | MODの `.bikey` ファイルをサーバーの `keys/` ディレクトリにコピーする |
-| **ban.txt** に名前やパスワードを入れる | BANが機能しない、ランダムなエラー | SteamID64値のみを使用し、1行に1つ |
+| **ban.txt** でプレイヤーUIDの代わりにSteamID64を使用する | BANが機能しない | 44文字のプレイヤーUIDを使用し、1行に1つ（`//` の後のコメントは許可される） |
 | RCONポートの競合 | RCONクライアントが接続できない | RCONポートが他のサービスに使用されていないことを確認し、ファイアウォールルールをチェック |
 | 本番環境で `verifySignatures = 0` | 改竄されたMODで誰でも参加可能 | 公開サーバーでは `2` に設定する |
-| ファイアウォールでRCONポートを開くのを忘れる | RCONクライアントがタイムアウトする | ファイアウォールでRCON UDPポート（デフォルト2306）を開く |
-| `BattlEye/` の **bans.txt** にSteamIDで編集する | BANが機能しない | BattlEyeの **bans.txt** はGUIDを使用し、SteamIDではない。SteamIDでのBANにはプロファイルディレクトリの **ban.txt** を使用する |
+| ファイアウォールでRCONポートを開くのを忘れる | RCONクライアントがタイムアウトする | ファイアウォールでRCON UDPポート（`RConPort` で設定したもの、例: `2305`）を開く |
+| `BattlEye/` の **bans.txt** にプレイヤーUIDで編集する | BANが機能しない | BattlEyeの **bans.txt** はGUIDを使用し、UIDではない。UIDベースのBANにはサーバールートの **ban.txt** を使用する |
 
 ---
 

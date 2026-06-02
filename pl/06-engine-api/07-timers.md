@@ -33,7 +33,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**File:** `3_Game/tools/utilityclasses.c`
+**File:** `2_GameLib/tools.c`
 
 The primary mechanism for deferred function calls. Supports one-shot delays, repeating calls, and immediate next-frame execution.
 
@@ -99,16 +99,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-Call a method by its string name. Useful when the method reference is not directly available.
+Call a method by its string name on the next frame. Useful when the method reference is not directly available. For a delayed or repeating by-name call, use `CallLaterByName` instead:
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **Example:**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +152,7 @@ Called internally by the engine each frame. You should never need to call this m
 
 ## Timer
 
-**File:** `3_Game/tools/utilityclasses.c`
+**File:** `3_Game/tools/tools.c`
 
 A class-based timer with explicit start/stop lifecycle. Cleaner for long-lived timers that need to be paused or restarted.
 
@@ -161,7 +165,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | Parameter | Description |
@@ -243,25 +247,25 @@ Returns the total duration set by `Run()`.
 
 ## ScriptInvoker
 
-**File:** `3_Game/tools/utilityclasses.c`
+**File:** `2_GameLib/tools.c`
 
 An event/delegate system. `ScriptInvoker` holds a list of callback functions and invokes all of them when `Invoke()` is called. This is DayZ's equivalent of C# events or the observer pattern.
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-Register a callback function.
+Register a callback function. The optional `flags` argument accepts `EScriptInvokerInsertFlags.IMMEDIATE` (default) or `EScriptInvokerInsertFlags.UNIQUE`. Returns `true` on success.
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-Unregister a callback function.
+Unregister a callback function. The optional `flags` argument defaults to `EScriptInvokerRemoveFlags.ALL`. Returns `true` on success.
 
 ### Invoke
 
@@ -275,10 +279,10 @@ Call all registered functions with the provided parameters.
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-Number of registered callbacks.
+Returns how many times the given function `fn` is currently registered in the invoker (not a total count of all callbacks).
 
 ### Clear
 
@@ -343,17 +347,16 @@ Functions registered on the update queue are called every frame with no paramete
 
 ## WidgetFadeTimer
 
-**File:** `3_Game/tools/utilityclasses.c`
+**File:** `3_Game/tools/tools.c`
 
-A specialized timer for fading widgets in and out.
+A specialized timer for fading widgets in and out. `WidgetFadeTimer` extends `TimerBase`, so it inherits `Stop()` and `IsRunning()`.
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop() and IsRunning() are inherited from TimerBase
 }
 ```
 
@@ -361,7 +364,9 @@ class WidgetFadeTimer
 |-----------|-------------|
 | `w` | The widget to fade |
 | `time` | Duration of the fade in seconds |
-| `continue_from_current` | If `true`, start from current alpha; otherwise start from 0 (fade in) or 1 (fade out) |
+| `continue_` | If `true`, start from current alpha; otherwise start from 0 (fade in) or 1 (fade out) |
+
+Use the inherited `IsRunning()` to check whether a fade is currently in progress.
 
 **Example:**
 

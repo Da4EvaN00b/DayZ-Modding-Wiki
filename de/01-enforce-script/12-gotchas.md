@@ -595,27 +595,27 @@ class EntityContainer<Class T>
 
 **Was Sie schreiben würden:**
 ```c
-EDamageState state = (EDamageState)999;  // Fehler oder Ausnahme erwarten
+DamageType type = (DamageType)999;  // Fehler oder Ausnahme erwarten
 ```
 
 **Was passiert:** Kein Fehler. Jeder `int`-Wert kann einer Enum-Variable zugewiesen werden, auch Werte ausserhalb des definierten Bereichs.
 
 **Korrekte Lösung:** Manuell validieren:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Ungültiger Schadenszustand: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // Fallback
+    Print("Ungültiger Schadenstyp: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // Fallback
 }
 ```
 

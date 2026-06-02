@@ -107,16 +107,18 @@ graph TB
 
 ### Как работают Insert/Remove
 
-`Insert` добавляет ссылку на функцию во внутренний список. `Remove` ищет в списке и удаляет совпадающую запись. Если вы вызовете `Insert` дважды с одной и той же функцией, она будет вызвана дважды при каждом `Invoke`. Если вызвать `Remove` один раз, он удалит одну запись.
+`Insert` добавляет ссылку на функцию во внутренний список. `Remove` ищет в списке и удаляет совпадающие записи. Если вы вызовете `Insert` дважды с одной и той же функцией, она будет вызвана дважды при каждом `Invoke`. По умолчанию `Remove(fn)` использует `EScriptInvokerRemoveFlags.ALL`, поэтому он удаляет каждую совпадающую запись. Чтобы удалить только самую последнюю одну запись, вызовите `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Подписка одного обработчика дважды — это баг:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Теперь вызывается 2 раза за Invoke
 
-// Один Remove удаляет только одну запись:
+// Флаг ALL по умолчанию удаляет каждую совпадающую запись:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Всё ещё вызывается 1 раз за Invoke — второй Insert всё ещё здесь
+// Вызывается 0 раз за Invoke — оба Insert исчезли.
+// Чтобы оставить одну запись, передайте NONE:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Типизированные сигнатуры
@@ -135,13 +137,11 @@ ref ScriptInvoker OnWeatherChanged = new ScriptInvoker();
 Многие ванильные классы DayZ предоставляют события `ScriptInvoker`:
 
 ```c
-// UIScriptedMenu имеет OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer предоставляет ScriptInvoker через GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Подписка
 
-// MissionBase имеет хуки событий
+// MissionBase имеет хуки событий (виртуальные методы, а не ScriptInvoker)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,7 +546,7 @@ OnKillEvent.Invoke(killData);
 |--------|------------|-------------|
 | Подписка через `Insert()` без вызова `Remove()` | Утечка памяти: инвокер хранит ссылку на мёртвый объект; при `Invoke()` вызывает освобождённую память (вылет) или бесполезно итерирует | Сопоставляйте каждый `Insert()` с `Remove()` в `OnMissionFinish` или деструкторе |
 | Вызов `Remove()` на null-инвокере EventBus при завершении | `MyEventBus.Cleanup()` мог уже обнулить инвокер; вызов `.Remove()` на null вызывает вылет | Всегда проверяйте инвокер на null перед `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Двойной `Insert()` одного обработчика | Обработчик вызывается дважды за `Invoke()`; один `Remove()` удаляет только одну запись, оставляя устаревшую подписку | Проверяйте перед вставкой или убедитесь, что `Insert()` вызывается только один раз (напр., в `OnInit` с защитным флагом) |
+| Двойной `Insert()` одного обработчика | Обработчик вызывается дважды за `Invoke()`; `Remove()` по умолчанию (флаг `ALL`) очищает все записи сразу, удаляя все подписки | Проверяйте перед вставкой или убедитесь, что `Insert()` вызывается только один раз (напр., в `OnInit` с защитным флагом) |
 | Использование анонимных/лямбда-функций как обработчиков | Невозможно удалить, так как нет ссылки для передачи в `Remove()` | Всегда используйте именованные методы как обработчики событий |
 | Генерация событий с несовпадающими сигнатурами аргументов | Подписчики получают мусорные данные или вылетают в рантайме; нет проверки на этапе компиляции | Документируйте ожидаемую сигнатуру над каждым объявлением `ScriptInvoker` и точно соответствуйте ей во всех обработчиках |
 

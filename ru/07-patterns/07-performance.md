@@ -442,7 +442,8 @@ class ProximityChecker
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +614,7 @@ void OnPlayerScoreChanged()
 
 ```c
 // НИКОГДА НЕ ДЕЛАЙТЕ ТАК
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 Используйте реестр на основе регистрации (см. [Паттерн реестра транспортных средств](#паттерн-реестра-транспортных-средств)).

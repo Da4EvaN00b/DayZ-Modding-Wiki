@@ -45,7 +45,7 @@ class WeatherPhenomenon
     // Текущее состояние
     proto native float GetActual();          // Текущее интерполированное значение (0.0 - 1.0 для большинства)
     proto native float GetForecast();        // Целевое значение, к которому идёт интерполяция
-    proto native float GetDuration();        // Длительность текущего прогноза (секунды)
+    proto native float GetNextChange();      // Секунды до вычисления следующего прогноза
 
     // Установка прогноза (только сервер)
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +53,17 @@ class WeatherPhenomenon
     // time:     секунды интерполяции к этому значению (0 = мгновенно)
     // minDuration: минимальное время удержания значения перед автоматическим изменением
 
-    // Пределы
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // Пределы (текущее значение всегда удерживается в [fnMin, fnMax])
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // Пределы скорости изменения (насколько быстро явление может меняться)
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // Пределы времени прогноза (диапазон секунд, в котором вычисляется следующий прогноз; по умолчанию 300-3600)
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // Пределы величины изменения
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // Пределы изменения прогноза (насколько значение прогноза может измениться за пересчёт; по умолчанию 0-1)
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +174,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 Для ручного управления погодой (отключения автоматической машины состояний погоды) вызовите:
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 Когда вызван `MissionWeather(true)`, движок прекращает автоматические переходы погоды и только ваши скриптовые вызовы `Set()` управляют погодой.
@@ -229,7 +230,7 @@ serverTimeAcceleration = 12;      // 12x реальное время
 serverNightTimeAcceleration = 4;  // 4x ускорение ночью
 ```
 
-В скрипте можно прочитать текущий множитель времени, но обычно его нельзя изменить во время выполнения.
+В скрипте можно изменить ускорение времени во время выполнения (в основном для отладки) с помощью `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)`, где `timeMultiplier` --- это значение ускорения 0-64 (или `-1` для сброса к значению из конфига). Скриптового геттера текущего множителя нет.
 
 ---
 
@@ -240,7 +241,7 @@ serverNightTimeAcceleration = 4;  // 4x ускорение ночью
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +251,19 @@ class WorldData
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // Возвращайте true, когда скрипт изменяет состояние явления;
+    // возвращайте false, чтобы движок применил вычисленное им изменение.
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // Не допускать дождь выше 0.5
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

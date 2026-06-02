@@ -595,27 +595,27 @@ class EntityContainer<Class T>
 
 **Lo que escribirias:**
 ```c
-EDamageState state = (EDamageState)999;  // Esperar error o excepcion
+DamageType type = (DamageType)999;  // Esperar error o excepcion
 ```
 
 **Lo que ocurre:** Sin error. Cualquier valor `int` se puede asignar a una variable enum, incluso valores fuera del rango definido.
 
 **Solucion correcta:** Validar manualmente:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // valor de respaldo
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // valor de respaldo
 }
 ```
 

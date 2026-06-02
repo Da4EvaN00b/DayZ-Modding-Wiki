@@ -157,11 +157,13 @@ Le jeu vanilla definit des types de notification avec des titres et icones assoc
 
 | Type | Description |
 |------|-------------|
-| `NotificationType.GENERIC` | Notification generique |
-| `NotificationType.FRIENDLY_FIRE` | Avertissement de tir ami |
-| `NotificationType.JOIN` | Connexion d'un joueur |
-| `NotificationType.LEAVE` | Deconnexion d'un joueur |
-| `NotificationType.STATUS` | Mise a jour de statut |
+| `NotificationType.FRIEND_CONNECTED` | Un ami s'est connecte |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Echec de l'invitation (deja sur le meme serveur) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Echec de recuperation de la session lors de la connexion |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Echec de connexion generique |
+| `NotificationType.DISCONNECTED` | Deconnecte du serveur |
+| `NotificationType.GENERIC_ERROR` | Erreur generique |
+| `NotificationType.NOTIFICATIONS_END` | Valeur sentinelle (marque la fin de l'enumeration) |
 
 > **Note :** Les types disponibles dependent de la version du jeu. Pour une flexibilite maximale, utilisez les variantes `Extended` qui acceptent des chaines personnalisees pour le titre et l'icone.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ Le systeme de notifications doit etre actualise a chaque image pour gerer les an
 static void Update(float timeslice);
 ```
 
-Ceci est appele automatiquement par la methode `OnUpdate` de la mission vanilla. Si vous ecrivez une mission entierement personnalisee, assurez-vous de l'appeler.
+Ceci est appele automatiquement depuis `DayZGame.OnUpdate` (la boucle de mise a jour du jeu), et non depuis la methode `OnUpdate` de la mission. Si vous ecrivez une classe de jeu entierement personnalisee, assurez-vous de l'appeler.
 
 ---
 
