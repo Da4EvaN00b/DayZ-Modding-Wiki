@@ -60,7 +60,7 @@ DayZ requires these ports forwarded and open in your firewall:
 |------|----------|---------|
 | 2302 | UDP | Game traffic |
 | 2303 | UDP | Steam networking |
-| 2304 | UDP | Steam query (internal) |
+| 2304 | UDP | Client connection port (`clientPort`) |
 | 27016 | UDP | Steam server browser query |
 
 If you changed the base port with `-port=`, all other ports shift by the same offset.
@@ -124,7 +124,7 @@ If you use a custom types file (e.g. **types_custom.xml**), add a separate `<fil
 
 ### Wrong Category, Usage, or Value Tags
 
-Every `<category>`, `<usage>`, and `<value>` tag in your types.xml must match a name defined in **cfglimitsdefinition.xml**. A typo like `usage name="Military"` (capital M) when the definition says `military` (lowercase) silently prevents the item from spawning.
+Every `<category>`, `<usage>`, and `<value>` tag in your types.xml must match a name defined in **cfglimitsdefinition.xml**. A typo like `usage name="military"` (lowercase) when the definition says `Military` (capital M) silently prevents the item from spawning.
 
 ### Nominal Set to Zero
 
@@ -212,7 +212,7 @@ Player inventories and positions are stored in `storage_1/players/`. If this dir
 
 DayZ servers target 30+ FPS for smooth gameplay. Common causes of low server FPS:
 
-- **Too many zombies** -- reduce `ZombieMaxCount` in **globals.xml** (default 800, try 400-600)
+- **Too many zombies** -- reduce `ZombieMaxCount` in **globals.xml** (default 1000, try 400-600)
 - **Too many animals** -- reduce `AnimalMaxCount` (default 200, try 100)
 - **Excessive loot** -- lower `nominal` values across your types.xml
 - **Too many base objects** -- large bases with hundreds of items strain persistence

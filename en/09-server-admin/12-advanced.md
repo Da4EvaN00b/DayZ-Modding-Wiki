@@ -45,16 +45,19 @@ Vanilla structure:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +155,19 @@ The server loads and merges all files with `type="types"`.
 
 ## cfgenvironment.xml and Animal Territories
 
-The file **cfgenvironment.xml** in your mission folder links to territory files in the `env/` subdirectory:
+The file **cfgenvironment.xml** in your mission folder maps territory files in the `env/` subdirectory to animal behaviors. Each animal group is a `<territory>` element with a `<file usable="..." />` child (referenced by name, without the `env/` prefix or `.xml` extension):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +229,7 @@ Dynamic events (heli crashes, convoys) are defined in **events.xml**. To create 
 </event>
 ```
 
-**3. Add infected guards** (optional) -- add `<secondary type="ZmbM_PatrolNormal_Autumn" />` elements in your event definition.
+**3. Add infected guards** (optional) -- add a `<secondary>InfectedArmy</secondary>` element to your event definition. The content references the name of another event in **events.xml**, which spawns the infected.
 
 **4. Grouped spawns** (optional) -- define clusters in **cfgeventgroups.xml** and reference the group name in your event.
 
@@ -265,14 +272,14 @@ Always back up `storage_1/` before each restart. Corrupted persistence during sh
 
 The file **cfgweather.xml** in your mission folder controls weather patterns. Each map ships with its own defaults:
 
-Each phenomenon has `min`, `max`, `duration_min`, and `duration_max` (seconds):
+Each phenomenon is a nested element (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`) containing `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />`, and `<changelimits min="" max="" />` children (`rain` and `snowfall` also take a `<thresholds>` element). The `<limits>` value range for each phenomenon:
 
-| Phenomenon | Default Min | Default Max | Notes |
+| Phenomenon | Limits Min | Limits Max | Notes |
 |------------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Drives cloud density and rain probability |
 | `rain` | 0.0 | 1.0 | Only triggers above an overcast threshold. Set max to `0.0` for no rain |
 | `fog` | 0.0 | 0.3 | Values above `0.5` produce near-zero visibility |
-| `wind_magnitude` | 0.0 | 18.0 | Affects ballistics and player movement |
+| `windMagnitude` | 0.0 | 20.0 | Wind speed in m/s; affects ballistics and player movement |
 
 ---
 

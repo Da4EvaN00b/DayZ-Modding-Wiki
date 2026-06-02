@@ -157,11 +157,13 @@ The vanilla game defines notification types with associated titles and icons. Co
 
 | Type | Description |
 |------|-------------|
-| `NotificationType.GENERIC` | Generic notification |
-| `NotificationType.FRIENDLY_FIRE` | Friendly fire warning |
-| `NotificationType.JOIN` | Player join |
-| `NotificationType.LEAVE` | Player leave |
-| `NotificationType.STATUS` | Status update |
+| `NotificationType.FRIEND_CONNECTED` | A friend connected |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Invite failed (already on same server) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Failed to get session when joining |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Generic connection failure |
+| `NotificationType.DISCONNECTED` | Disconnected from server |
+| `NotificationType.GENERIC_ERROR` | Generic error |
+| `NotificationType.NOTIFICATIONS_END` | Sentinel value (marks the end of the enum) |
 
 > **Note:** The available types depend on the game version. For maximum flexibility, use the `Extended` variants which accept custom title and icon strings.
 
@@ -207,7 +209,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +238,7 @@ The notification system must be ticked each frame to handle fade-in/fade-out ani
 static void Update(float timeslice);
 ```
 
-This is called automatically by the vanilla mission's `OnUpdate` method. If you are writing a completely custom mission, make sure to call it.
+This is called automatically from `DayZGame.OnUpdate` (the game's update loop), not the mission's `OnUpdate`. If you are writing a completely custom game class, make sure to call it.
 
 ---
 

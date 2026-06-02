@@ -312,10 +312,14 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +328,13 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
+The core CE files (`types.xml`, `events.xml`, `globals.xml`) live in the `db/` folder by built-in convention --- vanilla `cfgeconomycore.xml` does not contain a `<ce>` element to point at them. The `<ce>` element is instead used to register **additional** custom CE files (introduced in update 1.08): the `folder` attribute names the folder holding your custom XML, and each nested `<file name="..." type="..."/>` entry appends to or overrides the matching vanilla file (`type` can be `types`, `spawnabletypes`, `globals`, `economy`, `events`, or `messages`).
 
 ---
 

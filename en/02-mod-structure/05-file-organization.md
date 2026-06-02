@@ -134,8 +134,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPP pattern: [Name] (no prefix)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Rules:**
@@ -679,7 +679,7 @@ Content mods have a massive `Data/` directory and relatively small `Scripts/`.
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -689,18 +689,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- One of few mods using layer 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Note: DabsFramework uses lowercase folder names (`scripts/`, `gui/`). This works because Windows is case-insensitive, but may cause issues on Linux. The convention is to use the canonical casing (`Scripts/`, `GUI/`).
+Note: DabsFramework's physical folders use the canonical casing (`Scripts/`, `GUI/`, `1_Core/`), but its `config.cpp` `files[]` paths reference them in lowercase (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). This case mismatch works because Windows is case-insensitive, but may cause issues on Linux. Keep your `files[]` paths matching the actual folder casing.
 
 ---
 
@@ -845,7 +845,7 @@ Before publishing your mod, verify:
 |---------|-----|--------|
 | Deep subsystem folders in `3_Game` | StarDZ Core | 15+ folders under `3_Game/` (Config, RPC, Events, Logging, Permissions, etc.) |
 | `Common/` shared folder | COT | Included in every script module's `files[]` to provide cross-layer utility types |
-| Lowercase folder names | DabsFramework | Uses `scripts/`, `gui/` instead of `Scripts/`, `GUI/` -- works on Windows but risks issues on Linux |
+| Lowercase paths in `files[]` | DabsFramework | Physical folders are `Scripts/`, `GUI/`, but `config.cpp` `files[]` reference them as lowercase (`scripts/`, `gui/`, `1_core`) -- works on Windows but risks issues on Linux |
 | Separate GUI PBO | Expansion, COT | GUI resources (layouts, imagesets, styles) packed into a dedicated PBO with its own config.cpp |
 | Minimal Scripts for content mods | Weapon packs | `Data/` directory dominates; `Scripts/` has only a thin config.cpp and optional behavior overrides |
 

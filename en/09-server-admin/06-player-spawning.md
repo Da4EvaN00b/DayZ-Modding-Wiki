@@ -24,10 +24,11 @@
 
 ## cfgplayerspawnpoints.xml Overview
 
-This file lives in your mission folder (e.g., `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). It has two sections, each with its own parameters and position bubbles:
+This file lives in your mission folder (e.g., `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). It has three sections, each with its own parameters and position bubbles:
 
 - **`<fresh>`** -- brand new characters (first life or after death)
 - **`<hop>`** -- server hoppers (player had a character on another server)
+- **`<travel>`** -- in-game map travel/teleport spawns
 
 ---
 
@@ -77,12 +78,12 @@ The generator creates a grid of candidate positions around each bubble:
 
 | Parameter | Value | Meaning |
 |-----------|-------|---------|
-| `grid_density` | 4 | Spacing between grid points in meters -- lower = more candidates, higher CPU cost |
-| `grid_width` | 200 | Grid extends 200m on the X axis around each bubble center |
-| `grid_height` | 200 | Grid extends 200m on the Z axis around each bubble center |
+| `grid_density` | 4 | Sampling frequency (number of subdivisions) of the grid -- higher = more candidates, higher CPU cost. Spacing between points = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Total width of the candidate grid in meters (centered on the bubble) -- extends ~100m to each side on the X axis |
+| `grid_height` | 200 | Total height of the candidate grid in meters (centered on the bubble) -- extends ~100m to each side on the Z axis |
 | `min_steepness` / `max_steepness` | -45 / 45 | Terrain slope range in degrees -- rejects cliff faces and steep hills |
 
-Each bubble gets a 200x200m grid with a point every 4m (~2,500 candidates). The engine filters by steepness and static distance, then applies `spawn_params` at spawn time.
+Each bubble gets a 200x200m grid with candidate points spaced `grid_width` / `grid_density` = 200/4 = 50m apart (on the order of ~16-25 candidates). The engine filters by steepness and static distance, then applies `spawn_params` at spawn time.
 
 #### `allow_in_water` Parameter (1.28+)
 
@@ -111,8 +112,8 @@ By default, the engine rejects any candidate position that falls in water (ponds
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +121,10 @@ By default, the engine rejects any candidate position that falls in water (ponds
 |-----------|-------|---------|
 | `enablegroups` | true | Position bubbles are organized into named groups |
 | `groups_as_regular` | true | Groups are treated as regular spawn points (any group can be selected) |
-| `lifetime` | 240 | Seconds before a used spawn point becomes available again |
-| `counter` | -1 | Number of times a spawn point can be used. -1 = unlimited |
+| `lifetime` | 120 | Seconds a spawn group stays active before the system swaps to another group. -1 = disabled |
+| `counter` | 2 | Number of logins a group stays active before being swapped (per-group). -1 = disabled |
 
-A used position is locked for 240 seconds, preventing two players from spawning on top of each other.
+`lifetime` controls how long a spawn group remains the active group before the system swaps to another group; it is not a per-position lockout. Spacing between simultaneous spawns is enforced by `min_dist_player`.
 
 ---
 
@@ -192,7 +193,7 @@ Hop spawns are more lenient on player distance and use smaller grids:
 
 <!-- Hop group_params differences -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 Hop groups are spread **inland**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). With `enablegroups=false`, the engine treats all 50 positions as a flat pool.
@@ -246,7 +247,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-What this gives each player: **BandageDressing** (quickbar 3), random **Chemlight** (quickbar 2), random fruit -- 35% Apple, 30% Plum, 35% Pear (quickbar 1). `SetRandomHealth` sets 45-65% condition on all items.
+What this gives each player: **BandageDressing** (quickbar 2), random **Chemlight** (quickbar 1), random fruit -- 35% Apple, 30% Plum, 35% Pear (quickbar 3). `SetRandomHealth` sets 45-65% condition on all items.
 
 ### Adding custom starting gear
 
@@ -279,7 +280,7 @@ Steps:
 4. Use `x` for east-west and `z` for north-south -- the engine calculates Y (altitude) from the terrain
 5. Restart the server -- no persistence wipe required
 
-For balanced spawning, keep at least 4 positions per group so the 240-second lockout does not block all positions when multiple players die at once.
+For balanced spawning, keep at least 4 positions per group so a single group has enough spread to keep `min_dist_player` satisfied when multiple players die at once.
 
 ---
 
@@ -291,7 +292,7 @@ You swapped `z` (north-south) with Y (altitude), or used coordinates outside the
 
 ### Not enough spawn points
 
-With only 2-3 positions, the 240-second lockout causes clustering. Vanilla uses 49 fresh positions across 11 groups. Aim for at least 20 positions in 4+ groups.
+With only 2-3 positions, the active group cannot spread players out and clustering results. Vanilla uses 49 fresh positions across 11 groups. Aim for at least 20 positions in 4+ groups.
 
 ### Forgetting the hop section
 
@@ -303,7 +304,7 @@ The generator rejects slopes beyond 45 degrees. If all custom positions are on h
 
 ### Players always spawning at the same spot
 
-Groups with 1-2 positions get locked by the 240-second cooldown. Add more positions per group.
+Groups with 1-2 positions have too few candidates for the engine to vary the chosen position. Add more positions per group.
 
 ---
 

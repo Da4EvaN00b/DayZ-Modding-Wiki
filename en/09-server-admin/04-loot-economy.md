@@ -194,7 +194,7 @@ Bandages are very common (40 nominal). They spawn in Medic buildings (hospitals,
 | `restock` | int | seconds | Minimum cooldown before the CE can spawn a replacement. 0 = immediate. |
 | `quantmin` | int | -1 to 100 | Minimum quantity percentage when spawned (ammo %, liquid %). -1 = not applicable. |
 | `quantmax` | int | -1 to 100 | Maximum quantity percentage when spawned. -1 = not applicable. |
-| `cost` | int | 0+ | Priority weight for spawn selection. Currently all vanilla items use 100. |
+| `cost` | int | 0+ | Priority weight used during respawn/cleanup. Almost all vanilla items use 100, but a few use higher values (e.g. `Mag_SVD_10Rnd` uses 1000). |
 
 ### Flags
 

@@ -525,7 +525,7 @@ proto native vector GetPosition();
 proto native float GetHealth(string zoneName, string healthType);
 
 // proto native owned — caller owns the returned object
-proto native owned string ClassName();
+proto native owned external string ClassName();
 
 // proto volatile — function may yield/sleep (used by engine internals)
 proto volatile int Call(Class inst, string func, void param);
@@ -879,7 +879,7 @@ classDiagram
 
     class PlayerBase {
         +GetIdentity() PlayerIdentity
-        +GetBleeding() bool
+        +IsBleeding() bool
         +IsRestrained() bool
     }
 
@@ -901,7 +901,7 @@ classDiagram
     EntityAI <|-- DayZInfected
     ManBase <|-- PlayerBase
     ItemBase <|-- Weapon_Base
-    ItemBase <|-- ClothingBase
+    ItemBase <|-- Clothing_Base
     EntityAI <|-- CarScript
 ```
 

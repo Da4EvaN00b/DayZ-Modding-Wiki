@@ -103,7 +103,7 @@ lightingConfig = 0;                 // Night brightness (0 = brighter, 1 = darke
 | `disable3rdPerson` | int | 0, 1 | 0 | Set to 1 for first-person-only servers. This is the most common "hardcore" setting. |
 | `disableCrosshair` | int | 0, 1 | 0 | Set to 1 to remove the crosshair. Often paired with `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | The "personal light" is a subtle glow around the player at night. Most servers disable it (value 1) for realism. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = brighter nights (moonlight visible). 1 = pitch-black nights (requires flashlight/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = brighter nights (moonlight visible). 1 = pitch-black nights (requires flashlight/NVG). 2 = Sakhal-specific lighting. |
 
 ---
 
@@ -119,7 +119,7 @@ serverTimePersistent = 0;                  // Save time between restarts
 | Parameter | Type | Valid Values | Default | Notes |
 |-----------|------|-------------|---------|-------|
 | `serverTime` | string | `"SystemTime"` or `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` uses the machine's local clock. Set a fixed time like `"2024/9/15/12/0"` for a permanent daytime server. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Multiplier for in-game time. At 12, a full 24-hour cycle takes 2 real hours. At 1, time is real-time. At 24, a full day passes in 1 hour. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Multiplier for in-game time. At 12, a full 24-hour cycle takes 2 real hours. At 1, time is real-time. At 24, a full day passes in 1 hour. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Multiplied by `serverTimeAcceleration`. At value 4 with acceleration 12, night passes at 48x speed (very short nights). |
 | `serverTimePersistent` | int | 0, 1 | 0 | When 1, the server saves its in-game clock to disk and resumes from it after restart. When 0, time resets to `serverTime` on every restart. |
 

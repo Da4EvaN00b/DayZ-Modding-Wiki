@@ -184,7 +184,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Enable server logging |
 | `-adminlog` | Log admin actions |
 | `-netlog` | Log network events |
-| `-freezecheck` | Auto-restart on freeze detection |
+| `-freezecheck` | Stops the server and writes a crash dump when frozen for more than 5 minutes |
 
 ### Step 3: Wait for Initialization
 
@@ -226,7 +226,7 @@ Open Steam, go to **View > Game Servers > Favorites**, click **Add a Server**, e
 
 ### Method 4: Query Port
 
-Use an external tool like https://www.battlemetrics.com/ or the `gamedig` npm package to query port 27016 (Steam query port = game port + 24714).
+Use an external tool like https://www.battlemetrics.com/ or the `gamedig` npm package to query the Steam query port. By default this is **2305 UDP** (configurable via `steamQueryPort` in `serverDZ.cfg`), not the game port.
 
 ---
 

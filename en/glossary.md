@@ -445,7 +445,7 @@ Global accessor for the `CGame` singleton. Entry point for most engine APIs: `Ge
 **Chapter:** [6.1 Entity System](06-engine-api/01-entity-system.md) | [1.1 Variables & Types](01-enforce-script/01-variables-types.md)
 
 ### GetPlayer()
-`GetGame().GetPlayer()` -- returns the local player entity as `Man`. Cast to `PlayerBase` for gameplay methods.
+`GetGame().GetPlayer()` -- returns the local player entity as `DayZPlayer`. Cast to `PlayerBase` for gameplay methods.
 
 **Chapter:** [6.14 Player System](06-engine-api/14-player-system.md)
 

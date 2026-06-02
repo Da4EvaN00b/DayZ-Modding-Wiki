@@ -107,16 +107,18 @@ graph TB
 
 ### How Insert/Remove Work
 
-`Insert` adds a function reference to an internal list. `Remove` searches the list and removes the matching entry. If you call `Insert` twice with the same function, it will be called twice on every `Invoke`. If you call `Remove` once, it removes one entry.
+`Insert` adds a function reference to an internal list. `Remove` searches the list and removes matching entries. If you call `Insert` twice with the same function, it will be called twice on every `Invoke`. By default `Remove(fn)` uses `EScriptInvokerRemoveFlags.ALL`, so it removes every matching entry. To remove only the most recent single entry, call `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Subscribing the same handler twice is a bug:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Now called 2x per Invoke
 
-// One Remove only removes one entry:
+// The default ALL flag removes every matching entry:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Still called 1x per Invoke — the second Insert is still there
+// Called 0x per Invoke — both Inserts are gone.
+// To leave one entry, pass NONE:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Typed Signatures
@@ -135,13 +137,11 @@ If a subscriber has the wrong signature, the behavior is undefined at runtime --
 Many vanilla DayZ classes expose `ScriptInvoker` events:
 
 ```c
-// UIScriptedMenu has OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer exposes a ScriptInvoker via GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Subscribe
 
-// MissionBase has event hooks
+// MissionBase has event hooks (virtual methods, not ScriptInvokers)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,7 +546,7 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | Subscribing with `Insert()` but never calling `Remove()` | Memory leak: the invoker holds a reference to the dead object; on `Invoke()`, calls into freed memory (crash) or no-ops with wasted iteration | Pair every `Insert()` with a `Remove()` in `OnMissionFinish` or the destructor |
 | Calling `Remove()` on a null EventBus invoker during shutdown | `MyEventBus.Cleanup()` may have already nulled the invoker; calling `.Remove()` on null crashes | Always null-check the invoker before `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Double `Insert()` of the same handler | Handler is called twice per `Invoke()`; one `Remove()` only removes one entry, leaving a stale subscription | Check before inserting, or ensure `Insert()` is only called once (e.g., in `OnInit` with a guard flag) |
+| Double `Insert()` of the same handler | Handler is called twice per `Invoke()`; a default `Remove()` (flag `ALL`) clears every entry at once, removing all subscriptions | Check before inserting, or ensure `Insert()` is only called once (e.g., in `OnInit` with a guard flag) |
 | Using anonymous/lambda functions as handlers | Cannot be removed because there is no reference to pass to `Remove()` | Always use named methods as event handlers |
 | Firing events with mismatched argument signatures | Subscribers receive garbage data or crash at runtime; no compile-time check | Document the expected signature above every `ScriptInvoker` declaration and match it exactly in all handlers |
 

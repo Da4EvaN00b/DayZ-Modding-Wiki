@@ -219,18 +219,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Registration
 
-VPP registers plugins in the modded `MissionServer.OnInit()`:
+VPP registers plugins by modding the vanilla `PluginManager.Init()`. `RegisterPlugin` takes the plugin's class name as a string plus client/server flags (it does not take a `new` instance):
 
 ```c
 // VPP pattern
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+The manager instantiates each registered plugin itself. To retrieve a running plugin elsewhere, use `GetPluginManager().GetPluginByType(VPPESPPlugin)` or the global `GetPlugin(VPPESPPlugin)`.
 
 ### Key Characteristics
 
-- **Manual registration**: each plugin is explicitly `new`-ed and registered
+- **Manual registration**: each plugin is registered by class name in `PluginManager.Init()`; the manager instantiates it
 - **Config integration**: `ConfigurablePlugin` merges config management with the module lifecycle
 - **Self-contained**: no dependency on CF; VPP's plugin manager is its own system
 - **Clear ownership**: the plugin manager holds `ref` to all plugins, controlling their lifetime
@@ -529,7 +539,7 @@ override void OnMissionFinish()
 | **Config integration** | Separate | Built into ConfigurablePlugin | Separate | Via MyConfigManager |
 | **Update dispatch** | Automatic | Manager calls `OnUpdate` | Automatic | Manager calls `OnUpdate` |
 | **Cleanup** | CF handles it | Manual `OnDestroy` | CF handles it | `MyModuleManager.Cleanup()` |
-| **Cross-mod access** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Cross-mod access** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Choose the approach that matches your mod's dependency profile. If you already depend on CF, use `CF_ModuleCore`. If you want zero external dependencies, build your own system following the custom manager or VPP pattern.
 

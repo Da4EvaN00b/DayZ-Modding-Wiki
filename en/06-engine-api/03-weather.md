@@ -45,7 +45,7 @@ class WeatherPhenomenon
     // Current state
     proto native float GetActual();          // Current interpolated value (0.0 - 1.0 for most)
     proto native float GetForecast();        // Target value being interpolated toward
-    proto native float GetDuration();        // How long the current forecast persists (seconds)
+    proto native float GetNextChange();      // Seconds until the next forecast is computed
 
     // Set the forecast (server only)
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +53,17 @@ class WeatherPhenomenon
     // time:     seconds to interpolate to that value (0 = instant)
     // minDuration: minimum time the value holds before auto-change
 
-    // Limits
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // Limits (current value is always held in [fnMin, fnMax])
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // Change speed limits (how fast the phenomenon can change)
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // Forecast time limits (seconds range in which the next forecast is computed; defaults 300-3600)
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // Change magnitude limits
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // Forecast change limits (how much the forecast value can change per recompute; defaults 0-1)
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +174,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 To take manual control of weather (disabling the automatic weather state machine), call:
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 When `MissionWeather(true)` is called, the engine stops the automatic weather transitions and only your script-driven `Set()` calls control the weather.
@@ -229,7 +230,7 @@ serverTimeAcceleration = 12;      // 12x real time
 serverNightTimeAcceleration = 4;  // 4x acceleration during night
 ```
 
-In script, you can read the current time multiplier but typically cannot change it at runtime.
+In script, you can change the time acceleration at runtime (mostly for debug) with `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)`, where `timeMultiplier` is a 0-64 acceleration value (or `-1` to reset back to the config value). There is no script getter for the current multiplier.
 
 ---
 
@@ -240,7 +241,7 @@ Vanilla DayZ uses a scripted weather state machine in `WorldData` classes (e.g.,
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +251,19 @@ Override this method in a `modded` WorldData class to intercept and modify weath
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // Return true when the script modifies the phenomenon state;
+    // return false to let the engine apply its computed change.
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // Prevent rain from ever going above 0.5
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

@@ -30,7 +30,7 @@
 | Method | Returns | Notes |
 |--------|---------|-------|
 | `Insert(item)` | `int` (index) | Append |
-| `InsertAt(item, idx)` | `void` | Insert at position |
+| `InsertAt(item, idx)` | `int` (count) | Insert at position |
 | `Get(idx)` / `arr[idx]` | `T` | Access by index |
 | `Set(idx, item)` | `void` | Replace at index |
 | `Find(item)` | `int` | Index or -1 |
@@ -45,7 +45,7 @@
 | `Invert()` | `void` | Reverse |
 | `GetRandomElement()` | `T` | Random pick |
 | `InsertAll(other)` | `void` | Append all from other |
-| `Copy(other)` | `void` | Replace with copy |
+| `Copy(other)` | `int` (count) | Replace with copy |
 | `Resize(n)` | `void` | Resize (fills defaults) |
 | `Reserve(n)` | `void` | Pre-allocate capacity |
 
@@ -147,7 +147,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifies in-place, returns count |
 | `s.ToLower()` | `int` (length) | **In-place!** |
 | `s.ToUpper()` | `int` (length) | **In-place!** |
-| `s.TrimInPlace()` | `void` | **In-place!** |
+| `s.TrimInPlace()` | `int` (length) | **In-place!** |
 | `s.Split(delim, out arr)` | `void` | Splits into TStringArray |
 | `s.Get(idx)` | `string` | Single char |
 | `s.Set(idx, ch)` | `void` | Replace char |
@@ -212,11 +212,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Check IsAlive (Requires EntityAI)
+### Check IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() is defined on base Object (returns !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach Map Iteration

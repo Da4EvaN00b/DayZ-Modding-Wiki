@@ -251,9 +251,10 @@ This keeps server-side logic private (never sent to clients) and reduces client 
 When you publish to Steam Workshop, the DayZ tools auto-generate a `meta.cpp` file:
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // Steam Workshop item ID
-timestamp = 1711000000;       // Unix timestamp of last update
+protocol = 1;
+publishedid = 2900000000;            // Steam Workshop item ID
+name = "My Mod";                     // Workshop item name
+timestamp = 5249975085759540888;     // Internal 64-bit value, NOT a Unix timestamp
 ```
 
 Do not edit `meta.cpp` manually. It is managed by the publishing tools.

@@ -174,7 +174,7 @@ Defines spawn rules for **every item** in the game. At approximately 23,000 line
 
 ### globals.xml
 
-Global parameters that affect the entire economy: zombie counts, animal counts, cleanup timers, loot damage ranges, respawn timing. There are 33 parameters total. See [Chapter 9.4](04-loot-economy.md) for the full reference.
+Global parameters that affect the entire economy: zombie counts, animal counts, cleanup timers, loot damage ranges, respawn timing. There are 30 parameters total. See [Chapter 9.4](04-loot-economy.md) for the full reference.
 
 ### events.xml
 
@@ -258,19 +258,19 @@ Holds the server's persistent state between restarts:
 
 ```
 storage_1/
-  players.db         # SQLite database of all player characters
+  players/           # Binary character records, one per player
   spawnpoints.bin    # Binary spawn point data
   backup/            # Automatic backups of persistence data
   data/              # World state (placed items, base building, vehicles)
 ```
 
-**Never edit `players.db` while the server is running.** It is an SQLite database locked by the server process. If you need to wipe characters, stop the server first and delete or rename the file.
+**Never hand-edit the files in `players/` while the server is running.** These are opaque binary records written only by the server process. If you need to wipe characters, stop the server first and delete or rename the folder.
 
 To do a **full persistence wipe**, stop the server and delete the entire `storage_1/` folder. The server will recreate it on next launch with a fresh world.
 
 To do a **partial wipe** (keep characters, reset loot):
 1. Stop the server
-2. Delete files in `storage_1/data/` but keep `players.db`
+2. Delete files in `storage_1/data/` but keep `storage_1/players/`
 3. Restart
 
 ---
