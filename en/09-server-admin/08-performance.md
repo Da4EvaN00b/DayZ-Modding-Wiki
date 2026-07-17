@@ -1,6 +1,5 @@
-# Chapter 9.8: Performance Tuning
+# Performance Tuning
 
-[Home](../README.md) | [<< Previous: Persistence](07-persistence.md) | [Next: Access Control >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ A `storage_1/` folder that grows to several gigabytes slows down every persisten
 ### Logging Left Enabled
 
 CE diagnostic logging, script debug logging, and admin tool logging all write to disk every tick. Enable them for diagnosis, then turn them off. Persistent verbose logging on a busy server can cost 1-2 FPS by itself.
-
----
-
-[Home](../README.md) | [<< Previous: Persistence](07-persistence.md) | [Next: Access Control >>](09-access-control.md)

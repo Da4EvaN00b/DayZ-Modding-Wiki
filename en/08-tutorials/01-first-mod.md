@@ -1,6 +1,5 @@
-# Chapter 8.1: Your First Mod (Hello World)
+# Your First Mod (Hello World)
 
-[Home](../README.md) | **Your First Mod** | [Next: Creating a Custom Item >>](02-custom-item.md)
 
 ---
 
@@ -557,7 +556,7 @@ Now that you have a working mod, here are the natural progressions:
 2. **Add more script layers** -- Create `3_Game` and `4_World` folders to organize configuration, data classes, and entity logic. See [Chapter 2.1: The 5-Layer Script Hierarchy](../02-mod-structure/01-five-layers.md).
 3. **Add keybindings** -- Create an `Inputs.xml` file and register custom key actions.
 4. **Create UI** -- Build in-game panels using layout files and `ScriptedWidgetEventHandler`. See [Chapter 3: GUI System](../03-gui-system/01-widget-types.md).
-5. **Use a framework** -- Integrate with Community Framework (CF) or MyMod Core for advanced features like RPC, config management, and admin panels.
+5. **Use a framework** -- Integrate with a public framework such as [Community Framework (CF)](https://github.com/Arkensor/DayZ-CommunityFramework), or build your own on the example framework developed in [Part 7: Patterns](../07-patterns/01-singletons.md), which covers RPC, config management, permissions, and events.
 
 ---
 

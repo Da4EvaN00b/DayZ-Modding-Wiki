@@ -1,6 +1,5 @@
-# Chapter 6.21: Zombie & AI System
+# Zombie & AI System
 
-[Home](../README.md) | [<< Previous: Particle & Effect System](20-particle-effects.md) | **Zombie & AI System** | [Next: Admin & Server Management >>](22-admin-server.md)
 
 ---
 
@@ -882,9 +881,9 @@ Animation-driven voice events (`OnSoundVoiceEvent`) interrupt state-based sounds
 
 ## Observed in Real Mods
 
-### DayZ Expansion AI (eAIBase)
+### Common Modding Approaches
 
-The Expansion mod extends the zombie/creature AI system by creating `eAIBase` (extending `DayZPlayer`, not `DayZInfected`) for human-like AI. For infected modifications, Expansion uses `modded class ZombieBase` to add quest-related tracking (e.g., counting kills for objectives). This demonstrates that the `modded class` approach is the standard for infected customization.
+Custom humanoid-AI mods typically extend `DayZPlayer` (which itself extends `Human`) rather than `DayZInfected` or `ZombieBase`, so they reuse the full player animation graph, movement, and command stack instead of the leaner infected one. For infected-focused work --- quest and objective mods that need to count kills, for example --- the common approach is a `modded class ZombieBase` that overrides `EEKilled(Object killer)` to react when an infected dies. This confirms the `modded class` pattern is the standard entry point for infected customization.
 
 ### Vanilla Debug Plugin
 

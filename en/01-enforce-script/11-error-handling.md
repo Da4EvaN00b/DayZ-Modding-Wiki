@@ -1,6 +1,5 @@
-# Chapter 1.11: Error Handling
+# Error Handling
 
-[Home](../README.md) | [<< Previous: Enums & Preprocessor](10-enums-preprocessor.md) | **Error Handling** | [Next: Gotchas >>](12-gotchas.md)
 
 ---
 
@@ -29,16 +28,18 @@
 - [Structured Logging Patterns](#structured-logging-patterns)
   - [Simple Prefix Pattern](#simple-prefix-pattern)
   - [Level-Based Logger Class](#level-based-logger-class)
-  - [MyLog Style (Production Pattern)](#mylog-style-production-pattern)
-- [Real-World Examples](#real-world-examples)
+  - [Production Logger Pattern (LNT_Log)](#production-logger-pattern-lnt_log)
+- [Worked Examples](#worked-examples)
   - [Safe Function With Multiple Guards](#safe-function-with-multiple-guards)
   - [Safe Config Loading](#safe-config-loading)
   - [Safe RPC Handler](#safe-rpc-handler)
   - [Safe Inventory Operation](#safe-inventory-operation)
 - [Defensive Patterns Summary](#defensive-patterns-summary)
+- [Best Practices](#best-practices)
+- [These Patterns in the Vanilla Scripts](#these-patterns-in-the-vanilla-scripts)
+- [Theory vs Practice](#theory-vs-practice)
 - [Common Mistakes](#common-mistakes)
 - [Summary](#summary)
-- [Navigation](#navigation)
 
 ---
 
@@ -419,13 +420,13 @@ g_MissionLog.Info("System started");
 g_MissionLog.Error("Failed to load mission data");
 ```
 
-### Production Logger Pattern
+### Production Logger Pattern (LNT_Log)
 
-For production mods, a static logging class with file output, daily rotation, and multiple output targets:
+For production mods, a static logging class with level filtering and multiple output targets scales better than scattered `Print` calls. Here is `LNT_Log`, the logger of the wiki's constructed **Lantern** example framework (the full Lantern subsystems are built step by step in Part 7):
 
 ```c
 // Enum for log levels
-enum MyLogLevel
+enum LNT_LogLevel
 {
     TRACE   = 0,
     DEBUG   = 1,
@@ -435,34 +436,34 @@ enum MyLogLevel
     NONE    = 5
 };
 
-class MyLog
+class LNT_Log
 {
-    private static MyLogLevel s_FileMinLevel = MyLogLevel.DEBUG;
-    private static MyLogLevel s_ConsoleMinLevel = MyLogLevel.INFO;
+    private static LNT_LogLevel s_FileMinLevel = LNT_LogLevel.DEBUG;
+    private static LNT_LogLevel s_ConsoleMinLevel = LNT_LogLevel.INFO;
 
-    // Usage: MyLog.Info("ModuleName", "Something happened");
+    // Usage: LNT_Log.Info("ModuleName", "Something happened");
     static void Info(string source, string message)
     {
-        Log(MyLogLevel.INFO, source, message);
+        Log(LNT_LogLevel.INFO, source, message);
     }
 
     static void Warning(string source, string message)
     {
-        Log(MyLogLevel.WARNING, source, message);
+        Log(LNT_LogLevel.WARNING, source, message);
     }
 
     static void Error(string source, string message)
     {
-        Log(MyLogLevel.ERROR, source, message);
+        Log(LNT_LogLevel.ERROR, source, message);
     }
 
-    private static void Log(MyLogLevel level, string source, string message)
+    private static void Log(LNT_LogLevel level, string source, string message)
     {
         if (level < s_ConsoleMinLevel)
             return;
 
-        string levelName = typename.EnumToString(MyLogLevel, level);
-        string line = string.Format("[MyMod] [%1] [%2] %3", levelName, source, message);
+        string levelName = typename.EnumToString(LNT_LogLevel, level);
+        string line = string.Format("[Lantern] [%1] [%2] %3", levelName, source, message);
         Print(line);
 
         // Also write to file if level meets file threshold
@@ -482,14 +483,16 @@ class MyLog
 Usage across multiple modules:
 
 ```c
-MyLog.Info("MissionServer", "MyMod Core initialized (server)");
-MyLog.Warning("ServerWebhooksRPC", "Unauthorized request from: " + sender.GetName());
-MyLog.Error("ConfigManager", "Failed to load config: " + path);
+LNT_Log.Info("MissionServer", "Lantern Core initialized (server)");
+LNT_Log.Warning("AdminRPC", "Unauthorized request from: " + sender.GetName());
+LNT_Log.Error("ConfigManager", "Failed to load config: " + path);
 ```
 
 ---
 
-## Real-World Examples
+## Worked Examples
+
+The examples below use the `LNT_Log` class defined in the previous section.
 
 ### Safe Function With Multiple Guards
 
@@ -499,21 +502,21 @@ void HealPlayer(PlayerBase player, float amount, string healerName)
     // Guard: null player
     if (!player)
     {
-        MyLog.Error("HealSystem", "HealPlayer called with null player");
+        LNT_Log.Error("HealSystem", "HealPlayer called with null player");
         return;
     }
 
     // Guard: player alive
     if (!player.IsAlive())
     {
-        MyLog.Warning("HealSystem", "Cannot heal dead player: " + player.GetIdentity().GetName());
+        LNT_Log.Warning("HealSystem", "Cannot heal dead player: " + player.GetIdentity().GetName());
         return;
     }
 
     // Guard: valid amount
     if (amount <= 0)
     {
-        MyLog.Warning("HealSystem", "Invalid heal amount: " + amount.ToString());
+        LNT_Log.Warning("HealSystem", "Invalid heal amount: " + amount.ToString());
         return;
     }
 
@@ -522,7 +525,7 @@ void HealPlayer(PlayerBase player, float amount, string healerName)
     float maxHP = player.GetMaxHealth("", "Health");
     if (currentHP >= maxHP)
     {
-        MyLog.Info("HealSystem", player.GetIdentity().GetName() + " already at full health");
+        LNT_Log.Info("HealSystem", player.GetIdentity().GetName() + " already at full health");
         return;
     }
 
@@ -530,7 +533,7 @@ void HealPlayer(PlayerBase player, float amount, string healerName)
     float newHP = Math.Min(currentHP + amount, maxHP);
     player.SetHealth("", "Health", newHP);
 
-    MyLog.Info("HealSystem", string.Format("%1 healed %2 for %3 HP (%4 -> %5)",
+    LNT_Log.Info("HealSystem", string.Format("%1 healed %2 for %3 HP (%4 -> %5)",
         healerName,
         player.GetIdentity().GetName(),
         amount.ToString(),
@@ -706,16 +709,16 @@ bool TransferItem(PlayerBase fromPlayer, PlayerBase toPlayer, EntityAI item)
 
 ---
 
-## Observed in Real Mods
+## These Patterns in the Vanilla Scripts
 
-> Patterns confirmed by studying professional DayZ mod source code.
+Every pattern in this chapter is grounded in code you can read yourself in the vanilla script dump:
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Stacked guard clauses with log messages | COT / VPP | Every RPC handler checks sender, params, permissions, and logs on each failure |
-| Static logger class with level filtering | Expansion / Dabs | A single `Log` class routes `Info`/`Warning`/`Error` to console, file, and optionally Discord |
-| `DumpStackString()` in critical guards | COT Admin | Captures call stack on unexpected null to trace which caller passed bad data |
-| `#ifdef DIAG_DEVELOPER` around debug prints | Vanilla DayZ / Expansion | All per-frame debug output is wrapped so it never runs in release builds |
+| Pattern | Where to Look | Detail |
+|---------|---------------|--------|
+| Stacked guard clauses in RPC handlers | `DayZGame.OnRPC()` in `3_game/dayzgame.c`; `PlayerBase.OnRPC()` in `4_world/entities/manbase/playerbase.c` | Vanilla RPC handlers switch on the RPC type and validate `ctx.Read()` results before acting on any payload |
+| Static logger class with level filtering | `LNT_Log` in this chapter ([Production Logger Pattern](#production-logger-pattern-lnt_log)) | A single static class routes `Info`/`Warning`/`Error` through one `Log()` method with separate console and file thresholds |
+| `DumpStackString()` in critical guards | `1_core/proto/endebug.c` | Declared as `proto void DumpStackString(out string stack)` — fills the `out` parameter with the current call stack |
+| `#ifdef DIAG_DEVELOPER` around debug prints | Pervasive across the vanilla scripts (hundreds of occurrences, e.g. `4_world/systems/inventory/dayzplayerinventory.c`) | Diagnostic-only code is wrapped so it never compiles into release builds |
 
 ---
 
@@ -829,11 +832,3 @@ override void OnUpdate(float timeslice)
 | notnull | Compiler null check | `void Fn(notnull Class obj)` |
 
 **The golden rule:** In Enforce Script, assume everything can be null and every operation can fail. Check first, act second, log always.
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.10 Enums & Preprocessor](10-enums-preprocessor.md) | [Part 1: Enforce Script](../README.md) | [1.12 What Does NOT Exist](12-gotchas.md) |

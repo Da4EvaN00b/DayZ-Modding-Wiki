@@ -1,6 +1,5 @@
-# Chapter 4.6: PBO Packing
+# PBO Packing
 
-[Home](../README.md) | [<< Previous: DayZ Tools Workflow](05-dayz-tools.md) | **PBO Packing** | [Next: Workbench Guide >>](07-workbench-guide.md)
 
 ---
 
@@ -401,7 +400,7 @@ echo === Build Complete ===
 pause
 ```
 
-### Python Build Script Pattern (dev.py)
+### Python Build Script Pattern
 
 For more sophisticated builds, a Python script provides better error handling, logging, and conditional logic:
 
@@ -472,17 +471,50 @@ if __name__ == "__main__":
     main()
 ```
 
-### Integration with dev.py
+### Integration with a Build Orchestrator
 
-The MyMod project uses `dev.py` as the central build orchestrator:
+For a multi-mod workspace, the build script above is usually just one stage of a larger orchestrator: a single command that builds every PBO, links the output into the game directory, launches the server, and tails the script log for errors. That closes the whole edit-build-test loop with one keystroke.
 
-```bash
-python dev.py build          # Build all PBOs
-python dev.py server         # Build + launch server + monitor logs
-python dev.py full           # Build + server + client
+A minimal `build.py` orchestrator sketch:
+
+```python
+import subprocess
+import sys
+
+def build_all():
+    """Build every PBO (see build_pbo above)."""
+    # ... loop over PBOS, return False on any failure
+    return True
+
+def link_output():
+    """Junction @MyMod from the output dir into the DayZ install."""
+    subprocess.run([
+        "cmd", "/c", "mklink", "/J",
+        r"C:\DayZ\@MyMod", r"P:\@MyMod",
+    ])
+
+def launch_server():
+    """Start the diag server with the mod loaded."""
+    subprocess.Popen([
+        r"C:\DayZ\DayZDiag_x64.exe", "-server",
+        "-mod=@MyMod", "-config=serverDZ.cfg", "-doLogs",
+    ])
+
+def tail_log():
+    """Follow the newest script log and print SCRIPT (E) lines."""
+    # ... open the latest script_*.log, poll for new lines,
+    # highlight errors so failures are visible immediately
+
+if __name__ == "__main__":
+    if not build_all():
+        sys.exit(1)
+    link_output()
+    if "server" in sys.argv:
+        launch_server()
+        tail_log()
 ```
 
-This pattern is recommended for any multi-mod workspace. A single command builds everything, launches the server, and starts monitoring -- eliminating manual steps and reducing human error.
+Typical subcommands to expose: `build` (PBOs only), `server` (build + launch + monitor), and `check` (scan the latest log offline). A single command that does all of it eliminates manual steps and reduces human error.
 
 ---
 
@@ -637,12 +669,12 @@ Development involves two testing modes. Choosing the right one for each situatio
 
 ## Observed in Real Mods
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| 20+ PBOs per mod with fine-grained splits | Expansion (all modules) | Splits into separate PBOs for Scripts, Data, GUI, Vehicles, Book, Market, etc., enabling independent rebuilds and optional client/server separation |
-| Scripts/Data/GUI triple-split | StarDZ (Core, Missions, AI) | Each mod produces 2-3 PBOs: `_Scripts.pbo` (packonly), `_Data.pbo` (binarized models/textures), `_GUI.pbo` (packonly layouts) |
+| Pattern | Where Seen | Detail |
+|---------|------------|--------|
+| Many PBOs per mod with fine-grained splits | Large content frameworks | 20+ separate PBOs for scripts, data, GUI, vehicles, and per-feature modules, enabling independent rebuilds and optional client/server separation |
+| Scripts/Data/GUI triple-split | Framework mods | Each mod produces 2-3 PBOs: `_Scripts.pbo` (packonly), `_Data.pbo` (binarized models/textures), `_GUI.pbo` (packonly layouts) |
 | Single monolithic PBO | Simple retexture mods | Small mods with only a config.cpp and a few PAA textures pack everything into one PBO with binarization |
-| Key versioning per major release | Expansion | Generates new key pairs for breaking updates, forcing all clients and servers to update in sync |
+| Key versioning per major release | Actively updated mods | A new key pair for breaking updates forces all clients and servers to update in sync |
 
 ---
 
@@ -651,11 +683,3 @@ Development involves two testing modes. Choosing the right one for each situatio
 - **Multi-Mod:** PBO prefix collisions cause the engine to load one mod's files instead of another's. Every mod must use a unique prefix. Check `$PBOPREFIX$` carefully when debugging "file not found" errors in multi-mod environments.
 - **Performance:** PBO loading is fast (sequential file reads), but mods with many large PBOs increase server startup time. Binarized content loads faster than unbinarized. Use ODOL models and PAA textures for release builds.
 - **Version:** The PBO format itself has not changed. AddonBuilder receives periodic fixes via DayZ Tools updates, but the command-line flags and packing behavior have been stable since DayZ 1.0.
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.5 DayZ Tools Workflow](05-dayz-tools.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [Next: Workbench Guide](07-workbench-guide.md) |

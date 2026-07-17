@@ -1,6 +1,5 @@
-# Chapter 8.2: Creating a Custom Item
+# Creating a Custom Item
 
-[Home](../README.md) | [<< Previous: Your First Mod](01-first-mod.md) | **Creating a Custom Item** | [Next: Building an Admin Panel >>](03-admin-panel.md)
 
 ---
 

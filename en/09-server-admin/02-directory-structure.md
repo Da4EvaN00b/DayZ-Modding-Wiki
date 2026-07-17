@@ -1,6 +1,5 @@
-# Chapter 9.2: Directory Structure & Mission Folder
+# Directory Structure & Mission Folder
 
-[Home](../README.md) | [<< Previous: Server Setup](01-server-setup.md) | **Directory Structure** | [Next: serverDZ.cfg Reference >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ The `a` attribute is the rotation angle in degrees.
 | `storage_1/` | Delete only | Persistence -- do not hand-edit |
 | `battleye/` | **No** | Anti-cheat -- do not touch |
 | `mapgroup*.xml` | Careful | Building loot positions -- advanced editing only |
-
----
-
-**Previous:** [Server Setup](01-server-setup.md) | [Home](../README.md) | **Next:** [serverDZ.cfg Reference >>](03-server-cfg.md)

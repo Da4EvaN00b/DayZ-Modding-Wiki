@@ -1,6 +1,6 @@
-# Chapter 6.3: Weather System
+# Weather System
 
-[Home](../README.md) | [<< Previous: Vehicles](02-vehicles.md) | **Weather** | [Next: Cameras >>](04-cameras.md)
+> **Summary:** Read and control overcast, rain, snow, fog, wind, and lightning through the `Weather` singleton and its `WeatherPhenomenon` objects, configure declarative defaults in `cfgweather.xml`, and hook the weather state machine via `WeatherOnBeforeChange()`.
 
 ---
 
@@ -345,17 +345,9 @@ Key structure:
 
 ---
 
-## Observed in Real Mods
+## Common Patterns in the Wild
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
-
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| `MissionWeather(true)` + scripted weather cycle with `CallLater` | Expansion | Weather controller in mission init |
-| `WeatherOnBeforeChange` override to prevent rain in specific areas | COT Weather Module | Modded `ChernarusPlusData` |
-| Admin command to force clear/storm via `Set()` with long hold duration | VPP Admin Tools | Weather admin panel |
-| `cfgweather.xml` with custom thresholds for snow-only maps | Namalsk | Mission folder config |
-
----
-
-[<< Previous: Vehicles](02-vehicles.md) | **Weather** | [Next: Cameras >>](04-cameras.md)
+- **Scripted weather cycles.** Server frameworks call `MissionWeather(true)` in mission init and then drive a repeating weather cycle with `GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater()`, stepping through preset overcast/rain/fog states.
+- **Area-based weather policy.** Overriding `WeatherOnBeforeChange()` in a modded WorldData class lets a mod veto or clamp specific transitions server-wide — for example suppressing rain during an event window.
+- **Admin force-weather commands.** Admin tools expose clear/storm buttons that call `Set()` with a long `minDuration` so the state machine cannot immediately revert the forced state. See [Admin & Server Tools](22-admin-server.md) for building an admin command pipeline.
+- **Winter-map tuning.** Winter maps ship a custom `cfgweather.xml` in the mission folder with thresholds tuned so precipitation renders as snowfall rather than rain.

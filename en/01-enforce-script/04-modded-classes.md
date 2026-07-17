@@ -1,6 +1,6 @@
-# Chapter 1.4: Modded Classes (The Key to DayZ Modding)
+# Modded Classes (The Key to DayZ Modding)
 
-[Home](../README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)
+> **Summary:** The `modded class` keyword lets your mod insert itself into the inheritance chain of any existing game class — adding fields, overriding methods, and chaining with other mods — without replacing the original files. This chapter covers the mechanics, the classes every mod hooks into, `#ifdef` guards for optional dependencies, and the rules that keep your mod from breaking everyone else's.
 
 ---
 
@@ -8,7 +8,7 @@
 
 **Modded classes are the single most important concept in DayZ modding.** They are the mechanism that allows your mod to change the behavior of existing game classes without replacing the original files. Without modded classes, DayZ modding as we know it would not exist.
 
-Every major DayZ mod --- Community Online Tools, VPP Admin Tools, DayZ Expansion, Trader mods, medical overhauls, building systems --- works by using `modded class` to hook into vanilla classes and add or change behavior. When you mod `PlayerBase`, every player in the game gets your new behavior. When you mod `MissionServer`, your code runs as part of the server's mission lifecycle. When you mod `ItemBase`, every item in the game is affected.
+Large public mods such as Community Online Tools, VPP Admin Tools, and DayZ Expansion are built almost entirely from modded classes — and so is every trader mod, medical overhaul, and building system. When you mod `PlayerBase`, every player in the game gets your new behavior. When you mod `MissionServer`, your code runs as part of the server's mission lifecycle. When you mod `ItemBase`, every item in the game is affected.
 
 This chapter is intentionally the longest and most detailed in Part 1 because getting modded classes right is what separates a working mod from one that crashes servers or breaks other mods.
 
@@ -179,7 +179,7 @@ modded class PlayerBase
     override void Init()
     {
         super.Init();  // Let vanilla initialization happen first
-        Print("[MyMod] Player initialized: " + GetType());
+        Print("[Lantern] Player initialized: " + GetType());
     }
 }
 ```
@@ -191,16 +191,16 @@ Extend the class with new data. Every instance of the modded class will have the
 ```c
 modded class PlayerBase
 {
-    protected int m_KillStreak;
-    protected float m_LastKillTime;
-    protected ref array<string> m_Achievements;
+    protected int m_LNT_KillStreak;
+    protected float m_LNT_LastKillTime;
+    protected ref array<string> m_LNT_Achievements;
 
     override void Init()
     {
         super.Init();
-        m_KillStreak = 0;
-        m_LastKillTime = 0;
-        m_Achievements = new array<string>;
+        m_LNT_KillStreak = 0;
+        m_LNT_LastKillTime = 0;
+        m_LNT_Achievements = new array<string>;
     }
 }
 ```
@@ -212,29 +212,29 @@ Add entirely new functionality that other parts of your mod can call.
 ```c
 modded class PlayerBase
 {
-    protected int m_Reputation;
+    protected int m_LNT_Reputation;
 
     override void Init()
     {
         super.Init();
-        m_Reputation = 0;
+        m_LNT_Reputation = 0;
     }
 
-    void AddReputation(int amount)
+    void LNT_AddReputation(int amount)
     {
-        m_Reputation += amount;
-        if (m_Reputation > 1000)
-            Print("[MyMod] " + GetIdentity().GetName() + " is now a legend!");
+        m_LNT_Reputation += amount;
+        if (m_LNT_Reputation > 1000 && GetIdentity())
+            Print("[Lantern] " + GetIdentity().GetName() + " is now a legend!");
     }
 
-    int GetReputation()
+    int LNT_GetReputation()
     {
-        return m_Reputation;
+        return m_LNT_Reputation;
     }
 
-    bool IsHeroStatus()
+    bool LNT_IsHeroStatus()
     {
-        return m_Reputation >= 500;
+        return m_LNT_Reputation >= 500;
     }
 }
 ```
@@ -268,23 +268,30 @@ modded class VanillaClass
 
 This is powerful but should be used carefully. Private members are private for a reason --- they may change between DayZ updates.
 
-### 5. Override Constants
+### 5. Add New Constants
 
-Modded classes can redefine constants:
+A modded class can declare new constants alongside the original ones. Shipped mods use this heavily to extend vanilla registries (particle lists, RPC ID tables, and similar) with `static const` members:
 
 ```c
 // Vanilla
-class GameSettings
+class GameTuning
 {
-    const int MAX_PLAYERS = 60;
+    const int MAX_SLOTS = 4;
 }
 
 // Modded
-modded class GameSettings
+modded class GameTuning
 {
-    const int MAX_PLAYERS = 100;  // Overrides the original value
+    const int LNT_EXTRA_SLOTS = 2;  // New constant added by the mod
+
+    int LNT_GetTotalSlots()
+    {
+        return MAX_SLOTS + LNT_EXTRA_SLOTS;
+    }
 }
 ```
+
+If you need to change a value that vanilla code derives from one of its own constants, do not try to redefine the constant --- override the **method** that uses it instead. That keeps the change visible, chainable by other mods, and independent of how the engine resolves constant lookups.
 
 ---
 
@@ -299,29 +306,24 @@ Runs on the dedicated server. Handles server startup, player connections, and th
 ```c
 modded class MissionServer
 {
-    protected ref MyServerManager m_MyManager;
-
     override void OnInit()
     {
         super.OnInit();
 
-        // Initialize your server-side systems
-        m_MyManager = new MyServerManager;
-        m_MyManager.Init();
-        Print("[MyMod] Server systems initialized");
+        // Initialize your server-side systems here
+        Print("[Lantern] Server systems initialized");
     }
 
     override void OnMissionStart()
     {
         super.OnMissionStart();
-        Print("[MyMod] Mission started");
+        Print("[Lantern] Mission started");
     }
 
     override void OnMissionFinish()
     {
         // Clean up BEFORE super (super may tear down systems we depend on)
-        if (m_MyManager)
-            m_MyManager.Shutdown();
+        Print("[Lantern] Mission shutting down");
 
         super.OnMissionFinish();
     }
@@ -332,14 +334,14 @@ modded class MissionServer
         super.InvokeOnConnect(player, identity);
 
         if (identity)
-            Print("[MyMod] Player connected: " + identity.GetName());
+            Print("[Lantern] Player connected: " + identity.GetName());
     }
 
     // Called when a player disconnects
     override void InvokeOnDisconnect(PlayerBase player)
     {
         if (player && player.GetIdentity())
-            Print("[MyMod] Player disconnected: " + player.GetIdentity().GetName());
+            Print("[Lantern] Player disconnected: " + player.GetIdentity().GetName());
 
         super.InvokeOnDisconnect(player);
     }
@@ -349,8 +351,7 @@ modded class MissionServer
     {
         super.OnUpdate(timeslice);
 
-        if (m_MyManager)
-            m_MyManager.Update(timeslice);
+        // Per-tick server work goes here (keep it cheap!)
     }
 }
 ```
@@ -360,42 +361,61 @@ modded class MissionServer
 Runs on the client. Handles client-side UI, input, and rendering hooks.
 
 ```c
+// A minimal client-side helper so the example below is complete
+class LNT_HintPanel
+{
+    protected bool m_Visible;
+
+    void Toggle()
+    {
+        m_Visible = !m_Visible;
+        if (m_Visible)
+            Print("[Lantern] Hint panel shown");
+        else
+            Print("[Lantern] Hint panel hidden");
+    }
+
+    void Update(float timeslice)
+    {
+        // Animate widgets, drain a message queue, etc.
+    }
+}
+
 modded class MissionGameplay
 {
-    protected ref MyHUDPanel m_MyHUD;
+    protected ref LNT_HintPanel m_LNT_HintPanel;
 
     override void OnInit()
     {
         super.OnInit();
 
-        m_MyHUD = new MyHUDPanel;
-        Print("[MyMod] Client HUD initialized");
+        m_LNT_HintPanel = new LNT_HintPanel();
+        Print("[Lantern] Client HUD initialized");
     }
 
     override void OnUpdate(float timeslice)
     {
         super.OnUpdate(timeslice);
 
-        if (m_MyHUD)
-            m_MyHUD.Update(timeslice);
+        if (m_LNT_HintPanel)
+            m_LNT_HintPanel.Update(timeslice);
     }
 
     override void OnKeyPress(int key)
     {
         super.OnKeyPress(key);
 
-        // Open custom menu on F5
+        // Toggle the custom panel on F5
         if (key == KeyCode.KC_F5)
         {
-            if (m_MyHUD)
-                m_MyHUD.Toggle();
+            if (m_LNT_HintPanel)
+                m_LNT_HintPanel.Toggle();
         }
     }
 
     override void OnMissionFinish()
     {
-        if (m_MyHUD)
-            m_MyHUD.Destroy();
+        m_LNT_HintPanel = null;
 
         super.OnMissionFinish();
     }
@@ -409,17 +429,17 @@ The player class. Every living player in the game is an instance of `PlayerBase`
 ```c
 modded class PlayerBase
 {
-    protected bool m_IsGodMode;
-    protected float m_CustomTimer;
+    protected bool m_LNT_GodMode;
+    protected float m_LNT_MinuteTimer;
 
     override void Init()
     {
         super.Init();
-        m_IsGodMode = false;
-        m_CustomTimer = 0;
+        m_LNT_GodMode = false;
+        m_LNT_MinuteTimer = 0;
     }
 
-    // Called every frame on the server for this player
+    // Called every frame for this player
     override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
     {
         super.CommandHandler(pDt, pCurrentCommandID, pCurrentCommandFinished);
@@ -427,32 +447,30 @@ modded class PlayerBase
         // Server-side per-player tick
         if (GetGame().IsServer())
         {
-            m_CustomTimer += pDt;
-            if (m_CustomTimer >= 60.0)  // Every 60 seconds
+            m_LNT_MinuteTimer += pDt;
+            if (m_LNT_MinuteTimer >= 60.0)  // Every 60 seconds
             {
-                m_CustomTimer = 0;
-                OnMinuteElapsed();
+                m_LNT_MinuteTimer = 0;
+                LNT_OnMinuteElapsed();
             }
         }
     }
 
-    void SetGodMode(bool enabled)
+    void LNT_SetGodMode(bool enabled)
     {
-        m_IsGodMode = enabled;
+        m_LNT_GodMode = enabled;
     }
 
     // Override damage to implement god mode
-    override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source,
-                          int component, string dmgZone, string ammo,
-                          vector modelPos, float speedCoef)
+    override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
     {
-        if (m_IsGodMode)
+        if (m_LNT_GodMode)
             return;  // Skip damage entirely
 
         super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
     }
 
-    protected void OnMinuteElapsed()
+    protected void LNT_OnMinuteElapsed()
     {
         // Custom periodic logic
     }
@@ -470,8 +488,10 @@ modded class ItemBase
     {
         super.SetActions();
 
-        // Add a custom action to ALL items
-        AddAction(MyInspectAction);
+        // This is where user actions are registered with AddAction(...).
+        // Because this override runs for EVERY item type in the game,
+        // anything you register here appears on all items. Writing a
+        // custom action class is a topic of its own.
     }
 
     override void EEItemLocationChanged(notnull InventoryLocation oldLoc, notnull InventoryLocation newLoc)
@@ -479,8 +499,7 @@ modded class ItemBase
         super.EEItemLocationChanged(oldLoc, newLoc);
 
         // Track when items move
-        Print(string.Format("[MyMod] %1 moved from %2 to %3",
-            GetType(), oldLoc.GetType(), newLoc.GetType()));
+        Print(string.Format("[Lantern] %1 moved from %2 to %3", GetType(), oldLoc.GetType(), newLoc.GetType()));
     }
 }
 ```
@@ -495,7 +514,7 @@ modded class DayZGame
     void DayZGame()
     {
         // Constructor: very early initialization
-        Print("[MyMod] DayZGame constructor - extremely early init");
+        Print("[Lantern] DayZGame constructor - extremely early init");
     }
 
     override void OnUpdate(bool doSim, float timeslice)
@@ -514,19 +533,19 @@ The base vehicle class. Mod it to change all vehicle behavior.
 ```c
 modded class CarScript
 {
-    protected float m_BoostMultiplier;
+    protected float m_LNT_BoostMultiplier;
 
     override void OnEngineStart()
     {
         super.OnEngineStart();
-        m_BoostMultiplier = 1.0;
-        Print("[MyMod] Vehicle engine started: " + GetType());
+        m_LNT_BoostMultiplier = 1.0;
+        Print("[Lantern] Vehicle engine started: " + GetType());
     }
 
     override void OnEngineStop()
     {
         super.OnEngineStop();
-        Print("[MyMod] Vehicle engine stopped: " + GetType());
+        Print("[Lantern] Vehicle engine stopped: " + GetType());
     }
 }
 ```
@@ -537,23 +556,25 @@ modded class CarScript
 
 When your mod optionally supports another mod, use preprocessor guards. If the other mod declares a symbol in its `config.cpp` (via the `defines[]` array in `CfgMods`), you can check for it at compile time.
 
+> **A note on the examples:** the guarded code below references `LNT_*` classes from the **Lantern framework** — the fictional mod family this wiki uses for all worked examples (its subsystems are built out in full in Part 7). Those classes are deliberately *not* defined in this chapter: that is exactly what the guard is for. A guarded line only compiles when the mod that defines the symbol (and ships the class) is actually loaded.
+
 ### How It Works
 
-A mod declares its preprocessor symbols explicitly through the `defines[]` array inside its `CfgMods` entry. For example, if a mod has:
+A mod declares its preprocessor symbols explicitly through the `defines[]` array inside its `CfgMods` entry. For example, if the Lantern AI package has:
 
 ```cpp
 class CfgMods
 {
-    class MyMod_AI
+    class Lantern_AI
     {
         type = "mod";
-        defines[] = { "MYMOD_AI" };
+        defines[] = { "LANTERN_AI" };
         // ...
     };
 };
 ```
 
-Then `#ifdef MYMOD_AI` will be `true` when that mod is loaded.
+Then `#ifdef LANTERN_AI` will be `true` when that mod is loaded.
 
 Note that `CfgPatches` class names register a mod's addon content but do **not** create `#ifdef` symbols --- only `defines[]` does. The symbol names are chosen by the mod author and need not match any class name, so the convention varies --- check the mod's documentation or `config.cpp`.
 
@@ -566,11 +587,11 @@ modded class PlayerBase
     {
         super.Init();
 
-        // This code ONLY compiles when MyMod_AI is present
-        #ifdef MYMOD_AI
-            MyAIManager mgr = MyAIManager.GetInstance();
-            if (mgr)
-                mgr.RegisterPlayer(this);
+        // This code ONLY compiles when a mod defining LANTERN_AI is present
+        #ifdef LANTERN_AI
+        LNT_AIManager manager = LNT_AIManager.GetInstance();
+        if (manager)
+            manager.RegisterPlayer(this);
         #endif
     }
 }
@@ -599,14 +620,14 @@ modded class MissionBase
     #ifdef SERVER
     protected void InitServerSystems()
     {
-        Print("[MyMod] Server systems started");
+        Print("[Lantern] Server systems started");
     }
     #endif
 
     #ifndef SERVER
     protected void InitClientHUD()
     {
-        Print("[MyMod] Client HUD started");
+        Print("[Lantern] Client HUD started");
     }
     #endif
 }
@@ -614,35 +635,35 @@ modded class MissionBase
 
 ### Multi-Mod Compatibility
 
-Here is a real-world pattern for a mod that enhances players, with optional support for two other mods:
+Here is the same mechanic used across two mods. **NightPatrol** (a second fictional mod, prefix `NP_`) adds a bounty system, and optionally integrates with the Lantern framework when it is loaded:
 
 ```c
 modded class PlayerBase
 {
-    protected int m_BountyPoints;
+    protected int m_NP_BountyPoints;
 
     override void Init()
     {
         super.Init();
-        m_BountyPoints = 0;
+        m_NP_BountyPoints = 0;
     }
 
-    void AddBounty(int amount)
+    void NP_AddBounty(int amount)
     {
-        m_BountyPoints += amount;
+        m_NP_BountyPoints += amount;
 
-        // If Expansion Notifications is loaded, show a fancy notification
-        #ifdef EXPANSIONMODNOTIFICATION
-            ExpansionNotification("Bounty!", string.Format("+%1 points", amount)).Create(GetIdentity());
+        // If Lantern is loaded, use its toast helper for a styled notification
+        #ifdef LANTERN_CORE
+        LNT_Toast.Show(this, "Bounty", string.Format("+%1 points", amount));
         #else
-            // Fallback: simple notification
-            NotificationSystem.SendNotificationToPlayerExtended(this, 5, "Bounty",
-                string.Format("+%1 points", amount), "");
+        // Fallback: vanilla notification system
+        NotificationSystem.SendNotificationToPlayerExtended(this, 5, "Bounty", string.Format("+%1 points", amount), "");
         #endif
 
-        // If a trader mod is loaded, update the player's balance
-        #ifdef TraderPlus
-            // TraderPlus-specific API call
+        // If Lantern's market mod is loaded, credit the player's balance
+        #ifdef LANTERN_MARKET
+        // Call the market API here - the block only compiles when
+        // the mod that defines LANTERN_MARKET (and its classes) is loaded.
         #endif
     }
 }
@@ -650,110 +671,182 @@ modded class PlayerBase
 
 ---
 
-## Professional Patterns from Real Mods
+## Production Patterns
 
-### Pattern 1: Non-Destructive Method Wrapping (COT Style)
+The four patterns below are the shapes you will meet again and again in working mods. All the example code belongs to **Lantern**, this wiki's constructed teaching framework (built out fully in Part 7) --- each example defines the minimal version of the helper classes it needs, so the code is complete as shown.
 
-Community Online Tools wraps methods by doing work before and after `super`, never replacing behavior entirely:
+### Pattern 1: Non-Destructive Method Wrapping
+
+Do work *around* `super`, never instead of it. The modded class stays a thin hook; the real logic lives in a plain class that is easy to test and reuse:
 
 ```c
+class LNT_SessionTracker
+{
+    protected ref map<string, float> m_ConnectTimes;
+
+    void LNT_SessionTracker()
+    {
+        m_ConnectTimes = new map<string, float>;
+    }
+
+    void OnPlayerConnecting(PlayerIdentity identity)
+    {
+        // Record when the connection began (tick time in seconds)
+        m_ConnectTimes.Set(identity.GetId(), GetGame().GetTickTime());
+    }
+
+    void OnPlayerReady(PlayerIdentity identity)
+    {
+        Print("[Lantern] Session started for " + identity.GetName());
+    }
+}
+
 modded class MissionServer
 {
-    // New field added by COT
-    protected ref JMPlayerModule m_JMPlayerModule;
+    protected ref LNT_SessionTracker m_LNT_Sessions;
 
     override void OnInit()
     {
-        super.OnInit();  // All vanilla init happens
+        super.OnInit();  // All vanilla init happens first
 
-        // COT adds its own initialization AFTER vanilla
-        m_JMPlayerModule = new JMPlayerModule;
-        m_JMPlayerModule.Init();
+        m_LNT_Sessions = new LNT_SessionTracker();
     }
 
     override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
     {
-        // COT does pre-processing
+        // Pre-processing, before vanilla and other mods
         if (identity)
-            m_JMPlayerModule.OnClientConnect(identity);
+            m_LNT_Sessions.OnPlayerConnecting(identity);
 
-        // Then lets vanilla (and other mods) handle it
+        // Then let vanilla (and every other mod in the chain) handle it
         super.InvokeOnConnect(player, identity);
 
-        // COT does post-processing
+        // Post-processing
         if (identity)
-            m_JMPlayerModule.OnClientReady(identity);
+            m_LNT_Sessions.OnPlayerReady(identity);
     }
 }
 ```
 
-### Pattern 2: Conditional Override (VPP Style)
+### Pattern 2: Conditional Compilation of a Whole Override
 
-VPP Admin Tools checks conditions before deciding whether to modify behavior:
+Sometimes an entire `modded class` should only exist in certain load-outs. Suppose Lantern bundles a lightweight notification panel, but a standalone "Lantern Notifications" mod (which defines `LANTERN_NOTIFICATIONS`) ships a full-featured replacement. Guarding the whole modded class prevents the two from colliding:
 
 ```c
-#ifndef VPPNOTIFICATIONS
+class LNT_NotificationPanel
+{
+    void OnUpdate(float timeslice)
+    {
+        // Drain a queue, fade widgets, etc.
+    }
+}
+
+#ifndef LANTERN_NOTIFICATIONS
 modded class MissionGameplay
 {
-    private ref VPPNotificationUI m_NotificationUI;
+    protected ref LNT_NotificationPanel m_LNT_Panel;
 
     override void OnInit()
     {
         super.OnInit();
-        m_NotificationUI = new VPPNotificationUI;
+        m_LNT_Panel = new LNT_NotificationPanel();
     }
 
     override void OnUpdate(float timeslice)
     {
         super.OnUpdate(timeslice);
 
-        if (m_NotificationUI)
-            m_NotificationUI.OnUpdate(timeslice);
+        if (m_LNT_Panel)
+            m_LNT_Panel.OnUpdate(timeslice);
     }
 }
 #endif
 ```
 
-Note the `#ifndef VPPNOTIFICATIONS` guard --- this prevents the code from compiling if the standalone notifications mod is already loaded, avoiding conflicts.
+Note the `#ifndef LANTERN_NOTIFICATIONS` guard --- when the standalone notifications mod is loaded, this fallback override is never compiled at all, so there is no duplicate panel and no wasted per-frame work.
 
-### Pattern 3: Event Injection (Expansion Style)
+### Pattern 3: Event Injection
 
-DayZ Expansion injects events into vanilla classes to broadcast information to its own systems:
+Instead of letting every feature mod override `EEKilled` itself, inject the event **once** and broadcast it through a `ScriptInvoker`. Other systems subscribe without ever touching `PlayerBase`:
 
 ```c
+class LNT_EventBus
+{
+    protected static ref LNT_EventBus s_Instance;
+
+    ref ScriptInvoker OnPlayerKilled = new ScriptInvoker();
+
+    static LNT_EventBus Get()
+    {
+        if (!s_Instance)
+            s_Instance = new LNT_EventBus();
+        return s_Instance;
+    }
+}
+
 modded class PlayerBase
 {
     override void EEKilled(Object killer)
     {
-        // Fire Expansion's event system before vanilla death handling
-        ExpansionEventBus.Fire("OnPlayerKilled", this, killer);
-
         super.EEKilled(killer);
 
-        // Post-death processing
-        ExpansionEventBus.Fire("OnPlayerKilledPost", this, killer);
+        // Broadcast to every subscriber - none of them need to mod PlayerBase
+        LNT_EventBus.Get().OnPlayerKilled.Invoke(this, killer);
+    }
+}
+
+// Any system can now listen without touching PlayerBase:
+class LNT_KillFeed
+{
+    void LNT_KillFeed()
+    {
+        LNT_EventBus.Get().OnPlayerKilled.Insert(OnPlayerKilled);
     }
 
-    override void OnConnect()
+    void OnPlayerKilled(PlayerBase victim, Object killer)
     {
-        super.OnConnect();
-        ExpansionEventBus.Fire("OnPlayerConnect", this);
+        Print("[Lantern] Kill feed: " + victim.GetType() + " was killed");
     }
 }
 ```
 
-### Pattern 4: Feature Registration (Community Framework Style)
+The event-bus pattern (including cleanup and unsubscription rules) is covered in depth in [Events & ScriptInvoker](../07-patterns/06-events.md).
 
-CF mods register features in constructors, keeping initialization centralized:
+### Pattern 4: Feature Registration
+
+Keep initialization centralized: features register themselves with a manager, and a single modded hook initializes them all in one place. Constructors run when the class is first created, so they are the earliest safe place to register:
 
 ```c
-modded class DayZGame
+class LNT_Module
 {
-    void DayZGame()
+    void OnServerInit()
     {
-        // CF registers its systems in the DayZGame constructor
-        // This runs extremely early, before any mission loads
-        CF_ModuleManager.RegisterModule(MyCFModule);
+    }
+}
+
+class LNT_WeatherModule : LNT_Module
+{
+    override void OnServerInit()
+    {
+        Print("[Lantern] Weather module online");
+    }
+}
+
+class LNT_ModuleManager
+{
+    protected static ref array<ref LNT_Module> s_Modules = new array<ref LNT_Module>;
+
+    static void Register(LNT_Module module)
+    {
+        s_Modules.Insert(module);
+    }
+
+    static void InitAll()
+    {
+        foreach (LNT_Module module : s_Modules)
+        {
+            module.OnServerInit();
+        }
     }
 }
 
@@ -761,12 +854,22 @@ modded class MissionServer
 {
     void MissionServer()
     {
-        // Constructor: runs when MissionServer is first created
-        // Register RPCs here
-        GetRPCManager().AddRPC("MyMod", "RPC_HandleRequest", this, SingleplayerExecutionType.Both);
+        // Constructor: runs when the mission object is created,
+        // before OnInit(). Register features as early as possible.
+        LNT_ModuleManager.Register(new LNT_WeatherModule());
+    }
+
+    override void OnInit()
+    {
+        super.OnInit();
+
+        // One central place initializes every registered feature
+        LNT_ModuleManager.InitAll();
     }
 }
 ```
+
+The full module-manager design (lifecycle, ordering, client/server splits) is covered in [Module Systems](../07-patterns/02-module-systems.md).
 
 ---
 
@@ -795,9 +898,7 @@ modded class PlayerBase
 {
     // Intentionally NOT calling super to completely disable fall damage
     // WARNING: This will also prevent other mods from running their fall damage code
-    override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source,
-                          int component, string dmgZone, string ammo,
-                          vector modelPos, float speedCoef)
+    override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
     {
         // Check if this is fall damage
         if (ammo == "FallDamage")
@@ -815,7 +916,7 @@ When adding fields to a modded class, initialize them in the appropriate lifecyc
 
 | Class | Initialize in | Why |
 |-------|--------------|-----|
-| `PlayerBase` | `override void Init()` | Called once when the player entity is created |
+| `PlayerBase` | `override void Init()` | Called from the constructor when the player entity is created |
 | `ItemBase` | constructor or `override void InitItemVariables()` | Item creation |
 | `MissionServer` | `override void OnInit()` | Server mission startup |
 | `MissionGameplay` | `override void OnInit()` | Client mission startup |
@@ -863,7 +964,7 @@ Your modded class is part of a chain. Respect the contract:
 
 ### Rule 5: Use Descriptive Field Prefixes
 
-When adding fields to a modded class, prefix them with your mod name to avoid collisions with other mods adding fields to the same class:
+When adding fields to a modded class, prefix them with your mod's tag to avoid collisions with other mods adding fields to the same class. The Lantern examples in this wiki use `m_LNT_*`; pick your own short prefix and use it everywhere:
 
 ```c
 modded class PlayerBase
@@ -872,9 +973,9 @@ modded class PlayerBase
     protected int m_Points;
 
     // GOOD: mod-specific prefix
-    protected int m_MyMod_Points;
-    protected float m_MyMod_LastSync;
-    protected ref array<string> m_MyMod_Unlocks;
+    protected int m_LNT_Points;
+    protected float m_LNT_LastSync;
+    protected ref array<string> m_LNT_Unlocks;
 }
 ```
 
@@ -975,7 +1076,7 @@ modded class PlayerBase
 // GOOD: use a timer to throttle expensive operations
 modded class PlayerBase
 {
-    protected float m_MyMod_Timer;
+    protected float m_LNT_Timer;
 
     override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
     {
@@ -984,15 +1085,15 @@ modded class PlayerBase
         if (!GetGame().IsServer())
             return;
 
-        m_MyMod_Timer += pDt;
-        if (m_MyMod_Timer < 5.0)  // Every 5 seconds, not every frame
+        m_LNT_Timer += pDt;
+        if (m_LNT_Timer < 5.0)  // Every 5 seconds, not every frame
             return;
 
-        m_MyMod_Timer = 0;
-        DoExpensiveWork();
+        m_LNT_Timer = 0;
+        LNT_DoExpensiveWork();
     }
 
-    protected void DoExpensiveWork()
+    protected void LNT_DoExpensiveWork()
     {
         // Periodic logic here
     }
@@ -1001,7 +1102,7 @@ modded class PlayerBase
 
 ### 5. Forgetting `#ifdef` Guards for Optional Dependencies
 
-If your mod references a class from another mod without `#ifdef` guards, it will fail to compile when that mod is not loaded:
+If your mod references a class from another mod without `#ifdef` guards, it will fail to compile when that mod is not loaded. Here NightPatrol references Lantern's toast helper:
 
 ```c
 modded class PlayerBase
@@ -1010,12 +1111,12 @@ modded class PlayerBase
     {
         super.Init();
 
-        // BAD: compile error if ExpansionMod is not loaded
-        // ExpansionHumanity.AddKarma(this, 10);
+        // BAD: compile error when Lantern_Core is not loaded
+        // LNT_Toast.Show(this, "Welcome", "NightPatrol is active");
 
         // GOOD: guarded with #ifdef
-        #ifdef EXPANSIONMODCORE
-            ExpansionHumanity.AddKarma(this, 10);
+        #ifdef LANTERN_CORE
+        LNT_Toast.Show(this, "Welcome", "NightPatrol is active");
         #endif
     }
 }
@@ -1026,19 +1127,38 @@ modded class PlayerBase
 When overriding destructors or cleanup methods, do your cleanup **before** calling `super`, since `super` may destroy resources you depend on:
 
 ```c
+class LNT_SaveManager
+{
+    void Save()
+    {
+        Print("[Lantern] Data saved");
+    }
+
+    void Shutdown()
+    {
+        Print("[Lantern] Manager shut down");
+    }
+}
+
 modded class MissionServer
 {
-    protected ref MyManager m_MyManager;
+    protected ref LNT_SaveManager m_LNT_SaveManager;
+
+    override void OnInit()
+    {
+        super.OnInit();
+        m_LNT_SaveManager = new LNT_SaveManager();
+    }
 
     override void OnMissionFinish()
     {
         // Clean up YOUR stuff first
-        if (m_MyManager)
+        if (m_LNT_SaveManager)
         {
-            m_MyManager.Save();
-            m_MyManager.Shutdown();
+            m_LNT_SaveManager.Save();
+            m_LNT_SaveManager.Shutdown();
         }
-        m_MyManager = null;
+        m_LNT_SaveManager = null;
 
         // THEN let vanilla and other mods clean up
         super.OnMissionFinish();
@@ -1050,30 +1170,7 @@ modded class MissionServer
 
 ## File Naming and Organization
 
-Modded class files should follow a clear naming convention so you can tell at a glance what class is being modded and by which mod:
-
-```
-MyMod/
-  Scripts/
-    3_Game/
-      MyMod/
-    4_World/
-      MyMod/
-        Entities/
-          ManBase/
-            MyMod_PlayerBase.c         <-- modded class PlayerBase
-          ItemBase/
-            MyMod_ItemBase.c           <-- modded class ItemBase
-          Vehicles/
-            MyMod_CarScript.c          <-- modded class CarScript
-    5_Mission/
-      MyMod/
-        Mission/
-          MyMod_MissionServer.c        <-- modded class MissionServer
-          MyMod_MissionGameplay.c      <-- modded class MissionGameplay
-```
-
-This mirrors the vanilla DayZ file structure, making it easy to find which file mods which class.
+Where modded class files live inside your mod, and how to name them so you can tell at a glance what class is being modded, is covered in [File Organization](../02-mod-structure/05-file-organization.md).
 
 ---
 
@@ -1087,7 +1184,7 @@ Create a `modded class ItemBase` that adds a method `string GetInspectInfo()` wh
 
 ### Exercise 3: Admin God Mode
 Create a `modded class PlayerBase` that:
-1. Adds a `m_IsGodMode` field
+1. Adds a god-mode flag field (with your own mod prefix)
 2. Adds `EnableGodMode()` and `DisableGodMode()` methods
 3. Overrides the damage method `EEHitBy` to skip damage when god mode is active
 4. Always calls `super` for normal (non-god-mode) damage
@@ -1097,9 +1194,9 @@ Create a `modded class CarScript` that tracks the maximum speed reached during e
 
 ### Exercise 5: Optional Mod Integration
 Create a `modded class PlayerBase` that adds a reputation system. When a player kills a zombie, they gain 1 point. Use `#ifdef` guards to:
-- If Expansion's notification system is available, show a notification
-- If a trader mod is available, add currency
-- If neither is available, fall back to a simple Print() message
+- If the Lantern framework is loaded (`#ifdef LANTERN_CORE`), show a styled notification
+- If the Lantern market mod is loaded (`#ifdef LANTERN_MARKET`), add currency
+- If neither is available, fall back to a simple `Print()` message
 
 ---
 
@@ -1111,8 +1208,9 @@ Create a `modded class PlayerBase` that adds a reputation system. When a player 
 | Effect | Replaces the original class globally for all `new` calls |
 | Chaining | Multiple mods can mod the same class; they chain in load order |
 | `super` | **Always call it** unless deliberately replacing behavior |
-| New fields | Add with mod-specific prefixes (`m_MyMod_FieldName`) |
+| New fields | Add with mod-specific prefixes (`m_LNT_FieldName`) |
 | New methods | Fully supported; callable from anywhere that has a reference |
+| New constants | Can be added; to change a vanilla value, override the method that uses it |
 | Private access | Modded classes **can** access private members of the original |
 | `#ifdef` guards | Use for optional dependencies on other mods |
 | Common targets | `MissionServer`, `MissionGameplay`, `PlayerBase`, `ItemBase`, `DayZGame`, `CarScript` |
@@ -1122,7 +1220,3 @@ Create a `modded class PlayerBase` that adds a reputation system. When a player 
 1. **Always call `super`** --- unless you have a documented reason not to
 2. **Guard optional dependencies with `#ifdef`** --- your mod should work standalone
 3. **Prefix your fields and methods** --- avoid name collisions with other mods
-
----
-
-[Home](../README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)

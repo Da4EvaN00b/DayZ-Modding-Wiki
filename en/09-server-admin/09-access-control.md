@@ -1,6 +1,5 @@
-# Chapter 9.9: Access Control
+# Access Control
 
-[Home](../README.md) | [<< Previous: Performance Tuning](08-performance.md) | [Next: Mod Management >>](10-mod-management.md)
 
 ---
 
@@ -165,7 +164,7 @@ Once you log in with `#login <password>` in chat, you gain access to the admin t
 - **Admin log** -- server-side log of player actions (kills, connections, disconnections) written to `*.ADM` files in the profile directory.
 - **Free camera** -- detach from your character and fly around the map.
 
-These tools are built into the vanilla game. Third-party mods (such as Community Online Tools) extend admin capabilities significantly.
+These tools are built into the vanilla game. Third-party admin mods (such as Community Online Tools or VPP Admin Tools) extend admin capabilities significantly.
 
 ---
 
@@ -181,7 +180,3 @@ These are the problems server operators hit most often:
 | `verifySignatures = 0` in production | Anyone can join with tampered mods | Set it to `2` on any public-facing server |
 | Forgetting to open RCON port in firewall | RCON client times out | Open the RCON UDP port (the one you set with `RConPort`, e.g. `2305`) in your firewall |
 | Editing **bans.txt** in `BattlEye/` with player UIDs | Bans do not work | BattlEye **bans.txt** uses GUIDs, not UIDs; use **ban.txt** in the server root for UID-based bans |
-
----
-
-[Home](../README.md) | [<< Previous: Performance Tuning](08-performance.md) | [Next: Mod Management >>](10-mod-management.md)

@@ -1,6 +1,6 @@
-# Chapter 1.13: Functions & Methods
+# Functions & Methods
 
-[Home](../README.md) | [<< Previous: Gotchas](12-gotchas.md) | **Functions & Methods**
+> **Summary:** How functions work in Enforce Script — declaration syntax, the parameter passing modes (`out`, `inout`, `notnull`), return values, default parameters, the 16-parameter limit, `proto native` engine bindings, method overriding, the missing overloading feature and its workarounds, `event` methods, `thread` coroutines, and deferred calls with `CallLater`.
 
 ---
 
@@ -8,7 +8,7 @@
 
 Functions are the fundamental unit of behavior in Enforce Script. Every action a mod performs --- spawning an item, checking a player's health, sending an RPC, drawing a UI element --- lives inside a function. Understanding how to declare them, pass data in and out, and work with the engine's special modifiers is essential for writing correct DayZ mods.
 
-This chapter covers function mechanics in depth: declaration syntax, parameter passing modes, return values, default parameters, proto native bindings, static vs instance methods, overriding, the `thread` keyword, and the `event` keyword. If Chapter 1.3 (Classes) taught you where functions live, this chapter teaches you how they work.
+This chapter covers function mechanics in depth: declaration syntax, parameter passing modes, return values, default parameters, proto native bindings, static vs instance methods, overriding, the `thread` keyword, and the `event` keyword. If [Classes & Inheritance](03-classes-inheritance.md) taught you where functions live, this chapter teaches you how they work.
 
 ---
 
@@ -34,7 +34,7 @@ This chapter covers function mechanics in depth: declaration syntax, parameter p
 - [Thread Methods (Coroutines)](#thread-methods-coroutines)
 - [Deferred Calls with CallLater](#deferred-calls-with-calllater)
 - [Best Practices](#best-practices)
-- [Observed in Real Mods](#observed-in-real-mods)
+- [Common Method Conventions](#common-method-conventions)
 - [Theory vs Practice](#theory-vs-practice)
 - [Common Mistakes](#common-mistakes)
 - [Quick Reference Table](#quick-reference-table)
@@ -268,16 +268,27 @@ event void GetTransform(inout vector transform[4])
 
 ### notnull Parameters
 
-The `notnull` keyword tells the compiler (and the engine) that the parameter must not be `null`. If a null value is passed, the game will crash with an error rather than silently proceeding with invalid data.
+The `notnull` keyword declares that a parameter must never receive `null`. It is a **compile-time check, not a runtime guard**:
+
+- Passing the literal `null` (or a variable the compiler can prove is null) to a `notnull` parameter is a **compile error**.
+- At runtime, no extra check is inserted. A reference that happens to be null at the moment of the call — for example, an entity the engine deleted after your last null check — passes straight through. The crash, if any, happens later, when the function dereferences the null reference, exactly as it would with an unmarked parameter.
+
+Treat `notnull` as enforceable documentation: it tells callers "null is a programming error here" and lets the compiler catch the obvious violations at the call site.
 
 ```c
 void ProcessEntity(notnull EntityAI entity)
 {
-    // Safe to use entity without null-checking — engine guarantees it
+    // The compiler rejects call sites that pass a literal null,
+    // so a defensive null check here is normally unnecessary
     string name = entity.GetType();
     Print(name);
 }
+
+// Usage:
+// ProcessEntity(null);   // COMPILE ERROR — cannot pass null to a notnull parameter
 ```
+
+> **Verdict — compile-time, not runtime:** `notnull` catches literal `null` at the call site during compilation. It does **not** protect against references that become null at runtime — engine-side entity deletion is the classic case (see [Error Handling](11-error-handling.md#the-notnull-keyword) and [Memory Management](08-memory-management.md#notnull-parameter-modifier)). If a value can legitimately be null at runtime, check it yourself before calling.
 
 Vanilla uses `notnull` heavily in engine-facing functions:
 
@@ -320,7 +331,7 @@ Use `void` for functions that perform an action without returning data.
 ```c
 void LogMessage(string msg)
 {
-    Print(string.Format("[MyMod] %1", msg));
+    Print(string.Format("[Lantern] %1", msg));
 }
 ```
 
@@ -880,7 +891,7 @@ The `thread` keyword goes on the **call**, not the function declaration. The fun
 
 Inside a thread function, `Sleep(milliseconds)` pauses execution and yields to other code. When the sleep time elapses, the thread resumes from where it left off.
 
-> **Note:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is used extensively by COT, VPP, Expansion, and Dabs Framework in their threaded routines.
+> **Note:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is used extensively by large mods in their threaded routines.
 
 ### Killing Threads
 
@@ -903,7 +914,7 @@ The `owner` is the object that started the thread (or `null` for global threads)
 - They consume a coroutine slot that persists until completion or kill
 - They cannot be serialized or transferred across network boundaries
 
-Use threads only when you genuinely need a long-running loop with intermediate yields. For one-shot delayed actions, use `CallLater` (see below).
+Use threads only when you genuinely need a long-running loop with intermediate yields. For one-shot delayed actions, use `CallLater` (see below). For the full comparison of threads, managed `Timer` objects, and the CallQueue, see [Timers & CallQueue](../06-engine-api/07-timers.md).
 
 ---
 
@@ -914,15 +925,21 @@ Use threads only when you genuinely need a long-running loop with intermediate y
 ### Syntax
 
 ```c
-g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(FunctionToCall, delayMs, repeat, ...params);
+// Declaration on ScriptCallQueue (2_gamelib/tools.c) — abbreviated:
+// proto void CallLater(func fn, int delay = 0, bool repeat = false,
+//     void param1 = NULL, /* ... */ void param9 = NULL);
+
+g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(FunctionToCall, delayMs, repeat);
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | Function | `func` | The method to call |
-| Delay | `int` | Milliseconds before calling |
-| Repeat | `bool` | `true` to repeat at interval, `false` for one-shot |
-| Params | variadic | Parameters to pass to the function |
+| Delay | `int` | Milliseconds before calling (default `0`) |
+| Repeat | `bool` | `true` to repeat at interval, `false` for one-shot (default) |
+| Extra args | `void` (9 optional slots) | Forwarded to the target function when the call fires |
+
+> **Isn't that variadic?** Enforce Script has no variadic parameters — your own functions cannot declare `...` (see [No Variadic Parameters](12-gotchas.md#no-variadic-parameters)). `CallLater` only *looks* variadic: its engine-side `proto` declaration takes nine optional `void`-typed parameters defaulting to `NULL`, so the call site accepts up to nine extra arguments of any type. You cannot write this shape in script yourself — the `void` parameter type is only usable in engine `proto` declarations.
 
 ### Call Categories
 
@@ -955,6 +972,8 @@ To cancel a scheduled call before it fires:
 ```c
 g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(FunctionToCall);
 ```
+
+The CallQueue is covered in depth — alongside managed `Timer` objects — in [Timers & CallQueue](../06-engine-api/07-timers.md).
 
 ---
 
@@ -989,17 +1008,17 @@ void ProcessPlayer(PlayerBase player)
 
 ---
 
-## Observed in Real Mods
+## Common Method Conventions
 
-> Patterns confirmed by studying professional DayZ mod source code.
+These conventions appear throughout the vanilla scripts and across the community mod ecosystem. Adopting them makes your code instantly readable to other DayZ modders.
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| `TryGet___()` returning `bool` with `out` param | COT / Expansion | Consistent pattern for nullable lookups: return `true`/`false`, fill `out` param on success |
-| `MethodEx()` for extended signatures | Vanilla / Expansion Market | When an API needs more parameters, append `Ex` rather than breaking existing callers |
-| Static `Init()` + `Cleanup()` class methods | Expansion / VPP | Manager classes initialize static data in `Init()` and tear down in `Cleanup()`, called from mission lifecycle |
-| Guard clause `if (!GetGame()) return` at method start | COT Admin Tools | Every method that touches the engine starts with null checks to avoid crashes during shutdown |
-| Singleton `GetInstance()` with lazy creation | COT / Expansion / Dabs | Managers expose `static ref` instance with `GetInstance()` accessor, created on first access |
+| Pattern | Grounding | Detail |
+|---------|-----------|--------|
+| `TryGet...()` returning `bool` with an `out` param | Widespread community practice | For lookups that can fail: return `true`/`false` and fill the `out` parameter on success, instead of returning a nullable object |
+| `...Ex()` suffix for extended signatures | Vanilla (`ExplosionEffectsEx`, `SEffectManager.EffectUnregisterEx`) | When an API needs more parameters, add an `Ex` variant rather than breaking existing callers |
+| Static `Init()` + `Cleanup()` pairs | Vanilla (`AmmoEffects`, `PPERequesterBank` in `3_game`) | Manager classes build static data in `Init()` and release it in `Cleanup()`, called from the game/mission lifecycle (`MissionServer.OnInit()` loads data, `MissionGameplay.OnMissionFinish()` tears down) |
+| Null-guarding the game instance at method start | Vanilla (`SEffectManager` checks `g_Game` before use in `3_game/effectmanager.c`) | Methods that can run during startup or shutdown open with guard clauses to avoid crashes |
+| Singleton `GetInstance()` with lazy creation | See [Singletons](../07-patterns/01-singletons.md) | Managers expose a `private static ref` instance behind a static accessor, created on first access |
 
 ---
 
@@ -1133,7 +1152,7 @@ class MyMission extends MissionServer
 | By-value param | `void Fn(int x)` | Copy for primitives; ref copy for objects |
 | `out` param | `void Fn(out int x)` | Write-only; caller receives value |
 | `inout` param | `void Fn(inout float x)` | Read + write; caller sees changes |
-| `notnull` param | `void Fn(notnull EntityAI e)` | Crashes on null |
+| `notnull` param | `void Fn(notnull EntityAI e)` | Compile error on literal `null`; no runtime guard |
 | Default value | `void Fn(int x = 5)` | Literals only, no expressions |
 | Override | `override void Fn()` | Must match parent signature |
 | Call parent | `super.Fn()` | Inside override body |
@@ -1147,11 +1166,3 @@ class MyMission extends MissionServer
 | Deferred call | `CallLater(Fn, delay, repeat)` | Preferred over threads |
 | `Ex()` convention | `void FnEx(...)` | Extended version of `Fn` |
 | Parameter limit | 16 parameters max | Hard compile error in 1.28+; use a class for more |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.12 Gotchas](12-gotchas.md) | [Part 1: Enforce Script](../README.md) | -- |

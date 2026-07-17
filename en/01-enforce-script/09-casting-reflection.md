@@ -1,6 +1,5 @@
-# Chapter 1.9: Casting & Reflection
+# Casting & Reflection
 
-[Home](../README.md) | [<< Previous: Memory Management](08-memory-management.md) | **Casting & Reflection** | [Next: Enums & Preprocessor >>](10-enums-preprocessor.md)
 
 ---
 
@@ -23,12 +22,14 @@
   - [EnScript.GetClassVar / SetClassVar](#enscriptgetclassvar--setclassvar)
 - [Real-World Examples](#real-world-examples)
   - [Finding All Vehicles in the World](#finding-all-vehicles-in-the-world)
-  - [Safe Object Helper With Cast](#safe-object-helper-with-cast)
+  - [Safe Object Alive Check](#safe-object-alive-check)
   - [Reflection-Based Config System](#reflection-based-config-system)
   - [Type-Safe Event Dispatch](#type-safe-event-dispatch)
+- [Best Practices](#best-practices)
+- [Observed in Practice](#observed-in-practice)
+- [Theory vs Practice](#theory-vs-practice)
 - [Common Mistakes](#common-mistakes)
 - [Summary](#summary)
-- [Navigation](#navigation)
 
 ---
 
@@ -428,7 +429,7 @@ static array<CarScript> FindAllVehicles()
 
 ### Safe Object Alive Check
 
-`IsAlive()` is defined on `Object` (object.c:523) as `bool IsAlive() { return !IsDamageDestroyed(); }`, so it can be called on any Object-typed variable. Both vanilla and mods (COT, Expansion) call it directly on Object references:
+`IsAlive()` is defined on `Object` (object.c:523) as `bool IsAlive() { return !IsDamageDestroyed(); }`, so it can be called on any Object-typed variable. Both vanilla code and virtually every large mod call it directly on Object references — for example, vanilla `dayzplayerutils.c` checks `!obj.IsAlive()` on a plain `Object` variable inside its entity-scan loop (right after a `Class.CastTo`):
 
 ```c
 static bool IsObjectAlive(Object obj)
@@ -442,7 +443,7 @@ static bool IsObjectAlive(Object obj)
 
 ### Reflection-Based Config System
 
-This pattern (used in MyMod Core) builds a generic config system where fields are read/written by name, enabling admin panels to edit any config without knowing its specific class:
+This is the core idea behind the reflection-driven config system built in full in [Config & Persistence](../07-patterns/04-config-persistence.md): fields are read/written by name, so an admin panel can edit any config class without knowing its specific type. Here is a simplified sketch of the pattern:
 
 ```c
 class ConfigBase
@@ -482,7 +483,7 @@ class ConfigBase
     }
 }
 
-class MyModConfig : ConfigBase
+class ServerRulesConfig : ConfigBase
 {
     int MaxPlayers = 60;
     int RespawnTime = 300;
@@ -497,9 +498,26 @@ void AdminPanelSave(ConfigBase config, string fieldName, string newValue)
 
 ### Type-Safe Event Dispatch
 
-Use `typename` to build a dispatcher that routes events to the correct handler:
+Use `typename` to build a dispatcher that routes events to the correct handler. Note that `event` is a **reserved word** in Enforce Script — the parameter is named `evt` instead:
 
 ```c
+class EventBase
+{
+}
+
+class PlayerJoinedEvent : EventBase
+{
+    string PlayerName;
+}
+
+class EventHandler
+{
+    void Handle(EventBase evt)
+    {
+        // Override in subclasses
+    }
+}
+
 class EventDispatcher
 {
     protected ref map<typename, ref array<ref EventHandler>> m_Handlers;
@@ -519,16 +537,16 @@ class EventDispatcher
         m_Handlers.Get(eventType).Insert(handler);
     }
 
-    void Dispatch(EventBase event)
+    void Dispatch(EventBase evt)
     {
-        typename eventType = event.Type();
+        typename eventType = evt.Type();
 
         array<ref EventHandler> handlers;
         if (m_Handlers.Find(eventType, handlers))
         {
             foreach (EventHandler handler : handlers)
             {
-                handler.Handle(event);
+                handler.Handle(evt);
             }
         }
     }
@@ -547,16 +565,14 @@ class EventDispatcher
 
 ---
 
-## Observed in Real Mods
+## Observed in Practice
 
-> Patterns confirmed by studying professional DayZ mod source code.
-
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| `Class.CastTo` + `continue` in entity loops | COT / Expansion | Every loop over `Object` arrays uses cast-and-continue to skip non-matching types |
-| `IsKindOf` for config-driven type checks | Expansion Market | Item categories loaded from JSON use string-based `IsKindOf` because types are data |
-| `EnScript.GetClassVar`/`SetClassVar` for admin panels | Dabs Framework | Generic config editors read/write fields by name so one UI works for all config classes |
-| `obj.Type().ToString()` for logging | VPP Admin | Debug logs always include `entity.Type().ToString()` to identify what was processed |
+| Pattern | Where you see it | Detail |
+|---------|------------------|--------|
+| `Class.CastTo` + `continue` in entity loops | Vanilla, pervasively | `playerbase.c` alone calls `Class.CastTo` 18 times; `dayzplayerutils.c` scans entity lists with cast-then-skip (lines 116-124) |
+| `IsKindOf` for config-driven type checks | Vanilla item logic | `cablereel.c` checks `owner.IsKindOf("Fence")`; `emoteclasses.c` checks `weapon.IsKindOf("Pistol_Base")` — the class name is data, not a compile-time type |
+| `EnScript.GetClassVar`/`SetClassVar` for generic editors | Admin/debug tooling practice | Generic config editors read/write fields by name so one UI works for every config class |
+| `obj.Type().ToString()` for logging | Common practice | Debug logs include `entity.Type().ToString()` to identify what was processed |
 
 ---
 
@@ -642,11 +658,3 @@ if (myObj.Type() == PlayerBase)  // true if myObj IS a PlayerBase
 | Variable type | `obj.Type().GetVariableType(i)` | `typename` |
 | Read property | `EnScript.GetClassVar(obj, name, 0, out val)` | `int` (1 = success, 0 = failure) |
 | Write property | `EnScript.SetClassVar(obj, name, 0, val)` | `int` (1 = success, 0 = failure) |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.8 Memory Management](08-memory-management.md) | [Part 1: Enforce Script](../README.md) | [1.10 Enums & Preprocessor](10-enums-preprocessor.md) |

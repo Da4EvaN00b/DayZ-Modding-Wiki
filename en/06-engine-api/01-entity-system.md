@@ -1,6 +1,5 @@
-# Chapter 6.1: Entity System
+# Entity System
 
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
 
 ---
 
@@ -1544,7 +1543,3 @@ void DamageEntity(EntityAI target, float amount)
 - If two mods both `modded class ItemBase` and override `EEInit()`, only the last-loaded mod's code runs unless both call `super`. This is the most common source of mod conflicts.
 - `RegisterNetSyncVariable*()` adds network traffic per entity. Keep synced variable count under 8 per entity. Use RPCs for infrequent updates.
 - `SetHealth()`, `ProcessDirectDamage()`, and `Delete()` are server-authoritative. Calling them on the client causes desync. `GetHealth()`, `GetPosition()`, and type checks are safe on both sides.
-
----
-
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)

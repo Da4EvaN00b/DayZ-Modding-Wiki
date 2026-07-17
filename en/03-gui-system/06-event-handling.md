@@ -1,6 +1,5 @@
-# Chapter 3.6: Event Handling
+# Event Handling
 
-[Home](../README.md) | [<< Previous: Programmatic Widget Creation](05-programmatic-widgets.md) | **Event Handling** | [Next: Styles, Fonts & Images >>](07-styles-fonts.md)
 
 ---
 
@@ -392,7 +391,7 @@ void OnHoverEnd(Widget w, Widget enterW, int x, int y)
 |---|---|---|
 | Pattern | Override virtual methods | Register named callbacks |
 | Handler per widget | One handler per widget | Multiple callbacks per event |
-| Used by | DabsFramework, Expansion, custom mods | Vanilla DayZ menus |
+| Typical use | Simple panels and menus that own their widgets | Framework data-binding layers and vanilla DayZ menus |
 | Flexibility | Must handle all events in one class | Can register different targets for different events |
 | Cleanup | Implicit when handler is destroyed | Must call `UnregisterWidget()` |
 
@@ -548,14 +547,14 @@ override bool OnClick(Widget w, int x, int y, int button)
 
 ---
 
-## Observed in Real Mods
+## Patterns Seen in Practice
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Single handler for entire panel | COT, VPP Admin Tools | One `ScriptedWidgetEventHandler` subclass handles all buttons in a panel, dispatching by comparing `w` against cached widget references |
-| `WidgetEventHandler.RegisterOnClick` for modular buttons | Expansion Market | Each dynamically created buy/sell button registers its own callback, allowing per-item handler functions |
-| `OnMouseEnter` / `OnMouseLeave` for hover tooltips | DayZ Editor | Hover events trigger tooltip widgets that follow cursor position via `GetMousePos()` |
-| `CallLater` deferral in `OnClick` | DabsFramework | Heavy operations (config save, RPC send) are deferred by 0ms via `CallLater` to avoid blocking the UI thread during the event |
+| Pattern | Detail |
+|---------|--------|
+| Single handler for an entire panel | One `ScriptedWidgetEventHandler` subclass handles all buttons in a panel, dispatching by comparing `w` against cached widget references -- common in admin-panel-style UIs |
+| `WidgetEventHandler.RegisterOnClick` for modular buttons | In market-menu-scale UIs, each dynamically created buy/sell button registers its own callback, allowing per-item handler functions |
+| `OnMouseEnter` / `OnMouseLeave` for hover tooltips | Hover events trigger tooltip widgets that follow cursor position via `GetMousePos()` |
+| `CallLater` deferral in `OnClick` | Heavy operations (config save, RPC send) are deferred by 0ms via `CallLater` to avoid blocking the UI thread during the event |
 
 ---
 

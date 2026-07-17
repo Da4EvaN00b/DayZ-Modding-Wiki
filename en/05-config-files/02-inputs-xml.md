@@ -1,6 +1,5 @@
-# Chapter 5.2: inputs.xml --- Custom Keybindings
+# inputs.xml --- Custom Keybindings
 
-[Home](../README.md) | [<< Previous: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Next: Credits.json >>](03-credits-json.md)
 
 ---
 
@@ -23,8 +22,12 @@
 - [Input Methods Reference](#input-methods-reference)
 - [Suppressing and Disabling Inputs](#suppressing-and-disabling-inputs)
 - [Key Names Reference](#key-names-reference)
-- [Real Examples](#real-examples)
+- [Worked Examples](#worked-examples)
 - [Common Mistakes](#common-mistakes)
+- [Best Practices](#best-practices)
+- [Theory vs Practice](#theory-vs-practice)
+- [Compatibility & Impact](#compatibility--impact)
+- [Patterns in the Wild](#patterns-in-the-wild)
 
 ---
 
@@ -109,11 +112,11 @@ Action names must be globally unique across all loaded mods. Use your mod prefix
 
 ```xml
 <input name="UAMyModAdminPanel" loc="STR_MYMOD_INPUT_ADMIN_PANEL" />
-<input name="UAExpansionBookToggle" loc="STR_EXPANSION_BOOK_TOGGLE" />
-<input name="eAICommandMenu" loc="STR_EXPANSION_AI_COMMAND_MENU" />
+<input name="UALNTConfirm" loc="STR_LNT_INPUT_CONFIRM" />
+<input name="LNTCommandMenu" loc="STR_LNT_INPUT_COMMAND_MENU" />
 ```
 
-The `UA` prefix is conventional but not enforced. Expansion AI uses `eAI` as its prefix, which also works.
+The `UA` prefix is conventional but not enforced. The Lantern examples in this wiki use a bare `LNT` prefix for some actions, which also works --- the engine only cares that the name is unique.
 
 ---
 
@@ -181,7 +184,7 @@ To require a modifier key (Ctrl, Shift, Alt), nest `<btn>` elements:
 ### Ctrl + Left Mouse Button
 
 ```xml
-<input name="eAISetWaypoint">
+<input name="LNTSetWaypoint">
     <btn name="kLControl">
         <btn name="mBLeft"/>
     </btn>
@@ -214,8 +217,8 @@ Use `visible="false"` to register an input that the player cannot see or rebind 
 
 ```xml
 <actions>
-    <input name="eAITestInput" visible="false" />
-    <input name="UAExpansionConfirm" loc="" visible="false" />
+    <input name="LNTTestInput" visible="false" />
+    <input name="UALNTConfirm" loc="" visible="false" />
 </actions>
 ```
 
@@ -223,7 +226,7 @@ Hidden inputs can still have default key assignments in the `<preset>` block:
 
 ```xml
 <preset>
-    <input name="eAITestInput">
+    <input name="LNTTestInput">
         <btn name="kY"/>
     </input>
 </preset>
@@ -236,13 +239,13 @@ Hidden inputs can still have default key assignments in the `<preset>` block:
 An action can have multiple default keys. List multiple `<btn>` elements as siblings:
 
 ```xml
-<input name="UAExpansionConfirm">
+<input name="UALNTConfirm">
     <btn name="kReturn" />
     <btn name="kNumpadEnter" />
 </input>
 ```
 
-Both `Enter` and `Numpad Enter` will trigger `UAExpansionConfirm`. This is useful for actions where multiple physical keys should map to the same logical action.
+Both `Enter` and `Numpad Enter` will trigger `UALNTConfirm`. This is useful for actions where multiple physical keys should map to the same logical action.
 
 ---
 
@@ -325,12 +328,12 @@ if (input.LocalPress("UAMyModToggle", false))
 
 **Hold to activate, release to deactivate:**
 ```c
-if (input.LocalPress("eAICommandMenu", false))
+if (input.LocalPress("LNTCommandMenu", false))
 {
     ShowCommandWheel();
 }
 
-if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandMenu", false) == 0)
+if (input.LocalRelease("LNTCommandMenu", false) || input.LocalValue("LNTCommandMenu", false) == 0)
 {
     HideCommandWheel();
 }
@@ -346,9 +349,9 @@ if (input.LocalDbl("UAMyModSpecial", false))
 
 **Hold for extended action:**
 ```c
-if (input.LocalHold("UAExpansionGPSToggle"))
+if (input.LocalHold("UAMyModMapToggle"))
 {
-    ToggleGPSMode();
+    ToggleMapMode();
 }
 ```
 
@@ -381,7 +384,7 @@ GetUApi().SupressNextFrame(true);
 After modifying input states, call `UpdateControls()` to apply changes immediately:
 
 ```c
-GetUApi().GetInputByName("UAExpansionBookToggle").ForceDisable(false);
+GetUApi().GetInputByName("UAMyModToggle").ForceDisable(false);
 GetUApi().UpdateControls();
 ```
 
@@ -447,58 +450,55 @@ Key names used in the `<btn name="">` attribute follow a specific naming convent
 
 ---
 
-## Real Examples
+## Worked Examples
 
-### DayZ Expansion AI
+> The examples below use **Lantern**, this wiki's constructed teaching mod (see the Part 7 chapters for its full framework code). It is not a real published mod.
 
-A well-structured inputs.xml with visible keybindings, hidden debug inputs, and modifier combos:
+### Lantern AI Command Menu
+
+A well-structured inputs.xml with visible keybindings, hidden debug inputs, and a modifier combo. This is the input file for Lantern's fictional AI squad-command feature:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <modded_inputs>
     <inputs>
         <actions>
-            <input name="eAICommandMenu" loc="STR_EXPANSION_AI_COMMAND_MENU"/>
-            <input name="eAISetWaypoint" loc="STR_EXPANSION_AI_SET_WAYPOINT"/>
-            <input name="eAITestInput" visible="false" />
-            <input name="eAITestLRIncrease" visible="false" />
-            <input name="eAITestLRDecrease" visible="false" />
-            <input name="eAITestUDIncrease" visible="false" />
-            <input name="eAITestUDDecrease" visible="false" />
+            <input name="LNTCommandMenu" loc="STR_LNT_INPUT_COMMAND_MENU"/>
+            <input name="LNTSetWaypoint" loc="STR_LNT_INPUT_SET_WAYPOINT"/>
+            <input name="LNTTestInput" visible="false" />
+            <input name="LNTDebugCamLeft" visible="false" />
+            <input name="LNTDebugCamRight" visible="false" />
+            <input name="LNTDebugCamUp" visible="false" />
+            <input name="LNTDebugCamDown" visible="false" />
         </actions>
 
-        <sorting name="expansion" loc="STR_EXPANSION_LABEL">
-            <input name="eAICommandMenu" />
-            <input name="eAISetWaypoint" />
-            <input name="eAITestInput" />
-            <input name="eAITestLRIncrease" />
-            <input name="eAITestLRDecrease" />
-            <input name="eAITestUDIncrease" />
-            <input name="eAITestUDDecrease" />
+        <sorting name="lantern" loc="STR_LNT_INPUT_GROUP">
+            <input name="LNTCommandMenu" />
+            <input name="LNTSetWaypoint" />
         </sorting>
     </inputs>
     <preset>
-        <input name="eAICommandMenu">
+        <input name="LNTCommandMenu">
             <btn name="kT"/>
         </input>
-        <input name="eAISetWaypoint">
+        <input name="LNTSetWaypoint">
             <btn name="kLControl">
                 <btn name="mBLeft"/>
             </btn>
         </input>
-        <input name="eAITestInput">
+        <input name="LNTTestInput">
             <btn name="kY"/>
         </input>
-        <input name="eAITestLRIncrease">
-            <btn name="kRight"/>
-        </input>
-        <input name="eAITestLRDecrease">
+        <input name="LNTDebugCamLeft">
             <btn name="kLeft"/>
         </input>
-        <input name="eAITestUDIncrease">
+        <input name="LNTDebugCamRight">
+            <btn name="kRight"/>
+        </input>
+        <input name="LNTDebugCamUp">
             <btn name="kUp"/>
         </input>
-        <input name="eAITestUDDecrease">
+        <input name="LNTDebugCamDown">
             <btn name="kDown"/>
         </input>
     </preset>
@@ -506,24 +506,24 @@ A well-structured inputs.xml with visible keybindings, hidden debug inputs, and 
 ```
 
 Key observations:
-- `eAICommandMenu` bound to `T` --- visible in settings, player can rebind
-- `eAISetWaypoint` uses a **Ctrl + Left Click** modifier combo
-- Test inputs are `visible="false"` --- hidden from players but accessible in code
+- `LNTCommandMenu` bound to `T` --- visible in settings, player can rebind
+- `LNTSetWaypoint` uses a **Ctrl + Left Click** modifier combo
+- Debug inputs are `visible="false"` **and** omitted from `<sorting>` --- hidden from players but accessible in code (see [Theory vs Practice](#theory-vs-practice) for why both matter)
 
-### DayZ Expansion Market
+### Hidden Confirm Input
 
-A minimal inputs.xml for a hidden utility input with multiple default keys:
+A minimal inputs.xml for a hidden utility input with multiple default keys --- the kind of internal "confirm" action a trading or dialog UI polls for:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <modded_inputs>
     <inputs>
         <actions>
-            <input name="UAExpansionConfirm" loc="" visible="false" />
+            <input name="UALNTConfirm" loc="" visible="false" />
         </actions>
     </inputs>
     <preset>
-        <input name="UAExpansionConfirm">
+        <input name="UALNTConfirm">
             <btn name="kReturn" />
             <btn name="kNumpadEnter" />
         </input>
@@ -643,11 +643,13 @@ Choosing keys that conflict with vanilla bindings (like `W`, `A`, `S`, `D`, `Tab
 
 ---
 
-## Observed in Real Mods
+## Patterns in the Wild
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Modifier combo `Ctrl+Click` | Expansion AI | `eAISetWaypoint` uses nested `<btn name="kLControl"><btn name="mBLeft"/>` for Ctrl+Left Click to place AI waypoints |
-| Hidden utility inputs | Expansion Market | `UAExpansionConfirm` is `visible="false"` with dual keys (Enter + Numpad Enter) for internal confirmation logic |
-| `ForceDisable` during menu open | COT, VPP | Admin panels call `ForceDisable(true)` on gameplay inputs when the panel opens, and `ForceDisable(false)` on close to prevent character movement while typing |
-| Cached `UAInput` in member variable | DabsFramework | Stores `GetUApi().GetInputByName()` result in a class field during init, polls the cached reference in `OnUpdate` to avoid per-frame string lookup |
+Recurring `inputs.xml` patterns you will see across published mods:
+
+| Pattern | Detail |
+|---------|--------|
+| Modifier combo `Ctrl+Click` | AI and building mods bind "place waypoint/object" style actions with nested `<btn name="kLControl"><btn name="mBLeft"/>` so a plain left click keeps its vanilla meaning |
+| Hidden utility inputs | Trading and dialog UIs register a `visible="false"` confirm action with dual keys (Enter + Numpad Enter) for internal confirmation logic |
+| `ForceDisable` during menu open | Admin panels call `ForceDisable(true)` on gameplay inputs when the panel opens, and `ForceDisable(false)` on close to prevent character movement while typing |
+| Cached `UAInput` in member variable | UI frameworks store the `GetUApi().GetInputByName()` result in a class field during init, then poll the cached reference in `OnUpdate` to avoid the per-frame string lookup |

@@ -1,6 +1,6 @@
-# Chapter 6.13: Input System
+# Input System
 
-[Home](../README.md) | [<< Previous: Action System](12-action-system.md) | **Input System** | [Next: Player System >>](14-player-system.md)
+> **Summary:** The DayZ input system maps keyboard, mouse, and gamepad hardware to named actions declared in inputs.xml, and exposes the UAInput API so scripts can query presses, releases, holds, and analog values at runtime.
 
 ---
 
@@ -360,7 +360,7 @@ The engine documentation recommends using exclude groups instead of Lock/Unlock 
 
 ### ForceDisable All Inputs (Bulk)
 
-When opening a full-screen UI, disable all game inputs except the ones your UI needs. This is the pattern used by COT and Expansion:
+When opening a full-screen UI, disable all game inputs except the ones your UI needs. This is the standard pattern in admin and menu mods:
 
 ```c
 void DisableAllInputs(bool state)
@@ -409,10 +409,10 @@ bool IsInputExcludeActive(string exclude);
 
 The `bForceSupress` parameter on `RemoveActiveInputExcludes` calls `SupressNextFrame` internally to prevent input bleed when re-enabling.
 
-Expansion uses its own custom exclude group registered with the engine:
+A mod can also define its own custom exclude group and activate it with the engine. The group name must first be declared in your own inputs.xml (see [Chapter 5.2: inputs.xml](../05-config-files/02-inputs-xml.md)):
 
 ```c
-GetUApi().ActivateExclude("menuexpansion");
+GetUApi().ActivateExclude("menulantern");
 GetUApi().UpdateControls();
 ```
 
@@ -603,11 +603,7 @@ string keyName = InputUtils.GetButtonNameFromInput("UAMyModAction", EUAINPUT_DEV
 For controller icons and rich-text formatting:
 
 ```c
-string richText = InputUtils.GetRichtextButtonIconFromInputAction(
-    "UAMyModAction",
-    "Open Menu",
-    EUAINPUT_DEVICE_CONTROLLER
-);
+string richText = InputUtils.GetRichtextButtonIconFromInputAction("UAMyModAction", "Open Menu", EUAINPUT_DEVICE_CONTROLLER);
 // Returns image tag + label for UI display
 ```
 

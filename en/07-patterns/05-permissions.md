@@ -1,28 +1,31 @@
-# Chapter 7.5: Permission Systems
+# Permission Systems
 
-[Home](../README.md) | [<< Previous: Config Persistence](04-config-persistence.md) | **Permission Systems** | [Next: Event-Driven Architecture >>](06-events.md)
+> **Summary:** Three access-control architectures for DayZ admin mods — a dot-separated permission hierarchy, named permission groups, and a three-state role tree — plus the server-side checking flow, JSON storage formats, wildcard/superadmin handling, and migration between systems.
 
 ---
 
 ## Introduction
 
-Every admin tool, every privileged action, and every moderation feature in DayZ needs a permission system. The question is not whether to check permissions but how to structure them. The DayZ modding community has settled on three major patterns: hierarchical dot-separated permissions, user-group role assignment (VPP), and framework-level role-based access (CF/COT). Each has different trade-offs in granularity, complexity, and server-owner experience.
+Every admin tool, every privileged action, and every moderation feature in DayZ needs a permission system. The question is not whether to check permissions but how to structure them. Three architectures cover almost every DayZ admin mod: a dot-separated permission hierarchy, named permission groups, and a three-state role tree. These are the standard access-control shapes (ACL and RBAC) applied to Enforce Script. Each has different trade-offs in granularity, complexity, and server-owner experience.
 
-This chapter covers all three patterns, the permission-checking flow, storage formats, and wildcard/superadmin handling.
+This chapter covers all three architectures, the permission-checking flow, storage formats, and wildcard/superadmin handling. The example code uses the wiki's teaching framework, **Lantern** (class prefix `LNT_`); the concepts apply to any mod.
 
 ---
 
 ## Table of Contents
 
 - [Why Permissions Matter](#why-permissions-matter)
-- [Hierarchical Dot-Separated (MyMod Pattern)](#hierarchical-dot-separated-mymod-pattern)
-- [VPP UserGroup Pattern](#vpp-usergroup-pattern)
-- [CF Role-Based Pattern (COT)](#cf-role-based-pattern-cot)
+- [Dot-Separated Hierarchy (Lantern pattern)](#dot-separated-hierarchy-lantern-pattern)
+- [Group-Based Permissions](#group-based-permissions)
+- [Three-State Role Trees](#three-state-role-trees)
 - [Permission Checking Flow](#permission-checking-flow)
 - [Storage Formats](#storage-formats)
 - [Wildcard and Superadmin Patterns](#wildcard-and-superadmin-patterns)
 - [Migration Between Systems](#migration-between-systems)
 - [Best Practices](#best-practices)
+- [Compatibility & Impact](#compatibility-impact)
+- [Common Mistakes](#common-mistakes)
+- [Theory vs Practice](#theory-vs-practice)
 
 ---
 
@@ -38,14 +41,14 @@ The three security rules:
 
 ---
 
-## Hierarchical Dot-Separated (MyMod Pattern)
+## Dot-Separated Hierarchy (Lantern pattern)
 
-MyMod uses dot-separated permission strings organized in a tree hierarchy. Each permission is a path like `"MyMod.Admin.Teleport"` or `"MyMod.Missions.Start"`. Wildcards allow granting entire subtrees.
+Lantern uses dot-separated permission strings organized in a tree hierarchy. Each permission is a path like `"Lantern.Admin.Teleport"` or `"Lantern.Missions.Start"`. Wildcards allow granting entire subtrees. This is the classic ACL (access-control list) shape, one string per capability.
 
 ### Permission Format
 
 ```
-MyMod                           (root namespace)
+Lantern                          (root namespace)
 ├── Admin                        (admin tools)
 │   ├── Panel                    (open admin panel)
 │   ├── Teleport                 (teleport self/others)
@@ -65,12 +68,12 @@ MyMod                           (root namespace)
 Each player (identified by Steam64 ID) has an array of granted permission strings:
 
 ```c
-class MyPermissionsData
+class LNT_PermissionsData
 {
     // key: Steam64 ID, value: array of permission strings
     ref map<string, ref TStringArray> Admins;
 
-    void MyPermissionsData()
+    void LNT_PermissionsData()
     {
         Admins = new map<string, ref TStringArray>();
     }
@@ -79,7 +82,7 @@ class MyPermissionsData
 
 ### Permission Check
 
-The check walks the player's granted permissions and supports three match types: exact match, full wildcard (`"*"`), and prefix wildcard (`"MyMod.Admin.*"`):
+The check walks the player's granted permissions and supports three match types: exact match, full wildcard (`"*"`), and prefix wildcard (`"Lantern.Admin.*"`):
 
 ```c
 bool HasPermission(string plainId, string permission)
@@ -103,7 +106,7 @@ bool HasPermission(string plainId, string permission)
         if (granted == permission)
             return true;
 
-        // Prefix wildcard: "MyMod.Admin.*" matches "MyMod.Admin.Teleport"
+        // Prefix wildcard: "Lantern.Admin.*" matches "Lantern.Admin.Teleport"
         if (granted.IndexOf("*") > 0)
         {
             string prefix = granted.Substring(0, granted.Length() - 1);
@@ -122,9 +125,9 @@ bool HasPermission(string plainId, string permission)
 {
     "Admins": {
         "76561198000000001": ["*"],
-        "76561198000000002": ["MyMod.Admin.Panel", "MyMod.Admin.Teleport"],
-        "76561198000000003": ["MyMod.Missions.*"],
-        "76561198000000004": ["MyMod.Admin.Kick", "MyMod.Admin.Ban"]
+        "76561198000000002": ["Lantern.Admin.Panel", "Lantern.Admin.Teleport"],
+        "76561198000000003": ["Lantern.Missions.*"],
+        "76561198000000004": ["Lantern.Admin.Kick", "Lantern.Admin.Ban"]
     }
 }
 ```
@@ -143,9 +146,9 @@ bool HasPermission(string plainId, string permission)
 
 ---
 
-## VPP UserGroup Pattern
+## Group-Based Permissions
 
-VPP Admin Tools uses a group-based system. You define named groups (roles) with sets of permissions, then assign players to groups.
+Instead of granting strings per player, you define named groups (roles), each holding a set of permissions, then assign players to groups. This is textbook RBAC (role-based access control): the permission-to-role mapping is defined once and reused across many players.
 
 ### Concept
 
@@ -164,7 +167,7 @@ Players:
 ### Implementation Pattern
 
 ```c
-class VPPUserGroup
+class LNT_UserGroup
 {
     string GroupName;
     ref array<string> Permissions;
@@ -185,15 +188,15 @@ class VPPUserGroup
     }
 };
 
-class VPPPermissionManager
+class LNT_GroupManager
 {
-    ref array<ref VPPUserGroup> m_Groups;
+    ref array<ref LNT_UserGroup> m_Groups;
 
     bool PlayerHasPermission(string plainId, string permission)
     {
         for (int i = 0; i < m_Groups.Count(); i++)
         {
-            VPPUserGroup group = m_Groups[i];
+            LNT_UserGroup group = m_Groups[i];
 
             // Check if player is in this group
             if (group.Members.Find(plainId) == -1)
@@ -254,35 +257,37 @@ class VPPPermissionManager
 ### Weaknesses
 
 - **Less granular without extra work:** giving one specific admin one extra permission means creating a new group or adding per-player overrides
-- **Group inheritance is complex:** VPP does not natively support group hierarchy (e.g., "Admin" inherits all "Moderator" permissions)
+- **Group inheritance is extra work:** a flat group list has no native hierarchy (e.g., "Admin" inheriting all "Moderator" permissions), so you either duplicate permissions across groups or layer an inheritance field on top yourself
 
 ---
 
-## CF Role-Based Pattern (COT)
+## Three-State Role Trees
 
-Community Framework / COT uses a role and permission system where roles are defined with explicit permission sets, and players are assigned to roles.
+The most expressive architecture defines roles as a *tree* of nodes, where each node carries one of three states: **ALLOW**, **DENY**, or **INHERIT**. A node set to INHERIT takes its effective state from its parent. This lets you grant a broad category and then carve out a specific exception underneath it, something neither of the previous two architectures can express.
 
 ### Concept
 
-CF's permission system is similar to VPP's groups but integrated into the framework layer, making it available to all CF-based mods:
+Each permission node has a name, an optional list of child nodes, and a state. Players are assigned to a named role by Steam64 ID; resolving a permission walks the tree and folds INHERIT nodes into their parent's state:
 
 ```c
-// COT pattern (simplified)
-// Roles are defined in AuthFile.json
-// Each role has a name and an array of permissions
-// Players are assigned to roles by Steam64 ID
-
-class CF_Permission
+class LNT_PermNode
 {
     string m_Name;
-    ref array<ref CF_Permission> m_Children;
-    int m_State;  // ALLOW, DENY, INHERIT
+    ref array<ref LNT_PermNode> m_Children;
+    int m_State;  // LNT_PermState.INHERIT, ALLOW, or DENY
+};
+
+class LNT_PermState
+{
+    static const int INHERIT = 0;
+    static const int DENY    = 1;
+    static const int ALLOW   = 2;
 };
 ```
 
 ### Permission Tree
 
-CF represents permissions as a tree structure, where each node can be explicitly allowed, denied, or inherit from its parent:
+Each node can be explicitly allowed, denied, or left to inherit from its parent:
 
 ```
 Root
@@ -293,7 +298,7 @@ Root
 └── ESP [ALLOW]
 ```
 
-This three-state system (allow/deny/inherit) is more expressive than the binary (granted/not-granted) systems used by MyMod and VPP. It allows you to grant a broad category and then carve out exceptions.
+This three-state system (allow/deny/inherit) is more expressive than the binary (granted/not-granted) model used by the dot-separated and group-based architectures. It lets you grant a broad category and then carve out exceptions.
 
 ### JSON Storage
 
@@ -322,12 +327,12 @@ This three-state system (allow/deny/inherit) is more expressive than the binary 
 
 - **Three-state permissions:** allow, deny, inherit gives maximum flexibility
 - **Tree structure:** mirrors the hierarchical nature of permission paths
-- **Framework-level:** all CF mods share the same permission system
+- **Exceptions are cheap:** grant a whole subtree and deny one leaf, no permission-string gymnastics
 
 ### Weaknesses
 
-- **Complexity:** three states are harder for server owners to understand than simple "granted"
-- **CF dependency:** only works with Community Framework
+- **Complexity:** three states are harder for server owners to understand than a simple "granted"
+- **More resolution logic:** walking the tree and folding INHERIT nodes is more code than a flat array scan
 
 ---
 
@@ -376,9 +381,9 @@ void OnRPC_KickPlayer(PlayerIdentity sender, Object target, ParamsReadContext ct
     if (!sender) return;
 
     // Step 2: Check permission
-    if (!MyPermissions.GetInstance().HasPermission(sender.GetPlainId(), "MyMod.Admin.Kick"))
+    if (!LNT_Permissions.GetInstance().HasPermission(sender.GetPlainId(), "Lantern.Admin.Kick"))
     {
-        MyLog.Warning("Admin", "Unauthorized kick attempt: " + sender.GetName());
+        LNT_Log.Warning("Admin", "Unauthorized kick attempt: " + sender.GetName());
         return;
     }
 
@@ -404,7 +409,7 @@ void OnRPC_KickPlayer(PlayerIdentity sender, Object target, ParamsReadContext ct
     GetGame().DisconnectPlayer(targetIdentity);
 
     // Step 5: Log and respond
-    MyLog.Info("Admin", sender.GetName() + " kicked " + targetIdentity.GetName());
+    LNT_Log.Info("Admin", sender.GetName() + " kicked " + targetIdentity.GetName());
     SendSuccess(sender, "Player kicked");
 }
 ```
@@ -429,10 +434,10 @@ All three systems store permissions in JSON. The differences are structural:
 **Pros:** Simple, easy to edit by hand.
 **Cons:** Redundant if many players share the same permissions.
 
-### Per-Player File (Expansion / Player Data)
+### Per-Player File
 
 ```json
-// File: $profile:MyMod/Players/76561198xxxxx.json
+// File: $profile:LanternAdmin/Players/76561198xxxxx.json
 {
     "UID": "76561198xxxxx",
     "Permissions": ["perm.a", "perm.b"],
@@ -443,7 +448,7 @@ All three systems store permissions in JSON. The differences are structural:
 **Pros:** Each player is independent; no locking concerns.
 **Cons:** Many small files; searching "who has permission X?" requires scanning all files.
 
-### Group-Based (VPP)
+### Group-Based
 
 ```json
 {
@@ -476,14 +481,14 @@ All three systems store permissions in JSON. The differences are structural:
 
 ```mermaid
 graph TD
-    ROOT["*  (superadmin)"] --> A["MyMod.*"]
-    A --> B["MyMod.Admin.*"]
-    B --> C["MyMod.Admin.Kick"]
-    B --> D["MyMod.Admin.Ban"]
-    B --> E["MyMod.Admin.Teleport"]
-    A --> F["MyMod.Player.*"]
-    F --> G["MyMod.Player.Shop"]
-    F --> H["MyMod.Player.Trade"]
+    ROOT["*  (superadmin)"] --> A["Lantern.*"]
+    A --> B["Lantern.Admin.*"]
+    B --> C["Lantern.Admin.Kick"]
+    B --> D["Lantern.Admin.Ban"]
+    B --> E["Lantern.Admin.Teleport"]
+    A --> F["Lantern.Player.*"]
+    F --> G["Lantern.Player.Shop"]
+    F --> H["Lantern.Player.Trade"]
 
     style ROOT fill:#ff4444,color:#fff
     style A fill:#ff8844,color:#fff
@@ -501,16 +506,16 @@ if (granted == "*")
 
 **Convention:** Every permission system in the DayZ modding community uses `"*"` for superadmin. Do not invent a different convention.
 
-### Prefix Wildcard: `"MyMod.Admin.*"`
+### Prefix Wildcard: `"Lantern.Admin.*"`
 
-Grants all permissions that start with `"MyMod.Admin."`. This allows granting an entire subsystem without listing every permission:
+Grants all permissions that start with `"Lantern.Admin."`. This allows granting an entire subsystem without listing every permission:
 
 ```c
-// "MyMod.Admin.*" matches:
-//   "MyMod.Admin.Teleport"  ✓
-//   "MyMod.Admin.Kick"      ✓
-//   "MyMod.Admin.Ban"       ✓
-//   "MyMod.Missions.Start"  ✗ (different subtree)
+// "Lantern.Admin.*" matches:
+//   "Lantern.Admin.Teleport"  ✓
+//   "Lantern.Admin.Kick"      ✓
+//   "Lantern.Admin.Ban"       ✓
+//   "Lantern.Missions.Start"  ✗ (different subtree)
 ```
 
 ### Implementation
@@ -518,18 +523,18 @@ Grants all permissions that start with `"MyMod.Admin."`. This allows granting an
 ```c
 if (granted.IndexOf("*") > 0)
 {
-    // "MyMod.Admin.*" → prefix = "MyMod.Admin."
+    // "Lantern.Admin.*" → prefix = "Lantern.Admin."
     string prefix = granted.Substring(0, granted.Length() - 1);
     if (permission.IndexOf(prefix) == 0)
         return true;
 }
 ```
 
-### No Negative Permissions (Dot-Separated / VPP)
+### No Negative Permissions (Dot-Separated / Group-Based)
 
-Both the dot-separated and VPP systems use additive-only permissions. You can grant permissions but not explicitly deny them. If a permission is not in the player's list, it is denied.
+Both the dot-separated and group-based architectures use additive-only permissions. You can grant permissions but not explicitly deny them. If a permission is not in the player's list, it is denied.
 
-CF/COT is the exception with its three-state system (ALLOW/DENY/INHERIT), which supports explicit denials.
+The three-state role tree is the exception: its ALLOW/DENY/INHERIT states support explicit denials.
 
 ### Superadmin Escape Hatch
 
@@ -580,12 +585,12 @@ void LoadLegacyAndMigrate()
 
     // Save in new format
     Save();
-    MyLog.Info("Permissions", "Migrated " + legacyData.AdminUIDs.Count().ToString()
-        + " admin(s) from legacy format");
+    string migratedCount = legacyData.AdminUIDs.Count().ToString();
+    LNT_Log.Info("Permissions", "Migrated " + migratedCount + " admin(s) from legacy format");
 }
 ```
 
-This is a common pattern used to migrate from its original flat `AdminUIDs` array to the hierarchical `Admins` map.
+This is the pattern Lantern uses to migrate a server from an original flat `AdminUIDs` array to the hierarchical `Admins` map: every legacy admin is promoted to a superadmin grant (`"*"`), which preserves their existing access while the server owner narrows the permissions later.
 
 ---
 
@@ -624,7 +629,7 @@ This is a common pattern used to migrate from its original flat `AdminUIDs` arra
 ## Compatibility & Impact
 
 - **Multi-Mod:** Each mod can define its own permission namespace (`"ModA.Admin.Kick"`, `"ModB.Build.Spawn"`). The `"*"` wildcard grants superadmin across *all* mods that share the same permission store. If mods use independent permission files, `"*"` only applies within that mod's scope.
-- **Load Order:** Permission files are loaded once during server startup. No cross-mod ordering issues as long as each mod reads its own file. If a shared framework (CF/COT) manages permissions, all mods using that framework share the same permission tree.
+- **Load Order:** Permission files are loaded once during server startup. No cross-mod ordering issues as long as each mod reads its own file. If a shared framework manages permissions (as Lantern does for every mod that depends on it), all mods using that framework share the same permission tree.
 - **Listen Server:** Permission checks should always run server-side. On listen servers, client-side code may call `HasPermission()` for UI gating (showing/hiding admin buttons), but the server-side check is the authoritative one.
 - **Performance:** Permission checks are a string-array linear scan per player. With typical admin counts (1--20 admins, 5--30 permissions each), this is negligible. For extremely large permission sets, consider a `set<string>` instead of an array for O(1) lookups.
 - **Migration:** Adding new permission strings is non-breaking --- existing admins simply do not have the new permission until granted. Renaming permissions breaks existing grants silently. Use config versioning to auto-migrate renamed permission strings.
@@ -637,9 +642,9 @@ This is a common pattern used to migrate from its original flat `AdminUIDs` arra
 |---------|--------|-----|
 | Trusting client-sent permission data | Exploited clients send `"I am admin"` and the server believes them; full server compromise | Never read permissions from an RPC payload; always look up `sender.GetPlainId()` in the server-side permission store |
 | Missing default deny | A missing permission check grants access to everyone; accidental privilege escalation | Every RPC handler for a privileged action must check `HasPermission()` and return early on failure |
-| Typo in permission string fails silently | `"MyMod.Amin.Kick"` (typo) never matches --- admin cannot kick, no error is logged | Define permission strings as `static const` variables; reference the constant, never a raw string literal |
+| Typo in permission string fails silently | `"Lantern.Amin.Kick"` (typo) never matches --- admin cannot kick, no error is logged | Define permission strings as `static const` variables; reference the constant, never a raw string literal |
 | Sending the full permissions file to the client | Exposes all admin Steam64 IDs and their permission sets to any connected client | Send only the requesting player's own permission list, never the full server file |
-| No wildcard support in HasPermission | Server owners must list every single permission per admin; tedious and error-prone | Implement prefix wildcards (`"MyMod.Admin.*"`) and full wildcard (`"*"`) from day one |
+| No wildcard support in HasPermission | Server owners must list every single permission per admin; tedious and error-prone | Implement prefix wildcards (`"Lantern.Admin.*"`) and full wildcard (`"*"`) from day one |
 
 ---
 
@@ -647,10 +652,6 @@ This is a common pattern used to migrate from its original flat `AdminUIDs` arra
 
 | Textbook Says | DayZ Reality |
 |---------------|-------------|
-| Use RBAC (role-based access control) with group inheritance | Only CF/COT supports three-state permissions; most mods use flat per-player grants for simplicity |
+| Use RBAC (role-based access control) with group inheritance | Three-state (allow/deny/inherit) trees are the most powerful option, but most mods ship flat per-player grants for simplicity |
 | Permissions should be stored in a database | No database access; JSON files in `$profile:` are the only option |
 | Use cryptographic tokens for authorization | No crypto libraries in Enforce Script; trust is based on `PlayerIdentity.GetPlainId()` (Steam64 ID) verified by the engine |
-
----
-
-[Home](../README.md) | [<< Previous: Config Persistence](04-config-persistence.md) | **Permission Systems** | [Next: Event-Driven Architecture >>](06-events.md)

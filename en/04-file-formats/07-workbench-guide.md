@@ -1,6 +1,5 @@
-# Chapter 4.7: Workbench Guide
+# Workbench Guide
 
-[Home](../README.md) | [<< Previous: PBO Packing](06-pbo-packing.md) | **Workbench Guide** | [Next: Building Modeling >>](08-building-modeling.md)
 
 ---
 
@@ -226,21 +225,21 @@ GameProjectClass {
 | `mission` | `5_Mission` | `"CreateMission"` | Mission hooks, UI panels |
 | `workbench` | (tools) | `""` | Workbench plugins |
 
-Vanilla paths come first, then your mod paths. If your mod depends on other mods (like Community Framework), add their paths too:
+Vanilla paths come first, then your mod paths. If your mod depends on another mod (for example a shared framework), add its paths too:
 
 ```
 ScriptModulePathClass {
     Name "game"
     Paths {
         "scripts/3_Game"              // Vanilla
-        "JM/CF/Scripts/3_Game"        // Community Framework
+        "Lantern/Core/Scripts/3_Game" // Framework dependency
         "MyMod/Scripts/3_Game"        // Your mod
     }
     EntryPoint "CreateGame"
 }
 ```
 
-Some frameworks override entry points (CF uses `"CF_CreateGame"`).
+Some frameworks override the module entry point -- if a dependency ships its own `.gproj`, mirror whatever `EntryPoint` value it declares.
 
 **imageSets / widgetStyles** -- Required for layout preview. Without vanilla image sets, layout files show missing images. Include the vanilla image sets your layouts reference; the exact list varies (the default `dayz.gproj` ships roughly a dozen, e.g. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), then append your own.
 
@@ -260,7 +259,7 @@ workbenchApp.exe -project="P:\MyMod\Workbench\dayz.gproj"
 **Launch with -mod (auto-configure from config.cpp):**
 ```batch
 workbenchApp.exe -mod=P:\MyMod
-workbenchApp.exe -mod=P:\CommunityFramework;P:\MyMod
+workbenchApp.exe -mod=P:\LanternCore;P:\MyMod
 ```
 
 The `-mod` approach is simpler but gives less control. For complex multi-mod setups, a custom `.gproj` is more reliable.
@@ -601,7 +600,7 @@ The fastest development workflow combines Workbench with file patching, eliminat
 
 7. **Check compiler output before launching.** If Workbench reports errors, the game will fail too. Fix errors in Workbench first -- faster than waiting for game boot.
 
-8. **Use -mod for simple setups, .gproj for complex.** Single-mod with no dependencies: `-mod=P:\MyMod`. Multi-mod with CF/Dabs: custom `.gproj`.
+8. **Use -mod for simple setups, .gproj for complex.** Single-mod with no dependencies: `-mod=P:\MyMod`. Multi-mod with a framework dependency: custom `.gproj`.
 
 9. **Keep Workbench updated.** Update DayZ Tools through Steam when DayZ updates. Mismatched versions cause compilation failures.
 
@@ -630,11 +629,3 @@ The fastest development workflow combines Workbench with file patching, eliminat
 | `-project="path/dayz.gproj"` | Load specific project file |
 | `-mod=P:\MyMod` | Auto-configure from mod's config.cpp |
 | `-mod=P:\ModA;P:\ModB` | Multiple mods (semicolon-separated) |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.6 PBO Packing](06-pbo-packing.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [4.8 Building Modeling](08-building-modeling.md) |

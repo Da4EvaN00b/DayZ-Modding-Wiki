@@ -1,6 +1,5 @@
 # Frequently Asked Questions
 
-[Home](./README.md) | **FAQ**
 
 ---
 
@@ -63,7 +62,7 @@
 **A:** Use `#ifdef SERVER` and `#ifndef SERVER` preprocessor guards for code that must only run on one side. For larger mods, split into separate PBOs: a client mod (UI, rendering, local effects) and a server mod (spawning, logic, persistence). This prevents leaking server logic to clients. See [Chapter 2.5](02-mod-structure/05-file-organization.md) and [Chapter 6.9](06-engine-api/09-networking.md).
 
 ### Q: When should I use a Singleton vs. a Module/Plugin?
-**A:** Use a Module (registered with CF's `PluginManager` or your own module system) when you need lifecycle management (`OnInit`, `OnUpdate`, `OnMissionFinish`). Use a standalone Singleton for stateless utility services that just need global access. Modules are preferred for anything with state or cleanup needs. See [Chapter 7.1](07-patterns/01-singletons.md) and [Chapter 7.2](07-patterns/02-module-systems.md).
+**A:** Use a Module (registered with the vanilla `PluginManager` or a framework module manager — see [Chapter 7.2](07-patterns/02-module-systems.md)) when you need lifecycle management (`OnInit`, `OnUpdate`, `OnMissionFinish`). Use a standalone Singleton for stateless utility services that just need global access. Modules are preferred for anything with state or cleanup needs. See [Chapter 7.1](07-patterns/01-singletons.md) and [Chapter 7.2](07-patterns/02-module-systems.md).
 
 ### Q: How do I safely store per-player data that survives server restarts?
 **A:** Save JSON files to the server's `$profile:` directory using `JsonFileLoader`. Use the player's Steam UID (from `PlayerIdentity.GetId()`) as the filename. Load on player connect, save on disconnect and periodically. Always handle missing/corrupted files gracefully with guard clauses. See [Chapter 7.4](07-patterns/04-config-persistence.md) and [Chapter 6.8](06-engine-api/08-file-io.md).

@@ -1,6 +1,5 @@
-# Chapter 7.7: Performance Optimization
+# Performance Optimization
 
-[Home](../README.md) | [<< Previous: Event-Driven Architecture](06-events.md) | **Performance Optimization**
 
 ---
 
@@ -8,7 +7,7 @@
 
 DayZ runs at 10--60 server FPS depending on player count, entity load, and mod complexity. Every script cycle that takes too long eats into that frame budget. A single poorly-written `OnUpdate` that scans every vehicle on the map or rebuilds a UI list from scratch can drop server performance noticeably. Professional mods earn their reputation by running fast --- not by having more features, but by implementing the same features with less waste.
 
-This chapter covers the battle-tested optimization patterns used by COT, VPP, Expansion, and Dabs Framework. These are not premature optimizations --- they are standard engineering practices that every DayZ modder should know from the start.
+This chapter covers battle-tested optimization patterns drawn from large production mods. These are not premature optimizations --- they are standard engineering practices that every DayZ modder should know from the start.
 
 ---
 
@@ -68,7 +67,7 @@ class ItemDatabase
 When you must process a large collection, process a fixed batch per frame instead of the entire collection at once:
 
 ```c
-class LootCleanup : MyServerModule
+class LootCleanup : LNT_ServerModule
 {
     protected ref array<Object> m_DirtyItems;
     protected int m_ProcessIndex;
@@ -131,7 +130,7 @@ void RefreshPlayerList(array<string> players)
     // Create new widgets for every player
     for (int i = 0; i < players.Count(); i++)
     {
-        Widget row = GetGame().GetWorkspace().CreateWidgets("MyMod/layouts/PlayerRow.layout", m_ListPanel);
+        Widget row = GetGame().GetWorkspace().CreateWidgets("Lantern_Core/layouts/PlayerRow.layout", m_ListPanel);
         TextWidget nameText = TextWidget.Cast(row.FindAnyWidget("NameText"));
         nameText.SetText(players[i]);
     }
@@ -283,7 +282,7 @@ Not everything needs to run every frame. Many systems can update at a lower freq
 ### Timer-Based Throttling
 
 ```c
-class EntityScanner : MyServerModule
+class EntityScanner : LNT_ServerModule
 {
     protected const float SCAN_INTERVAL = 5.0;  // Every 5 seconds
     protected float m_ScanTimer;
@@ -512,38 +511,64 @@ modded class CarScript
 
 Now `VehicleRegistry.GetAll()` returns all vehicles instantly --- no world scan needed.
 
-### Expansion's Linked-List Pattern
+### Intrusive Linked-List Registries
 
-Expansion takes this further with a doubly-linked list on the entity class itself, avoiding the cost of array operations:
+You can push the registry idea further with an intrusive doubly-linked list stored on the tracked class itself. Instead of an array, each object holds a pointer to the previous and next tracked object, and a single static head points at the newest one. This is a textbook data structure --- the payoff in DayZ is that registration and removal cost nothing beyond a few pointer writes:
 
 ```c
-// Expansion pattern (conceptual):
-class ExpansionVehicle
+class LNT_TrackedVehicle
 {
-    ExpansionVehicle m_Next;
-    ExpansionVehicle m_Prev;
+    // Intrusive links — the list lives inside the objects it tracks
+    private LNT_TrackedVehicle m_Prev;
+    private LNT_TrackedVehicle m_Next;
 
-    static ExpansionVehicle s_Head;
+    private static LNT_TrackedVehicle s_Head;
 
-    void Register()
+    // O(1) — splice this object onto the front of the list
+    void RegisterTracked()
     {
+        m_Prev = null;
         m_Next = s_Head;
-        if (s_Head) s_Head.m_Prev = this;
+        if (s_Head)
+        {
+            s_Head.m_Prev = this;
+        }
         s_Head = this;
     }
 
-    void Unregister()
+    // O(1) — unlink from wherever this object sits, no search
+    void UnregisterTracked()
     {
-        if (m_Prev) m_Prev.m_Next = m_Next;
-        if (m_Next) m_Next.m_Prev = m_Prev;
-        if (s_Head == this) s_Head = m_Next;
-        m_Next = null;
+        if (m_Prev)
+        {
+            m_Prev.m_Next = m_Next;
+        }
+        if (m_Next)
+        {
+            m_Next.m_Prev = m_Prev;
+        }
+        if (s_Head == this)
+        {
+            s_Head = m_Next;
+        }
         m_Prev = null;
+        m_Next = null;
+    }
+
+    // Iterate the whole registry with a simple pointer walk
+    static void ForEachTracked()
+    {
+        LNT_TrackedVehicle cursor = s_Head;
+        while (cursor)
+        {
+            // ... do work with cursor ...
+            cursor = cursor.m_Next;
+        }
     }
 };
 ```
 
-This gives O(1) insertion and removal with zero memory allocation per operation. Iteration is a simple pointer walk from `s_Head`.
+Compared to the array registry, `UnregisterTracked()` never has to call `Find()` to locate the element first --- an array `Remove` is O(n) because it scans for the index, while the intrusive list already knows its own neighbors. The trade-off is that each tracked class must carry the two link fields and can only belong to one such list. For a single global "all vehicles" registry that churns often, that trade is usually worth it.
 
 ---
 
@@ -662,14 +687,14 @@ If you need formatted strings for logging or UI, do it on state change, not per 
 // BAD: Checking FileExist for the same path 500 times
 for (int i = 0; i < m_Players.Count(); i++)
 {
-    if (FileExist("$profile:MyMod/Config.json"))  // Same file, 500 checks
+    if (FileExist("$profile:LanternAdmin/Config.json"))  // Same file, 500 checks
     {
         // ...
     }
 }
 
 // GOOD: Check once
-bool configExists = FileExist("$profile:MyMod/Config.json");
+bool configExists = FileExist("$profile:LanternAdmin/Config.json");
 for (int i = 0; i < m_Players.Count(); i++)
 {
     if (configExists)
@@ -728,7 +753,7 @@ void OnUpdate(float dt)
     float elapsed = GetGame().GetTickTime() - startTime;
     if (elapsed > 0.005)  // More than 5ms
     {
-        MyLog.Warning("Perf", "OnUpdate took " + elapsed.ToString() + "s");
+        LNT_Log.Warning("Perf", "OnUpdate took " + elapsed.ToString() + "s");
     }
 }
 ```
@@ -787,7 +812,7 @@ Before shipping performance-sensitive code, verify:
 | Using `GetObjectsAtPosition3D` with map-wide radius in `OnUpdate` | 50--200ms stall per call, scanning every physical object on the map; server FPS drops to single digits | Use a registration-based registry (register in `EEInit`, unregister in `EEDelete`). Never world-scan per frame. |
 | Rebuilding UI widget trees on every data change | Frame spikes from widget creation/destruction; visible stutter for the player | Use widget pooling: hide/show existing widgets instead of destroying and recreating them |
 | Sorting large arrays every frame | O(n log n) per frame for data that rarely changes; unnecessary CPU waste | Sort once when data changes (dirty flag), cache the sorted result, re-sort only on mutation |
-| Running expensive file I/O (JsonSaveFile) every `OnUpdate` tick | Disk writes block the main thread; 5--20ms per save depending on file size | Use auto-save timers (300s default) with a dirty flag. Only write when data has actually changed. |
+| Running expensive file I/O (JsonSaveFile) every `OnUpdate` tick | Disk writes block the main thread; 5--20ms per save depending on file size | Use an auto-save timer with a dirty flag (define the interval as a named const, e.g. `const float AUTOSAVE_INTERVAL = 300.0;`). Only write when data has actually changed. |
 
 ---
 
@@ -796,9 +821,5 @@ Before shipping performance-sensitive code, verify:
 | Textbook Says | DayZ Reality |
 |---------------|-------------|
 | Use async processing for expensive operations | Enforce Script is single-threaded with no async primitives; batch work across frames using index-based processing instead |
-| Object pooling is premature optimization | Widget creation is genuinely expensive in Enfusion; pooling is standard practice in every major mod (COT, VPP, Expansion) |
+| Object pooling is premature optimization | Widget creation is genuinely expensive in Enfusion; pooling is standard practice in every major mod |
 | Profile before optimizing | Correct, but some patterns (world scans, per-frame string alloc, per-keystroke rebuilds) are *always* wrong in DayZ. Avoid them from the start. |
-
----
-
-[Home](../README.md) | [<< Previous: Event-Driven Architecture](06-events.md) | **Performance Optimization**

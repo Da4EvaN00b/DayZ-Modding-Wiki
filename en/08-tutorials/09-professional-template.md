@@ -1,10 +1,9 @@
-# Chapter 8.9: Professional Mod Template
+# Professional Mod Template
 
-[Home](../README.md) | [<< Previous: Building a HUD Overlay](08-hud-overlay.md) | **Professional Mod Template** | [Next: Creating a Custom Vehicle >>](10-vehicle-mod.md)
 
 ---
 
-> **Summary:** This chapter provides a complete, production-ready mod template with every file you need for a professional DayZ mod. Unlike [Chapter 8.5](05-mod-template.md) which introduces InclementDab's starter skeleton, this is a full-featured template with a config system, singleton manager, client-server RPC, UI panel, keybinds, localization, and build automation. Every file is copy-paste ready and heavily commented to explain **why** each line exists.
+> **Summary:** This chapter provides a complete, production-ready mod template with every file you need for a professional DayZ mod. Unlike [Chapter 8.5](05-mod-template.md), which shows how to scaffold from a minimal reusable skeleton, this is a full-featured template with a config system, singleton manager, client-server RPC, UI panel, keybinds, localization, and build automation. Every file is copy-paste ready and heavily commented to explain **why** each line exists.
 
 ---
 
@@ -174,7 +173,7 @@ class CfgPatches
 
         // Dependencies: list CfgPatches class names from other mods.
         // "DZ_Data" is the base game -- every mod should depend on it.
-        // Add "CF_Scripts" if you use Community Framework.
+        // To depend on a framework, add its CfgPatches class name here.
         // Add other mod patches if you extend them.
         requiredAddons[] =
         {
@@ -881,43 +880,15 @@ modded class MissionServer
 
 // ==========================================================================
 // Server RPC dispatch.
-// IMPORTANT: OnRPC is a method of DayZGame, NOT MissionServer. The Mission
-// class chain has no OnRPC, so you must mod DayZGame to receive RPCs. This
-// hook fires on both client and server, so guard with GetGame().IsServer().
+// NOTE: The engine delivers RPCs to DayZGame.OnRPC, not to the Mission
+// classes -- the Mission chain has no OnRPC. But a class can be modded only
+// ONCE per PBO (the modded-class chain adds one level per addon, not per
+// block), so this template defines a SINGLE `modded class DayZGame` that
+// serves BOTH sides. It lives in MyModMissionClient.c (below) and branches on
+// IsServer(); on the server it dispatches client requests to MyModManager.
+// Do NOT add a second `modded class DayZGame` here -- a duplicate declaration
+// aborts compilation of the entire 5_Mission module.
 // ==========================================================================
-modded class DayZGame
-{
-    // Called by the engine when an RPC arrives. On the server, this is where
-    // we dispatch RPCs sent by clients.
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Server-side dispatch only.
-        if (!IsServer()) return;
-
-        // Only handle our RPC ID. All other RPCs pass through.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Read the route name (first string written by the sender).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Dispatch to the correct handler based on route name.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Add more routes here as your mod grows:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-};
 ```
 
 ---
@@ -993,11 +964,11 @@ modded class MissionGameplay
     // active mission via GetGame().GetMission() and forwards client RPCs here
     // so this method can touch instance members like m_MyModPanel.
     // -----------------------------------------------------------------------
-    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, string routeName, ParamsReadContext ctx)
     {
-        // Read the route name.
-        string routeName;
-        if (!ctx.Read(routeName)) return;
+        // The route name was already read by DayZGame.OnRPC and handed in, so
+        // ctx is positioned past it -- we branch on routeName directly and
+        // never read the route twice.
 
         // Dispatch based on route.
         if (routeName == MYMOD_RPC_WELCOME)
@@ -1074,31 +1045,57 @@ modded class MissionGameplay
 };
 
 // ==========================================================================
-// Client RPC dispatch.
-// IMPORTANT: OnRPC is a method of DayZGame, NOT MissionGameplay. The Mission
-// class chain has no OnRPC, so RPCs are received by modding DayZGame. This
-// hook fires on both client and server, so guard with GetGame().IsClient().
-// We reach the active MissionGameplay through GetGame().GetMission() and
-// forward to its OnMyModRPC so the UI panel members stay accessible.
+// RPC dispatch (both sides) -- the ONLY modded DayZGame in this mod.
+// IMPORTANT: OnRPC is a method of DayZGame, NOT the Mission classes; the
+// Mission chain has no OnRPC, so you must mod DayZGame to receive RPCs.
+//
+// A class can be modded only ONCE per PBO -- the modded-class chain adds one
+// level per addon (per PBO), not per block. A second `modded class DayZGame`
+// anywhere in this mod is a duplicate declaration and aborts compilation. So
+// this single hook serves BOTH sides: it fires on client and server and
+// branches with IsServer(). The route name is read here exactly once and
+// handed onward, so ctx is never read twice.
 // ==========================================================================
 modded class DayZGame
 {
+    // Called by the engine when an RPC arrives, on both client and server.
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
 
-        // Client-side dispatch only.
-        if (!IsClient()) return;
-
-        // Only handle our RPC ID.
+        // Only handle our RPC ID. All other RPCs pass through.
         if (rpc_type != MYMOD_RPC_ID) return;
 
-        // Forward to the active mission so instance members (the UI panel)
-        // are reachable. Cast to our modded MissionGameplay type.
-        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
-        if (mission)
+        // Read the route name once (first string written by the sender).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        if (IsServer())
         {
-            mission.OnMyModRPC(sender, rpc_type, ctx);
+            // Server side: dispatch client requests to the manager.
+            MyModManager mgr = MyModManager.GetInstance();
+            if (!mgr) return;
+
+            if (routeName == MYMOD_RPC_UI_REQUEST)
+            {
+                mgr.OnUIRequest(sender, ctx);
+            }
+            // Add more server routes here as your mod grows:
+            // else if (routeName == MYMOD_RPC_SOME_OTHER)
+            // {
+            //     mgr.OnSomeOther(sender, ctx);
+            // }
+        }
+        else
+        {
+            // Client side: forward to the active mission so instance members
+            // (the UI panel) are reachable. The route name was already read
+            // above, so we hand it over instead of re-reading ctx.
+            MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+            if (mission)
+            {
+                mission.OnMyModRPC(sender, routeName, ctx);
+            }
         }
     }
 };
@@ -1151,9 +1148,7 @@ class MyModUI
     {
         // CreateWidgets loads the .layout file and instantiates all widgets.
         // The path is relative to the mod root (same as config.cpp paths).
-        m_Root = GetGame().GetWorkspace().CreateWidgets(
-            "MyProfessionalMod/Scripts/GUI/layouts/MyModPanel.layout"
-        );
+        m_Root = GetGame().GetWorkspace().CreateWidgets("MyProfessionalMod/Scripts/GUI/layouts/MyModPanel.layout");
 
         // Initially hidden until Open() is called.
         if (m_Root)
@@ -1656,7 +1651,7 @@ void OnBountySet(PlayerIdentity sender, ParamsReadContext ctx)
 }
 ```
 
-**3. Add the dispatch case** in `MyModMissionServer.c` (5_Mission), inside `OnRPC()`:
+**3. Add the dispatch case** in `MyModMissionClient.c` (5_Mission), inside the consolidated `DayZGame.OnRPC()`, in the `if (IsServer())` branch:
 
 ```c
 else if (routeName == MYMOD_RPC_BOUNTY_SET)
@@ -1738,9 +1733,7 @@ class MyModBountyListUI
 
     void MyModBountyListUI()
     {
-        m_Root = GetGame().GetWorkspace().CreateWidgets(
-            "MyProfessionalMod/Scripts/GUI/layouts/MyModBountyList.layout"
-        );
+        m_Root = GetGame().GetWorkspace().CreateWidgets("MyProfessionalMod/Scripts/GUI/layouts/MyModBountyList.layout");
         if (m_Root)
             m_Root.Show(false);
     }
@@ -1825,13 +1818,9 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 
 With this professional template running, you can:
 
-1. **Study production mods** -- Read [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts) and the `StarDZ_Core` source for real-world patterns at scale.
+1. **Study production mods** -- Read [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts) for real-world patterns at scale (read it for concepts only -- check its license before reusing any code), then extend this template with the reusable framework subsystems covered in [Part 7: Patterns](../07-patterns/01-singletons.md) -- a logger, RPC router, [event bus](../07-patterns/06-events.md), and [module manager](../07-patterns/02-module-systems.md).
 2. **Add custom items** -- Follow [Chapter 8.2: Creating a Custom Item](02-custom-item.md) and integrate them with your manager.
 3. **Build an admin panel** -- Follow [Chapter 8.3: Building an Admin Panel](03-admin-panel.md) using your config system.
 4. **Add a HUD overlay** -- Follow [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md) for always-visible UI elements.
 5. **Publish to the Workshop** -- Follow [Chapter 8.7: Publishing to Workshop](07-publishing-workshop.md) when your mod is ready.
 6. **Learn debugging** -- Read [Chapter 8.6: Debugging & Testing](06-debugging-testing.md) for log analysis and troubleshooting.
-
----
-
-**Previous:** [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md) | [Home](../README.md)

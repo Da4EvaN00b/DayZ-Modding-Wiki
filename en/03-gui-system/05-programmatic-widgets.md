@@ -1,6 +1,5 @@
-# Chapter 3.5: Programmatic Widget Creation
+# Programmatic Widget Creation
 
-[Home](../README.md) | [<< Previous: Container Widgets](04-containers.md) | **Programmatic Widget Creation** | [Next: Event Handling >>](06-event-handling.md)
 
 ---
 
@@ -536,12 +535,12 @@ In practice, most mods use **layout files** for the structure and **code** for p
 
 ---
 
-## Observed in Real Mods
+## Patterns in Practice
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Layout template + code population | COT, Expansion | Load a row `.layout` template via `CreateWidgets()` per list item, then populate via `FindAnyWidget()` |
-| Widget pooling for kill feed | Colorful UI | Pre-creates 20 feed entry widgets, shows/hides them instead of creating and destroying |
-| Pure code dialogs | Debug/admin tools | Simple alert dialogs built entirely with `CreateWidget()` to avoid shipping extra `.layout` files |
-| `SetHandler(this)` on every interactive child | VPP Admin Tools | Iterates all buttons after layout load and calls `SetHandler()` on each one individually |
-| `Unlink()` + null pattern | DabsFramework | Every dialog's `Close()` method calls `m_Root.Unlink(); m_Root = null;` consistently |
+| Pattern | Detail |
+|---------|--------|
+| Layout template + code population | Load a row `.layout` template via `CreateWidgets()` per list item, then populate via `FindAnyWidget()` — the standard approach for dynamic lists |
+| Widget pooling for frequently updated lists | Pre-create a batch of entry widgets (see the [Widget Pooling](#widget-pooling) section above) and show/hide them instead of creating and destroying — the right fit for kill feeds, chat, and other fast-updating lists |
+| Pure code dialogs | Simple alert dialogs built entirely with `CreateWidget()` to avoid shipping extra `.layout` files — handy for debug and admin tooling |
+| `SetHandler(this)` on every interactive child | Iterate all buttons after layout load and call `SetHandler()` on each one individually — children do not inherit a parent's handler |
+| `Unlink()` + null pattern | Make each dialog's `Close()` method call `m_Root.Unlink(); m_Root = null;` consistently, preventing dangling references |

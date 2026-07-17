@@ -1,6 +1,6 @@
-# Chapter 7.4: Config Persistence
+# Config Persistence
 
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)
+> **Summary:** How to save and load mod configuration data — JSON serialization with `JsonFileLoader`, raw file I/O with `FileHandle` and `FPrintln`, versioned auto-migration, directory management, and auto-save timers.
 
 ---
 
@@ -312,13 +312,13 @@ MakeDirectory("$profile:MyMod/Data/Players");
 A framework mod defines all paths as constants in a dedicated class:
 
 ```c
-class MyModConst
+class LNT_Const
 {
-    static const string PROFILE_DIR    = "$profile:MyMod";
-    static const string CONFIG_DIR     = "$profile:MyMod/Configs";
-    static const string LOG_DIR        = "$profile:MyMod/Logs";
-    static const string PLAYERS_DIR    = "$profile:MyMod/Players";
-    static const string PERMISSIONS_FILE = "$profile:MyMod/Permissions.json";
+    static const string PROFILE_DIR    = "$profile:Lantern";
+    static const string CONFIG_DIR     = "$profile:Lantern/Configs";
+    static const string LOG_DIR        = "$profile:Lantern/Logs";
+    static const string PLAYERS_DIR    = "$profile:Lantern/Players";
+    static const string PERMISSIONS_FILE = "$profile:Lantern/Permissions.json";
 };
 ```
 
@@ -362,11 +362,21 @@ class MyModConfig
 
 ### Reflective ConfigBase Pattern
 
-This pattern uses a reflective config system where each config class declares its fields as descriptors. This allows the admin panel to auto-generate UI for any config without hardcoded field names:
+The Lantern examples in this wiki use a reflective config base — `LNT_ConfigBase` — where each config subclass declares its fields as descriptors. This lets an admin panel auto-generate UI for any config without hardcoded field names. This chapter is where that base is canonically defined:
 
 ```c
-// Conceptual pattern (reflective config):
-class MyConfigBase
+// Field descriptor: one entry per configurable field.
+// GetFields() returns an array of these so the admin panel can
+// render UI without hardcoding field names.
+class LNT_ConfigField
+{
+    string m_Name;      // field identifier, e.g. "MaxDistance"
+    string m_Type;      // "int", "float", "bool", "string"
+    string m_Category;  // grouping label for the admin panel
+}
+
+// Reflective config base (the wiki's Lantern teaching example):
+class LNT_ConfigBase
 {
     // Each config declares its version
     int ConfigVersion;
@@ -379,7 +389,7 @@ class MyConfigBase
     }
 
     // Reflection: get all configurable fields
-    array<ref MyConfigField> GetFields();
+    array<ref LNT_ConfigField> GetFields();
 
     // Dynamic get/set by field name (for admin panel sync)
     string GetFieldValue(string fieldName);
@@ -391,28 +401,43 @@ class MyConfigBase
 };
 ```
 
-### VPP ConfigurablePlugin Pattern
+### Self-Loading Config Module
 
-VPP merges config management directly into the plugin lifecycle:
+A config manager does not need a separate load call from the mission. A module can JSON-load its own config in `OnInit`, writing defaults on first run. This keeps each feature's config self-contained — the module owns its file and its lifecycle. (For the module lifecycle itself, see [Module Systems](02-module-systems.md).)
 
 ```c
-// VPP pattern (simplified):
-class VPPESPConfig
+// Data class — public fields are serialized
+class LNT_ESPConfig
 {
     bool EnableESP = true;
     float MaxDistance = 1000.0;
     int RefreshRate = 5;
 };
 
-class VPPESPPlugin : ConfigurablePlugin
+// Module loads its own config on init, saving defaults if the file is absent
+class LNT_AutoConfigModule
 {
-    ref VPPESPConfig m_ESPConfig;
+    protected ref LNT_ESPConfig m_Config;
+    protected const string CONFIG_PATH = "$profile:Lantern/ESP.json";
 
-    override void OnInit()
+    void OnInit()
     {
-        m_ESPConfig = new VPPESPConfig();
-        // ConfigurablePlugin.LoadConfig() handles the JSON load
-        super.OnInit();
+        m_Config = new LNT_ESPConfig();
+
+        if (FileExist(CONFIG_PATH))
+        {
+            JsonFileLoader<LNT_ESPConfig>.JsonLoadFile(CONFIG_PATH, m_Config);
+        }
+        else
+        {
+            // First run: persist defaults so the admin has a file to edit
+            JsonFileLoader<LNT_ESPConfig>.JsonSaveFile(CONFIG_PATH, m_Config);
+        }
+    }
+
+    LNT_ESPConfig GetConfig()
+    {
+        return m_Config;
     }
 };
 ```
@@ -500,20 +525,21 @@ void MigrateConfig(MyModConfig config)
         // config.DifficultyMode = "Normal"; // Set new default
     }
 
-    MyLog.Info("Config", "Migrated config from v"
-        + config.ConfigVersion.ToString() + " to v" + CURRENT_VERSION.ToString());
+    LNT_Log.Info("Config", "Migrated config from v" + config.ConfigVersion.ToString() + " to v" + CURRENT_VERSION.ToString());
 }
 ```
 
-### Expansion's Migration Example
+### A Versioned-Migration Checklist
 
-Expansion is known for aggressive config evolution. Some Expansion configs have gone through 17+ versions. Their pattern:
-1. Each version bump has a dedicated migration function
-2. Migrations run in order (1 to 2, then 2 to 3, then 3 to 4, etc.)
-3. Each migration only changes what is necessary for that version step
-4. The final version number is written to disk after all migrations complete
+Large, long-lived mods treat config migration as a first-class feature — DayZ Expansion, for instance, has shipped configs through 17+ versions. However you structure it, a robust migration flow follows the same checklist:
 
-This is the gold standard for config versioning in DayZ mods.
+1. Give each config an integer `ConfigVersion` field from day one.
+2. Write a dedicated migration step for every version bump.
+3. Run migrations in order (1 to 2, then 2 to 3, then 3 to 4, etc.) — never skip intermediate steps, because each one assumes the previous ran.
+4. Make each step change only what that version step requires; leave everything else untouched.
+5. Preserve user-modified values: only overwrite a field when it still holds the old default.
+6. Write the final version number to disk after all steps complete, then re-save the file.
+7. Log the migration (`from v3 to v5`) so a broken upgrade is visible in the server log.
 
 ---
 
@@ -667,7 +693,7 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 
 7. **Save on mission finish.** The auto-save timer is a safety net, not the primary save. Always save during `OnMissionFinish()`.
 
-8. **Define path constants in one place.** A `MyModConst` class with all paths prevents string duplication and makes path changes trivial.
+8. **Define path constants in one place.** A `LNT_Const` class with all paths prevents string duplication and makes path changes trivial.
 
 9. **Log load/save operations.** When debugging config issues, a log line saying "Loaded config v3 from $profile:MyMod/Config.json" is invaluable.
 
@@ -692,7 +718,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Use async file I/O to avoid blocking | Enforce Script has no async file I/O; all reads/writes are synchronous. Load at startup, save on timers. |
 | Validate JSON with a schema | No JSON schema validation exists; validate fields in `OnAfterLoad()` or with guard clauses after loading. |
 | Use a database for structured data | No database access from Enforce Script; JSON files in `$profile:` are the only persistence mechanism. |
-
----
-
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)

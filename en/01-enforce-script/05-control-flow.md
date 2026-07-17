@@ -1,6 +1,6 @@
-# Chapter 1.5: Control Flow
+# Control Flow
 
-[Home](../README.md) | [<< Previous: Modded Classes](04-modded-classes.md) | **Control Flow** | [Next: String Operations >>](06-strings.md)
+> **Summary:** How Enforce Script handles branching and iteration --- `if`/`else`, `for`, `while`, `foreach`, `switch`, `break`/`continue`, and the `thread` keyword --- including the traps that differ from C-family languages (no `do...while`, sibling-branch variable redeclaration errors).
 
 ---
 
@@ -544,7 +544,7 @@ thread LongOperation();  // Starts without blocking the caller
 
 **Important:** `thread` in Enforce Script is NOT the same as OS threads. It is more like a coroutine --- it runs on the same thread but can yield/sleep without blocking the game. Use `CallLater` instead of `thread` for most mod use cases --- it is simpler and more predictable.
 
-> **Note on `Sleep()`:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is used by COT, VPP, Expansion, and Dabs Framework in their threaded routines.
+> **Note on `Sleep()`:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is commonly used by large mods in their threaded routines.
 
 ### Thread vs CallLater
 
@@ -604,7 +604,3 @@ switch (value) { case X: /* ... */ break; default: break; }
 thread void MyFunc() { Sleep(1000); }
 thread MyFunc();  // non-blocking call
 ```
-
----
-
-[<< 1.4: Modded Classes](04-modded-classes.md) | [Home](../README.md) | [1.6: String Operations >>](06-strings.md)

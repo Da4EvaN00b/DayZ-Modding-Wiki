@@ -1,6 +1,5 @@
-# Chapter 6.2: Vehicle System
+# Vehicle System
 
-[Home](../README.md) | [<< Previous: Entity System](01-entity-system.md) | **Vehicles** | [Next: Weather >>](03-weather.md)
 
 ---
 
@@ -408,7 +407,7 @@ void FindAllVehicles(out array<Transport> vehicles)
 > **Mod Compatibility:** Vehicle mods commonly extend `CarScript` with modded classes. Conflicts arise when multiple mods override the same callbacks like `OnEngineStart()` or `EOnSimulate()`.
 
 - **Load Order:** If two mods both `modded class CarScript` and override `OnEngineStart()`, only the last-loaded mod runs unless both call `super`. Vehicle overhaul mods should always call `super` in every callback.
-- **Modded Class Conflicts:** Expansion Vehicles and vanilla vehicle mods frequently conflict on `EEInit()` and fluid initialization. Test with both loaded.
+- **Modded Class Conflicts:** DayZ Expansion Vehicles ships its own custom vehicle base class; mods that also touch `EEInit()` or fluid initialization on `CarScript` frequently conflict with it. Test with both loaded.
 - **Performance Impact:** `EOnSimulate()` runs every physics tick for each active vehicle. Keep logic minimal in this callback; use timer accumulators for expensive operations.
 - **Server/Client:** `EngineStart()`, `EngineStop()`, `Fill()`, `Leak()`, and `CrewGetOut()` are server-authoritative. `GetSpeedometer()`, `EngineIsOn()`, and `GetFluidFraction()` are safe to read on both sides.
 
@@ -517,17 +516,11 @@ The `Transport` class (parent of `CarScript` and `BoatScript`) now has dynamic c
 
 ---
 
-## Observed in Real Mods
+## Common Patterns in Published Vehicle Mods
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These recurring patterns are all built from the vanilla `CarScript` API covered in this chapter:
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Override `EEInit()` to set custom fluid capacities and spawn parts | Expansion Vehicles | `CarScript` subclasses |
-| `EOnSimulate` accumulator for periodic fuel consumption checks | Vanilla+ vehicle mods | `CarScript` overrides |
-| `CrewGetOut()` loop in admin eject-all command | VPP Admin Tools | Vehicle management module |
-| Custom `OnContact()` override for collision damage tuning | Expansion | `ExpansionCarScript` |
-
----
-
-[Home](../README.md) | [<< Previous: Entity System](01-entity-system.md) | **Vehicles** | [Next: Weather >>](03-weather.md)
+- **Custom initialization in `EEInit()`** — subclasses override `EEInit()` (calling `super.EEInit()` first) to set fluid levels and spawn required attachments the moment the vehicle is created.
+- **Tick accumulator in `EOnPostSimulate()`** — rather than running expensive logic every physics tick, accumulate `timeSlice` into a member float and act only when it crosses a threshold (periodic fuel-consumption checks, wear simulation).
+- **Admin eject-all via `CrewGetOut()`** — loop over `CrewSize()` and call `CrewGetOut(i)` for each occupied seat, exactly like the `EjectAllCrew()` example earlier in this chapter.
+- **Collision damage tuning in `OnContact()`** — override `OnContact()` to scale or filter contact damage using the `Contact` data before delegating to `super`.

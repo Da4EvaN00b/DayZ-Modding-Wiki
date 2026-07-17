@@ -1,6 +1,5 @@
-# Chapter 6.15: Sound System
+# Sound System
 
-[Home](../README.md) | [<< Previous: Player System](14-player-system.md) | **Sound System** | [Next: Crafting System >>](16-crafting-system.md)
 
 ---
 
@@ -836,9 +835,9 @@ void PlayFireModeSound()
 }
 ```
 
-### 5. Expansion-Style Sound with Delayed Stop
+### 5. Looping Sound with Delayed Stop
 
-From Expansion's engine start sounds, where sounds are created manually and stopped on a timer:
+A pattern for sounds that are created manually and stopped on a timer, such as vehicle engine start effects:
 
 ```c
 void PlayEngineStartSound(CarScript vehicle, string soundSet, float stopDelay)
@@ -1060,7 +1059,3 @@ Available controller names include: `rain`, `night`, `meadow`, `trees`, `hills`,
 - **Multi-Mod:** CfgSoundShaders and CfgSoundSets class names share a global namespace across all loaded mods. Name collisions cause one mod's sounds to silently replace another's. Always use a unique mod prefix.
 - **Performance:** Each active `EffectSound` consumes an audio channel. The engine has a limited channel pool -- excessive simultaneous sounds (50+) can cause newer sounds to fail silently. Use `limitation` in CfgSoundShaders to cap concurrent instances of frequent sounds.
 - **Server/Client:** All sound playback is client-side only. The server has no audio output. Entity convenience methods (`PlaySoundSet`, `StopSoundSet`) include server guards internally, but direct `SEffectManager` calls do not.
-
----
-
-[Home](../README.md) | [<< Previous: Player System](14-player-system.md) | **Sound System** | [Next: Crafting System >>](16-crafting-system.md)

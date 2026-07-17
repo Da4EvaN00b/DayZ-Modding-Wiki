@@ -1,6 +1,28 @@
-# Chapter 1.3: Classes & Inheritance
+# Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
+> **Summary:** How to declare classes, initialize them safely, inherit with `extends`, override methods with `override` and `super`, and use static members and singletons — including the constructor rules that are unique to Enforce Script.
+
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Declaring a Class](#declaring-a-class)
+- [Constructors and Destructors](#constructors-and-destructors)
+- [Access Modifiers](#access-modifiers)
+- [Inheritance](#inheritance)
+- [Overriding Methods](#overriding-methods)
+- [Proto Methods (Engine Bindings)](#proto-methods-engine-bindings)
+- [Parameter Modifiers](#parameter-modifiers)
+- [Static Methods and Fields](#static-methods-and-fields)
+- [Worked Example: Custom Item Class](#worked-example-custom-item-class)
+- [The DayZ Class Hierarchy](#the-dayz-class-hierarchy)
+- [Best Practices](#best-practices)
+- [Observed in the Vanilla Scripts](#observed-in-the-vanilla-scripts)
+- [Theory vs Practice](#theory-vs-practice)
+- [Common Mistakes](#common-mistakes)
+- [Practice Exercises](#practice-exercises)
+- [Summary](#summary)
 
 ---
 
@@ -140,40 +162,74 @@ void Test()
 }
 ```
 
-### Constructor Overloading
+A parameterized constructor like `SpawnZone`'s is fine on a class that nothing extends. The rules change as soon as inheritance is involved — see the next two subsections.
 
-You can define multiple constructors with different parameter lists:
+### Constructor Rules Unique to Enforce Script
+
+Two rules trip up everyone coming from C# or Java:
+
+1. **There is no `super(args)`.** You cannot call the parent's constructor explicitly — not as `super(...)`, and not by writing `ParentClassName(...)` as a statement inside the child's constructor body. The parent constructor always runs automatically, before the child's.
+2. **Constructor signatures must stay compatible down the hierarchy.** If a base class declares a parameterized constructor and a subclass declares a constructor with a different parameter list, the module fails to compile with an error like:
+
+```
+SCRIPT (E): Overloaded function 'ChildClassName' not compatible
+```
+
+Do not rely on constructor overloading (multiple constructors with different parameter lists) either — the same "Overloaded function" compatibility check bites you. Declare **one** constructor per class and move parameterized setup into ordinary methods.
+
+### The Init() Pattern
+
+The reliable way to give a class hierarchy parameterized initialization:
+
+1. Give the base class a **parameterless** constructor.
+2. Put the parameterized setup in a normal method (`InitSomething(...)`).
+3. Each subclass declares its own parameterless constructor and calls that method as its first statement. `protected` fields of the base are accessible to both.
 
 ```c
-class DamageEvent
+class PatrolAction
 {
-    protected float m_Amount;
-    protected string m_Source;
-    protected vector m_Position;
+    protected int m_Id;
+    protected string m_Name;
+    protected float m_Cost;
 
-    // Constructor with all parameters
-    void DamageEvent(float amount, string source, vector pos)
+    // Parameterless constructor: keeps every subclass compatible
+    void PatrolAction()
     {
-        m_Amount = amount;
-        m_Source = source;
-        m_Position = pos;
     }
 
-    // Simpler constructor with defaults
-    void DamageEvent(float amount)
+    // Parameterized setup lives in a normal method instead
+    void InitAction(int id, string name, float cost)
     {
-        m_Amount = amount;
-        m_Source = "Unknown";
-        m_Position = vector.Zero;
+        m_Id = id;
+        m_Name = name;
+        m_Cost = cost;
+    }
+
+    string GetName()
+    {
+        return m_Name;
     }
 }
 
-void Test()
+class PatrolAction_Idle extends PatrolAction
 {
-    DamageEvent full = new DamageEvent(50.0, "AKM", Vector(100, 0, 200));
-    DamageEvent simple = new DamageEvent(25.0);
+    void PatrolAction_Idle()
+    {
+        // First statement: parameterized init through the method
+        InitAction(0, "Idle", 1.0);
+    }
+}
+
+class PatrolAction_Search extends PatrolAction
+{
+    void PatrolAction_Search()
+    {
+        InitAction(1, "Search", 2.5);
+    }
 }
 ```
+
+Vanilla DayZ uses exactly this shape: `PlayerBase`'s constructor is literally `void PlayerBase() { Init(); }`, and `Init()` does all the real setup (`4_world/entities/manbase/playerbase.c`).
 
 ---
 
@@ -202,12 +258,17 @@ class BaseVehicle
     // Private: only this exact class
     private int m_InternalState;
 
-    void BaseVehicle(string name, float maxFuel)
+    void BaseVehicle()
+    {
+        m_InternalState = 0;
+    }
+
+    // Parameterized setup via the Init() pattern (see the Constructors section)
+    void InitVehicle(string name, float maxFuel)
     {
         m_DisplayName = name;
         m_MaxFuel = maxFuel;
         m_Fuel = maxFuel;
-        m_InternalState = 0;
     }
 
     // Public method
@@ -235,12 +296,12 @@ class BaseVehicle
 Expose fields through methods (getters/setters) rather than making them public. This lets you add validation, logging, or side effects later without breaking code that uses the class.
 
 ```c
-class PlayerStats
+class VitalsTracker
 {
     protected float m_Health;
     protected float m_MaxHealth;
 
-    void PlayerStats(float maxHealth)
+    void VitalsTracker(float maxHealth)
     {
         m_MaxHealth = maxHealth;
         m_Health = maxHealth;
@@ -288,25 +349,33 @@ Enforce Script supports two syntaxes for inheritance. Both are equivalent:
 
 ```c
 // Syntax 1: extends keyword (preferred, more readable)
-class Car extends BaseVehicle
+class DeliveryVan extends BaseVehicle
 {
 }
 
 // Syntax 2: colon (C++ style, also common in DayZ code)
-class Truck : BaseVehicle
+class TowTruck : BaseVehicle
 {
 }
 ```
 
+> **Naming tip:** avoid reusing vanilla class names (`Car`, `Animal`, `Shape`, `PlayerStats`, ...) for your own classes — a second declaration of an existing class fails to compile. Prefix or qualify your names.
+
 ### Basic Inheritance Example
 
 ```c
-class Animal
+class PetBase
 {
     protected string m_Name;
     protected float m_Health;
 
-    void Animal(string name, float health)
+    // Parameterless constructor: subclasses stay compatible (see Constructor Rules above)
+    void PetBase()
+    {
+        m_Health = 100.0;
+    }
+
+    void InitPet(string name, float health)
     {
         m_Name = name;
         m_Health = health;
@@ -323,16 +392,15 @@ class Animal
     }
 }
 
-class Dog extends Animal
+class Dog extends PetBase
 {
     protected string m_Breed;
 
-    void Dog(string name, string breed)
+    // The parent constructor runs automatically before this one.
+    // Parameterized setup goes through Init methods, never through constructor arguments.
+    void InitDog(string name, string breed)
     {
-        // Note: parent constructor is called automatically with no args,
-        // or you can initialize parent fields directly since they are protected
-        m_Name = name;
-        m_Health = 100.0;
+        InitPet(name, 100.0);
         m_Breed = breed;
     }
 
@@ -350,8 +418,10 @@ class Dog extends Animal
 
 void Test()
 {
-    Dog rex = new Dog("Rex", "German Shepherd");
-    rex.Speak();         // Inherited from Animal: "Rex makes a sound"
+    Dog rex = new Dog();
+    rex.InitDog("Rex", "German Shepherd");
+
+    rex.Speak();         // Inherited from PetBase: "Rex makes a sound"
     rex.Fetch();         // Dog's own method: "Rex fetches the stick!"
     Print(rex.GetName()); // Inherited: "Rex"
     Print(rex.GetBreed()); // Dog's own: "German Shepherd"
@@ -382,7 +452,7 @@ sealed class FinalClass
     }
 }
 
-class MyChild : FinalClass  // COMPILE ERROR: cannot inherit from sealed class
+class ChildAttempt : FinalClass  // COMPILE ERROR: cannot inherit from sealed class
 {
 }
 ```
@@ -390,7 +460,7 @@ class MyChild : FinalClass  // COMPILE ERROR: cannot inherit from sealed class
 Methods can also be sealed individually:
 
 ```c
-class MyBase
+class PartiallySealedBase
 {
     sealed void LockedMethod()
     {
@@ -415,12 +485,16 @@ class MyBase
 When a subclass needs to change the behavior of an inherited method, it uses the `override` keyword. The compiler checks that the method signature matches a method in the parent class.
 
 ```c
-class Weapon
+class WeaponProfile
 {
     protected string m_Name;
     protected float m_Damage;
 
-    void Weapon(string name, float damage)
+    void WeaponProfile()
+    {
+    }
+
+    void InitProfile(string name, float damage)
     {
         m_Name = name;
         m_Damage = damage;
@@ -438,14 +512,13 @@ class Weapon
     }
 }
 
-class Rifle extends Weapon
+class RifleProfile extends WeaponProfile
 {
     protected float m_MaxRange;
 
-    void Rifle(string name, float damage, float maxRange)
+    void InitRifleProfile(string name, float damage, float maxRange)
     {
-        m_Name = name;
-        m_Damage = damage;
+        InitProfile(name, damage);
         m_MaxRange = maxRange;
     }
 
@@ -497,17 +570,17 @@ class TimestampLogger extends BaseLogger
 `this` refers to the current object instance. It is usually implicit (you do not need to write it), but can be useful for clarity or when passing the current object to another function.
 
 ```c
-class EventManager
+class HandlerRegistry
 {
     void Register(Managed handler) { /* ... */ }
 }
 
-class MyPlugin
+class KillFeedHandler : Managed
 {
-    void Init(EventManager mgr)
+    void Init(HandlerRegistry registry)
     {
-        // Pass 'this' (the current MyPlugin instance) to the manager
-        mgr.Register(this);
+        // Pass 'this' (the current KillFeedHandler instance) to the registry
+        registry.Register(this);
     }
 }
 ```
@@ -639,25 +712,25 @@ void Test()
 The most common use of static fields in DayZ mods is the singleton pattern: a class that has exactly one instance, accessible globally.
 
 ```c
-class MyModManager
+class LNT_ZoneManager
 {
     // Static reference to the single instance
-    private static ref MyModManager s_Instance;
+    private static ref LNT_ZoneManager s_Instance;
 
     protected bool m_Initialized;
-    protected ref array<string> m_Data;
+    protected ref array<string> m_Zones;
 
-    void MyModManager()
+    void LNT_ZoneManager()
     {
         m_Initialized = false;
-        m_Data = new array<string>;
+        m_Zones = new array<string>;
     }
 
     // Static getter for the singleton
-    static MyModManager GetInstance()
+    static LNT_ZoneManager GetInstance()
     {
         if (!s_Instance)
-            s_Instance = new MyModManager;
+            s_Instance = new LNT_ZoneManager;
 
         return s_Instance;
     }
@@ -668,7 +741,7 @@ class MyModManager
             return;
 
         m_Initialized = true;
-        Print("[MyMod] Manager initialized");
+        Print("[Lantern] Zone manager initialized");
     }
 
     // Static cleanup
@@ -681,13 +754,15 @@ class MyModManager
 // Usage from anywhere:
 void SomeFunction()
 {
-    MyModManager.GetInstance().Init();
+    LNT_ZoneManager.GetInstance().Init();
 }
 ```
 
+Vanilla uses the same idea for its plugin system: a global `ref PluginManager g_Plugins;` created lazily by `GetPluginManager()`, with `GetPlugin(typename)` as the convenience accessor (`4_world/plugins/pluginmanager.c`). The `LNT_` prefix belongs to the wiki's fictional Lantern teaching mod — the full singleton discussion, including teardown and listen-server pitfalls, lives in [Singletons](../07-patterns/01-singletons.md).
+
 ---
 
-## Real-World Example: Custom Item Class
+## Worked Example: Custom Item Class
 
 Here is a complete example showing a custom item class hierarchy in the style of DayZ modding. This demonstrates everything covered in this chapter.
 
@@ -784,139 +859,15 @@ class CustomFirstAidKit extends CustomMedicalBase
 }
 ```
 
-### config.cpp for Custom Items
+### Where the config.cpp Side Lives
 
-The class hierarchy in script must match the `config.cpp` inheritance:
-
-```cpp
-class CfgVehicles
-{
-    class ItemBase;
-
-    class CustomMedicalBase : ItemBase
-    {
-        scope = 0;  // 0 = abstract, cannot be spawned
-        displayName = "";
-    };
-
-    class CustomBandage : CustomMedicalBase
-    {
-        scope = 2;  // 2 = public, can be spawned
-        displayName = "Custom Bandage";
-        descriptionShort = "A sterile bandage for wound treatment.";
-        model = "\MyMod\data\bandage.p3d";
-        weight = 50;
-    };
-
-    class CustomFirstAidKit : CustomMedicalBase
-    {
-        scope = 2;
-        displayName = "Custom First Aid Kit";
-        descriptionShort = "A complete first aid kit with multiple uses.";
-        model = "\MyMod\data\firstaidkit.p3d";
-        weight = 300;
-    };
-};
-```
+A script class that extends `ItemBase` only becomes a spawnable item when a matching class hierarchy is declared in `config.cpp` — with `scope = 0` on the abstract base and `scope = 2` on spawnable items. That side of the story is covered in [config.cpp Deep Dive](../02-mod-structure/02-config-cpp.md), and the [Custom Item tutorial](../08-tutorials/02-custom-item.md) walks through it end to end.
 
 ---
 
 ## The DayZ Class Hierarchy
 
-Understanding the vanilla class hierarchy is essential for modding. Here are the most important classes you will inherit from or interact with:
-
-```
-Class                          // Root of all reference types
-  Managed                      // Prevents engine ref-counting (use for pure script classes)
-  IEntity                      // Engine entity base
-    Object                     // Anything with a position in the world
-      Entity
-        EntityAI               // Has inventory, health, actions
-          InventoryItem
-            ItemBase           // ALL items (inherit from this for custom items)
-              Weapon_Base      // All weapons
-              Magazine_Base    // All magazines
-              Clothing_Base    // All clothing
-          Transport
-            CarScript          // All vehicles
-          DayZCreatureAI
-            DayZInfected       // Zombies
-            DayZAnimal         // Animals
-          Man
-            DayZPlayer
-              PlayerBase       // THE player class (modded constantly)
-                SurvivorBase   // Character appearance
-```
-
-### DayZ Class Hierarchy
-
-```mermaid
-classDiagram
-    class Object {
-        +GetPosition() vector
-        +SetPosition(vector)
-        +GetType() string
-        +IsKindOf(string) bool
-    }
-
-    class Entity {
-        +GetOrientation() vector
-        +SetOrientation(vector)
-    }
-
-    class EntityAI {
-        +GetHealth(string, string) float
-        +SetHealth(string, string, float)
-        +IsAlive() bool
-        +GetInventory() GameInventory
-    }
-
-    class ItemBase {
-        +GetQuantity() float
-        +SetQuantity(float)
-        +OnDebugSpawn()
-    }
-
-    class PlayerBase {
-        +GetIdentity() PlayerIdentity
-        +IsBleeding() bool
-        +IsRestrained() bool
-    }
-
-    class Building {
-        +GetDoorIndex(int) int
-    }
-
-    class CarScript {
-        +EngineStart()
-        +EngineStop()
-        +Fill(CarFluid, float)
-    }
-
-    Object <|-- Entity
-    Entity <|-- EntityAI
-    EntityAI <|-- ItemBase
-    EntityAI <|-- ManBase
-    EntityAI <|-- Building
-    EntityAI <|-- DayZInfected
-    ManBase <|-- PlayerBase
-    ItemBase <|-- Weapon_Base
-    ItemBase <|-- Clothing_Base
-    EntityAI <|-- CarScript
-```
-
-### Common Base Classes for Modding
-
-| If you want to create... | Extend... |
-|--------------------------|-----------|
-| A new item | `ItemBase` |
-| A new weapon | `Weapon_Base` |
-| A new piece of clothing | `Clothing_Base` |
-| A new vehicle | `CarScript` |
-| A UI element | `UIScriptedMenu` or `ScriptedWidgetEventHandler` |
-| A manager/system | `Managed` |
-| A config data class | `Managed` |
-| A mission hook | `MissionServer` or `MissionGameplay` (via `modded class`) |
+Everything you script against in DayZ hangs off one inheritance chain: `Class` → `Managed` / `IEntity` → `Object` → `EntityAI` → `ItemBase`, `Man` → `PlayerBase`, and so on. The full annotated hierarchy — including which base class to extend for items, weapons, clothing, vehicles, and UI — lives in [Entity System](../06-engine-api/01-entity-system.md).
 
 ---
 
@@ -930,16 +881,16 @@ classDiagram
 
 ---
 
-## Observed in Real Mods
+## Observed in the Vanilla Scripts
 
-> Patterns confirmed by studying professional DayZ mod source code.
+Every pattern in this chapter appears in the vanilla game code — worth reading in your extracted scripts:
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Singleton via `static ref` + `GetInstance()` | COT / Expansion | Every major manager (permissions, notifications, market) follows this exact pattern |
-| Constructor initializes all `ref` collections | Dabs Framework | Constructors always create `new array` / `new map` for every `ref` member |
-| `override` + `super` on every lifecycle method | VPP Admin | `OnInit`, `OnMissionStart`, `OnUpdate` always call `super` first, then add behavior |
-| Abstract base with `scope=0` in config.cpp | Expansion Vehicles | Base vehicle script class has `scope=0` (cannot spawn), concrete subclasses have `scope=2` |
+| Pattern | Vanilla example | Detail |
+|---------|-----------------|--------|
+| Global singleton with a lazy accessor | `PluginManager` | A global `ref PluginManager g_Plugins;` plus `GetPluginManager()` that creates it on first use, and `GetPlugin(typename)` as the lookup helper (`4_world/plugins/pluginmanager.c`) |
+| Parameterless constructor + `Init()` | `PlayerBase` | The constructor is literally `void PlayerBase() { Init(); }`, and `Init()` creates every `ref` collection (`m_Recipes = new array<int>;`) (`4_world/entities/manbase/playerbase.c`) |
+| `override` + `super` on every lifecycle method | `MissionServer` | `OnInit()` and `OnMissionStart()` call `super` first, then add server-side behavior (`5_mission/mission/missionserver.c`) |
+| Abstract base with `scope=0` in config.cpp | Vanilla item configs | Config classes that exist only to be inherited from are declared `scope=0` (cannot spawn); concrete, spawnable items get `scope=2` |
 
 ---
 
@@ -948,7 +899,7 @@ classDiagram
 | Concept | Theory | Reality |
 |---------|--------|---------|
 | Omitting `override` keyword | Should create a new method | Often creates a subtle bug where the parent method runs instead of the child's |
-| Multiple constructors (overloading) | Standard OOP feature | Works but rarely used in DayZ mods -- most classes use a single constructor with default values |
+| Multiple constructors (overloading) | Standard OOP feature | Do not rely on it -- mismatched constructor signatures across a hierarchy fail with `Overloaded function '<Class>' not compatible`; use one parameterless constructor plus an `Init()` method |
 | `sealed` classes/methods | Prevents inheritance or override (enforced at compile time since 1.28) | Almost never used in DayZ modding because extensibility is the whole point |
 
 ---
@@ -1036,31 +987,47 @@ class Child extends Parent
 
 ### 4. Ref Cycles Cause Memory Leaks
 
-If object A holds a `ref` to object B, and object B holds a `ref` to object A, neither can ever be freed. One side must use a raw (non-ref) pointer.
+If object A holds a `ref` to object B, and object B holds a `ref` back to object A, neither can ever be freed — one side must hold a plain (non-`ref`) reference. This mistake, and the full rules for `ref`, ownership, and breaking cycles, are covered in [Memory Management](08-memory-management.md).
+
+### 5. Trying to Call the Base Constructor
+
+There is no `super(args)` in Enforce Script, and writing the base class name as a statement inside the child constructor does not call the base constructor — it fails to compile.
 
 ```c
-// BAD: ref cycle, neither object can be freed
-class Parent
+class TaskBase
 {
-    ref Child m_Child;
-}
-class Child
-{
-    ref Parent m_Parent;  // LEAK: circular ref
+    protected int m_Priority;
+
+    void TaskBase()
+    {
+    }
+
+    void InitTask(int priority)
+    {
+        m_Priority = priority;
+    }
 }
 
-// GOOD: child holds a raw pointer to parent
-class Parent2
+// BAD: there is no explicit base-constructor call
+class PatrolTask extends TaskBase
 {
-    ref Child2 m_Child;
+    void PatrolTask()
+    {
+        // TaskBase(5);  // COMPILE ERROR: Overloaded function not compatible
+    }
 }
-class Child2
+
+// GOOD: the base constructor runs automatically; call an Init method for parameters
+class GuardTask extends TaskBase
 {
-    Parent2 m_Parent;  // raw pointer, no ref -- breaks the cycle
+    void GuardTask()
+    {
+        InitTask(5);
+    }
 }
 ```
 
-### 5. Trying to Use Multiple Inheritance
+### 6. Trying to Use Multiple Inheritance
 
 Enforce Script does not support multiple inheritance. If you need to share behavior across unrelated classes, use composition (hold a reference to a helper object) or static utility methods.
 
@@ -1069,7 +1036,15 @@ Enforce Script does not support multiple inheritance. If you need to share behav
 // class FlyingCar extends Car, Aircraft { }  // ERROR
 
 // Instead, use composition:
-class FlyingCar extends Car
+class FlightController
+{
+    void NavigateTo(vector destination)
+    {
+        // flight logic here
+    }
+}
+
+class FlyingCar extends BaseVehicle
 {
     protected ref FlightController m_Flight;
 
@@ -1090,14 +1065,14 @@ class FlyingCar extends Car
 ## Practice Exercises
 
 ### Exercise 1: Shape Hierarchy
-Create a base class `Shape` with a method `float GetArea()`. Create subclasses `Circle` (radius), `Rectangle` (width, height), and `Triangle` (base, height) that override `GetArea()`. Print the area of each.
+Create a base class `ShapeBase` with a method `float GetArea()` (do not name it `Shape` — that class already exists in vanilla). Create subclasses `Circle` (radius), `Rectangle` (width, height), and `Triangle` (base, height) that override `GetArea()`. Give `ShapeBase` a parameterless constructor and set dimensions through Init methods. Print the area of each.
 
 ### Exercise 2: Logger System
 Create a `Logger` class with a `Log(string message)` method that prints to console. Create `FileLogger` that extends it and also writes to a conceptual file (just print with a `[FILE]` prefix). Create `DiscordLogger` that extends `Logger` and adds a `[DISCORD]` prefix. Each should call `super.Log()`.
 
 ### Exercise 3: Inventory Item
 Create a class `CustomItem` with protected fields for `m_Weight`, `m_Value`, and `m_Condition` (float 0-1). Include:
-- A constructor that takes all three values
+- A parameterless constructor plus an `InitItem(...)` method that sets all three values (remember: subclasses cannot declare constructors with different signatures)
 - Getters for each field
 - A method `Degrade(float amount)` that reduces condition (clamped to 0)
 - A method `GetEffectiveValue()` that returns `m_Value * m_Condition`
@@ -1122,7 +1097,8 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 |---------|--------|-------|
 | Class declaration | `class Name { }` | Public members by default |
 | Inheritance | `class Child extends Parent` | Single inheritance only; also `: Parent` |
-| Constructor | `void ClassName()` | Same name as class |
+| Constructor | `void ClassName()` | Same name as class; one per class |
+| Base constructor call | *(not available)* | No `super(args)`; parent ctor runs automatically -- use a parameterless base ctor + `Init()` method |
 | Destructor | `void ~ClassName()` | Called on deletion |
 | Private | `private int m_Field;` | This class only |
 | Protected | `protected int m_Field;` | This class + subclasses |
@@ -1138,7 +1114,3 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | `out` param | `void Func(out int val)` | Output-only parameter |
 | `inout` param | `void Func(inout array<int> a)` | Input + output parameter |
 | `notnull` param | `void Func(notnull EntityAI e)` | Compiler-enforced non-null |
-
----
-
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)

@@ -1,6 +1,5 @@
-# Chapter 6.14: Player System
+# Player System
 
-[Home](../README.md) | [<< Previous: Input System](13-input-system.md) | **Player System** | [Next: Sound System >>](15-sound-system.md)
 
 ---
 
@@ -588,39 +587,9 @@ override void OnVariablesSynchronized()
 }
 ```
 
-### Custom Synced Variables in Modded Classes
+### Custom Synced Variables
 
-To add your own synced variable to a `modded class PlayerBase`:
-
-```c
-modded class PlayerBase
-{
-    // 1. Declare the variable
-    private bool m_MyCustomFlag;
-
-    // 2. Register it in constructor (after super())
-    void PlayerBase()
-    {
-        RegisterNetSyncVariableBool("m_MyCustomFlag");
-    }
-
-    // 3. Set on server and mark dirty
-    void SetMyFlag(bool value)
-    {
-        m_MyCustomFlag = value;
-        SetSynchDirty();
-    }
-
-    // 4. Read on client in OnVariablesSynchronized
-    override void OnVariablesSynchronized()
-    {
-        super.OnVariablesSynchronized();
-
-        if (m_MyCustomFlag)
-            Print("Custom flag is true on client!");
-    }
-}
-```
+Adding your own synced variable to a `modded class PlayerBase` uses the generic net-sync mechanism (`RegisterNetSyncVariable*` + `SetSynchDirty()` + `OnVariablesSynchronized()`). The full walkthrough — registration variants, quantization parameters, and a complete modded-class example — lives in [Networking & RPC](09-networking.md#network-sync-variables).
 
 ### Identity and PlayerBase Relationship
 
@@ -984,7 +953,7 @@ if (entity && entity.IsAlive())
 
 ---
 
-*This chapter covers the PlayerBase API as of DayZ 1.26. Method signatures are sourced from vanilla script files in `3_Game/` and `4_World/`. For the complete entity hierarchy that PlayerBase inherits from, see [Chapter 6.1: Entity System](01-entity-system.md).*
+For the complete entity hierarchy that PlayerBase inherits from, see [Entity System](01-entity-system.md).
 
 ---
 
@@ -1000,7 +969,7 @@ if (entity && entity.IsAlive())
 
 ## Compatibility & Impact
 
-> **Mod Compatibility:** `PlayerBase` is the single most modded class in DayZ. Admin tools, survival mods, PvP systems, and UI mods all add `modded class PlayerBase` with custom fields, overrides, and synced variables.
+`PlayerBase` is the single most modded class in DayZ. Admin tools, survival mods, PvP systems, and UI mods all add `modded class PlayerBase` with custom fields, overrides, and synced variables.
 
 - **Load Order:** Multiple `modded class PlayerBase` declarations coexist as long as each calls `super` in every override. The last-loaded mod's overrides wrap all previous ones.
 - **Modded Class Conflicts:** Common conflict points are `OnVariablesSynchronized()` (forgetting `super` hides other mods' sync logic), `EEHitBy()` (damage modification mods overriding each other), and the constructor (net sync variable registration order must be consistent).
@@ -1009,14 +978,14 @@ if (entity && entity.IsAlive())
 
 ---
 
-## Observed in Real Mods
+## Recurring Patterns in Player Mods
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+Community mods converge on the same handful of PlayerBase techniques. Each row names the pattern and the vanilla API it is built on:
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| `modded class PlayerBase` with custom `RegisterNetSyncVariableBool` for group membership | Expansion | Party system player sync |
-| `EEHitBy` override to track damage source for killfeed display | Dabs Framework | Hit tracking / killfeed |
-| `InvokeOnConnect` player data load from `$profile:` JSON by `GetIdentity().GetId()` | COT | Player permission loading |
-| `GetBleedingManagerServer().RemoveAllSources()` in admin heal command | VPP Admin Tools | Player management module |
-| `OnVariablesSynchronized` override to update client-side HUD from synced stats | Expansion | Notification and status sync |
+| Pattern | Vanilla API It Builds On |
+|---------|--------------------------|
+| Group/party membership flag synced to all clients | `RegisterNetSyncVariableBool()` in a `modded class PlayerBase` constructor, plus `SetSynchDirty()` on change |
+| Killfeed / damage-source tracking | `EEHitBy()` override (`4_World/entities/manbase/playerbase.c`) reading `TotalDamageResult` and the `source` entity |
+| Per-player data loaded from `$profile:` JSON on connect | Files keyed by `GetIdentity().GetId()` — the BattlEye GUID (`PlayerIdentity`, `3_Game/gameplay.c`) |
+| Admin "full heal" command | `SetHealth()` on all three pools, stat `Set()` calls, and `GetBleedingManagerServer().RemoveAllSources()` |
+| Client-side status HUD driven by server state | `OnVariablesSynchronized()` override reading synced stat variables |

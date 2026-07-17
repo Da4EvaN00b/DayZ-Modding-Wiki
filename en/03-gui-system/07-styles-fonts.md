@@ -1,6 +1,5 @@
-# Chapter 3.7: Styles, Fonts & Images
+# Styles, Fonts & Images
 
-[Home](../README.md) | [<< Previous: Event Handling](06-event-handling.md) | **Styles, Fonts & Images** | [Next: Dialogs & Modals >>](08-dialogs-modals.md)
 
 ---
 
@@ -67,19 +66,32 @@ PanelWidget bar = PanelWidget.Cast(root.FindAnyWidget("TitleBar"));
 bar.SetColor(ARGB(240, 107, 165, 255));
 ```
 
-### Styles in Professional Mods
+### Styling a Dialog Container
 
-DabsFramework dialogs use `Outline_1px_BlackBackground` for dialog containers:
+A common pattern is to combine `Outline_1px_BlackBackground` with a wrap spacer so the dialog frame draws a clean 1-pixel border and sizes itself to its contents:
 
 ```
-WrapSpacerWidgetClass EditorDialog {
+WrapSpacerWidgetClass LNT_ConfirmDialog {
  style Outline_1px_BlackBackground
  Padding 5
  "Size To Content V" 1
+
+ TextWidgetClass DialogText {
+  text "Are you sure?"
+  "text halign" center
+ }
+
+ ButtonWidgetClass ConfirmButton {
+  style Default
+  text "OK"
+  size 120 30
+  hexactsize 1
+  vexactsize 1
+ }
 }
 ```
 
-Colorful UI uses `rover_sim_colorable` extensively for themed panels where the color is controlled by a centralized theme manager.
+Client theming mods use `rover_sim_colorable` extensively for themed panels, with the tint color controlled from a centralized theme class (see [Color Theme Pattern](#color-theme-pattern) below).
 
 ---
 
@@ -351,7 +363,7 @@ Key fields:
 
 ### XML Format
 
-Some mods (including some DayZ Expansion modules) use an XML-based imageset format:
+Some large mods use an XML-based imageset format:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -387,7 +399,7 @@ ImageSetClass {
  Textures {
   ImageSetTextureClass {
    mpix 0
-   path "MyFramework/GUI/imagesets/mymod_icons.edds"
+   path "MyMod/GUI/imagesets/mymod_icons.edds"
   }
  }
  Images {
@@ -477,7 +489,7 @@ statusText.SetColor(UIColor.Accent());
 errorText.SetColor(UIColor.Danger());
 ```
 
-This pattern (used by Colorful UI, MyMod, and others) means changing the entire UI color scheme requires editing only the theme class.
+This is a pattern used by client theming mods; the version above is this wiki's example implementation. It means changing the entire UI color scheme requires editing only the theme class.
 
 ---
 

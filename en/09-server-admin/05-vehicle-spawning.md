@@ -1,6 +1,5 @@
-# Chapter 9.5: Vehicle & Dynamic Event Spawning
+# Vehicle & Dynamic Event Spawning
 
-[Home](../README.md) | [<< Previous: Loot Economy](04-loot-economy.md) | [Next: Player Spawning >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ These are the most frequent vehicle spawning issues encountered by server admins
 **Problem:** A vehicle spawns clipped into a building or buried in terrain.
 
 **Fix:** Review the `<pos>` coordinates in `cfgeventspawns.xml`. Test positions in-game using admin teleport before adding them to the file. Positions should be on flat roads or open ground, and the angle (`a`) should align with the road direction.
-
----
-
-[Home](../README.md) | [<< Previous: Loot Economy](04-loot-economy.md) | [Next: Player Spawning >>](06-player-spawning.md)

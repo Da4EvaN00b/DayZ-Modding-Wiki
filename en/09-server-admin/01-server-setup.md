@@ -1,6 +1,5 @@
-# Chapter 9.1: Server Setup & First Launch
+# Server Setup & First Launch
 
-[Home](../README.md) | **Server Setup** | [Next: Directory Structure >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ This is normal. DayZ Server is single-threaded. Do not run multiple server insta
 ```cpp
 template = "dayzOffline.chernarusplus";  // Must match mpmissions/ folder name
 ```
-
----
-
-**[Home](../README.md)** | **Next:** [Directory Structure >>](02-directory-structure.md)

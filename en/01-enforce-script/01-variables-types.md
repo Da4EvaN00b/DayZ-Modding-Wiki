@@ -1,19 +1,39 @@
-# Chapter 1.1: Variables & Types
+# Variables & Types
 
-[Home](../README.md) | **Variables & Types** | [Next: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)
+> **Summary:** The Enforce Script primitive types (`int`, `float`, `bool`, `string`, `vector`, `typename`), how to declare variables and constants, how type conversion works, and the scoping rules that differ from C-family languages. There is no `auto` keyword --- every variable needs an explicit type.
+
+---
+
+## Table of Contents
+
+- [Primitive Types](#primitive-types)
+- [Declaring Variables](#declaring-variables)
+- [Working with `int`](#working-with-int)
+- [Working with `float`](#working-with-float)
+- [Working with `bool`](#working-with-bool)
+- [Strings at a Glance](#strings-at-a-glance)
+- [Vectors at a Glance](#vectors-at-a-glance)
+- [Working with `typename`](#working-with-typename)
+- [The `Managed` Base Class](#the-managed-base-class)
+- [Type Conversion](#type-conversion)
+- [Variable Scope](#variable-scope)
+- [Operator Precedence](#operator-precedence)
+- [Common Mistakes](#common-mistakes)
+- [Practice Exercises](#practice-exercises)
+- [Summary](#summary)
 
 ---
 
 ## Primitive Types
 
-Enforce Script has a small, fixed set of primitive types. You cannot define new value types --- only classes (covered in [Chapter 1.3](03-classes-inheritance.md)).
+Enforce Script has a small, fixed set of primitive types. You cannot define new value types --- only classes (covered in [Classes & Inheritance](03-classes-inheritance.md)).
 
 | Type | Size | Default Value | Description |
 |------|------|---------------|-------------|
 | `int` | 32-bit signed | `0` | Whole numbers from -2,147,483,648 to 2,147,483,647 |
 | `float` | 32-bit IEEE 754 | `0.0` | Floating-point numbers |
 | `bool` | 1 bit logical | `false` | `true` or `false` |
-| `string` | Variable | `""` (empty) | Text. Immutable value type --- passed by value, not reference |
+| `string` | Variable | `""` (empty) | Text. Value type --- copied on assignment, not shared by reference |
 | `vector` | 3x float | `"0 0 0"` | Three-component float (x, y, z). Passed by value |
 | `typename` | Engine ref | `null` | A reference to a type itself, used for reflection |
 | `void` | N/A | N/A | Used only as a return type to indicate "returns nothing" |
@@ -26,13 +46,13 @@ graph TD
         INT[int<br/>32-bit signed]
         FLOAT[float<br/>32-bit IEEE 754]
         BOOL[bool<br/>true / false]
-        STRING[string<br/>immutable text]
+        STRING[string<br/>text, copied on assignment]
         VECTOR[vector<br/>3x float xyz]
     end
 
     subgraph "Reference Types (passed by reference)"
         CLASS[Class<br/>root of all ref types]
-        MANAGED[Managed<br/>no engine ref-counting]
+        MANAGED[Managed<br/>weak refs zeroed on delete]
         TYPENAME[typename<br/>type reflection]
     end
 
@@ -54,7 +74,7 @@ graph TD
 
 ### Type Constants
 
-Several types expose useful constants:
+Several types expose useful constants (defined in the engine's `enconvert.c`):
 
 ```c
 // int bounds
@@ -90,21 +110,22 @@ void MyFunction()
 }
 ```
 
-### The `auto` Keyword
+### There Is No `auto` Keyword
 
-When the type is obvious from the right-hand side, you can use `auto` to let the compiler infer it:
+If you come from C++, C#, or other Enfusion-era documentation, you may expect an `auto` keyword for type inference. **Enforce Script in DayZ does not have it.** Every declaration needs an explicit type:
 
 ```c
 void Example()
 {
-    auto count = 10;           // int
-    auto ratio = 0.75;         // float
-    auto label = "Hello";      // string
-    auto player = GetGame().GetPlayer();  // DayZPlayer (or whatever GetPlayer returns)
+    // auto count = 10;                    // ERROR: Unknown type 'auto'
+    int count = 10;                        // CORRECT
+
+    // auto p = new Param2<string, int>("kills", 5);   // ERROR
+    Param2<string, int> p = new Param2<string, int>("kills", 5);  // CORRECT
 }
 ```
 
-This is purely a convenience --- the compiler resolves the type at compile time. There is no performance difference.
+Using `auto` fails with `Unknown type 'auto'`, and --- worse --- every later use of that variable cascades into misleading follow-up errors (`Bad type`, `Can't find variable`). If you see a wall of nonsense errors, check whether an `auto` declaration earlier in the file started it. `auto` is still a *reserved word*, so you cannot use it as an identifier either.
 
 ### Constants
 
@@ -191,7 +212,7 @@ void FloatExamples()
     // Float division gives decimal results
     float ratio = 7.0 / 2.0;   // 3.5
 
-    // Useful math
+    // Useful math (full Math class reference in Math & Vector Operations)
     float dist = 150.7;
     float rounded = Math.Round(dist);    // 151
     float floored = Math.Floor(dist);    // 150
@@ -199,6 +220,8 @@ void FloatExamples()
     float clamped = Math.Clamp(dist, 0.0, 100.0);  // 100
 }
 ```
+
+Note that `Math.Round()`, `Math.Floor()`, and `Math.Ceil()` all *return* `float`, not `int` --- assign the result to an `int` variable when you need a whole number (the implicit conversion is safe because the value is already whole).
 
 ### Real-World Example: Distance Check
 
@@ -242,15 +265,11 @@ void BoolExamples()
 }
 ```
 
-### Truthiness in Conditions
+### Conditions and Non-`bool` Values
 
-In Enforce Script, you can use non-bool values in conditions. The following are considered `false`:
-- `0` (int)
-- `0.0` (float)
-- `""` (empty string)
-- `null` (null object reference)
+Two non-`bool` shortcuts are safe and idiomatic --- the vanilla scripts use both constantly:
 
-Everything else is `true`. This is commonly used for null checks:
+**Object references.** A `null` reference is false; a valid reference is true. This is *the* standard null-check pattern:
 
 ```c
 void SafeCheck(PlayerBase player)
@@ -271,177 +290,89 @@ void SafeCheck(PlayerBase player)
 }
 ```
 
+**Plain `int` variables and return values.** Zero is false, non-zero is true. Vanilla code uses this for count checks, e.g. `if (m_Arrows.Count())`:
+
+```c
+void CountCheck(array<string> names)
+{
+    if (names.Count())
+    {
+        Print("List is not empty");
+    }
+}
+```
+
+**For everything else, compare explicitly.** Do not rely on bare truthiness for strings or floats --- the vanilla scripts always write the comparison out (`if (attachment_type != "")`, `if (particleName == string.Empty)`), and you should too:
+
+```c
+void ExplicitChecks(string itemType, float temperature)
+{
+    if (itemType != "")           // NOT: if (itemType)
+        Print("Type is set");
+
+    if (temperature > 0)          // NOT: if (temperature)
+        Print("Above freezing");
+}
+```
+
+One related trap: applying `!` directly to an *array element* (`if (!list[1])`) does not compile even though the element is an `int` --- use `if (list[1] == 0)`. See [What Does NOT Exist (Gotchas)](12-gotchas.md) for the full list of expression forms the parser rejects.
+
 ---
 
-## Working with `string`
+## Strings at a Glance
 
-Strings in Enforce Script are **value types** --- they are copied when assigned or passed to functions, just like `int` or `float`. This is different from C# or Java where strings are reference types.
+Strings in Enforce Script are **value types** --- they are copied when assigned or passed to functions, just like `int` or `float`. This is different from C# or Java, where strings are reference types.
+
+Two facts are worth carrying from this chapter; the rest lives in [String Operations](06-strings.md):
+
+- **`+` concatenates and converts numbers automatically.** `"HP: " + health` produces `"HP: 75"` when `health` is `75`. The vanilla scripts do this constantly (for example `Print("cnt=" + cnt)`).
+- **`string.Format()` is preferred for multi-value messages.** It uses 1-indexed placeholders (`%1`, `%2`, ...) and avoids a chain of intermediate copies.
 
 ```c
 void StringExamples()
 {
-    string greeting = "Hello";
     string name = "Survivor";
+    int health = 75;
 
-    // Concatenation with +
-    string message = greeting + ", " + name + "!";  // "Hello, Survivor!"
+    string status = "HP: " + health;   // "HP: 75" -- + converts the number for you
 
-    // String formatting (1-indexed placeholders)
-    string formatted = string.Format("Player %1 has %2 health", name, 75);
+    // Preferred when a message mixes several values:
+    string formatted = string.Format("Player %1 has %2 health", name, health);
     // Result: "Player Survivor has 75 health"
 
-    // Length
-    int len = message.Length();    // 17
-
-    // Comparison
-    bool same = (greeting == "Hello");  // true
-
-    // Conversion from other types
-    string fromInt = "Score: " + 42;     // works -- the + operator coerces 42 to "42"
-    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicit, same result)
-
-    // Using Format is the preferred approach
-    string best = string.Format("Score: %1", 42);  // "Score: 42"
+    bool same = (name == "Survivor");   // comparison yields bool
 }
 ```
 
-### Escape Sequences
-
-Strings support standard escape sequences:
-
-| Sequence | Meaning |
-|----------|---------|
-| `\n` | Newline |
-| `\r` | Carriage return |
-| `\t` | Tab |
-| `\\` | Literal backslash |
-| `\"` | Literal double quote |
-
-**Warning:** While these are documented, backslash (`\\`) and escaped quotes (`\"`) are known to cause issues with the CParser in some contexts, especially in JSON-related operations. When working with file paths or JSON strings, avoid backslashes when possible. Use forward slashes for paths --- DayZ accepts them on all platforms.
-
-### Real-World Example: Chat Message
-
-```c
-void SendAdminMessage(string adminName, string text)
-{
-    string msg = string.Format("[ADMIN] %1: %2", adminName, text);
-    Print(msg);
-}
-```
+The full string method reference --- searching, splitting, replacing, case conversion, substrings, in-place modification, and the `\\`/`\"` escaping trap --- lives in [String Operations](06-strings.md).
 
 ---
 
-## Working with `vector`
+## Vectors at a Glance
 
 The `vector` type holds three `float` components (x, y, z). It is DayZ's fundamental type for positions, directions, rotations, and velocities. Like strings and primitives, vectors are **value types** --- they are copied on assignment.
 
-### Initialization
-
-Vectors can be initialized in two ways:
-
 ```c
-void VectorInit()
+void VectorBasics()
 {
-    // Method 1: String initialization (three space-separated numbers)
-    vector pos1 = "100.5 0 200.3";
+    // Two ways to initialize
+    vector pos1 = "100.5 0 200.3";          // space-separated string (NOT commas)
+    vector pos2 = Vector(100.5, 0, 200.3);  // Vector() constructor
 
-    // Method 2: Vector() constructor function
-    vector pos2 = Vector(100.5, 0, 200.3);
+    vector empty;                           // default is "0 0 0"
 
-    // Default value is "0 0 0"
-    vector empty;   // empty == <0, 0, 0>
+    // Component access is array-style
+    float x = pos1[0];   // East(+)  / West(-)
+    float y = pos1[1];   // Up(+)    / Down(-), altitude above sea level
+    float z = pos1[2];   // North(+) / South(-)
+
+    pos1[1] = 50.0;      // writing a single component
 }
 ```
 
-**Important:** The string initialization format uses **spaces** as separators, not commas. `"1 2 3"` is valid; `"1,2,3"` is not.
+**Important:** the string form uses **spaces** as separators, not commas. `"1 2 3"` is valid; `"1,2,3"` is not.
 
-### Component Access
-
-Access individual components using array-style indexing:
-
-```c
-void VectorComponents()
-{
-    vector pos = Vector(100.5, 25.0, 200.3);
-
-    // Reading components
-    float x = pos[0];   // 100.5  (East/West)
-    float y = pos[1];   // 25.0   (Up/Down, altitude)
-    float z = pos[2];   // 200.3  (North/South)
-
-    // Writing components
-    pos[1] = 50.0;      // Change altitude to 50
-}
-```
-
-DayZ coordinate system:
-- `[0]` = X = East(+) / West(-)
-- `[1]` = Y = Up(+) / Down(-) (altitude above sea level)
-- `[2]` = Z = North(+) / South(-)
-
-### Static Constants
-
-```c
-vector zero    = vector.Zero;      // "0 0 0"
-vector up      = vector.Up;        // "0 1 0"
-vector right   = vector.Aside;     // "1 0 0"
-vector forward = vector.Forward;   // "0 0 1"
-```
-
-### Common Vector Operations
-
-```c
-void VectorOps()
-{
-    vector pos1 = Vector(100, 0, 200);
-    vector pos2 = Vector(150, 0, 250);
-
-    // Distance between two points
-    float dist = vector.Distance(pos1, pos2);
-
-    // Squared distance (faster, good for comparisons)
-    float distSq = vector.DistanceSq(pos1, pos2);
-
-    // Direction from pos1 to pos2
-    vector dir = vector.Direction(pos1, pos2);
-
-    // Normalize a vector (make length = 1)
-    vector norm = dir.Normalized();
-
-    // Length of a vector
-    float len = dir.Length();
-
-    // Linear interpolation (50% between pos1 and pos2)
-    vector midpoint = vector.Lerp(pos1, pos2, 0.5);
-
-    // Dot product
-    float dot = vector.Dot(dir, vector.Up);
-}
-```
-
-### Real-World Example: Spawn Position
-
-```c
-// Get a position on the ground at given X,Z coordinates
-vector GetGroundPosition(float x, float z)
-{
-    vector pos = Vector(x, 0, z);
-    pos[1] = GetGame().SurfaceY(x, z);  // Set Y to terrain height
-    return pos;
-}
-
-// Get a random position within a radius of a center point
-vector GetRandomPositionAround(vector center, float radius)
-{
-    float angle = Math.RandomFloat(0, Math.PI2);
-    float dist = Math.RandomFloat(0, radius);
-
-    vector offset = Vector(Math.Cos(angle) * dist, 0, Math.Sin(angle) * dist);
-    vector pos = center + offset;
-    pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
-    return pos;
-}
-```
+Everything else --- `vector.Distance()`, `Normalized()`, `Length()`, `vector.Direction()`, `vector.Lerp()`, `vector.Dot()`, the static constants (`vector.Zero`, `vector.Up`, `vector.Aside`, `vector.Forward`), rotation, and transformation matrices --- is covered in depth in [Math & Vector Operations](07-math-vectors.md).
 
 ---
 
@@ -455,26 +386,31 @@ void TypenameExamples()
     // Get the typename of a class
     typename t = PlayerBase;
 
-    // Get typename from a string
-    typename t2 = "PlayerBase".ToType();
+    // Get a typename from a string
+    string typeStr = "PlayerBase";
+    typename t2 = typeStr.ToType();
 
     // Compare types
     if (t == PlayerBase)
         Print("It's PlayerBase!");
 
+    // Convert typename to string
+    string name = t.ToString();  // "PlayerBase"
+
+    // Create an instance from a typename (factory pattern)
+    Class instance = t2.Spawn();
+}
+
+void InheritanceCheck(PlayerBase player)
+{
+    if (!player)
+        return;
+
     // Get the typename of an object instance
-    PlayerBase player;
-    // ... assume player is valid ...
     typename objType = player.Type();
 
     // Check inheritance
     bool isMan = objType.IsInherited(Man);
-
-    // Convert typename to string
-    string name = t.ToString();  // "PlayerBase"
-
-    // Create an instance from typename (factory pattern)
-    Class instance = t.Spawn();
 }
 ```
 
@@ -500,21 +436,22 @@ void EnumConvert()
 }
 ```
 
+Deeper reflection --- enumerating variables, reading fields by name, `Class.CastTo()` internals --- is covered in [Casting & Reflection](09-casting-reflection.md).
+
 ---
 
-## Managed Class
+## The `Managed` Base Class
 
-`Managed` is a special base class that **disables engine reference counting**. Classes that extend `Managed` are not tracked by the engine's garbage collector --- their lifetime is managed entirely by script `ref` references.
+`Managed` is a special base class for script-side objects. Its practical effect concerns *weak references*: when an object of a `Managed` class is deleted, every plain (non-`ref`) variable that still pointed at it is automatically set to `null`. For a class that does not extend `Managed`, those variables become dangling pointers --- reading them crashes the game.
 
 ```c
 class MyScriptHandler : Managed
 {
-    // This class won't be garbage collected by the engine
-    // It will only be deleted when the last ref is released
+    // Weak references to instances of this class are zeroed on delete
 }
 ```
 
-Most script-only classes (that don't represent game entities) should extend `Managed`. Entity classes like `PlayerBase`, `ItemBase` extend `EntityAI` (which is engine-managed, NOT `Managed`).
+Most script-only classes (that don't represent game entities) should extend `Managed`. Entity classes like `PlayerBase` and `ItemBase` belong to the `EntityAI` hierarchy, whose lifetime the engine controls --- you never choose a base class for those.
 
 ### When to Use Managed
 
@@ -526,7 +463,7 @@ Most script-only classes (that don't represent game entities) should extend `Man
 | Event handler objects | Players (`PlayerBase`) |
 | Helper/utility classes | Any class that extends `EntityAI` |
 
-If your class does not represent a physical entity in the game world, it should almost certainly extend `Managed`.
+If your class does not represent a physical entity in the game world, it should almost certainly extend `Managed`. The full story --- `ref` counting, weak vs strong references, and leak patterns --- is in [Memory Management](08-memory-management.md).
 
 ---
 
@@ -536,7 +473,7 @@ Enforce Script supports both implicit and explicit conversions between types.
 
 ### Implicit Conversions
 
-Some conversions happen automatically:
+Numeric conversions happen automatically:
 
 ```c
 void ImplicitConversions()
@@ -548,17 +485,10 @@ void ImplicitConversions()
     // float to int (TRUNCATES, does not round!)
     float precise = 3.99;
     int truncated = precise;  // 3, NOT 4
-
-    // int/float to bool
-    bool fromInt = 5;      // true (non-zero)
-    bool fromZero = 0;     // false
-    bool fromFloat = 0.1;  // true (non-zero)
-
-    // bool to int
-    int fromBool = true;   // 1
-    int fromFalse = false; // 0
 }
 ```
+
+The vanilla scripts rely on the float-to-int conversion when storing rounded values, e.g. `int mask = Math.Round(floats.Get(index));` --- `Math.Round()` returns a `float`, and assigning it to an `int` is fine because the value is already whole.
 
 ### Explicit Conversions (Parsing)
 
@@ -568,39 +498,43 @@ To convert between strings and numeric types, use parsing methods:
 void ExplicitConversions()
 {
     // String to int
-    int num = "42".ToInt();           // 42
-    int bad = "hello".ToInt();        // 0 (fails silently)
+    string numStr = "42";
+    int num = numStr.ToInt();         // 42
+
+    string badStr = "hello";
+    int bad = badStr.ToInt();         // 0 (fails silently)
 
     // String to float
-    float f = "3.14".ToFloat();       // 3.14
+    string floatStr = "3.14";
+    float f = floatStr.ToFloat();     // 3.14
 
     // String to vector
-    vector v = "100 25 200".ToVector();  // <100, 25, 200>
+    string vecStr = "100 25 200";
+    vector v = vecStr.ToVector();     // <100, 25, 200>
 
     // Number to string (using Format)
     string s1 = string.Format("%1", 42);       // "42"
     string s2 = string.Format("%1", 3.14);     // "3.14"
 
-    // int/float .ToString()
-    string s3 = (42).ToString();     // "42"
+    // int to string via ToString()
+    int score = 42;
+    string s3 = score.ToString();     // "42"
 }
 ```
 
 ### Object Casting
 
-For class types, use `Class.CastTo()` or `ClassName.Cast()`. This is covered in detail in [Chapter 1.3](03-classes-inheritance.md), but here is the essential pattern:
+For class types, use `Class.CastTo()` or `ClassName.Cast()`. This is covered in detail in [Classes & Inheritance](03-classes-inheritance.md) and [Casting & Reflection](09-casting-reflection.md), but here is the essential pattern:
 
 ```c
-void CastExample()
+void CastExample(Object obj)
 {
-    Object obj = GetSomeObject();
-
     // Safe cast (preferred)
     PlayerBase player;
     if (Class.CastTo(player, obj))
     {
         // player is valid and safe to use
-        string name = player.GetIdentity().GetName();
+        Print(player.GetType());
     }
 
     // Alternative cast syntax
@@ -616,7 +550,7 @@ void CastExample()
 
 ## Variable Scope
 
-Variables exist only within the code block (curly braces) where they are declared. Enforce Script does **not** allow redeclaring a variable name within nested or sibling scopes.
+Variables exist only within the code block (curly braces) where they are declared. Enforce Script does **not** allow redeclaring a variable name within nested scopes.
 
 ```c
 void ScopeExample()
@@ -647,36 +581,7 @@ void ScopeExample()
 }
 ```
 
-### The Sibling Scope Trap
-
-This is one of the most notorious Enforce Script quirks. Declaring the same variable name in `if` and `else` blocks causes a compile error:
-
-```c
-void SiblingTrap()
-{
-    if (someCondition)
-    {
-        int result = 10;    // Declared here
-        Print(result);
-    }
-    else
-    {
-        // int result = 20; // ERROR: multiple declaration of 'result'
-        // Even though this is a sibling scope, not the same scope
-    }
-
-    // FIX: declare above the if/else
-    int result;
-    if (someCondition)
-    {
-        result = 10;
-    }
-    else
-    {
-        result = 20;
-    }
-}
-```
+The same restriction hits *sibling* scopes too: declaring the same variable name in an `if` block and its `else` block is a compile error. That trap, and the pattern for avoiding it, is covered with the rest of the branching rules in [Control Flow](05-control-flow.md).
 
 ---
 
@@ -749,17 +654,20 @@ if (Math.AbsFloat(a - 0.3) < 0.001)
     Print("Close enough");
 ```
 
-### 4. String Concatenation with Numbers
+### 4. Testing Strings with Bare Truthiness
 
-You cannot simply concatenate a number onto a string with `+`. Use `string.Format()`:
+Object references and plain `int` values can be tested directly in a condition, but do not extend that habit to strings. Compare explicitly against `""`:
 
 ```c
-int kills = 5;
-// Potentially problematic:
-// string msg = "Kills: " + kills;
+void CheckItemType(string itemType)
+{
+    // BAD: do not rely on truthiness for strings
+    // if (itemType) ...
 
-// CORRECT: use Format
-string msg = string.Format("Kills: %1", kills);
+    // GOOD: explicit comparison, exactly as the vanilla scripts do
+    if (itemType != "")
+        Print("Type is set");
+}
 ```
 
 ### 5. Vector String Format
@@ -781,6 +689,18 @@ vector posA = "10 20 30";
 vector posB = posA;       // posB is a COPY
 posB[1] = 99;             // Only posB changes
 // posA is still "10 20 30"
+```
+
+### 7. Reaching for `auto`
+
+There is no type inference. Write the explicit type, even for long generic declarations:
+
+```c
+// BAD: does not compile -- Unknown type 'auto'
+// auto data = new map<string, ref array<int>>;
+
+// GOOD
+map<string, ref array<int>> data = new map<string, ref array<int>>;
 ```
 
 ---
@@ -813,7 +733,6 @@ Given the string `"42"`, convert it to:
 1. An `int`
 2. A `float`
 3. Back to a `string` using `string.Format()`
-4. A `bool` (should be `true` since the int value is non-zero)
 
 ### Exercise 5: Ground Position
 Write a function `vector SnapToGround(vector pos)` that takes any position and returns it with the Y component set to the terrain height at that X,Z location. Use `GetGame().SurfaceY()`.
@@ -826,12 +745,11 @@ Write a function `vector SnapToGround(vector pos)` that takes any position and r
 |---------|-----------|
 | Types | `int`, `float`, `bool`, `string`, `vector`, `typename`, `void` |
 | Defaults | `0`, `0.0`, `false`, `""`, `"0 0 0"`, `null` |
+| No `auto` | Every variable needs an explicit type --- `auto` fails with `Unknown type 'auto'` |
 | Constants | `const` keyword, `UPPER_SNAKE_CASE` convention |
-| Vectors | Init with `"x y z"` string or `Vector(x,y,z)`, access with `[0]`, `[1]`, `[2]` |
-| Scope | Variables scoped to `{}` blocks; no redeclaration in nested/sibling blocks |
+| Strings | Value type; `+` converts numbers automatically; full reference in [String Operations](06-strings.md) |
+| Vectors | Init with `"x y z"` string or `Vector(x,y,z)`, access with `[0]`, `[1]`, `[2]`; math in [Math & Vector Operations](07-math-vectors.md) |
+| Conditions | Bare truthiness for object refs and plain `int` only; compare strings and floats explicitly |
+| Scope | Variables scoped to `{}` blocks; no redeclaration in nested scopes; sibling trap in [Control Flow](05-control-flow.md) |
 | Conversion | `float`-to-`int` truncates; use `.ToInt()`, `.ToFloat()`, `.ToVector()` for string parsing |
-| Formatting | Always use `string.Format()` for building strings from mixed types |
-
----
-
-[Home](../README.md) | **Variables & Types** | [Next: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)
+| Formatting | Use `string.Format()` for multi-value messages |

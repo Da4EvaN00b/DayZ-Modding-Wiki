@@ -1,6 +1,6 @@
-# Chapter 4.3: Materials (.rvmat)
+# Materials (.rvmat)
 
-[Home](../README.md) | [<< Previous: 3D Models](02-models.md) | **Materials** | [Next: Audio >>](04-audio.md)
+> **Summary:** How RVMAT material files bind shaders, textures, and surface properties to your models -- including the Super shader stage layout, damage-level material swaps via `healthLevels[]`, and common pitfalls.
 
 ---
 
@@ -25,6 +25,8 @@ This chapter covers the RVMAT file format, shader types, texture stage configura
 - [Real Examples](#real-examples)
 - [Common Mistakes](#common-mistakes)
 - [Best Practices](#best-practices)
+- [Observed in Practice](#observed-in-practice)
+- [Compatibility & Impact](#compatibility--impact)
 
 ---
 
@@ -630,13 +632,13 @@ VertexShaderID = "Super";
 
 ---
 
-## Observed in Real Mods
+## Observed in Practice
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Shared damage RVMAT across all items | Expansion (multiple modules) | Reuses a common set of damage-level RVMATs (`worn`, `damaged`, `ruined`) instead of per-item variants to reduce file count |
-| Emissive materials for screen glow | COT (Admin Tools) | Uses `emmisive[]` values in RVMAT for tablet/device screen effects visible at night |
-| Glass shader for vehicle windows | DayZ-Samples (Test_Vehicle) | Demonstrates `PixelShaderID = "Glass"` with `_ca` textures for transparent windshield panels |
+| Pattern | Detail |
+|---------|--------|
+| Reusing one RVMAT across adjacent health levels | A common optimization: point several consecutive `healthLevels[]` entries at the same RVMAT instead of authoring a unique material per level. Vanilla firearms do exactly this -- for example the VSS reuses `DZ\weapons\firearms\VSS\data\vss.rvmat` for its top health levels and drops to the shared `DZ\data\data\default_destruct.rvmat` only when ruined (see [Using Vanilla Damage Materials](#using-vanilla-damage-materials)) |
+| Emissive materials for screen glow | A common technique for electronic devices: non-zero `emmisive[]` values make tablet and device screens visibly glow at night |
+| Glass shader for vehicle windows | DayZ-Samples (Test_Vehicle) demonstrates `PixelShaderID = "Glass"` with `_ca` textures for transparent windshield panels |
 
 ---
 
@@ -645,11 +647,3 @@ VertexShaderID = "Super";
 - **Multi-Mod:** RVMAT paths are per-PBO and do not collide across mods. However, `hiddenSelectionsMaterials[]` overrides in config.cpp follow last-loaded-wins priority, so two mods overriding the same vanilla item's material will conflict.
 - **Performance:** Each unique RVMAT referenced on a single P3D model creates a separate draw call. Consolidating faces under fewer materials reduces GPU overhead, especially for complex scenes.
 - **Version:** The RVMAT text format and core shader names (Super, Glass, Multi) have been stable since DayZ 1.0. Recent updates did add structure, however: the Sakhal projection layer introduced new top-level keys (`superAllowProjectionLayer`, `degAngleTopProjectionStart`/`End`), `TexGen` classes, and additional stages (e.g. `Stage10`) for the Super, TreeAdvTrunk, and Multi shaders.
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.2 3D Models](02-models.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [4.4 Audio](04-audio.md) |

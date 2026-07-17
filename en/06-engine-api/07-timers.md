@@ -1,6 +1,5 @@
-# Chapter 6.7: Timers & CallQueue
+# Timers & CallQueue
 
-[Home](../README.md) | [<< Previous: Notifications](06-notifications.md) | **Timers & CallQueue** | [Next: File I/O & JSON >>](08-file-io.md)
 
 ---
 
@@ -559,17 +558,13 @@ void DelayedInit()
 
 ---
 
-## Observed in Real Mods
+## Where These Patterns Show Up
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These mechanisms recur across framework and content mods. The table maps each to the pattern that makes it reliable:
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Destructor `Remove()` cleanup for every `CallLater` registration | COT | Module manager lifecycle |
-| `ScriptInvoker` event bus for cross-module notifications | Expansion | `ExpansionEventBus` |
-| `Timer` with `Pause()`/`Continue()` for logout countdown | Vanilla | `MissionServer` logout system |
-| Accumulator pattern in `OnUpdate` for 5-second periodic checks | Dabs Framework | Module tick scheduling |
-
----
-
-[<< Previous: Notifications](06-notifications.md) | **Timers & CallQueue** | [Next: File I/O & JSON >>](08-file-io.md)
+| Pattern | Where it applies | Reference |
+|---------|------------------|-----------|
+| Destructor `Remove()` cleanup for every `CallLater` registration | Any manager that schedules a repeating tick | See [Cleanup Pattern](#cleanup-pattern) above |
+| `ScriptInvoker`-backed event bus for cross-module notifications | Frameworks that decouple producers from listeners | The Lantern example builds one in [7.6 Event Bus](../07-patterns/06-events.md) |
+| `Timer` with `Pause()`/`Continue()` for a countdown that must survive interruptions | Logout / respawn / capture timers | Vanilla `MissionServer` logout system |
+| Accumulator pattern in `OnUpdate` for periodic checks | Per-frame update hooks throttled to a slower rate | See [Timer Accumulator](#timer-accumulator-throttled-onupdate) above |

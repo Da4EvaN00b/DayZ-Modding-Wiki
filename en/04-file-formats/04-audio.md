@@ -1,6 +1,5 @@
-# Chapter 4.4: Audio (.ogg, .wss)
+# Audio (.ogg, .wss)
 
-[Home](../README.md) | [<< Previous: Materials](03-materials.md) | **Audio** | [Next: DayZ Tools Workflow >>](05-dayz-tools.md)
 
 ---
 
@@ -650,14 +649,16 @@ frequencyRandomizer = 0.05;    // +/- 5% pitch variation
 
 ---
 
-## Observed in Real Mods
+## Common Sound Patterns
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Custom notification sounds via SoundSets | Expansion (Notification module) | Defines multiple `CfgSoundSets` for different notification types (success, warning, error) with `spatial = 0` |
-| UI click sounds via the 2D sound scene | VPP Admin Tools | Plays UI sounds with `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` (see `VPPNotificationUI.c`) |
-| Multi-layer weapon audio (shot + tail + crack) | Community weapon packs (RFCP, MuchStuffPack) | Each weapon defines 3-5 separate SoundSets per fire event for close shot, distant rumble, supersonic crack |
-| `frequencyRandomizer` for footstep variation | Vanilla DayZ | Uses 0.05-0.08 pitch randomization on footstep SoundSets to prevent robotic repetition |
+These are the recurring ways sound is wired up in DayZ. Each is grounded in vanilla usage you can inspect in the script dump.
+
+| Pattern | Detail |
+|---------|--------|
+| Custom notification sounds via SoundSets | Define multiple `CfgSoundSets` for different notification types (success, warning, error), all with `spatial = 0` so they play non-positionally. Vanilla effect definitions live under `3_game/effects/` and the effect manager (`3_game/effectmanager.c`) drives their playback |
+| UI click sounds via the 2D sound scene | Non-positional sounds can be played from script with `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` -- the same pipeline vanilla uses for menu music in `5_mission/mission/missionmainmenu.c` and the dynamic music player (`3_game/systems/dynamicmusicplayer/dynamicmusicplayer.c`) |
+| Multi-layer weapon audio (shot + tail + crack) | Vanilla weapon fire events reference 3-5 separate SoundSets in their config -- close shot, distant rumble, supersonic crack -- rather than one flat sample. Inspect the weapon `soundSetShot[]` arrays in the base game `config.cpp` for reference |
+| `frequencyRandomizer` for footstep variation | Vanilla DayZ uses roughly 0.05-0.08 pitch randomization on footstep SoundSets to prevent robotic repetition |
 
 ---
 
@@ -667,10 +668,3 @@ frequencyRandomizer = 0.05;    // +/- 5% pitch variation
 - **Performance:** OGG files are decompressed at runtime. Mods with hundreds of unique audio files increase memory usage. Keep individual files under 500 KB and reuse samples across variants.
 - **Version:** DayZ's audio system (CfgSoundShaders/CfgSoundSets) has been stable since 1.0. The `sound3DProcessingType` and `volumeCurve` named presets were added in later updates but are backward-compatible.
 
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.3 Materials](03-materials.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [4.5 DayZ Tools Workflow](05-dayz-tools.md) |

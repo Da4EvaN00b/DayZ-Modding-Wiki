@@ -1,12 +1,11 @@
-# Chapter 3.10: Advanced Widgets
+# Advanced Widgets
 
-[Home](../README.md) | [<< Previous: Real Mod UI Patterns](09-real-mod-patterns.md) | **Advanced Widgets**
 
 ---
 
 Beyond the standard containers, text, and image widgets covered in earlier chapters, DayZ provides specialized widget types for rich text formatting, 2D canvas drawing, map display, 3D item previews, video playback, and render-to-texture. These widgets unlock capabilities that simple layouts cannot achieve.
 
-This chapter covers every advanced widget type with confirmed API signatures extracted from vanilla source code and real mod usage.
+This chapter covers every advanced widget type with confirmed API signatures extracted from vanilla source code, alongside worked examples built on the wiki's Lantern teaching mod.
 
 ---
 
@@ -263,13 +262,11 @@ m_Canvas = CanvasWidget.Cast(
 );
 ```
 
-Or create from a layout file:
+Or create the whole overlay from a layout file and find the canvas inside it:
 
 ```c
-// From COT: JM/COT/GUI/layouts/esp_canvas.layout
-m_Canvas = CanvasWidget.Cast(
-    g_Game.GetWorkspace().CreateWidgets("path/to/canvas.layout")
-);
+Widget overlayRoot = g_Game.GetWorkspace().CreateWidgets("Lantern_Core/GUI/layouts/lnt_overlay.layout");
+m_Canvas = CanvasWidget.Cast(overlayRoot.FindAnyWidget("OverlayCanvas"));
 ```
 
 ### Drawing Primitives
@@ -301,31 +298,33 @@ void DrawRectangle(CanvasWidget canvas, float x, float y,
 
 #### Circles (from line segments)
 
-COT implements this pattern in `JMESPCanvas`:
+Approximate a circle with a polygon: walk around the circumference in fixed angle steps and connect consecutive points with lines.
 
 ```c
-// From DayZ-CommunityOnlineTools/.../JMESPModule.c
-void DrawCircle(float cx, float cy, float radius,
-                int lineWidth, int color, int segments)
+void DrawCanvasCircle(CanvasWidget canvas, float centerX, float centerY, float radius, float lineWidth, int color, int segments)
 {
-    float segAngle = 360.0 / segments;
+    float stepDeg = 360.0 / segments;
+
+    // Start at angle 0 (rightmost point of the circle)
+    float prevX = centerX + radius;
+    float prevY = centerY;
+
     int i;
-    for (i = 0; i < segments; i++)
+    for (i = 1; i <= segments; i++)
     {
-        float a1 = i * segAngle * Math.DEG2RAD;
-        float a2 = (i + 1) * segAngle * Math.DEG2RAD;
+        float angleRad = i * stepDeg * Math.DEG2RAD;
+        float nextX = centerX + radius * Math.Cos(angleRad);
+        float nextY = centerY + radius * Math.Sin(angleRad);
 
-        float x1 = cx + radius * Math.Cos(a1);
-        float y1 = cy + radius * Math.Sin(a1);
-        float x2 = cx + radius * Math.Cos(a2);
-        float y2 = cy + radius * Math.Sin(a2);
+        canvas.DrawLine(prevX, prevY, nextX, nextY, lineWidth, color);
 
-        m_Canvas.DrawLine(x1, y1, x2, y2, lineWidth, color);
+        prevX = nextX;
+        prevY = nextY;
     }
 }
 ```
 
-More segments produce a smoother circle. 36 segments is a common default.
+More segments produce a smoother circle. 36 segments is a common default; 12-18 is enough for small or distant circles.
 
 ### Per-Frame Redrawing Pattern
 
@@ -366,89 +365,204 @@ protected void RenderScaleRuler()
 }
 ```
 
-### ESP Overlay Pattern (from COT)
+### World-Space Overlay Pattern
 
-COT (Community Online Tools) uses `CanvasWidget` as a full-screen overlay to draw skeleton wireframes on players and objects. This is one of the most sophisticated canvas usage patterns in any DayZ mod.
+A recurring advanced-UI task is anchoring 2D screen elements to 3D world positions: nameplates over teammates, waypoint markers, distance labels, or debug wireframes. The engine gives you the one conversion you need -- `GetGame().GetScreenPosRelative(worldPos)` (declared in `scripts/3_game/global/game.c`) returns a vector whose `x` and `y` components are the screen position in the 0..1 range and whose `z` component is the distance between the camera and the world position. The vanilla in-game HUD uses exactly this call to place the player tag over a nearby survivor (`scripts/5_mission/gui/ingamehud.c`, `ShowPlayerTag()`).
 
 **Architecture:**
 
-1. A full-screen `CanvasWidget` is created from a layout file
-2. Every frame, `Clear()` is called
-3. World-space positions are converted to screen coordinates
-4. Lines are drawn between bone positions to render skeletons
+1. A full-screen overlay layout holds a `CanvasWidget` (for lines) and a pool of label widgets
+2. Every frame, `Clear()` the canvas
+3. Project each tracked world position to screen space with `GetScreenPosRelative()`
+4. Cull anything behind the camera or outside the 0..1 screen bounds
+5. Move label widgets to the projected coordinates and draw any canvas lines
 
-**World-to-screen conversion** (from COT's `JMESPCanvas`):
+**Worked example -- `LNT_Nameplates`.** This is a complete client-side nameplate overlay for the wiki's Lantern teaching mod (see Part 7 for the Lantern framework chapters). It shows every survivor's name and distance floating above their head.
 
-```c
-// From DayZ-CommunityOnlineTools/.../JMESPModule.c
-vector TransformToScreenPos(vector worldPos, out bool isInBounds)
-{
-    float parentW, parentH;
-    vector screenPos;
+The overlay layout, **lnt_overlay.layout**, contains one full-screen canvas:
 
-    // Get relative screen position (0..1 range)
-    screenPos = g_Game.GetScreenPosRelative(worldPos);
-
-    // Check if the position is visible on screen
-    isInBounds = screenPos[0] >= 0 && screenPos[0] <= 1
-              && screenPos[1] >= 0 && screenPos[1] <= 1
-              && screenPos[2] >= 0;
-
-    // Convert to canvas pixel coordinates
-    m_Canvas.GetScreenSize(parentW, parentH);
-    screenPos[0] = screenPos[0] * parentW;
-    screenPos[1] = screenPos[1] * parentH;
-
-    return screenPos;
+```
+CanvasWidgetClass OverlayCanvas {
+    ignorepointer 1
+    position 0 0
+    size 1 1
 }
 ```
 
-**Drawing a line from world position A to world position B:**
+The label layout, **lnt_nameplate_label.layout**, is a single relative-positioned text widget (no `hexactpos`/`vexactpos`, so `SetPos()` accepts 0..1 coordinates -- the same convention `GetScreenPosRelative()` returns):
 
-```c
-void DrawWorldLine(vector from, vector to, int width, int color)
-{
-    bool inBoundsFrom, inBoundsTo;
-    from = TransformToScreenPos(from, inBoundsFrom);
-    to = TransformToScreenPos(to, inBoundsTo);
-
-    if (!inBoundsFrom || !inBoundsTo)
-        return;
-
-    m_Canvas.DrawLine(from[0], from[1], to[0], to[1], width, color);
+```
+TextWidgetClass NameplateText {
+    position 0 0
+    size 0.2 0.05
+    text ""
 }
 ```
 
-**Drawing a player skeleton:**
+The overlay class:
 
 ```c
-// Simplified from COT's JMESPSkeleton.Draw()
-static void DrawSkeleton(Human human, CanvasWidget canvas)
+class LNT_Nameplates
 {
-    // Define limb connections (bone pairs)
-    // neck->spine3, spine3->pelvis, neck->leftarm, etc.
+    protected Widget m_Root;
+    protected CanvasWidget m_Canvas;
+    protected ref array<TextWidget> m_LabelPool;
 
-    int color = COLOR_WHITE;
-    switch (human.GetHealthLevel())
+    void LNT_Nameplates()
     {
-        case GameConstants.STATE_DAMAGED:
-            color = 0xFFDCDC00;  // yellow
-            break;
-        case GameConstants.STATE_BADLY_DAMAGED:
-            color = 0xFFDC0000;  // red
-            break;
+        m_Root = GetGame().GetWorkspace().CreateWidgets("Lantern_Core/GUI/layouts/lnt_overlay.layout");
+        m_Canvas = CanvasWidget.Cast(m_Root.FindAnyWidget("OverlayCanvas"));
+        m_LabelPool = new array<TextWidget>;
     }
 
-    // Draw each limb as a line between two bone positions
-    vector bone1Pos = human.GetBonePositionWS(
-        human.GetBoneIndexByName("neck")
-    );
-    vector bone2Pos = human.GetBonePositionWS(
-        human.GetBoneIndexByName("spine3")
-    );
-    // ... convert to screen coords, then DrawLine ...
+    void ~LNT_Nameplates()
+    {
+        if (m_Root)
+            m_Root.Unlink();  // destroys the canvas and all pooled labels
+    }
+
+    // Reuse label widgets between frames instead of creating/destroying them
+    protected TextWidget GetLabel(int index)
+    {
+        if (index < m_LabelPool.Count())
+            return m_LabelPool.Get(index);
+
+        Widget labelRoot = GetGame().GetWorkspace().CreateWidgets("Lantern_Core/GUI/layouts/lnt_nameplate_label.layout", m_Root);
+        TextWidget label = TextWidget.Cast(labelRoot.FindAnyWidget("NameplateText"));
+        m_LabelPool.Insert(label);
+        return label;
+    }
+
+    // World position -> relative screen position, with visibility cull
+    protected bool ProjectToScreen(vector worldPos, out float screenX, out float screenY)
+    {
+        vector rel = GetGame().GetScreenPosRelative(worldPos);
+
+        if (rel[2] <= 0)
+            return false;  // behind the camera
+        if (rel[0] < 0 || rel[0] > 1)
+            return false;  // off screen horizontally
+        if (rel[1] < 0 || rel[1] > 1)
+            return false;  // off screen vertically
+
+        screenX = rel[0];
+        screenY = rel[1];
+        return true;
+    }
+
+    void OnUpdate(float timeslice)
+    {
+        m_Canvas.Clear();
+
+        PlayerBase localPlayer = PlayerBase.Cast(GetGame().GetPlayer());
+        if (!localPlayer)
+            return;
+
+        float canvasW;
+        float canvasH;
+        m_Canvas.GetScreenSize(canvasW, canvasH);
+
+        array<Man> players = new array<Man>;
+        GetGame().GetPlayers(players);
+
+        int labelIndex = 0;
+
+        int i;
+        for (i = 0; i < players.Count(); i++)
+        {
+            PlayerBase other = PlayerBase.Cast(players.Get(i));
+            if (!other)
+                continue;
+            if (other == localPlayer)
+                continue;
+            if (!other.GetIdentity())
+                continue;
+
+            // Anchor the plate slightly above the head bone
+            int headBone = other.GetBoneIndexByName("Head");
+            vector anchor = other.GetBonePositionWS(headBone);
+            anchor[1] = anchor[1] + 0.3;
+
+            float x;
+            float y;
+            if (!ProjectToScreen(anchor, x, y))
+                continue;
+
+            float dist = vector.Distance(localPlayer.GetPosition(), anchor);
+            int distMeters = Math.Round(dist);
+
+            TextWidget label = GetLabel(labelIndex);
+            labelIndex++;
+
+            label.SetText(other.GetIdentity().GetPlainName() + " (" + distMeters + "m)");
+            label.SetPos(x, y);
+            label.Show(true);
+
+            // Small anchor tick on the canvas, in pixel coordinates
+            m_Canvas.DrawLine(x * canvasW - 8, y * canvasH, x * canvasW + 8, y * canvasH, 2, ARGB(200, 255, 255, 255));
+        }
+
+        // Hide pooled labels that were not used this frame
+        int j;
+        for (j = labelIndex; j < m_LabelPool.Count(); j++)
+        {
+            m_LabelPool.Get(j).Show(false);
+        }
+    }
 }
 ```
+
+Drive it from the mission's per-frame update:
+
+```c
+modded class MissionGameplay
+{
+    protected ref LNT_Nameplates m_Nameplates;
+
+    override void OnUpdate(float timeslice)
+    {
+        super.OnUpdate(timeslice);
+
+        if (!m_Nameplates && GetGame().GetPlayer())
+            m_Nameplates = new LNT_Nameplates();
+
+        if (m_Nameplates)
+            m_Nameplates.OnUpdate(timeslice);
+    }
+}
+```
+
+Note the two coordinate spaces in play: label widgets in a relative layout take the 0..1 values directly via `SetPos()`, while `CanvasWidget.DrawLine()` needs pixel coordinates -- multiply the relative values by the canvas dimensions from `GetScreenSize()`.
+
+**Extending to bone-to-bone lines -- `LNT_SkeletonDraw`.** The same projection works for drawing lines between any two bone positions (debug wireframes, hit indicators). `GetBonePositionWS()` is available on `Object` (`scripts/3_game/entities/object.c`) and `GetBoneIndexByName()` on `Human` and its descendants:
+
+```c
+class LNT_SkeletonDraw
+{
+    static void DrawBoneLink(CanvasWidget canvas, Human human, string boneA, string boneB, float lineWidth, int color)
+    {
+        vector posA = human.GetBonePositionWS(human.GetBoneIndexByName(boneA));
+        vector posB = human.GetBonePositionWS(human.GetBoneIndexByName(boneB));
+
+        vector relA = GetGame().GetScreenPosRelative(posA);
+        vector relB = GetGame().GetScreenPosRelative(posB);
+
+        // Skip the segment if either end is behind the camera
+        if (relA[2] <= 0)
+            return;
+        if (relB[2] <= 0)
+            return;
+
+        float canvasW;
+        float canvasH;
+        canvas.GetScreenSize(canvasW, canvasH);
+
+        canvas.DrawLine(relA[0] * canvasW, relA[1] * canvasH, relB[0] * canvasW, relB[1] * canvasH, lineWidth, color);
+    }
+}
+```
+
+Called inside a per-frame update, for example: `LNT_SkeletonDraw.DrawBoneLink(m_Canvas, other, "Head", "Spine2", 1, ARGB(255, 120, 220, 120));` -- bone names like `"Head"`, `"Spine2"`, and `"spine3"` appear throughout vanilla scripts (`miscgameplayfunctions.c`, `playerbase.c`).
 
 ### Vanilla Debug Canvas
 
@@ -693,16 +807,20 @@ class MapHandler : ScriptedWidgetEventHandler
 }
 ```
 
-### Expansion Map Marker System
+### Marker System Architecture
 
-The Expansion mod builds a full marker system on top of the vanilla `MapWidget`. Key patterns:
+Full-featured map mods build their marker layer on top of the vanilla `MapWidget` rather than relying on `AddUserMark()` alone. A design that scales well separates markers into tiers:
 
-- Maintains separate dictionaries for personal, server, party, and player markers
-- Limits per-frame marker updates (`m_MaxMarkerUpdatesPerFrame = 3`) for performance
-- Draws scale ruler lines using a `CanvasWidget` alongside the map
-- Uses custom marker widget overlays positioned via `MapToScreen()` for richer marker visuals than `AddUserMark()` supports
+- **Client-set markers** -- placed locally by the player and stored in the client profile
+- **Server-synced markers** -- defined by the server (trader zones, safe zones, events) and pushed to clients on connect or on change
+- **Party/group markers** -- shared within a squad and re-synced when membership changes
 
-This approach demonstrates that for complex marker UIs (icons with tooltips, editable labels, colored categories), you should overlay custom widgets positioned via `MapToScreen()` rather than relying solely on `AddUserMark()`.
+Implementation notes that generalize across marker systems:
+
+- Keep each tier in its own collection so tiers can be toggled, styled, and synced independently
+- Throttle marker refreshes (update only a few markers per frame) once marker counts grow
+- Draw auxiliary graphics like a scale ruler with a `CanvasWidget` layered alongside the map
+- For rich marker visuals (icons with tooltips, editable labels, colored categories), overlay custom widgets positioned each frame via `MapToScreen()` -- `AddUserMark()` only supports a fixed label, color, and icon texture
 
 ---
 
@@ -1073,7 +1191,7 @@ imgWidget.SetImageTexture(0, rtTexture);
 
 2. **Clear canvas every frame.** Always call `Clear()` before redrawing. Failing to clear causes drawings to accumulate and creates visual artifacts.
 
-3. **Check screen bounds for ESP/overlay drawing.** Before calling `DrawLine()`, verify both endpoints are on screen. Off-screen draws are wasted work.
+3. **Check screen bounds for world-space overlay drawing.** Before calling `DrawLine()`, verify both endpoints are on screen. Off-screen draws are wasted work.
 
 4. **Map markers: clear-and-rebuild pattern.** There is no `RemoveUserMark()` method. Call `ClearUserMarks()` then re-add all active markers each update. This is the pattern used by every vanilla and mod implementation.
 
@@ -1087,22 +1205,22 @@ imgWidget.SetImageTexture(0, rtTexture);
 
 ---
 
-## Observed in Real Mods
+## Where These Widgets Appear in Vanilla DayZ
 
-| Mod | Widget | Usage |
+Every widget in this chapter is used somewhere in the shipped game. These are good reading references when you want a working, in-context example straight from the vanilla scripts:
+
+| Source | Widget | Usage |
 |-----|--------|-------|
-| **COT** | `CanvasWidget` | Full-screen ESP overlay with skeleton drawing, world-to-screen projection, circle and line primitives |
-| **COT** | `MapWidget` | Admin teleport via `ScreenToMap()` on double-click |
-| **Expansion** | `MapWidget` | Custom marker system with personal/server/party categories, per-frame update throttling |
-| **Expansion** | `CanvasWidget` | Map scale ruler drawing alongside `MapWidget` |
-| **Vanilla Map** | `MapWidget` + `CanvasWidget` | Scale ruler rendered with alternating black/grey line segments |
-| **Vanilla Inspect** | `ItemPreviewWidget` | 3D item inspection with drag rotation and scroll zoom |
-| **Vanilla Inventory** | `PlayerPreviewWidget` | Character preview with equipment sync and injury animations |
-| **Vanilla Hints** | `RichTextWidget` | In-game hint panel with formatted description text |
-| **Vanilla Menus** | `RichTextWidget` | Controller button icons via `InputUtils.GetRichtextButtonIconFromInputAction()` |
-| **Vanilla Books** | `HtmlWidget` | Loading and paging through `.html` text files |
-| **Vanilla Main Menu** | `VideoWidget` | Onboarding video with end callback |
-| **Vanilla Render Target** | `RenderTargetWidget` | Camera-to-widget rendering with configurable refresh rate |
+| Map menu | `MapWidget` + `CanvasWidget` | Scale ruler rendered with alternating black/grey line segments |
+| Inspect menu | `ItemPreviewWidget` | 3D item inspection with drag rotation and scroll zoom |
+| Inventory | `PlayerPreviewWidget` | Character preview with equipment sync and injury animations |
+| In-game HUD | `CanvasWidget` + `GetScreenPosRelative()` | Player tag anchored over a nearby survivor |
+| Script console | `MapWidget` | Debug teleport via `ScreenToMap()` on double-click |
+| Hint panel | `RichTextWidget` | In-game hint panel with formatted description text |
+| Menus | `RichTextWidget` | Controller button icons via `InputUtils.GetRichtextButtonIconFromInputAction()` |
+| Book menu | `HtmlWidget` | Loading and paging through `.html` text files |
+| Main menu | `VideoWidget` | Onboarding video with end callback |
+| Render target | `RenderTargetWidget` | Camera-to-widget rendering with configurable refresh rate |
 
 ---
 
@@ -1193,4 +1311,4 @@ All these widgets are client-side only. They have no server-side representation 
 
 ---
 
-*This chapter completes the GUI system section. All API signatures and patterns are confirmed from vanilla DayZ scripts and real mod source code.*
+*This chapter completes the GUI system section. All API signatures and patterns are confirmed against the vanilla DayZ scripts.*

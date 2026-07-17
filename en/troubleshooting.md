@@ -1,6 +1,5 @@
 # Troubleshooting Guide
 
-[Home](./README.md) | **Troubleshooting Guide**
 
 ---
 
@@ -316,7 +315,7 @@ When this guide does not solve your problem, these are the best resources.
 
 ### Reference Source Code
 
-Study these mods to learn patterns from experienced modders:
+Study these mods to learn patterns from experienced modders. These projects are learning references only — their licenses do not permit copying code into your mod (or this wiki). Read them to understand *how* a problem was solved, then write your own implementation from scratch.
 
 | Mod | What to Learn |
 |-----|---------------|

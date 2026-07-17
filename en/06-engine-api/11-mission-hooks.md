@@ -1,6 +1,5 @@
-# Chapter 6.11: Mission Hooks
+# Mission Hooks
 
-[Home](../README.md) | [<< Previous: Central Economy](10-central-economy.md) | **Mission Hooks** | [Next: Action System >>](12-action-system.md)
 
 ---
 
@@ -8,7 +7,7 @@
 
 Every DayZ mod needs an entry point --- a place where it initializes managers, registers RPC handlers, hooks into player connections, and cleans up on shutdown. That entry point is the **Mission** class. The engine creates exactly one Mission instance when a scenario loads: `MissionServer` on a dedicated server, `MissionGameplay` on a client, or both on a listen server. These classes provide lifecycle hooks that fire in a guaranteed order, giving mods a reliable place to inject behavior.
 
-This chapter covers the full Mission class hierarchy, every hookable method, the correct `modded class` pattern for extending them, and real-world examples from vanilla DayZ, COT, and Expansion.
+This chapter covers the full Mission class hierarchy, every hookable method, the correct `modded class` pattern for extending them, and worked examples grounded in the vanilla mission classes.
 
 ---
 
@@ -202,7 +201,7 @@ Vanilla `MissionGameplay.OnEvent()` handles `ChatMessageEventTypeID` (adds to ch
 
 ### Input Control
 
-`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` removes it. These map to exclude groups defined in `specific.xml`. Both are marked `//!deprecated` in vanilla; `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()` are the current API. Override them if your mod needs custom input exclusion behavior (as Expansion does for its menus).
+`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` removes it. These map to exclude groups defined in `specific.xml`. Both are marked `//!deprecated` in vanilla; `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()` are the current API. Override them if your mod needs custom input exclusion behavior (as large UI mods do to lock out gameplay input while a full-screen menu is open).
 
 ---
 
@@ -550,7 +549,7 @@ All event constants are defined in `3_Game/gameplay.c` and dispatched through `O
 
 ---
 
-## Real-World Examples
+## Worked Examples
 
 ### Example 1: Server Manager Initialization
 
@@ -712,7 +711,7 @@ modded class MissionGameplay
 
 ### Example 4: Chat Command Interception (Server-Side)
 
-Intercepting player connections to implement a ban system. This pattern is used by COT.
+Intercepting player connections to implement a ban system. This is a common pattern in admin mods.
 
 ```c
 modded class MissionServer
@@ -776,7 +775,75 @@ modded class MissionServer
 
 ### Pattern: Delegate to a Central Manager
 
-Both COT and Expansion follow the same pattern: their mission hooks are thin wrappers that delegate to a singleton manager. COT creates `g_cotBase = new CommunityOnlineTools` in the constructor, then calls `g_cotBase.OnStart()` / `OnUpdate()` / `OnFinish()` from the corresponding hooks. Expansion does the same with `GetDayZExpansion().OnStart()` / `OnLoaded()` / `OnFinish()`. Your mod should follow this pattern --- keep mission hook code thin and push logic into dedicated manager classes.
+Keep your mission hooks thin. Instead of piling logic into `MissionServer`, route each hook to a single long-lived manager and let that manager own the systems. The mission override becomes a three-line bridge --- start, tick, finish --- and everything else lives in code you can test and reuse without the mission class in scope.
+
+The Lantern examples in this wiki use `LanternCore`, a global singleton entry point (see [Singletons](../07-patterns/01-singletons.md)) that in turn drives an `LNT_ModuleManager` (see [Module Systems](../07-patterns/02-module-systems.md)). The mission hooks only ever touch the singleton:
+
+```c
+// Lantern_Core/Scripts/5_Mission/LNT_MissionServer.c
+modded class MissionServer
+{
+    override void OnInit()
+    {
+        super.OnInit();
+        // Build the singleton once, then hand it the lifecycle.
+        LanternCore.GetInstance().OnStart();
+    }
+
+    override void OnUpdate(float timeslice)
+    {
+        super.OnUpdate(timeslice);
+        LanternCore.GetInstance().OnUpdate(timeslice);
+    }
+
+    override void OnMissionFinish()
+    {
+        LanternCore.GetInstance().OnFinish();
+        super.OnMissionFinish();
+    }
+}
+```
+
+The singleton keeps a private constructor and hands out one shared instance, so `OnStart()`, `OnUpdate()`, and `OnFinish()` all operate on the same object no matter which hook calls in:
+
+```c
+// Lantern_Core/Scripts/3_Game/LanternCore.c
+class LanternCore
+{
+    private static ref LanternCore s_Instance;
+    private ref LNT_ModuleManager m_Modules;
+
+    static LanternCore GetInstance()
+    {
+        if (!s_Instance)
+            s_Instance = new LanternCore();
+        return s_Instance;
+    }
+
+    void OnStart()
+    {
+        m_Modules = new LNT_ModuleManager();
+        m_Modules.InitAll();   // load configs, spawn systems, register RPCs
+    }
+
+    void OnUpdate(float timeslice)
+    {
+        if (m_Modules)
+            m_Modules.UpdateAll(timeslice);
+    }
+
+    void OnFinish()
+    {
+        if (m_Modules)
+        {
+            m_Modules.ShutdownAll();   // save state, remove handlers, null refs
+            m_Modules = null;
+        }
+    }
+}
+```
+
+Now adding a new gameplay system never touches the mission class again --- you register a module with `LNT_ModuleManager` and the existing `OnStart` / `OnUpdate` / `OnFinish` fan-out reaches it for free. The full `LanternCore` singleton and `LNT_ModuleManager` are built step by step in Part 7.
 
 ---
 
@@ -904,7 +971,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 ## Best Practices
 
 - **Always call `super` as the first line in every Mission override.** This is the single most common DayZ modding mistake. Forgetting `super.OnInit()` silently breaks vanilla initialization and every other mod in the chain.
-- **Keep mission hook code thin --- delegate to manager classes.** Create a singleton manager (e.g., `MyModManager`) and call `manager.Init()` / `manager.Update()` / `manager.Cleanup()` from the hooks. This mirrors the pattern used by COT and Expansion.
+- **Keep mission hook code thin --- delegate to manager classes.** Create a singleton manager (e.g., a `LanternCore`-style entry point) and call `manager.OnStart()` / `manager.OnUpdate()` / `manager.OnFinish()` from the hooks, so the mission override stays a three-line bridge.
 - **Use timer accumulators in `OnUpdate()` for any work that does not need to run every frame.** `OnUpdate` fires 15-60+ times per second. Running database queries, file I/O, or player iteration at frame rate wastes server CPU.
 - **Register RPCs and event handlers in `OnInit()`, not in the constructor.** The constructor runs before all script modules are loaded. The networking layer is not ready until `OnInit()`.
 - **Always clean up in `OnMissionFinish()`.** Destroy widgets, remove `CallLater` registrations, unregister RPC handlers, and null manager references. Failure to clean up causes stale references across mission reloads.
@@ -922,18 +989,14 @@ override void InvokeOnDisconnect(PlayerBase player)
 
 ---
 
-## Observed in Real Mods
+## Common Hook Patterns
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These are the recurring ways server and admin mods extend the mission classes. Each maps to a vanilla hook you can read for yourself in the script dump.
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Thin `modded class MissionServer.OnInit()` delegating to singleton manager | COT | `CommunityOnlineTools` init in MissionServer |
-| `InvokeOnConnect` override to load per-player JSON data | Expansion | Player settings sync on connect |
-| `StartingEquipSetup` override for custom starter kits | Multiple community mods | MissionServer starter kit hooks |
-| `OnEvent` interception before `super` to block banned players | COT | Ban system in MissionServer |
-| `OnMissionFinish` cleanup with widget `Unlink()` and null assignments | Expansion | HUD and menu cleanup |
-
----
-
-[Home](../README.md) | [<< Previous: Central Economy](10-central-economy.md) | **Mission Hooks** | [Next: Action System >>](12-action-system.md)
+| Pattern | Hook | Vanilla reference |
+|---------|------|-------------------|
+| Thin `modded class MissionServer.OnInit()` delegating to a singleton manager | `OnInit()` | `5_Mission/mission/missionserver.c` (base `OnInit`) |
+| `InvokeOnConnect` override to load per-player JSON data | `InvokeOnConnect(PlayerBase, PlayerIdentity)` | `missionserver.c:422` |
+| Custom starter kits without touching character creation | `StartingEquipSetup(PlayerBase, bool)` | `missionserver.c:527` (empty in vanilla) |
+| `OnEvent` interception before `super` to block banned players | `OnEvent(EventType, Param)` | `missionserver.c:299` |
+| `OnMissionFinish` cleanup with widget `Unlink()` and null assignments | `OnMissionFinish()` | `missiongameplay.c` (menu/HUD teardown) |

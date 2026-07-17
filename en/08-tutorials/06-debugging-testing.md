@@ -1,6 +1,5 @@
-# Chapter 8.6: Debugging & Testing Your Mod
+# Debugging & Testing Your Mod
 
-[Home](../README.md) | [<< Previous: Using the DayZ Mod Template](05-mod-template.md) | **Debugging & Testing** | [Next: Publishing to the Steam Workshop >>](07-publishing-workshop.md)
 
 ---
 
@@ -522,21 +521,51 @@ For multiplayer testing, you have three options:
 - **Test with a friend:** Host a DayZDiag server, open firewall port 2302
 - **Cloud server:** Set up a remote dedicated server
 
-### Using Build Scripts
+### Automating the Loop With a Build Script
 
-If your project has a build script (like `dev.py`), use it to automate the cycle:
+Once you have done the build-launch-check cycle a few dozen times, wrap it in a small script so a single command packs your PBO, refreshes the mod folder, starts the server, and shows you only the lines that matter. The script does not need to be clever -- it just chains the steps you already run by hand.
 
-```bash
-python dev.py build     # Build all PBOs
-python dev.py server    # Build + launch server + monitor logs
-python dev.py client    # Launch client (connects localhost:2302)
-python dev.py full      # Build + server + monitor + auto-launch client
-python dev.py check     # Check latest script log for errors (offline)
-python dev.py watch     # Real-time log tail, filtered for errors and mod output
-python dev.py kill      # Kill DayZ processes for restart
+Here is a self-contained batch file you can adapt. It packs one addon with **Addon Builder** (part of DayZ Tools), copies the result into the DayZ install, launches DayZDiag as a listen server, and then tails the newest script log filtered to errors, warnings, and your mod prefix:
+
+```batch
+@echo off
+:: build.bat -- pack, deploy, launch, and watch the log for one mod
+setlocal
+
+set MOD_SRC=P:\MyMod
+set MOD_OUT=C:\Program Files (x86)\Steam\steamapps\common\DayZ\@MyMod\addons
+set DAYZ_DIAG=C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools\Bin\DayZDiag_x64.exe
+set ADDON_BUILDER=C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools\Bin\AddonBuilder\AddonBuilder.exe
+
+echo [build] Packing PBO...
+"%ADDON_BUILDER%" "%MOD_SRC%\MyMod" "%MOD_OUT%" -clear -packonly || goto :error
+
+echo [build] Launching DayZDiag listen server...
+start "" "%DAYZ_DIAG%" -filePatching -mod=%MOD_SRC% -server -port=2302 -profiles=P:\serverprofile
+
+echo [build] Waiting for the log to appear...
+timeout /t 5 >nul
+
+:: Tail the newest script log, filtered to errors and this mod's output.
+powershell -NoProfile -Command ^
+  "Get-ChildItem 'P:\serverprofile\script*.log' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName -Wait -Tail 50 | Where-Object { $_ -match 'SCRIPT \(E\)|SCRIPT \(W\)|\[MyMod\]' } }"
+
+goto :eof
+
+:error
+echo [build] Packing failed -- see Addon Builder output above.
+exit /b 1
 ```
 
-The `watch` command is especially valuable -- it filters the live log to only show relevant output.
+Run it with a single command from a terminal:
+
+```batch
+build.bat
+```
+
+The filtered tail at the end is the most valuable part: script logs contain output from vanilla code, the engine, and every loaded mod, so a filter that shows only `SCRIPT (E)`, `SCRIPT (W)`, and your `[MyMod]` prefix turns thousands of noisy lines into the handful you actually care about.
+
+As your project grows you will likely rewrite this in a fuller language (Python is a common choice) so you can pack several addons, junction the mod folder instead of copying, and add subcommands such as a `check` mode that scans the latest log for errors without launching the game. The shape stays the same: pack, deploy, launch, watch.
 
 ---
 
@@ -709,5 +738,3 @@ In this tutorial you learned:
 - How to establish a reliable testing workflow from edit to verification
 
 **Next:** [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md)
-
----

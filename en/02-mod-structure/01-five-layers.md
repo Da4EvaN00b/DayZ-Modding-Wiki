@@ -1,6 +1,5 @@
-# Chapter 2.1: The 5-Layer Script Hierarchy
+# The 5-Layer Script Hierarchy
 
-[Home](../README.md) | **The 5-Layer Script Hierarchy** | [Next: config.cpp Deep Dive >>](02-config-cpp.md)
 
 ---
 
@@ -19,10 +18,11 @@
 - [Layer 5: 5_Mission (missionScriptModule)](#layer-5-5_mission-missionscriptmodule)
 - [The Critical Rule](#the-critical-rule)
 - [Load Order and Timing](#load-order-and-timing)
-- [When Each Layer Executes](#when-each-layer-executes)
+- [When Each Layer's Code Executes](#when-each-layers-code-executes)
 - [Practical Guidelines](#practical-guidelines)
 - [Quick Decision Guide](#quick-decision-guide)
 - [Common Mistakes](#common-mistakes)
+- [Summary](#summary)
 
 ---
 
@@ -85,28 +85,30 @@ The absolute foundation. Code here runs at the engine level before any game syst
 - Preprocessor defines and typedefs
 - Base class definitions that need to be visible everywhere
 
-### Real Examples
+### Worked Examples
 
-**Community Framework** places its core module system here:
+**Vanilla DayZ** itself is the best illustration of what belongs at this level. The game's `1_core` folder consists almost entirely of `proto` declarations -- script-side bindings for functions implemented in the engine's native code:
 
 ```c
-// 1_Core/CF_ModuleCoreManager.c
-class CF_ModuleCoreManager
-{
-    static ref array<typename> s_Modules = new array<typename>;
-
-    static void _Insert(typename module)
-    {
-        s_Modules.Insert(module);
-    }
-};
+// Vanilla 1_core/proto/endebug.c -- engine function bindings
+proto void Print(void var);
+proto void PrintToRPT(void var);
 ```
 
-**A framework mod** might place logging constants here:
+The widget type IDs, `WidgetFlags`, math protos, and string utilities all live here too (`1_core/proto/enwidgets.c`, `enmath.c`, `enstring.c`). None of it knows anything about DayZ as a game -- it is pure engine surface.
+
+A mod that puts something here follows the same spirit: engine-agnostic constants and enums with zero game dependencies. Throughout this wiki we use **Lantern**, a fictional framework mod built step by step in [Part 7](../07-patterns/01-singletons.md), as the running example:
 
 ```c
-// 1_Core/MyLogLevel.c
-enum MyLogLevel
+// 1_Core/Lantern/LNT_Constants.c
+class LNT_Constants
+{
+    static const string MOD_NAME    = "Lantern";
+    static const string MOD_VERSION = "1.0.0";
+};
+
+// 1_Core/Lantern/LNT_LogLevel.c
+enum LNT_LogLevel
 {
     TRACE = 0,
     DEBUG = 1,
@@ -134,18 +136,30 @@ Low-level engine library bindings. This layer exists in the vanilla script hiera
 - Mathematical libraries beyond what `1_Core` provides
 - Base widget/UI engine types
 
-### Real Examples
+### Worked Examples
 
-**DabsFramework** is one of the few mods that uses this layer:
+The perfect vanilla example lives in `2_gamelib/tools.c`: the `ScriptCallQueue` and `ScriptInvoker` classes that power every `CallLater()` timer and callback list in the game. Their signatures (abbreviated here) are almost entirely `proto` declarations -- thin script-side wrappers over native engine functionality:
 
 ```c
-// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
-// Low-level attribute binding infrastructure
-class ConfigEntryAttribute : AttributeBase
+// Vanilla 2_gamelib/tools.c (abbreviated)
+class ScriptCallQueue
 {
-    // ...
+    proto native void Tick(float timeslice);
+    proto void Call(func fn, void param1 = NULL);
+    proto void CallLater(func fn, int delay = 0, bool repeat = false);
+    proto void Remove(func fn);
+};
+
+class ScriptInvoker
+{
+    proto void Invoke(void param1 = NULL);
+    proto bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
+    proto bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
+    proto native void Clear();
 };
 ```
+
+This is exactly why mods rarely touch `gameLibScriptModule`: the layer exists to bind engine services into script, and mods cannot add new native bindings. Anything you could write here in plain script works just as well in `3_Game`, where the game types are also available.
 
 ### When to Use
 
@@ -169,32 +183,36 @@ The workhorse layer for configuration, data definitions, and systems that do not
 - Shared enums and constants that depend on game types
 - Custom keybind handlers
 
-### Real Examples
+### Worked Examples
 
-**A framework mod** configuration system:
+**Vanilla DayZ** defines its own RPC identifiers here, in `3_game/enums/erpcs.c`:
 
 ```c
-// 3_Game/MyMod/Config/MyConfigBase.c
-class MyConfigBase
+// Vanilla 3_game/enums/erpcs.c (abbreviated)
+enum ERPCs
 {
-    // Base configuration with automatic JSON persistence
-    void Load();
-    void Save();
-    string GetConfigPath();
+    RPC_SYNC_ITEM_VAR = 0,
+    RPC_SYNC_STAT,
+    RPC_WRITE_NOTE,
+    RPC_WRITE_NOTE_CLIENT,
+    RPC_SYNC_DISPLAY_STATUS,
+    // ... the vanilla list continues
 };
 ```
 
-**COT** defines its RPC identifiers here:
+A mod does the same thing with its own identifier constants. Here is the Lantern version -- a plain constants class, fully usable from `3_Game`, `4_World`, and `5_Mission`:
 
 ```c
-// 3_Game/COT/RPCData.c
-class JMRPCData
+// 3_Game/Lantern/LNT_RPCIds.c
+class LNT_RPCIds
 {
-    static const int WEATHER_SET  = 0x1001;
-    static const int PLAYER_HEAL  = 0x1002;
-    // ...
+    static const int RPC_REQUEST_STATUS = 1;
+    static const int RPC_SEND_STATUS    = 2;
+    static const int RPC_ADMIN_MESSAGE  = 3;
 };
 ```
+
+Configuration base classes with JSON persistence also live at this layer -- see [Config Persistence](../07-patterns/04-config-persistence.md) for the full `LNT_ConfigBase` implementation.
 
 ### When to Use
 
@@ -218,38 +236,18 @@ Gameplay logic that interacts with the 3D world. This layer has access to entiti
 - Action systems (extending `ActionBase`)
 - Trigger zones and area effects
 
-### Real Examples
+### Worked Examples
 
-**A missions mod** spawns mission markers in the world:
-
-```c
-// 4_World/Missions/MyMissionMarker.c
-class MyMissionMarker : House
-{
-    void MyMissionMarker()
-    {
-        SetFlags(EntityFlags.VISIBLE, true);
-    }
-
-    void SetPosition(vector pos)
-    {
-        SetPosition(pos);
-    }
-};
-```
-
-**An AI mod** implements bot entities here:
+**Modding an existing entity** is the most common `4_World` job. This snippet is complete on its own -- drop it in `4_World/` and every player death gets logged:
 
 ```c
-// 4_World/AI/MyAIBot.c
-class MyAIBot : SurvivorBase
+// 4_World/Lantern/LNT_PlayerBase.c
+modded class PlayerBase
 {
-    protected ref MyAIBrain m_Brain;
-
-    override void EOnInit(IEntity other, int extra)
+    override void EEKilled(Object killer)
     {
-        super.EOnInit(other, extra);
-        m_Brain = new MyAIBrain(this);
+        super.EEKilled(killer);
+        Print("[Lantern] A player was killed");
     }
 };
 ```
@@ -285,51 +283,62 @@ The highest layer. Mission lifecycle, UI panels, HUD overlays, and the final ini
 - Client-side rendering overlays
 - Server startup/shutdown handlers
 
-### Real Examples
+### Worked Examples
 
-**A framework mod** hooks into the mission to initialize all subsystems:
+**A framework mod** hooks into the mission to initialize and shut down its subsystems. This is how the Lantern framework (built in [Part 7](../07-patterns/01-singletons.md)) boots on the client:
 
 ```c
-// 5_Mission/MyMod/MyModMissionClient.c
+// 5_Mission/Lantern/LNT_MissionGameplay.c
 modded class MissionGameplay
 {
     override void OnInit()
     {
         super.OnInit();
-        MyFramework.Init();
+        LanternCore.Init();
     }
 
     override void OnMissionFinish()
     {
-        MyFramework.ShutdownAll();
+        LanternCore.ShutdownAll();
         super.OnMissionFinish();
     }
 };
 ```
 
-**COT** adds its admin menu here:
+**Vanilla DayZ** builds its menu screens at this layer. `5_mission/gui/helpscreen.c` is a compact reference for the pattern:
 
 ```c
-// 5_Mission/COT/gui/COT_Menu.c
-class COT_Menu : UIScriptedMenu
+// Vanilla 5_mission/gui/helpscreen.c (abbreviated)
+class HelpScreen extends UIScriptedMenu
 {
     override Widget Init()
     {
-        // Build admin panel UI
+        layoutRoot = g_Game.GetWorkspace().CreateWidgets("gui/layouts/help_screen.layout");
+        // ... find widgets, fill list boxes
+        return layoutRoot;
     }
 };
 ```
 
-**A feature mod** registers itself with a framework:
+**A mod menu** follows the exact same skeleton:
 
 ```c
-// 5_Mission/Missions/MyMissionsRegister.c
-class MyMissionsRegister
+// 5_Mission/Lantern/GUI/LNT_StatusMenu.c
+class LNT_StatusMenu : UIScriptedMenu
 {
-    void MyMissionsRegister()
+    protected TextWidget m_TitleText;
+
+    override Widget Init()
     {
-        MyFramework.RegisterMod("Missions", "1.0.0");
-        MyFramework.RegisterModConfig(new MyMissionsConfig());
+        layoutRoot = GetGame().GetWorkspace().CreateWidgets("Lantern_Core/GUI/layouts/status_menu.layout");
+        m_TitleText = TextWidget.Cast(layoutRoot.FindAnyWidget("TitleText"));
+        return layoutRoot;
+    }
+
+    override bool OnClick(Widget w, int x, int y, int button)
+    {
+        super.OnClick(w, x, y, button);
+        return false;
     }
 };
 ```
@@ -378,7 +387,7 @@ When `3_Game` code needs to handle an object that will be a `PlayerBase` at runt
 
 ```c
 // In 3_Game -- we cannot reference PlayerBase directly
-class MyConfig
+class LNT_PlayerGreeter
 {
     void HandlePlayer(Man player)
     {
@@ -388,7 +397,7 @@ class MyConfig
 };
 
 // In 4_World -- now we can cast safely
-class MyWorldLogic
+class LNT_WorldLogic
 {
     void ProcessPlayer(Man player)
     {
@@ -412,10 +421,10 @@ The **only** thing that determines mod load order is `requiredAddons[]` in `conf
 If your mod declares:
 
 ```cpp
-requiredAddons[] = { "DZ_Data", "JM_CF_Scripts" };
+requiredAddons[] = { "DZ_Data", "Lantern_Core_Scripts" };
 ```
 
-Then `DZ_Data` and `JM_CF_Scripts` are guaranteed to be loaded and compiled before your mod. If you forget to list a dependency, your mod may compile before it, causing "Undefined type" errors.
+Then `DZ_Data` and `Lantern_Core_Scripts` are guaranteed to be loaded and compiled before your mod. If you forget to list a dependency, your mod may compile before it, causing "Undefined type" errors. Real frameworks publish their `CfgPatches` class names in their documentation -- always use the exact name the framework declares.
 
 ### Compilation Order
 
@@ -431,7 +440,7 @@ Step 5: Compile ALL mods' 5_Mission scripts (ordered by requiredAddons)
 
 Within each step, mods are ordered by the dependency graph built from `requiredAddons[]`. If ModB lists `"ModA_Scripts"` in its `requiredAddons`, ModA's scripts for that layer compile first.
 
-> **Community insight:** When two mods have no dependency relationship (neither lists the other in `requiredAddons[]`), they compile in ASCII alphabetical order of the `CfgMods` class name. For example, a mod with `class AlphaMod` compiles before `class BetaMod` if neither depends on the other. *Source: inclementdab (DabsFramework author).*
+> **Community-verified behavior:** When two mods have no dependency relationship (neither lists the other in `requiredAddons[]`), they compile in ASCII alphabetical order of the `CfgMods` class name. For example, a mod with `class AlphaMod` compiles before `class BetaMod` if neither depends on the other. You can confirm this yourself by putting a `Print()` call at global scope in each mod's `3_Game` scripts and reading the order in the script log.
 
 ### Initialization Order
 
@@ -533,24 +542,24 @@ flowchart TD
 ### 1. Referencing PlayerBase from 3_Game
 
 ```c
-// WRONG: in 3_Game/MyConfig.c
-class MyConfig
+// WRONG: in 3_Game/LNT_ZoneConfig.c
+class LNT_ZoneConfig
 {
     void ApplyToPlayer(PlayerBase player)  // ERROR: PlayerBase not defined yet
     {
     }
 };
 
-// RIGHT: in 3_Game/MyConfig.c
-class MyConfig
+// RIGHT: in 3_Game/LNT_ZoneConfig.c
+class LNT_ZoneConfig
 {
     ref array<float> m_Values;  // Pure data, no entity references
 };
 
-// RIGHT: in 4_World/MyManager.c
-class MyManager
+// RIGHT: in 4_World/LNT_ZoneManager.c
+class LNT_ZoneManager
 {
-    void ApplyConfig(PlayerBase player, MyConfig config)
+    void ApplyConfig(PlayerBase player, LNT_ZoneConfig config)
     {
         // Now we can use both
     }
@@ -560,14 +569,14 @@ class MyManager
 ### 2. Putting UI Code in 4_World
 
 ```c
-// WRONG: in 4_World/MyPanel.c
-class MyPanel : UIScriptedMenu  // UIScriptedMenu works in 4_World,
-{                                // but MissionGameplay hooks are in 5_Mission
+// WRONG: in 4_World/LNT_AdminPanel.c
+class LNT_AdminPanel : UIScriptedMenu  // UIScriptedMenu works in 4_World,
+{                                       // but MissionGameplay hooks are in 5_Mission
     // This will cause problems when trying to register the UI
 };
 
-// RIGHT: in 5_Mission/MyPanel.c
-class MyPanel : UIScriptedMenu
+// RIGHT: in 5_Mission/LNT_AdminPanel.c
+class LNT_AdminPanel : UIScriptedMenu
 {
     // UI belongs in 5_Mission where mission lifecycle is available
 };
@@ -577,21 +586,21 @@ class MyPanel : UIScriptedMenu
 
 ```c
 // WRONG: Constants defined in 4_World
-// 4_World/MyConstants.c
-const int MY_RPC_ID = 12345;
+// 4_World/LNT_Constants.c
+const int LNT_RPC_ID = 12345;
 
-// 3_Game/MyRPCHandler.c
-class MyRPCHandler
+// 3_Game/LNT_RPCHandler.c
+class LNT_RPCHandler
 {
     void Register()
     {
-        // ERROR: MY_RPC_ID not visible here (defined in higher layer)
+        // ERROR: LNT_RPC_ID not visible here (defined in higher layer)
     }
 };
 
 // RIGHT: Constants defined in 3_Game (or 1_Core)
-// 3_Game/MyConstants.c
-const int MY_RPC_ID = 12345;  // Now visible to 3_Game AND 4_World AND 5_Mission
+// 3_Game/LNT_Constants.c
+const int LNT_RPC_ID = 12345;  // Now visible to 3_Game AND 4_World AND 5_Mission
 ```
 
 ### 4. Overcomplicating with 1_Core
@@ -611,7 +620,3 @@ If your "constants" reference any game type, they cannot go in `1_Core`. Even so
 | 5 | `5_Mission/` | `missionScriptModule` | UI, HUD, mission hooks | Common |
 
 **Remember:** Lower layers cannot see higher layers. When in doubt, use `3_Game`. Move code up only when you need access to types defined in a higher layer.
-
----
-
-**Next:** [Chapter 2.2: config.cpp Deep Dive](02-config-cpp.md)

@@ -1,6 +1,5 @@
-# Chapter 8.12: Building a Trading System
+# Building a Trading System
 
-[Home](../README.md) | [<< Previous: Creating Custom Clothing](11-clothing-mod.md) | **Building a Trading System** | [Next: The Diagnostic Menu >>](13-diag-menu.md)
 
 ---
 
@@ -68,9 +67,10 @@ ShopDemo/
     mod.cpp
     GUI/layouts/shop_menu.layout
     Scripts/config.cpp
+        data/            inputs.xml  stringtable.csv
         3_Game/ShopDemo/  ShopDemoRPC.c  ShopDemoData.c
         4_World/ShopDemo/ ShopDemoManager.c
-        5_Mission/ShopDemo/ ShopDemoMenu.c  ShopDemoMission.c
+        5_Mission/ShopDemo/ ShopDemoMenu.c  ShopDemoMission.c  ShopDemoServer.c
 ```
 
 ---
@@ -86,25 +86,46 @@ class ShopItem
     string DisplayName;
     int BuyPrice;
     int SellPrice;
-    void ShopItem() { ClassName = ""; DisplayName = ""; BuyPrice = 0; SellPrice = 0; }
+
+    void ShopItem()
+    {
+        ClassName = "";
+        DisplayName = "";
+        BuyPrice = 0;
+        SellPrice = 0;
+    }
 };
 
 class ShopCategory
 {
     string Name;
     ref array<ref ShopItem> Items;
-    void ShopCategory() { Name = ""; Items = new array<ref ShopItem>; }
+
+    void ShopCategory()
+    {
+        Name = "";
+        Items = new array<ref ShopItem>;
+    }
 };
 
 class ShopConfig
 {
     string CurrencyClassName;
     ref array<ref ShopCategory> Categories;
-    void ShopConfig() { CurrencyClassName = "GoldCoin"; Categories = new array<ref ShopCategory>; }
+
+    void ShopConfig()
+    {
+        // "Rag" is a real, stackable vanilla item, so this config loads and
+        // works verbatim. Swap it for any classname you like in the JSON.
+        CurrencyClassName = "Rag";
+        Categories = new array<ref ShopCategory>;
+    }
 };
 ```
 
 Keep `SellPrice < BuyPrice` always to prevent infinite money loops.
+
+> **Verify your classnames.** Every classname in this config (currency, shop items) must be a real, spawnable classname on your server --- a base-game item or one added by another mod you run. `CreateInInventory()` and `CreateObjectEx()` silently return `null` for an unknown class, so a typo means "nothing spawns" with no error. Confirm each name in your config viewer or by test-spawning before shipping. The base-game names used below (`Rag`, `AK74`, `MakarovIJ70`, `Mosin9130`, `SodaCan_Cola`, `TunaCan`, `Apple`, `BandageDressing`, `Morphine`, `SalineBagIV`) are all vanilla as of writing.
 
 ---
 
@@ -133,22 +154,37 @@ class ShopDemoRPC
 class ShopDemoManager
 {
     private static ref ShopDemoManager s_Instance;
-    static ShopDemoManager Get() { if (!s_Instance) s_Instance = new ShopDemoManager(); return s_Instance; }
+
+    static ShopDemoManager Get()
+    {
+        if (!s_Instance)
+            s_Instance = new ShopDemoManager();
+        return s_Instance;
+    }
 
     protected ref ShopConfig m_Config;
     protected string m_ConfigPath;
-    void ShopDemoManager() { m_ConfigPath = "$profile:ShopDemo/ShopConfig.json"; }
+
+    void ShopDemoManager()
+    {
+        m_ConfigPath = "$profile:ShopDemo/ShopConfig.json";
+    }
 
     void Init()
     {
-        m_Config = new ShopConfig();
         if (FileExist(m_ConfigPath))
         {
-            string err;
-            if (!JsonFileLoader<ShopConfig>.LoadFile(m_ConfigPath, m_Config, err))
+            m_Config = new ShopConfig();
+            // JsonLoadFile returns void --- it cannot report success. Load into
+            // a fresh object, then check the object's state to detect a bad file.
+            JsonFileLoader<ShopConfig>.JsonLoadFile(m_ConfigPath, m_Config);
+            if (!m_Config.Categories || m_Config.Categories.Count() == 0)
                 CreateDefaultConfig();
         }
-        else CreateDefaultConfig();
+        else
+        {
+            CreateDefaultConfig();
+        }
         Print("[ShopDemo] Init: " + m_Config.Categories.Count().ToString() + " categories");
     }
 
@@ -157,37 +193,48 @@ class ShopDemoManager
     protected void CreateDefaultConfig()
     {
         m_Config = new ShopConfig();
-        m_Config.CurrencyClassName = "GoldCoin";
-        ShopCategory c1 = new ShopCategory(); c1.Name = "Weapons";
-        AddItem(c1, "IJ70", "IJ-70 Pistol", 50, 25);
-        AddItem(c1, "KA74", "KA-74", 200, 100);
+        m_Config.CurrencyClassName = "Rag";
+
+        ShopCategory c1 = new ShopCategory();
+        c1.Name = "Weapons";
+        AddItem(c1, "MakarovIJ70", "Makarov IJ70", 50, 25);
+        AddItem(c1, "AK74", "AK-74", 200, 100);
         AddItem(c1, "Mosin9130", "Mosin 91/30", 150, 75);
         m_Config.Categories.Insert(c1);
-        ShopCategory c2 = new ShopCategory(); c2.Name = "Food";
+
+        ShopCategory c2 = new ShopCategory();
+        c2.Name = "Food";
         AddItem(c2, "SodaCan_Cola", "Cola", 5, 2);
         AddItem(c2, "TunaCan", "Tuna Can", 8, 4);
         AddItem(c2, "Apple", "Apple", 3, 1);
         m_Config.Categories.Insert(c2);
-        ShopCategory c3 = new ShopCategory(); c3.Name = "Medical";
+
+        ShopCategory c3 = new ShopCategory();
+        c3.Name = "Medical";
         AddItem(c3, "BandageDressing", "Bandage", 10, 5);
         AddItem(c3, "Morphine", "Morphine", 30, 15);
         AddItem(c3, "SalineBagIV", "Saline Bag IV", 25, 12);
         m_Config.Categories.Insert(c3);
+
         SaveConfig();
     }
 
     protected void AddItem(ShopCategory cat, string cls, string disp, int buy, int sell)
     {
         ShopItem si = new ShopItem();
-        si.ClassName = cls; si.DisplayName = disp; si.BuyPrice = buy; si.SellPrice = sell;
+        si.ClassName = cls;
+        si.DisplayName = disp;
+        si.BuyPrice = buy;
+        si.SellPrice = sell;
         cat.Items.Insert(si);
     }
 
     protected void SaveConfig()
     {
         MakeDirectory("$profile:ShopDemo");
-        string err;
-        JsonFileLoader<ShopConfig>.SaveFile(m_ConfigPath, m_Config, err);
+        // JsonSaveFile also returns void; ensure the directory exists first or
+        // it fails silently.
+        JsonFileLoader<ShopConfig>.JsonSaveFile(m_ConfigPath, m_Config);
     }
 
     int CountPlayerCurrency(PlayerBase player)
@@ -250,46 +297,88 @@ class ShopDemoManager
         return null;
     }
 
-    void HandleBuy(PlayerBase player, string className, int quantity)
+    // Returns a log-safe player name even if the identity is momentarily null
+    // (it can be, e.g. during disconnect). Never call id.GetName() unguarded.
+    protected string SafeName(PlayerBase player)
     {
         PlayerIdentity id = player.GetIdentity();
-        if (quantity <= 0 || quantity > 10) { SendResult(player, false, "Invalid quantity.", 0); return; }
+        if (!id)
+            return "unknown";
+        return id.GetName();
+    }
+
+    void HandleBuy(PlayerBase player, string className, int quantity)
+    {
+        if (quantity <= 0 || quantity > 10)
+        {
+            SendResult(player, false, "Invalid quantity.", 0);
+            return;
+        }
         ShopItem si = FindShopItem(className);
-        if (!si) { SendResult(player, false, "Item not in shop.", 0); return; }
+        if (!si)
+        {
+            SendResult(player, false, "Item not in shop.", 0);
+            return;
+        }
         int cost = si.BuyPrice * quantity;
         int balance = CountPlayerCurrency(player);
-        if (balance < cost) { SendResult(player, false, "Need " + cost.ToString() + ", have " + balance.ToString(), balance); return; }
-        if (!RemoveCurrency(player, cost)) { SendResult(player, false, "Currency removal failed.", CountPlayerCurrency(player)); return; }
+        if (balance < cost)
+        {
+            SendResult(player, false, "Need " + cost.ToString() + ", have " + balance.ToString(), balance);
+            return;
+        }
+        if (!RemoveCurrency(player, cost))
+        {
+            SendResult(player, false, "Currency removal failed.", CountPlayerCurrency(player));
+            return;
+        }
         for (int i = 0; i < quantity; i++)
         {
             EntityAI sp = player.GetInventory().CreateInInventory(className);
-            if (!sp) sp = EntityAI.Cast(GetGame().CreateObjectEx(className, player.GetPosition(), ECE_PLACE_ON_SURFACE));
+            if (!sp)
+                sp = EntityAI.Cast(GetGame().CreateObjectEx(className, player.GetPosition(), ECE_PLACE_ON_SURFACE));
         }
         int nb = CountPlayerCurrency(player);
         SendResult(player, true, "Bought " + quantity.ToString() + "x " + si.DisplayName + " for " + cost.ToString(), nb);
-        Print("[ShopDemo] " + id.GetName() + " bought " + quantity.ToString() + "x " + className);
+        Print("[ShopDemo] " + SafeName(player) + " bought " + quantity.ToString() + "x " + className);
     }
 
     void HandleSell(PlayerBase player, string className, int quantity)
     {
-        PlayerIdentity id = player.GetIdentity();
-        if (quantity <= 0 || quantity > 10) { SendResult(player, false, "Invalid quantity.", 0); return; }
+        if (quantity <= 0 || quantity > 10)
+        {
+            SendResult(player, false, "Invalid quantity.", 0);
+            return;
+        }
         ShopItem si = FindShopItem(className);
-        if (!si || si.SellPrice <= 0) { SendResult(player, false, "Cannot sell this.", 0); return; }
+        if (!si || si.SellPrice <= 0)
+        {
+            SendResult(player, false, "Cannot sell this.", 0);
+            return;
+        }
         int removed = 0;
         array<EntityAI> items = new array<EntityAI>;
         player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, items);
         for (int i = 0; i < items.Count(); i++)
         {
-            if (removed >= quantity) break;
+            if (removed >= quantity)
+                break;
             EntityAI ent = items.Get(i);
-            if (ent && ent.GetType() == className) { ent.DeleteSafe(); removed = removed + 1; }
+            if (ent && ent.GetType() == className)
+            {
+                ent.DeleteSafe();
+                removed = removed + 1;
+            }
         }
-        if (removed <= 0) { SendResult(player, false, "You don't have that item.", CountPlayerCurrency(player)); return; }
+        if (removed <= 0)
+        {
+            SendResult(player, false, "You don't have that item.", CountPlayerCurrency(player));
+            return;
+        }
         int payout = si.SellPrice * removed;
         GiveCurrency(player, payout);
         SendResult(player, true, "Sold " + removed.ToString() + "x " + si.DisplayName + " for " + payout.ToString(), CountPlayerCurrency(player));
-        Print("[ShopDemo] " + id.GetName() + " sold " + removed.ToString() + "x " + className);
+        Print("[ShopDemo] " + SafeName(player) + " sold " + removed.ToString() + "x " + className);
     }
 
     protected void SendResult(PlayerBase player, bool success, string message, int newBalance)
@@ -354,14 +443,26 @@ modded class PlayerBase
         if (p) ShopDemoManager.Get().HandleSell(p, d.param1, d.param2);
     }
 };
-
-modded class MissionServer
-{
-    override void OnInit() { super.OnInit(); ShopDemoManager.Get().Init(); }
-};
 ```
 
 **Key decisions:** Currency removed *before* spawning items (prevents duplication). Always `DeleteSafe()` for networked items. Quantity clamped to 1-10 to prevent abuse.
+
+> **Warning --- the ad-hoc string payload is fragile.** `OnShopDataReq` packs the shop into one string using `|`, `;`, `,`, and newline as delimiters. If any `DisplayName` (or a category name) contains one of those characters, the payload splits in the wrong place and the client parses garbage --- a display name like `"7,62 Ammo"` or `"Medical; Surgical"` will break the layout silently. Keep display names free of `| ; ,` and newlines, or replace this hand-rolled format with a structured RPC (write each field with `ctx.Write()` / read it back with `ctx.Read()`, or serialize the config object to a JSON string). The string approach is shown here because it is the shortest thing that teaches the round-trip; it is not what you want in production.
+
+### `Scripts/5_Mission/ShopDemo/ShopDemoServer.c`
+
+`ShopDemoManager` lives in `4_World`, but it has to be initialized from the server mission's lifecycle --- and `MissionServer` is a `5_Mission`-only type (it is declared at `5_mission/mission/missionserver.c`). A `modded class MissionServer` therefore **cannot** live in the `4_World` file: the World module compiles *before* the Mission module, so `MissionServer` is not yet a known type when the World file compiles and its base class fails to resolve. This is the same layer rule that forbids naming `PlayerBase` from a `3_Game` file --- a lower layer can never reference a type from a higher one. Put the server hook in its own `5_Mission` file, where `MissionServer` exists and `ShopDemoManager` (a lower layer) is still visible:
+
+```c
+modded class MissionServer
+{
+    override void OnInit()
+    {
+        super.OnInit();
+        ShopDemoManager.Get().Init();
+    }
+};
+```
 
 ---
 
@@ -384,8 +485,11 @@ class ShopDemoMenu extends ScriptedWidgetEventHandler
 
     void ShopDemoMenu()
     {
-        m_IsOpen = false; m_Balance = 0; m_SelClass = "";
-        m_CatNames = new array<string>; m_CatItems = new array<ref array<ref ShopItem>>;
+        m_IsOpen = false;
+        m_Balance = 0;
+        m_SelClass = "";
+        m_CatNames = new array<string>;
+        m_CatItems = new array<ref array<ref ShopItem>>;
         m_DynWidgets = new array<Widget>;
     }
     void ~ShopDemoMenu() { Close(); }
@@ -419,7 +523,10 @@ class ShopDemoMenu extends ScriptedWidgetEventHandler
     void Close()
     {
         if (!m_IsOpen) return;
-        for (int i = 0; i < m_DynWidgets.Count(); i++) if (m_DynWidgets.Get(i)) m_DynWidgets.Get(i).Unlink();
+        for (int i = 0; i < m_DynWidgets.Count(); i++)
+        {
+            if (m_DynWidgets.Get(i)) m_DynWidgets.Get(i).Unlink();
+        }
         m_DynWidgets.Clear();
         if (m_Root) { m_Root.Unlink(); m_Root = null; }
         m_IsOpen = false;
@@ -463,8 +570,15 @@ class ShopDemoMenu extends ScriptedWidgetEventHandler
         {
             for (int b = 0; b < m_CatNames.Count(); b++)
             {
-                ButtonWidget btn = ButtonWidget.Cast(GetGame().GetWorkspace().CreateWidget(WidgetType.ButtonWidgetTypeID, 0, b*0.12, 1, 0.10, WidgetFlags.VISIBLE, ARGB(255,60,60,60), 0, m_CategoryPanel));
-                if (btn) { btn.SetText(m_CatNames.Get(b)); btn.SetHandler(this); btn.SetName("CatBtn_"+b.ToString()); m_DynWidgets.Insert(btn); }
+                // CreateWidget takes INT pixel coordinates (left, top, width, height) --- never fractional relatives
+                ButtonWidget btn = ButtonWidget.Cast(GetGame().GetWorkspace().CreateWidget(WidgetType.ButtonWidgetTypeID, 0, b*34, 180, 30, WidgetFlags.VISIBLE, ARGB(255,60,60,60), 0, m_CategoryPanel));
+                if (btn)
+                {
+                    btn.SetText(m_CatNames.Get(b));
+                    btn.SetHandler(this);
+                    btn.SetName("CatBtn_" + b.ToString());
+                    m_DynWidgets.Insert(btn);
+                }
             }
         }
         if (m_CatNames.Count() > 0) SelectCategory(0);
@@ -475,13 +589,26 @@ class ShopDemoMenu extends ScriptedWidgetEventHandler
     {
         if (idx < 0 || idx >= m_CatItems.Count()) return;
         for (int r = m_DynWidgets.Count()-1; r >= 0; r--)
-        { Widget w = m_DynWidgets.Get(r); if (w && w.GetName().IndexOf("ItemBtn_")==0) { w.Unlink(); m_DynWidgets.Remove(r); } }
+        {
+            Widget w = m_DynWidgets.Get(r);
+            if (w && w.GetName().IndexOf("ItemBtn_") == 0)
+            {
+                w.Unlink();
+                m_DynWidgets.Remove(r);
+            }
+        }
         array<ref ShopItem> items = m_CatItems.Get(idx);
         for (int j = 0; j < items.Count(); j++)
         {
             ShopItem si = items.Get(j);
-            ButtonWidget ib = ButtonWidget.Cast(GetGame().GetWorkspace().CreateWidget(WidgetType.ButtonWidgetTypeID, 0, j*0.08, 1, 0.07, WidgetFlags.VISIBLE, ARGB(255,45,45,50), 0, m_ItemPanel));
-            if (ib) { ib.SetText(si.DisplayName+" [B:"+si.BuyPrice.ToString()+" S:"+si.SellPrice.ToString()+"]"); ib.SetHandler(this); ib.SetName("ItemBtn_"+si.ClassName); m_DynWidgets.Insert(ib); }
+            ButtonWidget ib = ButtonWidget.Cast(GetGame().GetWorkspace().CreateWidget(WidgetType.ButtonWidgetTypeID, 0, j*34, 400, 30, WidgetFlags.VISIBLE, ARGB(255,45,45,50), 0, m_ItemPanel));
+            if (ib)
+            {
+                ib.SetText(si.DisplayName + " [B:" + si.BuyPrice.ToString() + " S:" + si.SellPrice.ToString() + "]");
+                ib.SetHandler(this);
+                ib.SetName("ItemBtn_" + si.ClassName);
+                m_DynWidgets.Insert(ib);
+            }
         }
         m_SelClass = "";
         if (m_DetailName) m_DetailName.SetText("Select an item");
@@ -574,25 +701,91 @@ FrameWidgetClass ShopMenuRoot {
 
 ## Step 6: Mission Hook and Keybind
 
-### `Scripts/5_Mission/ShopDemo/ShopDemoMission.c`
+The right way to bind a key is `inputs.xml` --- it registers a remappable action that appears in the player's **Settings > Controls** menu. Hardcoding `OnKeyPress` locks players to one key and clashes with any mod bound to the same code. We use `inputs.xml` here; the hardcoded fallback is shown at the end of the step with its caveat. See [inputs.xml --- Custom Keybindings](../05-config-files/02-inputs-xml.md) for the full reference.
+
+### Step 6a: `Scripts/data/inputs.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<modded_inputs>
+    <inputs>
+        <actions>
+            <input name="UAShopDemoToggle" loc="STR_SHOPDEMO_TOGGLE" />
+        </actions>
+
+        <sorting name="shopdemo" loc="STR_SHOPDEMO_GROUP">
+            <input name="UAShopDemoToggle" />
+        </sorting>
+    </inputs>
+    <preset>
+        <input name="UAShopDemoToggle">
+            <btn name="kF6"/>
+        </input>
+    </preset>
+</modded_inputs>
+```
+
+With a matching `stringtable.csv` so the action reads nicely in the Controls menu:
+
+```csv
+"Language","original","english"
+"STR_SHOPDEMO_GROUP","Shop Demo","Shop Demo"
+"STR_SHOPDEMO_TOGGLE","Toggle Shop","Toggle Shop"
+```
+
+### Step 6b: Reference the file in `config.cpp`
+
+The engine does not auto-discover `inputs.xml`. Register it by setting the `inputs` property of your mod's `CfgMods` entry to the path of the **file** (not the folder):
+
+```cpp
+class CfgMods
+{
+    class ShopDemo
+    {
+        dir = "ShopDemo";
+        type = "mod";
+        inputs = "ShopDemo/Scripts/data/inputs.xml";
+        // ... dependencies[], defines[], CfgMods sub-classes ...
+    };
+};
+```
+
+The `inputs` value is a plain string pointing straight at the XML file. See [inputs.xml --- Custom Keybindings](../05-config-files/02-inputs-xml.md) for the full reference.
+
+### Step 6c: `Scripts/5_Mission/ShopDemo/ShopDemoMission.c`
+
+Poll the registered input each frame in `OnUpdate` and toggle the menu on press:
 
 ```c
 modded class MissionGameplay
 {
     protected ref ShopDemoMenu m_ShopDemoMenu;
 
-    override void OnInit() { super.OnInit(); m_ShopDemoMenu = new ShopDemoMenu(); }
+    override void OnInit()
+    {
+        super.OnInit();
+        m_ShopDemoMenu = new ShopDemoMenu();
+    }
 
     override void OnMissionFinish()
     {
-        if (m_ShopDemoMenu) { m_ShopDemoMenu.Close(); m_ShopDemoMenu = null; }
+        if (m_ShopDemoMenu)
+        {
+            m_ShopDemoMenu.Close();
+            m_ShopDemoMenu = null;
+        }
         super.OnMissionFinish();
     }
 
-    override void OnKeyPress(int key)
+    override void OnUpdate(float timeslice)
     {
-        super.OnKeyPress(key);
-        if (key == KeyCode.KC_F6 && m_ShopDemoMenu) m_ShopDemoMenu.Toggle();
+        super.OnUpdate(timeslice);
+
+        // GetInputByName returns null if inputs.xml is not registered in
+        // config.cpp (Step 6b). Guard it, or .LocalPress() crashes.
+        UAInput toggle = GetUApi().GetInputByName("UAShopDemoToggle");
+        if (toggle && toggle.LocalPress() && m_ShopDemoMenu)
+            m_ShopDemoMenu.Toggle();
     }
 
     // Called from the DayZGame.OnRPC override below. MissionGameplay has no OnRPC of its own.
@@ -601,12 +794,14 @@ modded class MissionGameplay
         if (rpc_type == ShopDemoRPC.SHOP_DATA_RESPONSE)
         {
             Param2<int, string> d = new Param2<int, string>(0, "");
-            if (ctx.Read(d) && m_ShopDemoMenu) m_ShopDemoMenu.OnShopDataReceived(d.param1, d.param2);
+            if (ctx.Read(d) && m_ShopDemoMenu)
+                m_ShopDemoMenu.OnShopDataReceived(d.param1, d.param2);
         }
         if (rpc_type == ShopDemoRPC.TRANSACTION_RESULT)
         {
             Param3<bool, string, int> r = new Param3<bool, string, int>(false, "", 0);
-            if (ctx.Read(r) && m_ShopDemoMenu) m_ShopDemoMenu.OnTransactionResult(r.param1, r.param2, r.param3);
+            if (ctx.Read(r) && m_ShopDemoMenu)
+                m_ShopDemoMenu.OnTransactionResult(r.param1, r.param2, r.param3);
         }
     }
 };
@@ -619,29 +814,35 @@ modded class DayZGame
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
-        if (rpc_type != ShopDemoRPC.SHOP_DATA_RESPONSE && rpc_type != ShopDemoRPC.TRANSACTION_RESULT) return;
+        if (rpc_type != ShopDemoRPC.SHOP_DATA_RESPONSE && rpc_type != ShopDemoRPC.TRANSACTION_RESULT)
+            return;
         MissionGameplay mission = MissionGameplay.Cast(GetMission());
-        if (mission) mission.HandleShopRPC(rpc_type, ctx);
+        if (mission)
+            mission.HandleShopRPC(rpc_type, ctx);
     }
 };
 ```
 
-For released mods, use `inputs.xml` so players can remap the key:
+### Hardcoded fallback (not recommended)
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<modded>
- <inputs><actions>
-  <input name="UAShopToggle" loc="Toggle Shop" type="button" default="Keyboard:KC_F6" group="modded" />
- </actions></inputs>
-</modded>
+If you skip `inputs.xml` entirely, you can hardcode the key by overriding `OnKeyPress` instead of `OnUpdate`:
+
+```c
+override void OnKeyPress(int key)
+{
+    super.OnKeyPress(key);
+    if (key == KeyCode.KC_F6 && m_ShopDemoMenu)
+        m_ShopDemoMenu.Toggle();
+}
 ```
+
+The caveat (also covered in [HUD Overlay](08-hud-overlay.md)): a hardcoded `KeyCode` cannot be rebound by players, is invisible in the Controls menu, and fires even when another mod or a vanilla screen owns that key. Use it only for throwaway testing --- ship the `inputs.xml` route.
 
 ---
 
 ## Step 7: Currency Item
 
-You can use any existing item -- set `CurrencyClassName` to `"Rag"` in the JSON and rags become money. For a custom coin, see [Chapter 8.2: Custom Item](02-custom-item.md).
+The default `CurrencyClassName` is `"Rag"` --- a stackable vanilla item, so the demo works with no extra content. You can point it at any existing classname in the JSON (for example `"Nail"` or an ammo box) and that item becomes money. For a purpose-built coin, see [Custom Item](02-custom-item.md).
 
 ---
 
@@ -654,7 +855,7 @@ Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edi
 ## Step 9: Build and Test
 
 1. Pack `ShopDemo/` into PBO, add to server+client `@ShopDemo/addons/`, add `-mod=@ShopDemo`
-2. Spawn currency, press F6, browse, buy/sell
+2. Spawn currency (default `Rag`), press F6, browse, buy/sell
 3. Check server log for `[ShopDemo]` lines
 
 | Test Case | Expected |
@@ -685,8 +886,10 @@ Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edi
 | `ShopDemoData.c` | 3_Game | Data classes: ShopItem, ShopCategory, ShopConfig |
 | `ShopDemoManager.c` | 4_World | Server: config, buy/sell logic, inventory, RPC handlers |
 | `ShopDemoMenu.c` | 5_Mission | Client: UI, dynamic widgets, RPC send/receive |
-| `ShopDemoMission.c` | 5_Mission | Mission hook: init, keybind, RPC routing |
+| `ShopDemoMission.c` | 5_Mission | Client mission hook: keybind polling, RPC routing |
+| `ShopDemoServer.c` | 5_Mission | Server mission hook: initializes `ShopDemoManager` |
 | `shop_menu.layout` | GUI | 3-panel layout |
+| `inputs.xml` | data | Registers the remappable `UAShopDemoToggle` keybind |
 
 ---
 
@@ -702,7 +905,7 @@ Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edi
 
 | Concept | Theory | Reality |
 |---------|--------|---------|
-| `JsonFileLoader.LoadFile()` | Loads cleanly | Trailing commas cause silent failures. Validate JSON externally. |
+| `JsonFileLoader.JsonLoadFile()` | Loads cleanly, reports errors | Returns `void` --- it cannot signal failure. A malformed file (trailing comma, bad type) leaves the object in a partial/default state with no error. Check the loaded object's state, and validate JSON externally. |
 | String RPC serialization | Simple | 500+ items may hit size limits. Paginate for large shops. |
 | `CreateInInventory()` | Always works | Returns null if inventory full. Always check. |
 | Listen server testing | Fast iteration | Hides network bugs. Test on dedicated server. |
@@ -727,7 +930,3 @@ Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edi
 | `Delete()` on networked items | Use `DeleteSafe()`. |
 | Ignore `CreateInInventory` return | Check for null, fall back to ground spawn. |
 | Redeclare vars in else-if | Declare once before the if-chain (Enforce Script rule). |
-
----
-
-**Previous:** [Chapter 8.11: Clothing Mod](11-clothing-mod.md)

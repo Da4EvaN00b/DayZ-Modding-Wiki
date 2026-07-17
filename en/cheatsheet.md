@@ -1,6 +1,5 @@
 # Enforce Script Cheat Sheet
 
-[Home](./README.md) | **Cheat Sheet**
 
 ---
 
@@ -247,24 +246,20 @@ flags = flags & ~FLAG_B;          // remove
 
 ## What Does NOT Exist
 
+The ten you hit most. The full list, with the exact CParser errors each one throws, lives in [1.12 Gotchas](01-enforce-script/12-gotchas.md).
+
 | Missing Feature | Workaround |
 |----------------|------------|
 | Ternary `? :` | `if/else` |
 | `do...while` | `while(true) { ... break; }` |
 | `try/catch` | Guard clauses + early return |
 | Multiple inheritance | Single + composition |
-| Operator overloading | Named methods (except `[]` via Get/Set) |
 | Lambdas | Named methods |
 | `nullptr` | `null` / `NULL` |
 | `\\` / `\"` in strings | Avoid (CParser breaks) |
 | `#include` | config.cpp `files[]` |
-| Namespaces | Name prefixes (`MyMod_`, `VPP_`) |
-| Interfaces / abstract | Empty base methods |
-| switch fall-through | Works like C/C++ — use `break` |
+| Namespaces | Name prefixes (`LNT_`, `YourTag_`) |
 | `#define` values | Use `const` |
-| Default param expressions | Literals/NULL only |
-| Variadic params | `string.Format` or arrays |
-| Variable redeclaration in else-if | Unique names per branch |
 
 ---
 
@@ -290,37 +285,40 @@ root.Show(false);
 
 ## RPC Pattern
 
-**Register (server):**
-```c
-// In 3_Game or 4_World init:
-GetGame().RPCSingleParam(null, MY_RPC_ID, null, true, identity);  // Engine RPC
+The engine RPC is `ScriptRPC`: build it, `Write()` each value in order, then `Send()`. Called on the client it runs on the server; called on the server it runs on the target's clients.
 
-// Or with string-routed RPC (MyRPC / CF):
-GetRPCManager().AddRPC("MyMod", "RPC_Handler", this, 2);  // CF
-MyRPC.Register("MyMod", "MyRoute", this, MyRPCSide.SERVER);  // MyMod
+**Define an ID** (a plain constant avoids clashing with engine `ERPCs`):
+```c
+const int RPC_LNT_SYNC = 12000;
 ```
 
-**Send (client to server):**
+**Send:**
 ```c
-Param2<string, int> data = new Param2<string, int>("itemName", 5);
-GetGame().RPCSingleParam(null, MY_RPC_ID, data, true);
+// Send from one side; identity = a specific client, or null for all clients.
+ScriptRPC rpc = new ScriptRPC();
+rpc.Write("itemName");
+rpc.Write(5);
+rpc.Send(target, RPC_LNT_SYNC, true, identity);  // guaranteed = true
 ```
 
-**Receive (server handler):**
+**Receive** — override `OnRPC` on the target entity (e.g. `modded class PlayerBase`):
 ```c
-void RPC_Handler(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
+override void OnRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
 {
-    if (type != CallType.Server) return;
-    if (!sender) return;
+    super.OnRPC(sender, rpc_type, ctx);
 
-    Param2<string, int> data;
-    if (!ctx.Read(data)) return;
-
-    string itemName = data.param1;
-    int quantity = data.param2;
-    // Process...
+    if (rpc_type == RPC_LNT_SYNC)
+    {
+        string itemName;
+        int quantity;
+        if (!ctx.Read(itemName)) return;
+        if (!ctx.Read(quantity)) return;
+        // Process...
+    }
 }
 ```
+
+For a string-routed RPC router (register handlers by name instead of numeric IDs), see [7.3 RPC Patterns](07-patterns/03-rpc-patterns.md) — that chapter builds `LNT_RPC` end to end.
 
 ---
 
@@ -383,7 +381,7 @@ GetGame()                          // CGame instance
 GetGame().GetPlayer()              // Local player (CLIENT only, null on server!)
 GetGame().GetPlayers(out arr)      // All players (server)
 GetGame().GetWorld()               // World instance
-GetGame().GetTickTime()            // Server time (float)
+GetGame().GetTickTime()            // Seconds since game start (float, client + server)
 GetGame().GetWorkspace()           // UI workspace
 GetGame().SurfaceY(x, z)          // Terrain height
 GetGame().IsServer()               // true on server

@@ -1,6 +1,5 @@
-# Chapter 6.17: Construction System
+# Construction System
 
-[Home](../README.md) | [<< Previous: Crafting System](16-crafting-system.md) | **Construction System** | [Next: Animation System >>](18-animation-system.md)
 
 ---
 
@@ -475,12 +474,14 @@ Repair uses `TakeMaterialsServer(part_name, true)`, requiring only 15% of origin
 
 ---
 
-## Observed in Real Mods
+## Common Modding Extension Points
 
-- **DayZ Expansion** extends `BaseBuildingBase` with custom floors, walls, and ramps using dozens of parts per object.
-- **Raid mods** override `EEHealthLevelChanged()` or adjust `DamageZones` hitpoints to tune raid difficulty.
-- **BuildAnywhere** mods override `IsCollidingEx()` to return `false`, disabling placement collision.
-- **Advanced BB mods** use `modded BaseBuildingBase` to inject custom persistence, logging, or anti-grief checks into build/dismantle events.
+These are the seams the vanilla construction classes expose for `modded` overrides:
+
+- **Custom part types** --- extend `BaseBuildingBase` and register additional parts in the object's `Construction` config to add floors, walls, ramps, or other placeable sections (dozens of parts per object are possible within the 93-part limit).
+- **Raid tuning** --- override `EEHealthLevelChanged()` in `basebuildingbase.c` or adjust per-part `DamageZones` hitpoints to change how much damage a part absorbs before it reaches `STATE_RUINED`.
+- **Placement rules** --- override `Construction.IsCollidingEx()` (`construction.c`) to change or disable the placement collision check that blocks building through geometry.
+- **Build/dismantle hooks** --- use `modded BaseBuildingBase` to inject custom persistence, logging, or anti-grief checks into the build and dismantle events without replacing the base class.
 
 ---
 

@@ -1,6 +1,5 @@
-# Chapter 8.7: Publishing to the Steam Workshop
+# Publishing to the Steam Workshop
 
-[Home](../README.md) | [<< Previous: Debugging & Testing](06-debugging-testing.md) | **Publishing to the Steam Workshop** | [Next: Building a HUD Overlay >>](08-hud-overlay.md)
 
 ---
 
@@ -460,7 +459,7 @@ if (config.configVersion < 2)
     config.newField = config.oldField;
     config.configVersion = 2;
     SaveConfig(config);
-    SDZ_Log.Info("MyMod", "Config migrated from v1 to v2");
+    Print("[MyMod] Config migrated from v1 to v2");
 }
 ```
 
@@ -633,7 +632,7 @@ After publishing, player feedback sends you back to CODE, TEST, and DEBUG. That 
 You have completed the full DayZ modding tutorial series -- from a blank workspace to a published, signed, and maintained mod on the Steam Workshop. From here:
 
 - **Explore the reference chapters** (Chapters 1-7) for deeper knowledge on the GUI system, config.cpp, and Enforce Script
-- **Study open-source mods** like CF, Community Online Tools, and Expansion for advanced patterns
+- **Study open-source mods** like Community Framework, Community Online Tools, and Expansion for advanced patterns. Read their licenses first: study a pattern to learn the concept, then write your own original code -- copying identifier-scrubbed source is still derivative and may violate the license.
 - **Join the DayZ modding community** on Discord and the Bohemia Interactive forums
 - **Build bigger.** Your first mod was Hello World. Your next one could be a complete gameplay overhaul.
 

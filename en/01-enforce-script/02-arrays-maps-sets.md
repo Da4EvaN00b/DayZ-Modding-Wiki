@@ -1,6 +1,28 @@
-# Chapter 1.2: Arrays, Maps & Sets
+# Arrays, Maps & Sets
 
-[Home](../README.md) | [<< Previous: Variables & Types](01-variables-types.md) | **Arrays, Maps & Sets** | [Next: Classes & Inheritance >>](03-classes-inheritance.md)
+> **Summary:** The three Enforce Script collection types --- `array<T>`, `map<K,V>`, and `set<T>` --- plus static arrays: every method, all iteration patterns, and the removal-during-iteration pitfalls that cause real production bugs.
+
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Static Arrays](#static-arrays)
+- [Dynamic Arrays: `array<T>`](#dynamic-arrays-arrayt)
+- [Complete Array Method Reference](#complete-array-method-reference)
+- [Iterating Arrays](#iterating-arrays)
+- [Maps: `map<K,V>`](#maps-mapkv)
+- [Complete Map Method Reference](#complete-map-method-reference)
+- [Iterating Maps](#iterating-maps)
+- [Sets: `set<T>`](#sets-sett)
+- [Nested Collections](#nested-collections)
+- [Best Practices](#best-practices)
+- [Reusable Templates](#reusable-templates)
+- [Patterns Proven in Vanilla Code](#patterns-proven-in-vanilla-code)
+- [Theory vs Practice](#theory-vs-practice)
+- [Common Mistakes](#common-mistakes)
+- [Practice Exercises](#practice-exercises)
+- [Summary](#summary)
 
 ---
 
@@ -131,6 +153,8 @@ You will encounter `TStringArray` constantly in DayZ code --- config parsing, ch
 
 ## Complete Array Method Reference
 
+> **Reference section.** This section catalogs every `array<T>` method with a short runnable example each. Skim it once, then come back to it as a lookup table. The tutorial flow resumes at [Iterating Arrays](#iterating-arrays).
+
 ### Adding Elements
 
 ```c
@@ -226,9 +250,16 @@ void RemovingElements()
     // items is now: ["A", "C", "D", "E"]  -- order preserved
 
     // RemoveItem(value): finds the element and removes it (ordered)
+    // Internally: Find() + RemoveOrdered() -- order is preserved
     items = {"A", "B", "C", "D", "E"};
     items.RemoveItem("C");
     // items is now: ["A", "B", "D", "E"]
+
+    // RemoveItemUnOrdered(value): finds the element and removes it FAST
+    // Internally: Find() + Remove() -- the last element takes its place
+    items = {"A", "B", "C", "D", "E"};
+    items.RemoveItemUnOrdered("B");
+    // items is now: ["A", "E", "C", "D"]  -- ORDER CHANGED!
 
     // Clear: remove all elements
     items.Clear();
@@ -311,9 +342,10 @@ void DebuggingArrays()
 {
     array<string> items = {"Bandage", "Morphine", "Saline"};
 
-    // Debug: prints all elements to script log
+    // Debug: prints the count and all elements to the script log
     items.Debug();
     // Output:
+    // Array count: 3
     // [0] => Bandage
     // [1] => Morphine
     // [2] => Saline
@@ -440,6 +472,8 @@ typedef map<string, float>   TStringFloatMap;
 ---
 
 ## Complete Map Method Reference
+
+> **Reference section.** Every `map<K,V>` method, one example each. The tutorial flow resumes at [Iterating Maps](#iterating-maps).
 
 ### Inserting and Updating
 
@@ -598,6 +632,53 @@ class PlayerTracker
 
 ---
 
+## Iterating Maps
+
+Maps support `foreach` for convenient iteration:
+
+### foreach with Key-Value
+
+```c
+void IterateMap()
+{
+    map<string, int> scores = new map<string, int>;
+    scores.Set("Alice", 150);
+    scores.Set("Bob", 230);
+    scores.Set("Charlie", 180);
+
+    // foreach with key and value
+    foreach (string name, int score : scores)
+    {
+        Print(string.Format("%1: %2 points", name, score));
+    }
+    // Alice: 150 points
+    // Bob: 230 points
+    // Charlie: 180 points
+}
+```
+
+### Index-Based for Loop
+
+```c
+void IterateMapByIndex()
+{
+    map<string, int> scores = new map<string, int>;
+    scores.Set("Alice", 150);
+    scores.Set("Bob", 230);
+
+    for (int i = 0; i < scores.Count(); i++)
+    {
+        string key = scores.GetKey(i);
+        int val = scores.GetElement(i);
+        Print(string.Format("%1 = %2", key, val));
+    }
+}
+```
+
+Remember that `GetKey(i)` and `GetElement(i)` are `O(n)` each --- prefer `foreach` when you do not need the index. The same rule as arrays applies: never add or remove entries while iterating (see [Common Mistakes](#common-mistakes)).
+
+---
+
 ## Sets: `set<T>`
 
 Sets are ordered collections similar to arrays, but with semantics oriented toward value-based operations (find and remove by value). They are less commonly used than arrays and maps.
@@ -643,51 +724,6 @@ In practice, most DayZ modders use `array<T>` for almost everything because:
 - The API you need is typically on `array<T>` already
 
 Use `set<T>` when your code semantically represents a set (no meaningful order, focused on membership testing), or when you encounter it in vanilla DayZ code and need to interface with it.
-
----
-
-## Iterating Maps
-
-Maps support `foreach` for convenient iteration:
-
-### foreach with Key-Value
-
-```c
-void IterateMap()
-{
-    map<string, int> scores = new map<string, int>;
-    scores.Set("Alice", 150);
-    scores.Set("Bob", 230);
-    scores.Set("Charlie", 180);
-
-    // foreach with key and value
-    foreach (string name, int score : scores)
-    {
-        Print(string.Format("%1: %2 points", name, score));
-    }
-    // Alice: 150 points
-    // Bob: 230 points
-    // Charlie: 180 points
-}
-```
-
-### Index-Based for Loop
-
-```c
-void IterateMapByIndex()
-{
-    map<string, int> scores = new map<string, int>;
-    scores.Set("Alice", 150);
-    scores.Set("Bob", 230);
-
-    for (int i = 0; i < scores.Count(); i++)
-    {
-        string key = scores.GetKey(i);
-        int val = scores.GetElement(i);
-        Print(string.Format("%1 = %2", key, val));
-    }
-}
-```
 
 ---
 
@@ -745,16 +781,84 @@ class LootTable
 
 ---
 
-## Observed in Real Mods
+## Reusable Templates
 
-> Patterns confirmed by studying professional DayZ mod source code.
+These are copy-paste starting points for the three collection operations that trip up mods most often. Each one uses only vanilla types, guards its inputs, and follows the safe-removal rules from this chapter. Adapt the element types to your own data.
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Backward `for` loop for removal | Expansion / COT | Always iterate `Count()-1` down to `0` when removing filtered elements |
-| `map<string, ref ClassName>` for registries | Dabs Framework | All manager registries use `ref` in map values to keep objects alive |
-| `TStringArray` typedef everywhere | Vanilla / VPP | Config parsing, chat messages, and loot tables all use `TStringArray` instead of `array<string>` |
-| Null + empty guard before access | Expansion Market | Every function receiving an array starts with `if (!arr \|\| arr.Count() == 0) return;` |
+### Remove Every Matching Element (Order-Preserving)
+
+Iterate backward so that removing an element never shifts an index you have not visited yet. `RemoveOrdered` keeps the surviving elements in their original order.
+
+```c
+void RemoveMatching(array<int> values, int unwanted)
+{
+    if (!values)
+        return;
+
+    for (int i = values.Count() - 1; i >= 0; i--)
+    {
+        if (values[i] == unwanted)
+            values.RemoveOrdered(i);
+    }
+}
+```
+
+### Remove During Logical Iteration (Collect Then Remove)
+
+When the decision to remove is driven by a `foreach`, never mutate the collection inside the loop. Record what to drop first, then remove afterward.
+
+```c
+void DropExpired(array<string> tickets, array<string> expired)
+{
+    if (!tickets || !expired)
+        return;
+
+    array<string> toRemove = new array<string>;
+    foreach (string ticket : tickets)
+    {
+        if (expired.Find(ticket) != -1)
+            toRemove.Insert(ticket);
+    }
+
+    foreach (string dead : toRemove)
+    {
+        tickets.RemoveItem(dead);
+    }
+}
+```
+
+### Tally Occurrences Into a Map
+
+Read a value with `Find()` into a local (which stays `0` when the key is absent), then write the incremented value back with `Set()`. Using `Set()` rather than `Insert()` is what makes the update land.
+
+```c
+map<string, int> CountOccurrences(array<string> items)
+{
+    map<string, int> counts = new map<string, int>;
+    if (!items)
+        return counts;
+
+    foreach (string item : items)
+    {
+        int current = 0;
+        counts.Find(item, current);
+        counts.Set(item, current + 1);
+    }
+
+    return counts;
+}
+```
+
+---
+
+## Patterns Proven in Vanilla Code
+
+| Pattern | Where you see it | Detail |
+|---------|------------------|--------|
+| Backward `for` loop for removal | Vanilla scripts (`4_world/static/miscgameplayfunctions.c`, `3_game/tools/tools.c`) | Iterate `Count() - 1` down to `0` when removing filtered elements |
+| Map with `ref` values for registries | Vanilla plugin system (`4_world/plugins/pluginmanager.c` stores plugins in a `map<typename, ref PluginBase>`) | `ref` in the map value type keeps the stored objects alive |
+| `TStringArray` typedef everywhere | Vanilla typedef (`typedef array<string> TStringArray` in `1_core/proto/enscript.c`) | Config parsing, chat messages, and loot tables all use `TStringArray` instead of `array<string>` |
+| Null + empty guard before access | Common community practice | Functions receiving an array start with `if (!arr \|\| arr.Count() == 0) return;` |
 
 ---
 
@@ -939,7 +1043,8 @@ Create a class with two maps that allows lookup in both directions: given a play
 | Add at position | `InsertAt(val, idx)` | Shifts right |
 | Remove fast | `Remove(idx)` | Swaps with last, **unordered** |
 | Remove ordered | `RemoveOrdered(idx)` | Shifts left, preserves order |
-| Remove by value | `RemoveItem(val)` | Finds then removes (ordered) |
+| Remove by value | `RemoveItem(val)` | Finds then removes via `RemoveOrdered` (order preserved) |
+| Remove by value, fast | `RemoveItemUnOrdered(val)` | Finds then removes via `Remove` (**unordered**) |
 | Find | `Find(val)` | Returns index or -1 |
 | Count | `Count()` | Number of elements |
 | Bounds check | `IsValidIndex(idx)` | Returns bool |
@@ -947,7 +1052,3 @@ Create a class with two maps that allows lookup in both directions: given a play
 | Random | `GetRandomElement()` | Returns random value |
 | foreach | `foreach (T val : arr)` | Value only |
 | foreach indexed | `foreach (int i, T val : arr)` | Index + value |
-
----
-
-[Home](../README.md) | [<< Previous: Variables & Types](01-variables-types.md) | **Arrays, Maps & Sets** | [Next: Classes & Inheritance >>](03-classes-inheritance.md)

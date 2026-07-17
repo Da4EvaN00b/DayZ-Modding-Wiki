@@ -1,6 +1,5 @@
-# Chapter 5.3: Credits.json
+# Credits.json
 
-[Home](../README.md) | [<< Previous: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Next: ImageSet Format >>](04-imagesets.md)
 
 ---
 
@@ -16,7 +15,7 @@
 - [How DayZ Displays Credits](#how-dayz-displays-credits)
 - [Using Localized Section Names](#using-localized-section-names)
 - [Templates](#templates)
-- [Real Examples](#real-examples)
+- [Worked Examples](#worked-examples)
 - [Common Mistakes](#common-mistakes)
 
 ---
@@ -39,9 +38,11 @@ Place `Credits.json` inside a `Data` subfolder of your Scripts directory, or dir
     MyMod_Scripts.pbo
       Scripts/
         Data/
-          Credits.json       <-- Common location (COT, Expansion, DayZ Editor)
-        Credits.json         <-- Also valid (DabsFramework, Colorful-UI)
+          Credits.json       <-- Common location
+        Credits.json         <-- Also valid
 ```
+
+Both locations are seen in published mods.
 
 The file may live anywhere in the PBO. What matters is that the `creditsJson` value in your `CfgMods` block points to its exact path (case-sensitive on some platforms).
 
@@ -121,7 +122,7 @@ The credits display follows this visual hierarchy:
 
 ### Empty Strings for Spacing
 
-Expansion uses empty `DepartmentName` and `SectionName` strings, plus whitespace-only entries in `SectionLines`, to create visual spacing:
+You can use empty `DepartmentName` and `SectionName` strings, plus whitespace-only entries in `SectionLines`, to create visual spacing:
 
 ```json
 {
@@ -143,12 +144,12 @@ Section names can reference stringtable keys using the `#` prefix, just like UI 
 
 ```json
 {
-    "SectionName": "#STR_EXPANSION_CREDITS_SCRIPTERS",
-    "SectionLines": ["Steve aka Salutesh", "LieutenantMaster"]
+    "SectionName": "#STR_LNT_CREDITS_SCRIPTERS",
+    "SectionLines": ["Firefly", "Wick"]
 }
 ```
 
-When the engine renders this, it resolves `#STR_EXPANSION_CREDITS_SCRIPTERS` to the localized text matching the player's language. This is useful if your mod supports multiple languages and you want the credits section headers to be translated.
+When the engine renders this, it resolves `#STR_LNT_CREDITS_SCRIPTERS` to the localized text matching the player's language. This is useful if your mod supports multiple languages and you want the credits section headers to be translated.
 
 Department names can also use stringtable references:
 
@@ -272,21 +273,64 @@ Department names can also use stringtable references:
 
 ---
 
-## Real Examples
+## Worked Examples
 
-### MyMod Core
+The two examples below use **Lantern**, the fictional framework this wiki builds throughout its chapters, and **NightPatrol**, a small companion content mod. All names are invented for teaching -- swap in your own team.
 
-A minimal but complete credits file:
+### Lantern Core
+
+A complete multi-department credits file for a framework-style mod. It combines every technique from this chapter: localized section names via stringtable references, an empty-string spacer department between major blocks, and a legal notices department at the end:
 
 ```json
 {
     "Departments": [
         {
-            "DepartmentName": "MyMod Core",
+            "DepartmentName": "Lantern Core",
             "Sections": [
                 {
-                    "SectionName": "Framework",
-                    "SectionLines": ["Documentation Team"]
+                    "SectionName": "#STR_LNT_CREDITS_SCRIPTERS",
+                    "SectionLines": ["Firefly", "Wick"]
+                },
+                {
+                    "SectionName": "#STR_LNT_CREDITS_ARTISTS",
+                    "SectionLines": ["Glowworm", "Tinder"]
+                }
+            ]
+        },
+        {
+            "DepartmentName": "",
+            "Sections": [
+                {
+                    "SectionName": "",
+                    "SectionLines": ["           "]
+                }
+            ]
+        },
+        {
+            "DepartmentName": "Community",
+            "Sections": [
+                {
+                    "SectionName": "Translators",
+                    "SectionLines": [
+                        "Lampe (French)",
+                        "Laterne (German)",
+                        "Lucerna (Czech)"
+                    ]
+                },
+                {
+                    "SectionName": "Testers",
+                    "SectionLines": ["Beacon", "Ember", "Spark"]
+                }
+            ]
+        },
+        {
+            "DepartmentName": "Legal Notices",
+            "Sections": [
+                {
+                    "SectionName": "Licenses",
+                    "SectionLines": [
+                        "Icon set - CC BY 4.0 License"
+                    ]
                 }
             ]
         }
@@ -294,42 +338,26 @@ A minimal but complete credits file:
 }
 ```
 
-### Community Online Tools (COT)
+Notable points:
 
-Uses the `SectionLines` variant with multiple sections and acknowledgments:
+- The first `DepartmentName` ("Lantern Core") doubles as the credits title, matching the mod's `name` in `CfgMods`.
+- The `#STR_LNT_*` section names resolve through the stringtable, so a French player sees "Scripteurs" while a German player sees "Skripter" -- useful when the mod itself ships in multiple languages.
+- The empty department between "Lantern Core" and "Community" is pure spacing: an empty `DepartmentName`, an empty `SectionName`, and a whitespace-only line render as a visual gap in the scroll.
+- Legal notices get their own department so license attributions do not mix with contributor names.
+
+### NightPatrol
+
+A minimal single-department file for a small content mod -- one department, one section, done:
 
 ```json
 {
     "Departments": [
         {
-            "DepartmentName": "Community Online Tools",
+            "DepartmentName": "NightPatrol",
             "Sections": [
                 {
-                    "SectionName": "Active Developers",
-                    "SectionLines": [
-                        "LieutenantMaster",
-                        "LAVA (liquidrock)"
-                    ]
-                },
-                {
-                    "SectionName": "Inactive Developers",
-                    "SectionLines": [
-                        "Jacob_Mango",
-                        "Arkensor",
-                        "DannyDog68",
-                        "Thurston",
-                        "GrosTon1"
-                    ]
-                },
-                {
-                    "SectionName": "Thank you to the following communities",
-                    "SectionLines": [
-                        "PIPSI.NET AU/NZ",
-                        "1SKGaming",
-                        "AWG",
-                        "Expansion Mod Team",
-                        "Bohemia Interactive"
-                    ]
+                    "SectionName": "Developers",
+                    "SectionLines": ["Firefly", "Moth"]
                 }
             ]
         }
@@ -337,46 +365,7 @@ Uses the `SectionLines` variant with multiple sections and acknowledgments:
 }
 ```
 
-Notable: COT uses the first `DepartmentName` ("Community Online Tools") as its title. The mod name also comes from other metadata (config.cpp `CfgMods`).
-
-### DabsFramework
-
-```json
-{
-    "Departments": [{
-        "DepartmentName": "Development",
-        "Sections": [{
-                "SectionName": "Developers",
-                "SectionLines": [
-                    "InclementDab",
-                    "Gormirn"
-                ]
-            },
-            {
-                "SectionName": "Translators",
-                "SectionLines": [
-                    "InclementDab",
-                    "DanceOfJesus (French)",
-                    "MarioE (Spanish)",
-                    "Dubinek (Czech)",
-                    "Steve AKA Salutesh (German)",
-                    "Yuki (Russian)",
-                    ".magik34 (Polish)",
-                    "Daze (Hungarian)"
-                ]
-            }
-        ]
-    }]
-}
-```
-
-### DayZ Expansion
-
-Expansion demonstrates the most sophisticated use of Credits.json, including:
-- Localized section names via stringtable references (`#STR_EXPANSION_CREDITS_SCRIPTERS`)
-- Legal notices as a separate department
-- Empty department and section names for visual spacing
-- A supporters list with dozens of names
+Most mods need nothing more than this. Add departments only when the list of contributors grows large enough to need grouping.
 
 ---
 
@@ -417,7 +406,7 @@ Save the file as UTF-8. Non-ASCII characters (accented names, CJK characters) re
 ## Best Practices
 
 - Validate your JSON with an external tool before packing into a PBO -- the engine gives no useful error message for malformed JSON.
-- Use `SectionLines` for every name list. It is the only field the engine reads, and it is the format used by COT, Expansion, and DabsFramework.
+- Use `SectionLines` for every name list. It is the only field the engine reads.
 - Include a "Legal Notices" department if your mod bundles third-party assets (fonts, icons, sounds) with attribution requirements.
 - Use the first `DepartmentName` as a title matching your mod's `name` in `mod.cpp` and `config.cpp` for a consistent identity.
 - Use empty `DepartmentName` and `SectionName` strings sparingly for visual spacing -- overuse makes credits look fragmented.
