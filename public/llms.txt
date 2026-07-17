@@ -1,0 +1,138 @@
+# DayZ Modding Wiki
+
+> Community documentation for DayZ modding: the Enforce Script language, mod structure, GUI system, file formats, engine API, patterns, step-by-step tutorials, and server administration. Grounded in the vanilla DayZ scripts and official Bohemia Interactive samples; all code examples are original and self-contained. English is the canonical language (11 translations available via the site language switcher).
+
+Key facts for language models writing Enforce Script: it is NOT C/C++. There is no ternary operator, no `auto`, no `try/catch`, no `do...while`, no `#include`, and multi-line call expressions break the parser. See the "What Does NOT Exist" page below before generating code.
+
+## Part 1: Enforce Script
+
+- [Variables & Types](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/01-variables-types)
+- [Control Flow](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/05-control-flow)
+- [Functions & Methods](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/13-functions-methods)
+- [Arrays, Maps & Sets](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/02-arrays-maps-sets)
+- [String Operations](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/06-strings)
+- [Math & Vectors](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/07-math-vectors)
+- [Classes & Inheritance](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/03-classes-inheritance)
+- [Modded Classes](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/04-modded-classes)
+- [Memory Management](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/08-memory-management)
+- [Casting & Reflection](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/09-casting-reflection)
+- [Enums & Preprocessor](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/10-enums-preprocessor)
+- [Error Handling](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/11-error-handling)
+- [What Does NOT Exist](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/12-gotchas)
+
+## Part 2: Mod Structure
+
+- [The 5-Layer Hierarchy](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/01-five-layers)
+- [config.cpp Deep Dive](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/02-config-cpp)
+- [mod.cpp & Workshop](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/03-mod-cpp)
+- [Anatomy of a Minimal Mod](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/04-minimum-viable-mod)
+- [File Organization](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/05-file-organization)
+- [Server/Client Architecture](https://stardz-team.github.io/DayZ-Modding-Wiki/en/02-mod-structure/06-server-client-split)
+
+## Part 3: GUI & Layout
+
+- [Widget Types](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/01-widget-types)
+- [Layout File Format](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/02-layout-files)
+- [Sizing & Positioning](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/03-sizing-positioning)
+- [Container Widgets](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/04-containers)
+- [Programmatic Creation](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/05-programmatic-widgets)
+- [Event Handling](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/06-event-handling)
+- [Styles, Fonts & Images](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/07-styles-fonts)
+- [Dialogs & Modals](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/08-dialogs-modals)
+- [UI Architecture Patterns](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/09-real-mod-patterns)
+- [Advanced Widgets](https://stardz-team.github.io/DayZ-Modding-Wiki/en/03-gui-system/10-advanced-widgets)
+
+## Part 4: File Formats & Tools
+
+- [Textures](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/01-textures)
+- [3D Models](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/02-models)
+- [Building Modeling](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/08-building-modeling)
+- [Materials](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/03-materials)
+- [Audio](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/04-audio)
+- [DayZ Tools Workflow](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/05-dayz-tools)
+- [PBO Packing](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/06-pbo-packing)
+- [Workbench Guide](https://stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/07-workbench-guide)
+
+## Part 5: Configuration Files
+
+- [stringtable.csv](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/01-stringtable)
+- [Inputs.xml](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/02-inputs-xml)
+- [Credits.json](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/03-credits-json)
+- [ImageSet Format](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/04-imagesets)
+- [Server Configuration](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/05-server-configs)
+- [Spawning Gear](https://stardz-team.github.io/DayZ-Modding-Wiki/en/05-config-files/06-spawning-gear)
+
+## Part 6: Engine API
+
+- [Entity System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/01-entity-system)
+- [Vehicle System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/02-vehicles)
+- [Weather System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/03-weather)
+- [Camera System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/04-cameras)
+- [Post-Process Effects](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/05-ppe)
+- [Notification System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/06-notifications)
+- [Timers & CallQueue](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/07-timers)
+- [File I/O & JSON](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/08-file-io)
+- [Networking & RPC](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/09-networking)
+- [Central Economy Script API](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/10-central-economy)
+- [Mission Hooks](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/11-mission-hooks)
+- [Action System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/12-action-system)
+- [Input System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/13-input-system)
+- [Player System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/14-player-system)
+- [Sound System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/15-sound-system)
+- [Crafting System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/16-crafting-system)
+- [Construction System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/17-construction-system)
+- [Animation System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/18-animation-system)
+- [Terrain & World Queries](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/19-terrain-queries)
+- [Particle & Effects](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/20-particle-effects)
+- [Zombie & AI System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/21-zombie-ai-system)
+- [Admin & Server](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/22-admin-server)
+
+## Part 7: Patterns & Practices
+
+- [Singleton Pattern](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/01-singletons)
+- [Module/Plugin Systems](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/02-module-systems)
+- [RPC Communication](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/03-rpc-patterns)
+- [Config Persistence](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/04-config-persistence)
+- [Permission Systems](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/05-permissions)
+- [Event-Driven Architecture](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/06-events)
+- [Performance Optimization](https://stardz-team.github.io/DayZ-Modding-Wiki/en/07-patterns/07-performance)
+
+## Part 8: Tutorials
+
+- [Your First Mod](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/01-first-mod)
+- [Custom Item](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/02-custom-item)
+- [Admin Panel](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/03-admin-panel)
+- [Chat Commands](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/04-chat-commands)
+- [Starting from a Mod Template](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/05-mod-template)
+- [Debugging & Testing](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/06-debugging-testing)
+- [Publishing to Workshop](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/07-publishing-workshop)
+- [HUD Overlay](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/08-hud-overlay)
+- [Professional Template](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/09-professional-template)
+- [Vehicle Mod](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/10-vehicle-mod)
+- [Clothing Mod](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/11-clothing-mod)
+- [Trading System](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/12-trading-system)
+
+## Part 9: Server Administration
+
+- [Server Setup](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/01-server-setup)
+- [Directory Structure](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/02-directory-structure)
+- [serverDZ.cfg Reference](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/03-server-cfg)
+- [Loot Economy Deep Dive](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/04-loot-economy)
+- [Vehicle & Event Spawning](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/05-vehicle-spawning)
+- [Player Spawning](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/06-player-spawning)
+- [Persistence & World State](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/07-persistence)
+- [Performance Tuning](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/08-performance)
+- [Access Control](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/09-access-control)
+- [Mod Management](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/10-mod-management)
+- [Server Troubleshooting](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/11-troubleshooting)
+- [Advanced Topics](https://stardz-team.github.io/DayZ-Modding-Wiki/en/09-server-admin/12-advanced)
+- [World Systems](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/23-world-systems)
+
+## Reference
+
+- [API Quick Reference](https://stardz-team.github.io/DayZ-Modding-Wiki/en/06-engine-api/quick-reference)
+- [Diag Menu](https://stardz-team.github.io/DayZ-Modding-Wiki/en/08-tutorials/13-diag-menu)
+- [Cheatsheet](https://stardz-team.github.io/DayZ-Modding-Wiki/en/cheatsheet)
+- [Glossary](https://stardz-team.github.io/DayZ-Modding-Wiki/en/glossary)
+- [FAQ](https://stardz-team.github.io/DayZ-Modding-Wiki/en/faq)
+- [Troubleshooting](https://stardz-team.github.io/DayZ-Modding-Wiki/en/troubleshooting)

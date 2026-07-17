@@ -26,7 +26,7 @@ features:
     link: /en/01-enforce-script/01-variables-types
   - icon: 🎨
     title: GUI & Layout System
-    details: 10 chapters on widgets, .layout files, sizing, events, dialogs, and real UI patterns from COT, VPP, Expansion, and Dabs.
+    details: 10 chapters on widgets, .layout files, sizing, events, dialogs, and production UI architecture patterns.
     link: /en/03-gui-system/01-widget-types
   - icon: ⚙️
     title: Engine API Reference
@@ -46,7 +46,7 @@ features:
     link: /en/09-server-admin/01-server-setup
   - icon: 🏗️
     title: Patterns & Best Practices
-    details: 7 chapters of battle-tested patterns from professional mods — singletons, RPC, permissions, events, and performance.
+    details: 7 chapters of production-ready patterns — singletons, RPC, permissions, events, and performance.
     link: /en/07-patterns/01-singletons
 ---
 
