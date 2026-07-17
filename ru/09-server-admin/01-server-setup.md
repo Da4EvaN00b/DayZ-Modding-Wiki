@@ -1,6 +1,5 @@
 # Глава 9.1: Установка и первый запуск сервера
 
-[Главная](../README.md) | **Установка сервера** | [Далее: Структура каталогов >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ BattlEye Server: Initialized
 ```cpp
 template = "dayzOffline.chernarusplus";  // Должно совпадать с именем папки в mpmissions/
 ```
-
----
-
-**[Главная](../README.md)** | **Далее:** [Структура каталогов >>](02-directory-structure.md)

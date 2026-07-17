@@ -1,6 +1,5 @@
 # Chapter 6.1: Entity System
 
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
 
 ---
 
@@ -924,7 +923,3 @@ void DamageEntity(EntityAI target, float amount)
 | Mazání | `obj.Delete()` (odložené) nebo `GetGame().ObjectDelete(obj)` (okamžité) |
 | Síťová synchronizace | `RegisterNetSyncVariable*()` v konstruktoru, reagujte v `OnVariablesSynchronized()` |
 | Kontrola typu | `obj.IsKindOf("ClassName")`, `obj.IsMan()`, `obj.IsBuilding()` |
-
----
-
-[Domů](../README.md) | **Entity System** | [Další: Vehicles >>](02-vehicles.md)

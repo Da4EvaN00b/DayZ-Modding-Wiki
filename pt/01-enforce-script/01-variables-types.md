@@ -1,6 +1,5 @@
-# Chapter 1.1: Variables & Types
+# Variables & Types
 
-[Home](../README.md) | **Variables & Types** | [Next: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -786,7 +785,3 @@ Escreva uma função `vector SnapToGround(vector pos)` que recebe qualquer posi�
 | Escopo | Variáveis com escopo em blocos `{}`; sem redeclaração em blocos aninhados/irmãos |
 | Conversão | `float` para `int` trunca; use `.ToInt()`, `.ToFloat()`, `.ToVector()` para parsing de string |
 | Formatação | Sempre use `string.Format()` para construir strings de tipos mistos |
-
----
-
-[Início](../README.md) | **Variáveis & Tipos** | [Próximo: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)

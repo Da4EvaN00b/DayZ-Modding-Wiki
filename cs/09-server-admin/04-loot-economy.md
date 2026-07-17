@@ -1,6 +1,5 @@
 # Chapter 9.4: Lootova ekonomika podrobne
 
-[Domu](../README.md) | [<< Predchozi: Reference serverDZ.cfg](03-server-cfg.md) | **Lootova ekonomika podrobne**
 
 ---
 
@@ -721,7 +720,3 @@ Po uprave souboru ekonomiky provedte jedno z:
 - Smazte `storage_1/` pro uplny wipe a novy start ekonomiky
 - Nastavte `RestartSpawn` na `1` v `globals.xml` pro jeden restart k opetovnemu nahodnemu rozmisteni lootu, pak ho nastavte zpet na `0`
 - Pockejte, az zivotnosti predmetu prirozene vyprsi (muze trvat hodiny)
-
----
-
-**Predchozi:** [Reference serverDZ.cfg](03-server-cfg.md) | [Domu](../README.md) | **Dalsi:** [Spawnovani vozidel a dynamicke udalosti](05-vehicle-spawning.md)

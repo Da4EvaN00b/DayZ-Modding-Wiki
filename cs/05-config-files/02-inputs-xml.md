@@ -1,6 +1,5 @@
 # Kapitola 5.2: inputs.xml --- Vlastní klávesové zkratky
 
-[Domů](../README.md) | [<< Předchozí: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Další: Credits.json >>](03-credits-json.md)
 
 ---
 

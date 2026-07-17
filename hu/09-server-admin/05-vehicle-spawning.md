@@ -1,6 +1,5 @@
 # Chapter 9.5: Jármű és dinamikus esemény spawnolás
 
-[Kezdőlap](../README.md) | [<< Előző: Zsákmánygazdaság](04-loot-economy.md) | [Következő: Játékos spawnolás >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Ezek a leggyakoribb jármű spawnolási problémák, amelyekkel szerver adminok 
 **Probléma:** Egy jármű épületbe beékelve vagy a terepbe temetve jelenik meg.
 
 **Javítás:** Ellenőrizd a `<pos>` koordinátákat a `cfgeventspawns.xml`-ben. Teszteld a pozíciókat játékon belül admin teleporttal, mielőtt hozzáadod a fájlhoz. A pozícióknak sík utakon vagy nyílt terepen kell lenniük, és a szögnek (`a`) igazodnia kell az út irányához.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Zsákmánygazdaság](04-loot-economy.md) | [Következő: Játékos spawnolás >>](06-player-spawning.md)

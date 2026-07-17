@@ -1,6 +1,5 @@
 # Chapter 9.3: serverDZ.cfg teljes referencia
 
-[Kezdőlap](../README.md) | [<< Előző: Könyvtárszerkezet](02-directory-structure.md) | **serverDZ.cfg referencia** | [Következő: Zsákmánygazdaság részletes áttekintés >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 A modok a `-mod=` paraméterben megadott sorrendben töltődnek be. A függőségi sorrend számít: ha a B mod igényli az A modot, az A modot kell előbb felsorolni.
-
----
-
-**Előző:** [Könyvtárszerkezet](02-directory-structure.md) | [Kezdőlap](../README.md) | **Következő:** [Zsákmánygazdaság részletes áttekintés >>](04-loot-economy.md)

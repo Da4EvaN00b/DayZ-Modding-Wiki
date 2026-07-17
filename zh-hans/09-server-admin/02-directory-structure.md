@@ -1,6 +1,5 @@
 # Chapter 9.2: 目录结构与任务文件夹
 
-[首页](../README.md) | [<< 上一章: 服务器搭建](01-server-setup.md) | **目录结构** | [下一章: serverDZ.cfg 参考 >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ storage_1/
 | `storage_1/` | 仅删除 | 持久化数据 -- 不要手动编辑 |
 | `battleye/` | **否** | 反作弊 -- 不要修改 |
 | `mapgroup*.xml` | 谨慎 | 建筑战利品位置 -- 仅限高级编辑 |
-
----
-
-**上一章：** [服务器搭建](01-server-setup.md) | [首页](../README.md) | **下一章：** [serverDZ.cfg 参考 >>](03-server-cfg.md)

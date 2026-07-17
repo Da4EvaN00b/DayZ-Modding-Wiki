@@ -1,6 +1,5 @@
 # Chapter 1.5: Control Flow
 
-[Domů](../README.md) | [<< Předchozí: Modifikované třídy](04-modded-classes.md) | **Řízení toku** | [Další: String Operations >>](06-strings.md)
 
 ---
 
@@ -642,7 +641,3 @@ switch (value) { case X: /* ... */ break; default: break; }
 thread void MyFunc() { Sleep(1000); }
 thread MyFunc();  // non-blocking call
 ```
-
----
-
-[<< 1.4: Modded Classes](04-modded-classes.md) | [Domů](../README.md) | [1.6: String Operations >>](06-strings.md)

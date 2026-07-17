@@ -1,6 +1,5 @@
 # Rozdział 8.3: Budowanie modułu panelu administracyjnego
 
-[Strona główna](../README.md) | [<< Poprzedni: Tworzenie niestandardowego przedmiotu](02-custom-item.md) | **Budowanie panelu administracyjnego** | [Następny: Dodawanie komend czatu >>](04-chat-commands.md)
 
 ---
 

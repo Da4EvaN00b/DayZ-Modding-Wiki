@@ -1,6 +1,5 @@
 # Kapitel 1.7: Mathematik & Vektor-Operationen
 
-[Startseite](../README.md) | [<< Zurück: String-Operationen](06-strings.md) | **Mathematik & Vektor-Operationen** | [Weiter: Speicherverwaltung >>](08-memory-management.md)
 
 ---
 
@@ -751,7 +750,3 @@ v.Length()  v.LengthSq()  v.Normalized()  v.Normalize()
 // Vektor-Konstanten
 vector.Zero  vector.Up  vector.Aside  vector.Forward
 ```
-
----
-
-[<< 1.6: String-Operationen](06-strings.md) | [Startseite](../README.md) | [1.8: Speicherverwaltung >>](08-memory-management.md)

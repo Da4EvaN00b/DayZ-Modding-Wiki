@@ -1,6 +1,5 @@
-# Chapter 2.3: mod.cpp & Workshop
+# mod.cpp & Workshop
 
-[Home](../README.md) | [<< Previous: config.cpp Deep Dive](02-config-cpp.md) | **mod.cpp & Workshop** | [Next: Minimum Viable Mod >>](04-minimum-viable-mod.md)
 
 ---
 

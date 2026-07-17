@@ -1,6 +1,5 @@
 # Kapitola 6.4: Systém kamer
 
-[Domů](../README.md) | [<< Předchozí: Počasí](03-weather.md) | **Kamery** | [Další: Post-processingové efekty >>](05-ppe.md)
 
 ---
 

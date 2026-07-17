@@ -1,6 +1,5 @@
-# Capítulo 8.8: Construindo um HUD Overlay
+# Construindo um HUD Overlay
 
-[Início](../README.md) | [<< Anterior: Publicando na Steam Workshop](07-publishing-workshop.md) | **Construindo um HUD Overlay** | [Próximo: Template Profissional de Mod >>](09-professional-template.md)
 
 ---
 

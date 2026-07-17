@@ -1,6 +1,5 @@
 # Chapter 6.1: Entity System
 
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
 
 ---
 
@@ -924,7 +923,3 @@ void DamageEntity(EntityAI target, float amount)
 | Torles | `obj.Delete()` (halasztott) vagy `GetGame().ObjectDelete(obj)` (azonnali) |
 | Halozati szinkron | `RegisterNetSyncVariable*()` a konstruktorban, reagalj az `OnVariablesSynchronized()`-ben |
 | Tipus ellenorzes | `obj.IsKindOf("ClassName")`, `obj.IsMan()`, `obj.IsBuilding()` |
-
----
-
-[Kezdolap](../README.md) | **Entitas rendszer** | [Kovetkezo: Jarmuvek >>](02-vehicles.md)

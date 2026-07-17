@@ -1,6 +1,5 @@
 # 第 1.5 章：控制流
 
-[首页](../README.md) | [<< 上一章：Modded 类](04-modded-classes.md) | **控制流** | [下一章：字符串操作 >>](06-strings.md)
 
 ---
 
@@ -642,7 +641,3 @@ switch (value) { case X: /* ... */ break; default: break; }
 thread void MyFunc() { Sleep(1000); }
 thread MyFunc();  // 非阻塞调用
 ```
-
----
-
-[<< 1.4：Modded 类](04-modded-classes.md) | [首页](../README.md) | [1.6：字符串操作 >>](06-strings.md)

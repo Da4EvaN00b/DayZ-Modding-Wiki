@@ -1,6 +1,5 @@
 # Capitulo 9.12: Temas Avanzados del Servidor
 
-[Inicio](../README.md) | [<< Anterior: Solucion de Problemas](11-troubleshooting.md) | [Inicio de la Parte 9](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ El archivo **db/messages.xml** en tu carpeta de mision controla los mensajes pro
 - `shutdown` -- `1` para mensajes de secuencia de apagado, `0` para transmisiones regulares
 
 El sistema de mensajes no reinicia el servidor. Solo muestra avisos cuando un horario de reinicio esta configurado externamente.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Solucion de Problemas](11-troubleshooting.md) | [Inicio de la Parte 9](01-server-setup.md)

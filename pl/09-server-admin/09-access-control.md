@@ -1,6 +1,5 @@
 # Chapter 9.9: Kontrola dostepu
 
-[Strona glowna](../README.md) | [<< Poprzedni: Optymalizacja wydajnosci](08-performance.md) | [Dalej: Zarzadzanie modami >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ Oto problemy, na ktore operatorzy serwerow natrafiaja najczesciej:
 | `verifySignatures = 0` w produkcji | Kazdy moze dolaczyc ze zmodyfikowanymi modami | Ustaw na `2` na kazdym serwerze publicznym |
 | Zapomnienie o otwarciu portu RCON w firewallu | Klient RCON traci czas polaczenia | Otworz port UDP RCON (ten ustawiony przez `RConPort`, np. `2305`) w firewallu |
 | Edycja **bans.txt** w `BattlEye/` z UID graczy | Bany nie dzialaja | BattlEye **bans.txt** uzywa GUID, nie UID; uzyj **ban.txt** w glownym katalogu serwera dla banow opartych na UID |
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Optymalizacja wydajnosci](08-performance.md) | [Dalej: Zarzadzanie modami >>](10-mod-management.md)

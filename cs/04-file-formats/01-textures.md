@@ -1,6 +1,5 @@
 # Kapitola 4.1: Textury (.paa, .edds, .tga)
 
-[Domů](../README.md) | **Textury** | [Další: 3D modely >>](02-models.md)
 
 ---
 

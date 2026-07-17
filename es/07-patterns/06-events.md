@@ -1,6 +1,5 @@
 # Capítulo 7.6: Arquitectura Orientada a Eventos
 
-[Inicio](../README.md) | [<< Anterior: Sistemas de Permisos](05-permissions.md) | **Arquitectura Orientada a Eventos** | [Siguiente: Optimización del Rendimiento >>](07-performance.md)
 
 ---
 
@@ -549,7 +548,3 @@ OnKillEvent.Invoke(killData);
 | Doble `Insert()` del mismo manejador | El manejador se llama dos veces por `Invoke()`; un `Remove()` por defecto (flag `ALL`) limpia todas las entradas a la vez, eliminando todas las suscripciones | Verificar antes de insertar, o asegurar que `Insert()` solo se llame una vez (ej., en `OnInit` con una bandera de guardia) |
 | Usar funciones anónimas/lambda como manejadores | No se pueden eliminar porque no hay referencia para pasar a `Remove()` | Siempre usar métodos con nombre como manejadores de eventos |
 | Disparar eventos con firmas de argumentos no coincidentes | Los suscriptores reciben datos basura o crashean en tiempo de ejecución; sin verificación en compilación | Documentar la firma esperada sobre cada declaración de `ScriptInvoker` y coincidir exactamente en todos los manejadores |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Sistemas de Permisos](05-permissions.md) | **Arquitectura Orientada a Eventos** | [Siguiente: Optimización del Rendimiento >>](07-performance.md)

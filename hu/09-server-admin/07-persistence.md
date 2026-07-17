@@ -1,6 +1,5 @@
 # Chapter 9.7: Világ állapot és perzisztencia
 
-[Kezdőlap](../README.md) | [<< Előző: Játékos spawnolás](06-player-spawning.md) | [Következő: Teljesítmény hangolás >>](08-performance.md)
 
 A DayZ perzisztencia életben tartja a világot az újraindítások között. A működés megértése lehetővé teszi a bázisok kezelését, a törlések tervezését és az adatsérülések elkerülését.
 
@@ -188,7 +187,3 @@ Ezek rendszeresen felmerülnek a szerver admin közösségekben:
 | Időjárás visszaállítás és teljes törlés összekeverése | Az `events.xy` törlése csak a dinamikus esemény pozíciókat állítja vissza. Nem állítja vissza a zsákmányt, bázisokat vagy játékosokat. | Tudd, melyik fájl mit szabályoz (lásd a fenti könyvtártáblázatot). |
 | Zászló nem frissített időben | 40 nap (FlagRefreshMaxDuration) után a zászló lejár és az összes csatolt bázis elem megtisztításra jogosulttá válik. A játékosok elveszítik a teljes bázisukat. | Emlékeztesd a játékosokat a frissítési intervallumra. Csökkentsd a FlagRefreshMaxDuration értéket alacsony népességű szervereken. |
 | globals.xml szerkesztése futó szerver mellett | A változások nem lépnek életbe újraindításig. Rosszabb esetben a szerver leállításkor felülírja a szerkesztéseidet. | Konfigurációs fájlokat csak leállított szerver mellett szerkessz. |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Játékos spawnolás](06-player-spawning.md) | [Következő: Teljesítmény hangolás >>](08-performance.md)

@@ -1,6 +1,5 @@
 # 第1.11章: エラーハンドリング
 
-[ホーム](../README.md) | [<< 前へ: 列挙型とプリプロセッサ](10-enums-preprocessor.md) | **エラーハンドリング** | [次へ: 注意点 >>](12-gotchas.md)
 
 ---
 
@@ -827,11 +826,3 @@ override void OnUpdate(float timeslice)
 | notnull | コンパイラnullチェック | `void Fn(notnull Class obj)` |
 
 **黄金律:** Enforce Scriptでは、すべてがnullになり得ると仮定し、すべての操作が失敗し得ると仮定してください。最初にチェックし、次に実行し、常にログを記録してください。
-
----
-
-## ナビゲーション
-
-| 前へ | 上へ | 次へ |
-|----------|----|------|
-| [1.10 列挙型とプリプロセッサ](10-enums-preprocessor.md) | [パート1: Enforce Script](../README.md) | [1.12 存在しないもの](12-gotchas.md) |

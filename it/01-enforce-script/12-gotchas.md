@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -1215,11 +1214,3 @@ Se are a C++ developer, here are the biggest adjustments:
 | `IsClient()` durante il caricamento | Restituisce false | Usa `IsDedicatedServer()` |
 | Errore compilazione file sbagliato | Posizione fuorviante | Controlla il file analizzato dopo |
 | File `crash_*.log` | Non sono crash reali | Sono eccezioni runtime di script |
-
----
-
-## Navigazione
-
-| Precedente | Up | Successivo |
-|----------|----|------|
-| [1.11 Error Handling](11-error-handling.md) | [Part 1: Enforce Script](../README.md) | [1.13 Funzioni e Metodi](13-functions-methods.md) |

@@ -1,6 +1,5 @@
 # Chapter 5.2: inputs.xml --- Custom Keybindings
 
-[Home](../README.md) | [<< Previous: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Next: Credits.json >>](03-credits-json.md)
 
 ---
 

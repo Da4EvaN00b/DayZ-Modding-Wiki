@@ -1,6 +1,5 @@
 # Kapitola 4.8: Modelování budov -- Dveře a žebříky
 
-[Domů](../README.md) | [<< Předchozí: Průvodce Workbench](07-workbench-guide.md) | **Modelování budov**
 
 ---
 

@@ -1,6 +1,5 @@
 # Kapitola 1.1: Proměnné a typy
 
-[Domů](../README.md) | **Proměnné a typy** | [Další: Pole, mapy a množiny >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -873,7 +872,3 @@ Napište funkci `vector SnapToGround(vector pos)`, která přijme libovolnou poz
 | Rozsah | Proměnné omezeny na bloky `{}`; žádná opětovná deklarace ve vnořených/sourozených blocích |
 | Konverze | `float` na `int` ořezává; pro parsování řetězců použijte `.ToInt()`, `.ToFloat()`, `.ToVector()` |
 | Formátování | Vždy používejte `string.Format()` pro sestavování řetězců ze smíšených typů |
-
----
-
-[Domů](../README.md) | **Proměnné a typy** | [Další: Pole, mapy a množiny >>](02-arrays-maps-sets.md)

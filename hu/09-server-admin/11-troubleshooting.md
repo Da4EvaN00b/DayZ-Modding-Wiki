@@ -1,6 +1,5 @@
 # Chapter 9.11: Szerver hibaelhárítás
 
-[Kezdőlap](../README.md) | [<< Előző: Mod kezelés](10-mod-management.md) | [Következő: Haladó témák >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Ha valami elromlik, dolgozd végig ezt a listát sorrendben:
 ```
 
 A 8. lépés a legerősebb technika. Ha a szerver vanilla módban működik, de modokkal elromlik, izolálhatod a problémás modot bináris kereséssel -- add hozzá a modjaid felét, tesztelj, majd szűkítsd le.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Mod kezelés](10-mod-management.md) | [Következő: Haladó témák >>](12-advanced.md)

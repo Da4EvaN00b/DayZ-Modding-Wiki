@@ -1,6 +1,5 @@
 # Chapter 1.13: Functions & Methods
 
-[Home](../README.md) | [<< Previous: Gotchas](12-gotchas.md) | **Functions & Methods**
 
 ---
 
@@ -1142,11 +1141,3 @@ class MyMission extends MissionServer
 | Завершение потока | `KillThread(owner, "FnName")` | Останавливает работающую корутину |
 | Отложенный вызов | `CallLater(Fn, delay, repeat)` | Предпочтительнее потоков |
 | Соглашение `Ex()` | `void FnEx(...)` | Расширенная версия `Fn` |
-
----
-
-## Навигация
-
-| Назад | Вверх | Далее |
-|-------|-------|-------|
-| [1.12 Подводные камни](12-gotchas.md) | [Часть 1: Enforce Script](../README.md) | -- |

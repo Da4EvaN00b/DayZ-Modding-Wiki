@@ -1,6 +1,5 @@
 # Capitulo 9.8: Ajuste de Rendimiento
 
-[Inicio](../README.md) | [<< Anterior: Persistencia](07-persistence.md) | [Siguiente: Control de Acceso >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Una carpeta `storage_1/` que crece a varios gigabytes ralentiza cada ciclo de pe
 ### Registro dejado activado
 
 El registro de diagnostico de la CE, el registro de depuracion de scripts y el registro de herramientas de admin escriben al disco en cada tick. Activalos para diagnostico, luego desactivalos. El registro verboso persistente en un servidor ocupado puede costar 1-2 FPS por si solo.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Persistencia](07-persistence.md) | [Siguiente: Control de Acceso >>](09-access-control.md)

@@ -1,6 +1,5 @@
 # Chapter 9.10: Zarzadzanie modami
 
-[Strona glowna](../README.md) | [<< Poprzedni: Kontrola dostepu](09-access-control.md) | [Dalej: Rozwiazywanie problemow >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Jesli dwa mody oba uzywaja `modded class PlayerBase`, ten zaladowany **ostatni**
 **Spacje w sciezkach modow.** Sciezka jak `-mod=@My Mod` psuje parsowanie. Zmien nazwy folderow modow, aby unikac spacji, lub otocz caly parametr cudzyslowami: `-mod="@My Mod;@CF"`.
 
 **Przestarzaly mod na serwerze, zaktualizowany na kliencie (lub odwrotnie).** Niezgodnosc wersji uniemozliwia polaczenie. Synchronizuj wersje serwera i Workshop. Aktualizuj wszystkie mody i serwer w tym samym czasie.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Kontrola dostepu](09-access-control.md) | [Dalej: Rozwiazywanie problemow >>](11-troubleshooting.md)

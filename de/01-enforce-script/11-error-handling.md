@@ -1,6 +1,5 @@
 # Kapitel 1.11: Fehlerbehandlung
 
-[Startseite](../README.md) | [<< Zurück: Enums & Präprozessor](10-enums-preprocessor.md) | **Fehlerbehandlung** | [Weiter: Fallstricke >>](12-gotchas.md)
 
 ---
 
@@ -827,11 +826,3 @@ override void OnUpdate(float timeslice)
 | notnull | Compiler-Null-Prüfung | `void Fn(notnull Class obj)` |
 
 **Die goldene Regel:** In Enforce Script gehen Sie davon aus, dass alles null sein kann und jede Operation fehlschlagen kann. Zuerst prüfen, dann handeln, immer protokollieren.
-
----
-
-## Navigation
-
-| Zurück | Hoch | Weiter |
-|----------|----|------|
-| [1.10 Enums & Präprozessor](10-enums-preprocessor.md) | [Teil 1: Enforce Script](../README.md) | [1.12 Was es NICHT gibt](12-gotchas.md) |

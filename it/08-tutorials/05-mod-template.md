@@ -1,6 +1,5 @@
 # Capitolo 8.5: Usare il Template Mod di DayZ
 
-[Home](../README.md) | [<< Precedente: Aggiungere Comandi Chat](04-chat-commands.md) | **Usare il Template Mod di DayZ** | [Successivo: Debug e Test >>](06-debugging-testing.md)
 
 ---
 
@@ -410,7 +409,3 @@ Con la tua mod basata su template funzionante, puoi:
 4. **Studiare config.cpp in profondità** -- Leggi il [Capitolo 2.2: Approfondimento config.cpp](../02-mod-structure/02-config-cpp.md) per capire ogni campo.
 5. **Imparare le opzioni di mod.cpp** -- Leggi il [Capitolo 2.3: mod.cpp e Workshop](../02-mod-structure/03-mod-cpp.md) per la pubblicazione su Workshop.
 6. **Aggiungere dipendenze** -- Se la tua mod usa Community Framework o un'altra mod, aggiorna `requiredAddons[]` e vedi [Capitolo 2.4: La Tua Prima Mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Precedente:** [Capitolo 8.4: Aggiungere Comandi Chat](04-chat-commands.md) | [Home](../README.md)

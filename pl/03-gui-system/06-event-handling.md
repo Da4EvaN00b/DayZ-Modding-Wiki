@@ -1,6 +1,5 @@
 # Rozdział 3.6: Obsługa zdarzeń
 
-[Strona główna](../README.md) | [<< Poprzedni: Programowe tworzenie widgetów](05-programmatic-widgets.md) | **Obsługa zdarzeń** | [Dalej: Style, czcionki i obrazy >>](07-styles-fonts.md)
 
 ---
 

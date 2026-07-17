@@ -1,6 +1,5 @@
 # Kapitel 6.5: Nachbearbeitungseffekte (PPE)
 
-[Startseite](../README.md) | [<< Zurück: Kameras](04-cameras.md) | **Nachbearbeitungseffekte** | [Weiter: Benachrichtigungen >>](06-notifications.md)
 
 ---
 

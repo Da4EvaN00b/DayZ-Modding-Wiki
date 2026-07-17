@@ -1,6 +1,5 @@
 # Chapter 9.9: Rizeni pristupu
 
-[Domu](../README.md) | [<< Predchozi: Ladeni vykonu](08-performance.md) | [Dalsi: Sprava modu >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ Toto jsou problemy, na ktere operatori serveru narazi nejcasteji:
 | `verifySignatures = 0` v produkci | Kdokoliv se muze pripojit se zmenenymi mody | Nastavte na `2` na jakemkoliv verejnem serveru |
 | Zapomenuti otevrit RCON port ve firewallu | RCON klient vyprsi casem | Otevrte UDP port RCON (ten, ktery nastavite s `RConPort`, napr. `2305`) ve vasem firewallu |
 | Uprava **bans.txt** v `BattlEye/` s hracskymi UID | Bany nefunguji | BattlEye **bans.txt** pouziva GUID, ne UID; pouzijte **ban.txt** v korenovem adresari serveru pro bany zalozene na UID |
-
----
-
-[Domu](../README.md) | [<< Predchozi: Ladeni vykonu](08-performance.md) | [Dalsi: Sprava modu >>](10-mod-management.md)

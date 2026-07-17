@@ -1,6 +1,5 @@
 # Capitulo 7.5: Sistemas de Permisos
 
-[Inicio](../README.md) | [<< Anterior: Persistencia de Configuracion](04-config-persistence.md) | **Sistemas de Permisos** | [Siguiente: Arquitectura Orientada a Eventos >>](06-events.md)
 
 ---
 
@@ -652,7 +651,3 @@ Este es un patron comun utilizado para migrar desde el array plano original `Adm
 | Usar RBAC (control de acceso basado en roles) con herencia de grupos | Solo CF/COT soporta permisos de tres estados; la mayoria de los mods usan concesiones planas por jugador por simplicidad |
 | Los permisos deberian almacenarse en una base de datos | Sin acceso a base de datos; archivos JSON en `$profile:` son la unica opcion |
 | Usar tokens criptograficos para autorizacion | Sin bibliotecas criptograficas en Enforce Script; la confianza se basa en `PlayerIdentity.GetPlainId()` (Steam64 ID) verificado por el motor |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Persistencia de Configuracion](04-config-persistence.md) | **Sistemas de Permisos** | [Siguiente: Arquitectura Orientada a Eventos >>](06-events.md)

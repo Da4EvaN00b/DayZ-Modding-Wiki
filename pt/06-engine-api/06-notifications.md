@@ -1,6 +1,5 @@
-# Chapter 6.6: Notification System
+# Notification System
 
-[Home](../README.md) | [<< Previous: Post-Process Effects](05-ppe.md) | **Notifications** | [Next: Timers & CallQueue >>](07-timers.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # Kapitel 9.2: Verzeichnisstruktur & Missionsordner
 
-[Home](../README.md) | [<< Zurueck: Server-Einrichtung](01-server-setup.md) | **Verzeichnisstruktur** | [Weiter: serverDZ.cfg-Referenz >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ Das `a`-Attribut ist der Rotationswinkel in Grad.
 | `storage_1/` | Nur loeschen | Persistenz -- nicht von Hand bearbeiten |
 | `battleye/` | **Nein** | Anti-Cheat -- nicht anfassen |
 | `mapgroup*.xml` | Vorsichtig | Gebaeude-Loot-Positionen -- nur fuer fortgeschrittene Bearbeitung |
-
----
-
-**Zurueck:** [Server-Einrichtung](01-server-setup.md) | [Home](../README.md) | **Weiter:** [serverDZ.cfg-Referenz >>](03-server-cfg.md)

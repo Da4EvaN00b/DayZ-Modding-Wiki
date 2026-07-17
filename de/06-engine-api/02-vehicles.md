@@ -1,6 +1,5 @@
 # Kapitel 6.2: Fahrzeugsystem
 
-[Startseite](../README.md) | [<< Zurück: Entity-System](01-entity-system.md) | **Fahrzeuge** | [Weiter: Wetter >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Die `Transport`-Klasse (Elternklasse von `CarScript` und `BoatScript`) verfügt 
 | `EOnSimulate`-Akkumulator für periodische Kraftstoffverbrauchsprüfungen | Vanilla+ Fahrzeug-Mods | `CarScript`-Überschreibungen |
 | `CrewGetOut()`-Schleife im Admin-Alle-Auswerfen-Befehl | VPP Admin Tools | Fahrzeugverwaltungsmodul |
 | Benutzerdefinierter `OnContact()`-Override für Kollisionsschadens-Tuning | Expansion | `ExpansionCarScript` |
-
----
-
-[Startseite](../README.md) | [<< Zurück: Entity-System](01-entity-system.md) | **Fahrzeuge** | [Weiter: Wetter >>](03-weather.md)

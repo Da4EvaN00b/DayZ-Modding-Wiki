@@ -1,6 +1,5 @@
 # Chapitre 1.10 : Enums & Préprocesseur
 
-[Accueil](../README.md) | [<< Précédent : Casting & Réflexion](09-casting-reflection.md) | **Enums & Préprocesseur** | [Suivant : Gestion des erreurs >>](11-error-handling.md)
 
 ---
 
@@ -610,11 +609,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | Build diagnostic |
 | `PLATFORM_WINDOWS` | Système Windows |
 | Personnalisé : `defines[]` | config.cpp de votre mod |
-
----
-
-## Navigation
-
-| Précédent | Haut | Suivant |
-|-----------|------|---------|
-| [1.9 Casting & Réflexion](09-casting-reflection.md) | [Partie 1 : Enforce Script](../README.md) | [1.11 Gestion des erreurs](11-error-handling.md) |

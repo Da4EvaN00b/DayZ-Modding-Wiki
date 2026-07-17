@@ -1,6 +1,5 @@
 # Chapter 9.2 : Structure des répertoires et dossier de mission
 
-[Accueil](../README.md) | [<< Précédent : Installation du serveur](01-server-setup.md) | **Structure des répertoires** | [Suivant : Référence serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ L'attribut `a` est l'angle de rotation en degrés.
 | `storage_1/` | Suppression uniquement | Persistance -- ne pas modifier manuellement |
 | `battleye/` | **Non** | Anti-triche -- ne pas toucher |
 | `mapgroup*.xml` | Avec précaution | Positions de loot des bâtiments -- modification avancée uniquement |
-
----
-
-**Précédent :** [Installation du serveur](01-server-setup.md) | [Accueil](../README.md) | **Suivant :** [Référence serverDZ.cfg >>](03-server-cfg.md)

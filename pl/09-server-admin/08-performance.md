@@ -1,6 +1,5 @@
 # Chapter 9.8: Optymalizacja wydajnosci
 
-[Strona glowna](../README.md) | [<< Poprzedni: Trwalosc danych](07-persistence.md) | [Dalej: Kontrola dostepu >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Folder `storage_1/` rosnacy do kilku gigabajtow spowalnia kazdy cykl trwalosci. 
 ### Logowanie pozostawione wlaczone
 
 Diagnostyczne logowanie CE, debugowe logowanie skryptow i logowanie narzedzi administratorskich zapisuja na dysku co tick. Wlaczaj je do diagnozy, a potem wylaczaj. Trwale rozbudowane logowanie na zajetym serwerze moze kosztowac 1-2 FPS samo w sobie.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Trwalosc danych](07-persistence.md) | [Dalej: Kontrola dostepu >>](09-access-control.md)

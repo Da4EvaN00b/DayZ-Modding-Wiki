@@ -1,6 +1,5 @@
 # Chapter 9.11: 服务器故障排除
 
-[首页](../README.md) | [<< 上一章: Mod 管理](10-mod-management.md) | [下一章: 高级主题 >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ BattlEye 日志在服务器根目录内的 `BattlEye/` 目录中。这些显示�
 ```
 
 步骤 8 是最强大的技术。如果服务器在原版状态下正常工作但加 mod 后出问题，你可以通过二分法隔离问题 mod——添加一半的 mod，测试，然后缩小范围。
-
----
-
-[首页](../README.md) | [<< 上一章: Mod 管理](10-mod-management.md) | [下一章: 高级主题 >>](12-advanced.md)

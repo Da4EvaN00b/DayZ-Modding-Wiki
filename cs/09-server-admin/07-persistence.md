@@ -1,6 +1,5 @@
 # Chapter 9.7: Stav sveta a persistence
 
-[Domu](../README.md) | [<< Predchozi: Spawnovani hracu](06-player-spawning.md) | [Dalsi: Ladeni vykonu >>](08-performance.md)
 
 Persistence DayZ udrzuje svet nazivz mezi restarty. Pochopeni, jak funguje, vam umozni spravovat baze, planovat wipy a vyhnout se poskozeni dat.
 
@@ -188,7 +187,3 @@ Tyto se opakované objevuji v komunitach serverovych adminu:
 | Zamena resetu pocasi s uplnym wipem | Smazani `events.xy` pouze resetuje pozice dynamickych udalosti. Neresetuje loot, baze ani hrace. | Vete, ktere soubory co ridi (viz tabulka adresare vyse). |
 | Vlajka neobnovena vcas | Po 40 dnech (FlagRefreshMaxDuration) vlajka vyprsi a vsechny pripojene casti baze se stanou zpusobilymi pro cisteni. Hraci prijdou o celou bazi. | Pripomínejte hracum interval obnovy. Snizujte FlagRefreshMaxDuration na malo populovanych serverech. |
 | Uprava globals.xml behem behu serveru | Zmeny se nepromitnou do restartu. Hure, server muze prepsat vase upravy pri vypnuti. | Upravujte konfiguracni soubory pouze pri zastavenem serveru. |
-
----
-
-[Domu](../README.md) | [<< Predchozi: Spawnovani hracu](06-player-spawning.md) | [Dalsi: Ladeni vykonu >>](08-performance.md)

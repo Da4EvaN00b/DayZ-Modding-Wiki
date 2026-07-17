@@ -1,6 +1,5 @@
 # Chapter 9.9: Hozzáférés vezérlés
 
-[Kezdőlap](../README.md) | [<< Előző: Teljesítmény hangolás](08-performance.md) | [Következő: Mod kezelés >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ Ezek a problémák érintik leggyakrabban a szerver üzemeltetőket:
 | `verifySignatures = 0` éles szerveren | Bárki csatlakozhat manipulált modokkal | Állítsd 2-re minden nyilvános szerveren |
 | RCON port megnyitásának elfelejtése a tűzfalban | Az RCON kliens időtúllépéssel megszakad | Nyisd meg az RCON UDP portot (amelyet a `RConPort`-tal állítottál be, pl. `2305`) a tűzfalban |
 | A `BattlEye/` mappában lévő **bans.txt** szerkesztése játékos UID-kkal | A kitiltások nem működnek | A BattlEye **bans.txt** GUID-okat használ, nem UID-kat; használd a szerver gyökerében lévő **ban.txt**-t UID alapú kitiltásokhoz |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Teljesítmény hangolás](08-performance.md) | [Következő: Mod kezelés >>](10-mod-management.md)

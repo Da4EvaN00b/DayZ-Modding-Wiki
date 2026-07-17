@@ -1,6 +1,5 @@
 # Enforce Script 速查表
 
-[首页](./README.md) | **速查表**
 
 ---
 

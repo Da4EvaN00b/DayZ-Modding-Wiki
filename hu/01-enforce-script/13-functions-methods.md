@@ -1,6 +1,5 @@
 # Chapter 1.13: Functions & Methods
 
-[Home](../README.md) | [<< Previous: Gotchas](12-gotchas.md) | **Functions & Methods**
 
 ---
 
@@ -1143,11 +1142,3 @@ class MyMission extends MissionServer
 | Deferred call | `CallLater(Fn, delay, repeat)` | Preferred over threads |
 | `Ex()` convention | `void FnEx(...)` | Extended version of `Fn` |
 | Parameter korlat | Maximum 16 parameter | Kemeny forditasi hiba 1.28+-ban; hasznalj osztalyt tobbhoz |
-
----
-
-## Navigacio
-
-| Elozo | Up | Kovetkezo |
-|----------|----|------|
-| [1.12 Gotchas](12-gotchas.md) | [Part 1: Enforce Script](../README.md) | -- |

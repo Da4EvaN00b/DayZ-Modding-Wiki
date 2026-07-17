@@ -1,6 +1,5 @@
 # Kapitel 9.10: Mod-Verwaltung
 
-[Home](../README.md) | [<< Zurueck: Zugriffskontrolle](09-access-control.md) | [Weiter: Fehlerbehebung >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Wenn zwei Mods beide `modded class PlayerBase` verwenden, gewinnt der zuletzt ge
 **Leerzeichen in Mod-Pfaden.** Ein Pfad wie `-mod=@My Mod` bricht das Parsen. Benennen Sie Mod-Ordner um, um Leerzeichen zu vermeiden, oder umschliessen Sie den gesamten Parameter mit Anfuehrungszeichen: `-mod="@My Mod;@CF"`.
 
 **Veralteter Mod auf dem Server, aktualisiert auf dem Client (oder umgekehrt).** Versions-Mismatch verhindert die Verbindung. Halten Sie Server- und Workshop-Versionen synchron. Aktualisieren Sie alle Mods und den Server gleichzeitig.
-
----
-
-[Home](../README.md) | [<< Zurueck: Zugriffskontrolle](09-access-control.md) | [Weiter: Fehlerbehebung >>](11-troubleshooting.md)

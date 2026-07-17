@@ -1,6 +1,5 @@
 # Ściągawka Enforce Script
 
-[Strona główna](./README.md) | **Ściągawka**
 
 ---
 

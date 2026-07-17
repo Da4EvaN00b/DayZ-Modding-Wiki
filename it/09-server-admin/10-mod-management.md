@@ -1,6 +1,5 @@
 # Chapter 9.10: Gestione delle Mod
 
-[Home](../README.md) | [<< Precedente: Controllo Accessi](09-access-control.md) | [Successivo: Risoluzione Problemi >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Se due mod usano entrambe `modded class PlayerBase`, quella caricata **per ultim
 **Spazi nei percorsi delle mod.** Un percorso come `-mod=@My Mod` rompe il parsing. Rinomina le cartelle delle mod per evitare spazi, o racchiudi l'intero parametro tra virgolette: `-mod="@My Mod;@CF"`.
 
 **Mod obsoleta sul server, aggiornata sul client (o viceversa).** Il mismatch di versione impedisce la connessione. Mantieni sincronizzate le versioni del server e del Workshop. Aggiorna tutte le mod e il server contemporaneamente.
-
----
-
-[Home](../README.md) | [<< Precedente: Controllo Accessi](09-access-control.md) | [Successivo: Risoluzione Problemi >>](11-troubleshooting.md)

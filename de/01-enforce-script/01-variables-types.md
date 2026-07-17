@@ -1,6 +1,5 @@
 # Kapitel 1.1: Variablen & Typen
 
-[Startseite](../README.md) | **Variablen & Typen** | [Weiter: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -786,7 +785,3 @@ Schreiben Sie eine Funktion `vector SnapToGround(vector pos)`, die eine beliebig
 | Scope | Variablen auf `{}`-Blöcke beschränkt; keine Neudeklaration in verschachtelten/geschwisterlichen Blöcken |
 | Konvertierung | `float`-zu-`int` schneidet ab; verwenden Sie `.ToInt()`, `.ToFloat()`, `.ToVector()` für String-Parsing |
 | Formatierung | Verwenden Sie immer `string.Format()` zum Erstellen von Strings aus gemischten Typen |
-
----
-
-[Startseite](../README.md) | **Variablen & Typen** | [Weiter: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)

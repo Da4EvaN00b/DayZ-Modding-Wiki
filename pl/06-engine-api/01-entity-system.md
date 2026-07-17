@@ -1,6 +1,5 @@
 # Chapter 6.1: Entity System
 
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
 
 ---
 
@@ -924,7 +923,3 @@ void DamageEntity(EntityAI target, float amount)
 | Usuwanie | `obj.Delete()` (odlozone) lub `GetGame().ObjectDelete(obj)` (natychmiastowe) |
 | Synchronizacja sieciowa | `RegisterNetSyncVariable*()` w konstruktorze, reaguj w `OnVariablesSynchronized()` |
 | Sprawdzanie typu | `obj.IsKindOf("ClassName")`, `obj.IsMan()`, `obj.IsBuilding()` |
-
----
-
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)

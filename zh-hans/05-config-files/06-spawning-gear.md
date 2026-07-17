@@ -1,6 +1,5 @@
 # 第5.6章：出生装备配置
 
-[首页](../README.md) | [<< 上一章：服务器配置文件](05-server-configs.md) | **出生装备配置**
 
 ---
 
@@ -1155,7 +1154,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → 网格密度、大小、坡度限制
        └─ generator_posbubbles → 位置（可选在命名组中）
 ```
-
----
-
-[首页](../README.md) | [<< 上一章：服务器配置文件](05-server-configs.md) | **出生装备配置**

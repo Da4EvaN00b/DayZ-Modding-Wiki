@@ -1,6 +1,5 @@
 # Kapitola 8.8: Tvorba HUD překryvu
 
-[Domů](../README.md) | [<< Předchozí: Publikování na Steam Workshop](07-publishing-workshop.md) | **Tvorba HUD překryvu** | [Další: Profesionální šablona modu >>](09-professional-template.md)
 
 ---
 

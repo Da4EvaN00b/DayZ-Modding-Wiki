@@ -1,6 +1,5 @@
 # Chapter 9.8: Ottimizzazione delle Prestazioni
 
-[Home](../README.md) | [<< Precedente: Persistenza](07-persistence.md) | [Successivo: Controllo Accessi >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Una cartella `storage_1/` che cresce fino a diversi gigabyte rallenta ogni ciclo
 ### Logging lasciato abilitato
 
 Il logging diagnostico della CE, il logging di debug degli script e il logging degli strumenti admin scrivono tutti su disco ad ogni tick. Abilitali per la diagnosi, poi disattivali. Il logging verbose persistente su un server attivo puo costare 1-2 FPS da solo.
-
----
-
-[Home](../README.md) | [<< Precedente: Persistenza](07-persistence.md) | [Successivo: Controllo Accessi >>](09-access-control.md)

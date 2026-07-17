@@ -1,6 +1,5 @@
 # Rozdział 7.2: Systemy modułów / wtyczek
 
-[Strona główna](../README.md) | [<< Poprzedni: Wzorzec Singleton](01-singletons.md) | **Systemy modułów / wtyczek** | [Dalej: Wzorce RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -578,7 +577,3 @@ Wybierz podejście odpowiadające profilowi zależności twojego moda. Jeśli ju
 | Moduły powinny być wymienialne w czasie działania | DayZ nie wspiera przeładowywania skryptów na gorąco; moduły żyją przez cały cykl życia misji |
 | Używaj interfejsów do kontraktów modułów | Enforce Script nie ma słowa kluczowego `interface`; używaj wirtualnych metod klasy bazowej (`override`) |
 | Wstrzykiwanie zależności rozłącza moduły | Nie istnieje framework DI; używaj wyszukiwania managera i zabezpieczeń `#ifdef` dla opcjonalnych zależności między modami |
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: Wzorzec Singleton](01-singletons.md) | **Systemy modułów / wtyczek** | [Dalej: Wzorce RPC >>](03-rpc-patterns.md)

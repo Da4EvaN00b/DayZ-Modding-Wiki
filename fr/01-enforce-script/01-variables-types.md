@@ -1,6 +1,5 @@
 # Chapitre 1.1 : Variables et types
 
-[Accueil](../README.md) | **Variables et types** | [Suivant : Tableaux, Maps et Sets >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -873,7 +872,3 @@ Indice : pour la distance 2D, créez de nouveaux vecteurs avec `[1]` mis à `0` 
 | Portée | Variables limitées aux blocs `{}` ; pas de redéclaration dans les portées imbriquées/parallèles |
 | Conversion | `float` vers `int` tronque ; utilisez `.ToInt()`, `.ToFloat()`, `.ToVector()` pour le parsing de chaînes |
 | Formatage | Utilisez toujours `string.Format()` pour construire des chaînes à partir de types mixtes |
-
----
-
-[Accueil](../README.md) | **Variables et types** | [Suivant : Tableaux, Maps et Sets >>](02-arrays-maps-sets.md)

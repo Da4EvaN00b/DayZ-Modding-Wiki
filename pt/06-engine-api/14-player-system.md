@@ -1,6 +1,5 @@
-# Capítulo 6.14: Sistema do Jogador
+# Sistema do Jogador
 
-[Início](../README.md) | [<< Anterior: Sistema de Entrada](13-input-system.md) | **Sistema do Jogador** | [Próximo: Sistema de Som >>](15-sound-system.md)
 
 ---
 

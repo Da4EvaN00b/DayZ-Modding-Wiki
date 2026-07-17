@@ -1,6 +1,5 @@
 # Capitolo 1.1: Variabili e tipi
 
-[Home](../README.md) | **Variabili e tipi** | [Successivo: Array, mappe e insiemi >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -873,7 +872,3 @@ Scrivi una funzione `vector SnapToGround(vector pos)` che prende qualsiasi posiz
 | Ambito | Variabili limitate ai blocchi `{}`; nessuna ridichiarazione in blocchi annidati/fratelli |
 | Conversione | Da `float` a `int` tronca; usa `.ToInt()`, `.ToFloat()`, `.ToVector()` per il parsing delle stringhe |
 | Formattazione | Usa sempre `string.Format()` per costruire stringhe da tipi misti |
-
----
-
-[Home](../README.md) | **Variabili e tipi** | [Successivo: Array, mappe e insiemi >>](02-arrays-maps-sets.md)

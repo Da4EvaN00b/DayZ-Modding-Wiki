@@ -1,6 +1,5 @@
 # Capítulo 5.6: Spawning Gear Configuration
 
-[Inicio](../README.md) | [<< Anterior: Server Configuration Files](05-server-configs.md) | **Spawning Gear Configuration**
 
 ---
 
@@ -1155,7 +1154,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → grid density, size, slope limits
        └─ generator_posbubbles → positions (optionally in named groups)
 ```
-
----
-
-[Inicio](../README.md) | [<< Anterior: Server Configuration Files](05-server-configs.md) | **Spawning Gear Configuration**

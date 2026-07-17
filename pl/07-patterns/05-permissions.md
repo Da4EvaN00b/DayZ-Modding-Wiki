@@ -1,6 +1,5 @@
 # Rozdział 7.5: Systemy uprawnień
 
-[Strona główna](../README.md) | [<< Poprzedni: Trwałość konfiguracji](04-config-persistence.md) | **Systemy uprawnień** | [Dalej: Architektura zdarzeniowa >>](06-events.md)
 
 ---
 
@@ -652,7 +651,3 @@ To częsty wzorzec używany do migracji z oryginalnej płaskiej tablicy `AdminUI
 | Używaj RBAC (kontrola dostępu oparta na rolach) z dziedziczeniem grup | Tylko CF/COT wspiera trójstanowe uprawnienia; większość modów używa płaskich przyznań per-gracz dla prostoty |
 | Uprawnienia powinny być przechowywane w bazie danych | Brak dostępu do bazy danych; pliki JSON w `$profile:` to jedyna opcja |
 | Używaj kryptograficznych tokenów do autoryzacji | Brak bibliotek kryptograficznych w Enforce Script; zaufanie opiera się na `PlayerIdentity.GetPlainId()` (Steam64 ID) weryfikowanym przez silnik |
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: Trwałość konfiguracji](04-config-persistence.md) | **Systemy uprawnień** | [Dalej: Architektura zdarzeniowa >>](06-events.md)

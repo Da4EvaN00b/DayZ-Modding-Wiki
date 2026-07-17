@@ -1,6 +1,5 @@
 # Kapitel 9.6: Spieler-Spawning
 
-[Home](../README.md) | [<< Zurueck: Fahrzeug-Spawning](05-vehicle-spawning.md) | [Weiter: Persistenz >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ Der Generator lehnt Neigungen ueber 45 Grad ab. Wenn alle eigenen Positionen an 
 ### Spieler spawnen immer am selben Ort
 
 Gruppen mit 1-2 Positionen haben zu wenige Kandidaten, als dass die Engine die gewaehlte Position variieren koennte. Fuegen Sie mehr Positionen pro Gruppe hinzu.
-
----
-
-[Home](../README.md) | [<< Zurueck: Fahrzeug-Spawning](05-vehicle-spawning.md) | [Weiter: Persistenz >>](07-persistence.md)

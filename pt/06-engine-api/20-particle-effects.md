@@ -1,6 +1,5 @@
-# Capítulo 6.20: Sistema de Partículas e Efeitos
+# Sistema de Partículas e Efeitos
 
-[Início](../README.md) | [<< Anterior: Consultas de Terreno e Mundo](19-terrain-queries.md) | **Sistema de Partículas e Efeitos** | [Próximo: Sistema de Zumbis e IA >>](21-zombie-ai-system.md)
 
 ---
 
@@ -1063,7 +1062,3 @@ ps.ResetParticle();  // Funciona corretamente
 - **Performance:** O pool global de `ParticleManager` é limitado a 10.000 slots (`ParticleManagerConstants.POOL_SIZE`). Exceder isso cria partículas "virtuais" que aguardam um slot ser liberado. Mods gerando muitas partículas simultâneas (ex.: efeitos climáticos, áreas contaminadas com centenas de emissores) devem monitorar o uso do pool e evitar esgotá-lo.
 - **Servidor/Cliente:** Toda renderização de partículas é no lado do cliente. Effecters de partículas do lado do servidor (`ParticleEffecter`) são entidades sincronizadas pela rede que acionam renderização no lado do cliente via `OnVariablesSynchronized`. Chamadas diretas de `Particle` ou `ParticleManager` em um servidor dedicado não fazem nada.
 - **Compatibilidade Legada:** Os métodos estáticos legados de `Particle` (`Particle.PlayOnObject`, `Particle.CreateInWorld`) ainda funcionam e são usados por mods mais antigos. Não estão depreciados, mas são menos eficientes que os equivalentes de `ParticleManager`.
-
----
-
-[Início](../README.md) | [<< Anterior: Consultas de Terreno e Mundo](19-terrain-queries.md) | **Sistema de Partículas e Efeitos** | [Próximo: Sistema de Zumbis e IA >>](21-zombie-ai-system.md)

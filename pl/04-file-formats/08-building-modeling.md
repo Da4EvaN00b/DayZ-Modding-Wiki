@@ -1,6 +1,5 @@
 # Rozdział 4.8: Modelowanie budynków -- Drzwi i drabiny
 
-[Strona główna](../README.md) | [<< Poprzedni: Przewodnik po Workbench](07-workbench-guide.md) | **Modelowanie budynków**
 
 ---
 

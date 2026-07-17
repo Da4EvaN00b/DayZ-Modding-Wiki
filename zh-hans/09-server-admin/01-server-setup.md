@@ -1,6 +1,5 @@
 # Chapter 9.1: 服务器搭建与首次启动
 
-[首页](../README.md) | **服务器搭建** | [下一章: 目录结构 >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ BattlEye Server: Initialized
 ```cpp
 template = "dayzOffline.chernarusplus";  // 必须匹配 mpmissions/ 文件夹名称
 ```
-
----
-
-**[首页](../README.md)** | **下一章：** [目录结构 >>](02-directory-structure.md)

@@ -1,6 +1,5 @@
 # Kapitola 3.10: Pokročilé widgety
 
-[Domů](../README.md) | [<< Předchozí: Vzory UI ve skutečných modech](09-real-mod-patterns.md) | **Pokročilé widgety**
 
 ---
 

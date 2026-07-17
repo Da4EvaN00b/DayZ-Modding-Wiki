@@ -1,6 +1,5 @@
 # 第7.5章：权限系统
 
-[首页](../README.md) | [<< 上一章：配置持久化](04-config-persistence.md) | **权限系统** | [下一章：事件驱动架构 >>](06-events.md)
 
 ---
 
@@ -649,7 +648,3 @@ void LoadLegacyAndMigrate()
 | 使用带有组继承的 RBAC（基于角色的访问控制） | 只有 CF/COT 支持三态权限；大多数模组为了简单使用扁平化的每玩家授权 |
 | 权限应存储在数据库中 | 无法访问数据库；`$profile:` 中的 JSON 文件是唯一选择 |
 | 使用加密令牌进行授权 | Enforce Script 中没有加密库；信任基于引擎验证的 `PlayerIdentity.GetPlainId()`（Steam64 ID） |
-
----
-
-[首页](../README.md) | [<< 上一章：配置持久化](04-config-persistence.md) | **权限系统** | [下一章：事件驱动架构 >>](06-events.md)

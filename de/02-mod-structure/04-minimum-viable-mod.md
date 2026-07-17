@@ -1,6 +1,5 @@
 # Kapitel 2.4: Deine erste Mod -- Minimaler Prototyp
 
-[Startseite](../README.md) | [<< Zurück: mod.cpp & Workshop](03-mod-cpp.md) | **Minimaler Prototyp** | [Weiter: Dateiorganisation >>](05-file-organization.md)
 
 ---
 

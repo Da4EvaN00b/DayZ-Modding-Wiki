@@ -1,6 +1,5 @@
 # Chapitre 6.2 : Systeme de vehicules
 
-[Accueil](../README.md) | [<< Precedent : Systeme d'entites](01-entity-system.md) | **Vehicules** | [Suivant : Meteo >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ La classe `Transport` (parent de `CarScript` et `BoatScript`) a desormais une re
 | Accumulateur `EOnSimulate` pour des verifications periodiques de consommation de carburant | Mods Vanilla+ vehicules | Redefinitions `CarScript` |
 | Boucle `CrewGetOut()` dans la commande admin d'ejection totale | VPP Admin Tools | Module de gestion des vehicules |
 | Redefinition personnalisee `OnContact()` pour le reglage des degats de collision | Expansion | `ExpansionCarScript` |
-
----
-
-[Accueil](../README.md) | [<< Precedent : Systeme d'entites](01-entity-system.md) | **Vehicules** | [Suivant : Meteo >>](03-weather.md)

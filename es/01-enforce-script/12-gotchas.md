@@ -1,6 +1,5 @@
 # Capitulo 1.12: Lo que NO Existe (Gotchas)
 
-[Inicio](../README.md) | [<< Anterior: Manejo de Errores](11-error-handling.md) | **Gotchas** | [Siguiente: Funciones y Metodos >>](13-functions-methods.md)
 
 ---
 
@@ -1209,11 +1208,3 @@ Si eres desarrollador C++, aqui estan los ajustes mas grandes:
 | `IsClient()` durante la carga | Retorna false | Usar `IsDedicatedServer()` |
 | Error de compilacion en archivo incorrecto | Ubicacion enganosa | Verificar el archivo parseado despues del reportado |
 | Archivos `crash_*.log` | No son crashes reales | Son excepciones de runtime de script |
-
----
-
-## Navegacion
-
-| Anterior | Arriba | Siguiente |
-|----------|----|------|
-| [1.11 Manejo de Errores](11-error-handling.md) | [Parte 1: Enforce Script](../README.md) | [1.13 Funciones y Metodos](13-functions-methods.md) |

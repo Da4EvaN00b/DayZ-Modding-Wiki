@@ -1,6 +1,5 @@
 # Chapitre 6.14: Player System
 
-[Accueil](../README.md) | [<< Précédent : Input System](13-input-system.md) | **Player System** | [Suivant : Sound System >>](15-sound-system.md)
 
 ---
 

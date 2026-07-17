@@ -1,6 +1,5 @@
 # Kapitel 9.4: Loot-Wirtschaft im Detail
 
-[Home](../README.md) | [<< Zurueck: serverDZ.cfg-Referenz](03-server-cfg.md) | **Loot-Wirtschaft im Detail**
 
 ---
 
@@ -721,7 +720,3 @@ Nach dem Bearbeiten von Wirtschaftsdateien fuehren Sie eine der folgenden Massna
 - `storage_1/` loeschen fuer einen vollstaendigen Wipe und frischen Wirtschaftsstart
 - `RestartSpawn` in `globals.xml` fuer einen Neustart auf `1` setzen, um Loot neu zu verteilen, dann zurueck auf `0` setzen
 - Warten, bis Item-Lebensdauern natuerlich ablaufen (kann Stunden dauern)
-
----
-
-**Zurueck:** [serverDZ.cfg-Referenz](03-server-cfg.md) | [Home](../README.md) | **Weiter:** [Fahrzeug- & Dynamic-Event-Spawning](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Capítulo 4.6: Empaquetado de PBOs
 
-[Inicio](../README.md) | [<< Anterior: DayZ Tools Workflow](05-dayz-tools.md) | **PBO Packing** | [Siguiente: Workbench Guide >>](07-workbench-guide.md)
 
 ---
 

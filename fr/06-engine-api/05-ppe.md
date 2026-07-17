@@ -1,6 +1,5 @@
 # Chapitre 6.5 : Effets post-traitement (PPE)
 
-[Accueil](../README.md) | [<< Precedent : Cameras](04-cameras.md) | **Effets post-traitement** | [Suivant : Notifications >>](06-notifications.md)
 
 ---
 

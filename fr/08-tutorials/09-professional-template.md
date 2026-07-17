@@ -1,6 +1,5 @@
 # Chapitre 8.9 : Modèle de mod professionnel
 
-[Accueil](../README.md) | [<< Précédent : Construire une surcouche HUD](08-hud-overlay.md) | **Modèle de mod professionnel** | [Suivant : Créer un véhicule personnalisé >>](10-vehicle-mod.md)
 
 ---
 
@@ -1833,7 +1832,3 @@ Avec ce modèle professionnel en fonctionnement, vous pouvez :
 4. **Ajouter une surcouche HUD** -- Suivez le [Chapitre 8.8 : Construire une surcouche HUD](08-hud-overlay.md) pour les éléments UI toujours visibles.
 5. **Publier sur le Workshop** -- Suivez le [Chapitre 8.7 : Publier sur le Workshop](07-publishing-workshop.md) quand votre mod est prêt.
 6. **Apprendre le débogage** -- Lisez le [Chapitre 8.6 : Débogage et test](06-debugging-testing.md) pour l'analyse des journaux et le dépannage.
-
----
-
-**Précédent :** [Chapitre 8.8 : Construire une surcouche HUD](08-hud-overlay.md) | [Accueil](../README.md)

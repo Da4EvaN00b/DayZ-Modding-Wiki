@@ -1,6 +1,5 @@
 # Kapitel 9.12: Fortgeschrittene Server-Themen
 
-[Home](../README.md) | [<< Zurueck: Fehlerbehebung](11-troubleshooting.md) | [Teil 9 Startseite](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ Die Datei **db/messages.xml** in Ihrem Missionsordner steuert geplante Servernac
 - `shutdown` -- `1` fuer Herunterfahren-Sequenz-Nachrichten, `0` fuer regulaere Rundrufe
 
 Das Nachrichtensystem startet den Server nicht neu. Es zeigt nur Warnungen an, wenn ein Neustart-Zeitplan extern konfiguriert ist.
-
----
-
-[Home](../README.md) | [<< Zurueck: Fehlerbehebung](11-troubleshooting.md) | [Teil 9 Startseite](01-server-setup.md)

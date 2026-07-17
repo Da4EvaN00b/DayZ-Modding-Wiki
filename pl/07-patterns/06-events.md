@@ -1,6 +1,5 @@
 # Chapter 7.6: Event-Driven Architecture
 
-[Home](../README.md) | [<< Previous: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Next: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -525,7 +524,3 @@ OnKillEvent.Invoke(killData);
 9. **Never use anonymous functions as event subscribers.** You cannot unsubscribe them.
 
 10. **Prefer events over polling.** Instead of checking "has the config changed?" every frame, subscribe to `OnConfigChanged` and react only when it fires.
-
----
-
-[<< Previous: Permission Systems](05-permissions.md) | [Home](../README.md) | [Next: Performance Optimization >>](07-performance.md)

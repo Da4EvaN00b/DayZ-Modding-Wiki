@@ -1,6 +1,5 @@
 # Capitolo 8.9: Template Professionale per Mod
 
-[Home](../README.md) | [<< Precedente: Costruire un Overlay HUD](08-hud-overlay.md) | **Template Professionale per Mod** | [Successivo: Creare un Veicolo Personalizzato >>](10-vehicle-mod.md)
 
 ---
 
@@ -1835,7 +1834,3 @@ Con questo template professionale in esecuzione, puoi:
 4. **Aggiungere un overlay HUD** -- Segui il [Capitolo 8.8: Costruire un Overlay HUD](08-hud-overlay.md) per elementi UI sempre visibili.
 5. **Pubblicare sul Workshop** -- Segui il [Capitolo 8.7: Pubblicazione sul Workshop](07-publishing-workshop.md) quando il tuo mod è pronto.
 6. **Imparare il debugging** -- Leggi il [Capitolo 8.6: Debugging e Testing](06-debugging-testing.md) per l'analisi dei log e la risoluzione dei problemi.
-
----
-
-**Precedente:** [Capitolo 8.8: Costruire un Overlay HUD](08-hud-overlay.md) | [Home](../README.md)

@@ -1,6 +1,5 @@
 # Tahák pro Enforce Script
 
-[Domů](./README.md) | **Tahák**
 
 ---
 

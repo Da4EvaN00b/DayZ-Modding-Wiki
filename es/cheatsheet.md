@@ -1,6 +1,5 @@
 # Hoja de Referencia de Enforce Script
 
-[Inicio](./README.md) | **Hoja de Referencia**
 
 ---
 

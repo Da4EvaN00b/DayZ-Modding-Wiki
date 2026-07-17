@@ -1,6 +1,5 @@
 # Chapter 1.11: Error Handling
 
-[Domů](../README.md) | [<< Předchozí: Výčty a preprocesor](10-enums-preprocessor.md) | **Zpracování chyb** | [Další: Záludnosti >>](12-gotchas.md)
 
 ---
 
@@ -827,11 +826,3 @@ override void OnUpdate(float timeslice)
 | notnull | Compiler null check | `void Fn(notnull Class obj)` |
 
 **The golden rule:** In Enforce Script, assume každýthing can be null and každý operation can fail. Zkontrolujte first, act second, log vždy.
-
----
-
-## Navigace
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.10 Enums & Preprocessor](10-enums-preprocessor.md) | [Part 1: Enforce Script](../README.md) | [1.12 What Does NOT Exist](12-gotchas.md) |

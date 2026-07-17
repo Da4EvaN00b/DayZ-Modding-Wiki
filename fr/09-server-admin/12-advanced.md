@@ -1,6 +1,5 @@
 # Chapter 9.12 : Sujets avancés du serveur
 
-[Accueil](../README.md) | [<< Précédent : Dépannage](11-troubleshooting.md) | [Accueil Partie 9](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ Le fichier **db/messages.xml** dans votre dossier de mission contrôle les messa
 - `shutdown` -- `1` pour les messages de séquence d'arrêt, `0` pour les diffusions normales
 
 Le système de messages ne redémarre pas le serveur. Il affiche uniquement des avertissements quand un programme de redémarrage est configuré en externe.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Dépannage](11-troubleshooting.md) | [Accueil Partie 9](01-server-setup.md)

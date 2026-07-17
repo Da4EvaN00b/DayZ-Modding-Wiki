@@ -1,6 +1,5 @@
 # Kapitel 9.5: Fahrzeug- & Dynamic-Event-Spawning
 
-[Home](../README.md) | [<< Zurueck: Loot-Wirtschaft](04-loot-economy.md) | [Weiter: Spieler-Spawning >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Dies sind die haeufigsten Fahrzeug-Spawn-Probleme, auf die Serveradministratoren
 **Problem:** Ein Fahrzeug spawnt in ein Gebaeude geclippt oder im Gelaende vergraben.
 
 **Loesung:** Ueberpruefen Sie die `<pos>`-Koordinaten in `cfgeventspawns.xml`. Testen Sie Positionen im Spiel mit Admin-Teleport, bevor Sie sie zur Datei hinzufuegen. Positionen sollten auf ebenen Strassen oder offenem Gelaende liegen, und der Winkel (`a`) sollte zur Strassenrichtung ausgerichtet sein.
-
----
-
-[Home](../README.md) | [<< Zurueck: Loot-Wirtschaft](04-loot-economy.md) | [Weiter: Spieler-Spawning >>](06-player-spawning.md)

@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawnovani hracu
 
-[Domu](../README.md) | [<< Predchozi: Spawnovani vozidel](05-vehicle-spawning.md) | [Dalsi: Persistence >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ Generator odmita sklony nad 45 stupnu. Pokud jsou vsechny vlastni pozice na svaz
 ### Hraci se vzdy spawnuji na stejnem miste
 
 Skupiny s 1-2 pozicemi maji prilis malo kandidatu, aby engine mohl menit vybranou pozici. Pridejte vice pozic na skupinu.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Spawnovani vozidel](05-vehicle-spawning.md) | [Dalsi: Persistence >>](07-persistence.md)

@@ -1,6 +1,5 @@
 # Глава 1.3: Классы и наследование
 
-[Главная](../README.md) | [<< Предыдущая: Массивы, Map и Set](02-arrays-maps-sets.md) | **Классы и наследование** | [Следующая: Modded-классы >>](04-modded-classes.md)
 
 ---
 ---
@@ -1137,7 +1136,3 @@ class FlyingCar extends Car
 | Параметр `out` | `void Func(out int val)` | Параметр только для записи |
 | Параметр `inout` | `void Func(inout array<int> a)` | Параметр для ввода и вывода |
 | Параметр `notnull` | `void Func(notnull EntityAI e)` | Компилятор гарантирует non-null |
-
----
-
-[Главная](../README.md) | [<< Предыдущая: Массивы, Map и Set](02-arrays-maps-sets.md) | **Классы и наследование** | [Следующая: Modded-классы >>](04-modded-classes.md)

@@ -1,6 +1,5 @@
 # Chapter 9.12: Zaawansowane tematy serwerowe
 
-[Strona glowna](../README.md) | [<< Poprzedni: Rozwiazywanie problemow](11-troubleshooting.md) | [Strona glowna czesci 9](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ Plik **db/messages.xml** w folderze misji kontroluje zaplanowane wiadomosci serw
 - `shutdown` -- `1` dla wiadomosci sekwencji wylaczenia, `0` dla zwyklych ogloszen
 
 System wiadomosci nie restartuje serwera. Wyswietla jedynie ostrzezenia, gdy harmonogram restartow jest skonfigurowany zewnetrznie.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Rozwiazywanie problemow](11-troubleshooting.md) | [Strona glowna czesci 9](01-server-setup.md)

@@ -1,6 +1,5 @@
 # Chapter 9.3: Kompletni reference serverDZ.cfg
 
-[Domu](../README.md) | [<< Predchozi: Adresarova struktura](02-directory-structure.md) | **Reference serverDZ.cfg** | [Dalsi: Lootova ekonomika podrobne >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Mody se nacitaji v poradi uvedenem v `-mod=`. Poradi zavislosti je dulezite: pokud Mod B vyzaduje Mod A, uveďte Mod A prvni.
-
----
-
-**Predchozi:** [Adresarova struktura](02-directory-structure.md) | [Domu](../README.md) | **Dalsi:** [Lootova ekonomika podrobne >>](04-loot-economy.md)

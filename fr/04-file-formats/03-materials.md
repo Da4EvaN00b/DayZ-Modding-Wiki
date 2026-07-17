@@ -1,6 +1,5 @@
 # Chapitre 4.3 : Matériaux (.rvmat)
 
-[Accueil](../README.md) | [<< Précédent : Modèles 3D](02-models.md) | **Matériaux** | [Suivant : Audio >>](04-audio.md)
 
 ---
 

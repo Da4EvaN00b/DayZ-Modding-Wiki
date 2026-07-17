@@ -1,6 +1,5 @@
 # 6.3. fejezet: Időjárásrendszer
 
-[Kezdőlap](../README.md) | [<< Előző: Járművek](02-vehicles.md) | **Időjárás** | [Következő: Kamerák >>](04-cameras.md)
 
 ---
 

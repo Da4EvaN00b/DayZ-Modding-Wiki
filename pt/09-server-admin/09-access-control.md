@@ -1,6 +1,5 @@
-# Chapter 9.9: Controle de Acesso
+# Controle de Acesso
 
-[Inicio](../README.md) | [<< Anterior: Ajuste de Performance](08-performance.md) | [Proximo: Gerenciamento de Mods >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ Estes sao os problemas que operadores de servidores encontram com mais frequenci
 | `verifySignatures = 0` em producao | Qualquer pessoa pode entrar com mods adulterados | Defina como `2` em qualquer servidor publico |
 | Esquecendo de abrir a porta RCON no firewall | Cliente RCON da timeout | Abra a porta UDP do RCON (a que voce definiu com `RConPort`, ex. `2305`) no seu firewall |
 | Editando **bans.txt** em `BattlEye/` com UIDs de jogadores | Bans nao funcionam | O **bans.txt** do BattlEye usa GUIDs, nao UIDs; use **ban.txt** na raiz do servidor para bans baseados em UID |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Ajuste de Performance](08-performance.md) | [Proximo: Gerenciamento de Mods >>](10-mod-management.md)

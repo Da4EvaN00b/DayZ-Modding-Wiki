@@ -1,6 +1,5 @@
-# Chapter 5.3: Credits.json
+# Credits.json
 
-[Home](../README.md) | [<< Previous: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Next: ImageSet Format >>](04-imagesets.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # 第 6.2 章：载具系统
 
-[首页](../README.md) | [<< 上一章：实体系统](01-entity-system.md) | **载具** | [下一章：天气 >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Bullet Physics 库启用了多线程支持。服务器压力测试显示 FPS 提
 | `EOnSimulate` 累加器用于周期性油耗检查 | Vanilla+ 载具模组 | `CarScript` 覆盖 |
 | 管理员弹出所有人命令中的 `CrewGetOut()` 循环 | VPP 管理工具 | 载具管理模块 |
 | 自定义 `OnContact()` 覆盖用于碰撞伤害调整 | Expansion | `ExpansionCarScript` |
-
----
-
-[首页](../README.md) | [<< 上一章：实体系统](01-entity-system.md) | **载具** | [下一章：天气 >>](03-weather.md)

@@ -1,6 +1,5 @@
 # Chapter 9.6 : Apparition des joueurs
 
-[Accueil](../README.md) | [<< Précédent : Apparition des véhicules](05-vehicle-spawning.md) | [Suivant : Persistance >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ Le générateur rejette les pentes au-delà de 45 degrés. Si toutes les positio
 ### Les joueurs apparaissent toujours au même endroit
 
 Les groupes avec 1-2 positions ont trop peu de candidats pour que le moteur puisse varier la position choisie. Ajoutez plus de positions par groupe.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Apparition des véhicules](05-vehicle-spawning.md) | [Suivant : Persistance >>](07-persistence.md)

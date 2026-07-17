@@ -1,6 +1,5 @@
 # Capítulo 8.9: Plantilla Profesional de Mod
 
-[Inicio](../README.md) | [<< Anterior: Construyendo una Superposición HUD](08-hud-overlay.md) | **Plantilla Profesional de Mod** | [Siguiente: Creando un Vehículo Personalizado >>](10-vehicle-mod.md)
 
 ---
 
@@ -1467,7 +1466,3 @@ Con esta plantilla profesional funcionando, puedes:
 4. **Agregar una superposición HUD** -- Sigue el [Capítulo 8.8: Construyendo una Superposición HUD](08-hud-overlay.md) para elementos de UI siempre visibles.
 5. **Publicar en el Workshop** -- Sigue el [Capítulo 8.7: Publicando en el Workshop](07-publishing-workshop.md) cuando tu mod esté listo.
 6. **Aprender depuración** -- Lee el [Capítulo 8.6: Depuración y Pruebas](06-debugging-testing.md) para análisis de logs y solución de problemas.
-
----
-
-**Anterior:** [Capítulo 8.8: Construyendo una Superposición HUD](08-hud-overlay.md) | [Inicio](../README.md)

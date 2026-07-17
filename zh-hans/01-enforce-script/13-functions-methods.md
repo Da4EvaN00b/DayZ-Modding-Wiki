@@ -1,6 +1,5 @@
 # 第 1.13 章：函数与方法
 
-[首页](../README.md) | [<< 上一章：注意事项](12-gotchas.md) | **函数与方法**
 
 ---
 
@@ -1142,11 +1141,3 @@ class MyMission extends MissionServer
 | 终止线程 | `KillThread(owner, "FnName")` | 停止正在运行的协程 |
 | 延迟调用 | `CallLater(Fn, delay, repeat)` | 优于线程 |
 | `Ex()` 约定 | `void FnEx(...)` | `Fn` 的扩展版本 |
-
----
-
-## 导航
-
-| 上一章 | 上级 | 下一章 |
-|----------|----|------|
-| [1.12 注意事项](12-gotchas.md) | [第一部分：Enforce Script](../README.md) | -- |

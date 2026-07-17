@@ -1,6 +1,5 @@
 # Capitolo 7.2: Sistemi a Moduli / Plugin
 
-[Home](../README.md) | [<< Precedente: Pattern Singleton](01-singletons.md) | **Sistemi a Moduli / Plugin** | [Successivo: Pattern RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -575,7 +574,3 @@ Scegli l'approccio che corrisponde al profilo di dipendenze del tuo mod. Se dipe
 | I moduli dovrebbero essere sostituibili a caldo in runtime | DayZ non supporta il hot-reloading degli script; i moduli vivono per l'intero ciclo di vita della missione |
 | Usa interfacce per i contratti dei moduli | Enforce Script non ha la keyword `interface`; usa metodi virtuali della classe base (`override`) al suo posto |
 | La dependency injection disaccoppia i moduli | Non esiste un framework DI; usa lookup del manager e guard `#ifdef` per le dipendenze cross-mod opzionali |
-
----
-
-[Home](../README.md) | [<< Precedente: Pattern Singleton](01-singletons.md) | **Sistemi a Moduli / Plugin** | [Successivo: Pattern RPC >>](03-rpc-patterns.md)

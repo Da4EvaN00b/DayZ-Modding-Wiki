@@ -1,6 +1,5 @@
 # 第 8.9 章：专业模组模板
 
-[首页](../README.md) | [<< 上一章：构建 HUD 覆盖层](08-hud-overlay.md) | **专业模组模板** | [下一章：创建自定义载具 >>](10-vehicle-mod.md)
 
 ---
 
@@ -1828,7 +1827,3 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 4. **添加 HUD 覆盖层** -- 按照[第 8.8 章：构建 HUD 覆盖层](08-hud-overlay.md)实现始终可见的 UI 元素。
 5. **发布到创意工坊** -- 当你的模组准备就绪时，按照[第 8.7 章：发布到创意工坊](07-publishing-workshop.md)操作。
 6. **学习调试** -- 阅读[第 8.6 章：调试和测试](06-debugging-testing.md)了解日志分析和故障排除。
-
----
-
-**上一章：** [第 8.8 章：构建 HUD 覆盖层](08-hud-overlay.md) | [首页](../README.md)

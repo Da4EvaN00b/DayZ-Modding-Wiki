@@ -1,6 +1,5 @@
 # 第 1.11 章：错误处理
 
-[首页](../README.md) | [<< 上一章：枚举与预处理器](10-enums-preprocessor.md) | **错误处理** | [下一章：注意事项 >>](12-gotchas.md)
 
 ---
 
@@ -827,11 +826,3 @@ override void OnUpdate(float timeslice)
 | notnull | 编译器空值检查 | `void Fn(notnull Class obj)` |
 
 **黄金法则：**在 Enforce Script 中，假设一切都可能是 null，每个操作都可能失败。先检查，后操作，始终记录。
-
----
-
-## 导航
-
-| 上一章 | 上级 | 下一章 |
-|----------|----|------|
-| [1.10 枚举与预处理器](10-enums-preprocessor.md) | [第一部分：Enforce Script](../README.md) | [1.12 不存在的特性](12-gotchas.md) |

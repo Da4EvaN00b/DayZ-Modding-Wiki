@@ -1,6 +1,5 @@
 # Kapitel 9.3: Vollstaendige serverDZ.cfg-Referenz
 
-[Home](../README.md) | [<< Zurueck: Verzeichnisstruktur](02-directory-structure.md) | **serverDZ.cfg-Referenz** | [Weiter: Loot-Wirtschaft im Detail >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Mods werden in der in `-mod=` angegebenen Reihenfolge geladen. Die Abhaengigkeitsreihenfolge ist wichtig: Wenn Mod B Mod A benoetigt, listen Sie Mod A zuerst auf.
-
----
-
-**Zurueck:** [Verzeichnisstruktur](02-directory-structure.md) | [Home](../README.md) | **Weiter:** [Loot-Wirtschaft im Detail >>](04-loot-economy.md)

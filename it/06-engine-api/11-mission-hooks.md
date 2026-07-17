@@ -1,6 +1,5 @@
 # Capitolo 6.11: Hook delle Missioni
 
-[Home](../README.md) | [<< Precedente: Economia Centrale](10-central-economy.md) | **Hook delle Missioni** | [Successivo: Sistema delle Azioni >>](12-action-system.md)
 
 ---
 
@@ -933,7 +932,3 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Override di `StartingEquipSetup` per kit iniziali personalizzati | Molteplici mod della comunità | Hook dei kit iniziali in MissionServer |
 | Intercettazione `OnEvent` prima di `super` per bloccare giocatori bannati | COT | Sistema ban in MissionServer |
 | Pulizia in `OnMissionFinish` con `Unlink()` dei widget e assegnazioni null | Expansion | Pulizia HUD e menu |
-
----
-
-[Home](../README.md) | [<< Precedente: Economia Centrale](10-central-economy.md) | **Hook delle Missioni** | [Successivo: Sistema delle Azioni >>](12-action-system.md)

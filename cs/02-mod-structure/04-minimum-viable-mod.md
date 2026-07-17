@@ -1,6 +1,5 @@
 # Chapter 2.4: Your First Mod -- Minimum Viable
 
-[Home](../README.md) | [<< Previous: mod.cpp & Workshop](03-mod-cpp.md) | **Minimum Viable Mod** | [Next: File Organization >>](05-file-organization.md)
 
 ---
 

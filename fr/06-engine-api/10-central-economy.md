@@ -1,6 +1,5 @@
 # Chapitre 6.10: Central Economy
 
-[Accueil](../README.md) | [<< Précédent : Networking & RPC](09-networking.md) | **Central Economy** | [Suivant : Mission Hooks >>](11-mission-hooks.md)
 
 ---
 
@@ -551,7 +550,3 @@ Add a new `<event>` block in `events.xml` and corresponding apparition positions
 - **Multi-Mod :** Multiple mods can add entries to `types.xml`. If two mods define the same `<type name="">`, the last loaded file wins. Use unique class names to avoid collisions. Merge types.xml entries carefully on community servers.
 - **Performance :** High `nominal` values (200+) for many item types strain the CE's apparition loop. The CE runs periodic scans that scale with total tracked entity count. Keep nominals realistic -- 5-20 for weapons, 20-100 for common items.
 - **Serveur/Client :** The CE runs entirely on le serveur. Clients have no visibility into CE state. All XML files are côté serveur only and are not distributed to clients.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Networking & RPC](09-networking.md) | **Central Economy** | [Suivant : Mission Hooks >>](11-mission-hooks.md)

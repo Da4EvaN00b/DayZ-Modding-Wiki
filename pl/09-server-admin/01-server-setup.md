@@ -1,6 +1,5 @@
 # Chapter 9.1: Konfiguracja serwera i pierwszy start
 
-[Strona glowna](../README.md) | **Konfiguracja serwera** | [Dalej: Struktura katalogow >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ To jest normalne. Serwer DayZ jest jednowatkowy. Nie uruchamiaj wielu instancji 
 ```cpp
 template = "dayzOffline.chernarusplus";  // Musi odpowiadac nazwie folderu w mpmissions/
 ```
-
----
-
-**[Strona glowna](../README.md)** | **Dalej:** [Struktura katalogow >>](02-directory-structure.md)

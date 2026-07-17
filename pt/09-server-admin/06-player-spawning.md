@@ -1,6 +1,5 @@
-# Chapter 9.6: Spawn de Jogadores
+# Spawn de Jogadores
 
-[Inicio](../README.md) | [<< Anterior: Spawn de Veiculos](05-vehicle-spawning.md) | [Proximo: Persistencia >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ O gerador rejeita inclinacoes acima de 45 graus. Se todas as posicoes customizad
 ### Jogadores sempre spawnando no mesmo lugar
 
 Grupos com 1-2 posicoes tem poucos candidatos para o engine variar a posicao escolhida. Adicione mais posicoes por grupo.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Spawn de Veiculos](05-vehicle-spawning.md) | [Proximo: Persistencia >>](07-persistence.md)

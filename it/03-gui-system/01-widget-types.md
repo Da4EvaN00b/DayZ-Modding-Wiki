@@ -1,6 +1,5 @@
 # Capitolo 3.1: Tipi di Widget
 
-[Home](../README.md) | **Tipi di Widget** | [Successivo: File di Layout >>](02-layout-files.md)
 
 ---
 

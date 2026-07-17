@@ -1,6 +1,5 @@
 # 第 1.10 章：枚举与预处理器
 
-[首页](../README.md) | [<< 上一章：类型转换与反射](09-casting-reflection.md) | **枚举与预处理器** | [下一章：错误处理 >>](11-error-handling.md)
 
 ---
 
@@ -610,11 +609,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | 诊断版本 |
 | `PLATFORM_WINDOWS` | Windows 操作系统 |
 | 自定义：`defines[]` | 你 mod 的 config.cpp |
-
----
-
-## 导航
-
-| 上一章 | 上级 | 下一章 |
-|----------|----|------|
-| [1.9 类型转换与反射](09-casting-reflection.md) | [第 1 部分：Enforce Script](../README.md) | [1.11 错误处理](11-error-handling.md) |

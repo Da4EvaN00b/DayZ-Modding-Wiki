@@ -1,6 +1,5 @@
 # Chapter 9.11: Rozwiazywanie problemow z serwerem
 
-[Strona glowna](../README.md) | [<< Poprzedni: Zarzadzanie modami](10-mod-management.md) | [Dalej: Tematy zaawansowane >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Gdy cos pojdzie nie tak, przejdz przez te liste po kolei:
 ```
 
 Krok 8 to najpotezniejsza technika. Jesli serwer dziala w vanilli, ale psuje sie z modami, mozesz wyizolowac problematyczny mod przez wyszukiwanie binarne -- dodaj polowe swoich modow, przetestuj, a nastepnie zawez zakres.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Zarzadzanie modami](10-mod-management.md) | [Dalej: Tematy zaawansowane >>](12-advanced.md)

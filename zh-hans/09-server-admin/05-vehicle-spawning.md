@@ -1,6 +1,5 @@
 # Chapter 9.5: 载具与动态事件刷新
 
-[首页](../README.md) | [<< 上一章: 战利品经济](04-loot-economy.md) | [下一章: 玩家出生 >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 **问题：** 载具刷新时嵌入建筑或埋在地形中。
 
 **解决方法：** 检查 `cfgeventspawns.xml` 中的 `<pos>` 坐标。在将位置添加到文件之前，使用管理员传送在游戏中测试位置。位置应在平坦的道路或空旷地面上，角度（`a`）应与道路方向对齐。
-
----
-
-[首页](../README.md) | [<< 上一章: 战利品经济](04-loot-economy.md) | [下一章: 玩家出生 >>](06-player-spawning.md)

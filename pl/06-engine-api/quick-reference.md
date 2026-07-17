@@ -1,6 +1,5 @@
 # Szybka referencja API silnika
 
-[Strona główna](../README.md) | **Szybka referencja API silnika**
 
 ---
 

@@ -1,6 +1,5 @@
 # Chapter 7.4: Config Persistence
 
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)
 
 ---
 
@@ -672,7 +671,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 9. **Log load/save operations.** When debugging config issues, a log line saying "Loaded config v3 from $profile:MyMod/Config.json" is invaluable.
 
 10. **Test with a deleted config file.** Your mod should handle first-run gracefully: create directories, write defaults, log what it did.
-
----
-
-[<< Zurück: RPC Patterns](03-rpc-patterns.md) | [Startseite](../README.md) | [Next: Permission Systems >>](05-permissions.md)

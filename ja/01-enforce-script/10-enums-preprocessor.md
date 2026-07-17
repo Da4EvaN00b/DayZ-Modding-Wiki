@@ -1,6 +1,5 @@
 # 第1.10章: 列挙型とプリプロセッサ
 
-[ホーム](../README.md) | [<< 前へ: キャストとリフレクション](09-casting-reflection.md) | **列挙型とプリプロセッサ** | [次へ: エラー処理 >>](11-error-handling.md)
 
 ---
 
@@ -595,11 +594,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | 診断ビルド |
 | `PLATFORM_WINDOWS` | Windows OS |
 | カスタム: `defines[]` | モッドのconfig.cpp |
-
----
-
-## ナビゲーション
-
-| 前へ | 上へ | 次へ |
-|----------|----|------|
-| [1.9 キャストとリフレクション](09-casting-reflection.md) | [第1部: Enforce Script](../README.md) | [1.11 エラー処理](11-error-handling.md) |

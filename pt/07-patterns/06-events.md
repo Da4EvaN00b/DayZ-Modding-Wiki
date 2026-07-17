@@ -1,6 +1,5 @@
-# Chapter 7.6: Event-Driven Architecture
+# Event-Driven Architecture
 
-[Home](../README.md) | [<< Previous: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Next: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -254,7 +253,3 @@ Sempre use métodos nomeados para poder desinscrever depois.
 | `Insert()` duplo do mesmo handler | Handler é chamado duas vezes por `Invoke()`; um `Remove()` padrão (flag `ALL`) limpa todas as entradas de uma vez, removendo todas as inscrições | Verifique antes de inserir, ou garanta que `Insert()` é chamado apenas uma vez (ex.: em `OnInit` com uma flag de guarda) |
 | Usar funções anônimas/lambda como handlers | Não podem ser removidas porque não há referência para passar ao `Remove()` | Sempre use métodos nomeados como handlers de eventos |
 | Disparar eventos com assinaturas de argumento incompatíveis | Inscritos recebem dados lixo ou crasham em runtime; sem verificação em tempo de compilação | Documente a assinatura esperada acima de toda declaração de `ScriptInvoker` e faça match exatamente em todos os handlers |
-
----
-
-[<< Anterior: Sistemas de Permissão](05-permissions.md) | [Início](../README.md) | [Próximo: Otimização de Performance >>](07-performance.md)

@@ -1,6 +1,5 @@
 # Rozdział 6.2: System pojazdów
 
-[Strona główna](../README.md) | [<< Poprzedni: System encji](01-entity-system.md) | **Pojazdy** | [Następny: Pogoda >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Na `Transport` dodano funkcje fizyczne umożliwiające pojazdom **uśpienie** w 
 ### Dynamiczna kolizja dla wszystkich Transport (1.29 eksperymentalne)
 
 Klasa `Transport` (rodzic `CarScript` i `BoatScript`) ma teraz dynamiczną rozdzielczość kolizji. Wcześniej miał ją tylko `CarScript`. Mody łodzi korzystają z prawidłowej obsługi kolizji.
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: System encji](01-entity-system.md) | **Pojazdy** | [Następny: Pogoda >>](03-weather.md)

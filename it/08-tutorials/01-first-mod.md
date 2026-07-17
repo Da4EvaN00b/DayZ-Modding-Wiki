@@ -1,6 +1,5 @@
 # Capitolo 8.1: Il tuo primo mod (Hello World)
 
-[Home](../README.md) | **Il tuo primo mod** | [Successivo: Creare un oggetto personalizzato >>](02-custom-item.md)
 
 ---
 

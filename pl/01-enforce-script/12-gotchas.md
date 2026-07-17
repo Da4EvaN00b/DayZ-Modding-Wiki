@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -1203,11 +1202,3 @@ If you are a C++ developer, here are the biggest adjustments:
 | Namespaces | No | Name prefixes |
 | RAII | No | Manual cleanup |
 | `GetGame().GetPlayer()` server | Returns null | Iterate `GetPlayers()` |
-
----
-
-## Nawigacja
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.11 Error Handling](11-error-handling.md) | [Part 1: Enforce Script](../README.md) | [Part 2: Mod Structure](../02-mod-structure/01-five-layers.md) |

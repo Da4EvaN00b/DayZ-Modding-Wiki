@@ -1,6 +1,5 @@
 # 7.2. fejezet: Modul / Plugin rendszerek
 
-[Kezdőlap](../README.md) | [<< Előző: Singleton minta](01-singletons.md) | **Modul / Plugin rendszerek** | [Következő: RPC minták >>](03-rpc-patterns.md)
 
 ---
 
@@ -578,7 +577,3 @@ Válaszd azt a megközelítést, amely illeszkedik a modod függőségi profilj�
 | A moduloknak futásidőben cserélhetőnek kell lenniük | A DayZ nem támogatja a szkriptek menet közbeni újratöltését; a modulok a teljes küldetés életciklus alatt élnek |
 | Használj interfészeket a modul szerződésekhez | Az Enforce Scriptben nincs `interface` kulcsszó; használj alaposztály virtuális metódusokat (`override`) helyette |
 | A függőséginjektálás szétválasztja a modulokat | Nem létezik DI keretrendszer; használj menedzser kereséseket és `#ifdef` védelmeket az opcionális mod-közi függőségekhez |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Singleton minta](01-singletons.md) | **Modul / Plugin rendszerek** | [Következő: RPC minták >>](03-rpc-patterns.md)

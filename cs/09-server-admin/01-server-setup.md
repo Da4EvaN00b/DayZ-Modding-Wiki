@@ -1,6 +1,5 @@
 # Chapter 9.1: Nastaveni serveru a prvni spusteni
 
-[Domu](../README.md) | **Nastaveni serveru** | [Dalsi: Adresarova struktura >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ To je normalni. DayZ Server je jednovlaknovy. Nespoustejte vice instanci serveru
 ```cpp
 template = "dayzOffline.chernarusplus";  // Musi odpovidat nazvu slozky v mpmissions/
 ```
-
----
-
-**[Domu](../README.md)** | **Dalsi:** [Adresarova struktura >>](02-directory-structure.md)

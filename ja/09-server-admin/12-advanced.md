@@ -1,6 +1,5 @@
 # Chapter 9.12: 上級サーバートピック
 
-[ホーム](../README.md) | [<< 前へ: トラブルシューティング](11-troubleshooting.md) | [Part 9 ホーム](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ cd /home/dayz/server && ./DayZServer -config=serverDZ.cfg -profiles=profiles -po
 - `shutdown` -- `1` はシャットダウンシーケンスメッセージ、`0` は通常のブロードキャスト
 
 メッセージシステムはサーバーを再起動しません。外部で再起動スケジュールが設定されている場合にのみ警告を表示します。
-
----
-
-[ホーム](../README.md) | [<< 前へ: トラブルシューティング](11-troubleshooting.md) | [Part 9 ホーム](01-server-setup.md)

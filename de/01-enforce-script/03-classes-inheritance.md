@@ -1,6 +1,5 @@
 # Kapitel 1.3: Klassen & Vererbung
 
-[Startseite](../README.md) | [<< Zurück: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Klassen & Vererbung** | [Weiter: Modded-Klassen >>](04-modded-classes.md)
 
 ---
 
@@ -1044,7 +1043,3 @@ Erstellen Sie eine abstrakte `Handler`-Klasse mit `protected Handler m_Next` und
 | `out`-Param | `void Func(out int val)` | Nur-Ausgabe-Parameter |
 | `inout`-Param | `void Func(inout array<int> a)` | Eingabe + Ausgabe-Parameter |
 | `notnull`-Param | `void Func(notnull EntityAI e)` | Compiler-erzwungener Nicht-Null-Wert |
-
----
-
-[Startseite](../README.md) | [<< Zurück: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Klassen & Vererbung** | [Weiter: Modded-Klassen >>](04-modded-classes.md)

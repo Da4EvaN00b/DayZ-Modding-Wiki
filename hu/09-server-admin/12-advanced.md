@@ -1,6 +1,5 @@
 # Chapter 9.12: Haladó szerver témák
 
-[Kezdőlap](../README.md) | [<< Előző: Hibaelhárítás](11-troubleshooting.md) | [9. rész kezdőlap](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ A **db/messages.xml** fájl a küldetés mappádban szabályozza az ütemezett s
 - `shutdown` -- `1` a leállítási sorozat üzeneteihez, `0` a rendszeres közleményekhez
 
 Az üzenet rendszer nem indítja újra a szervert. Csak figyelmeztetéseket jelenít meg, amikor az újraindítási ütemezés kívülről van konfigurálva.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Hibaelhárítás](11-troubleshooting.md) | [9. rész kezdőlap](01-server-setup.md)

@@ -1,6 +1,5 @@
-# Capítulo 6.23: Sistemas de Configuração de Mundo
+# Sistemas de Configuração de Mundo
 
-[Início](../README.md) | [<< Anterior: Administração e Gerenciamento de Servidor](22-admin-server.md) | **Sistemas de Mundo**
 
 ---
 
@@ -791,7 +790,3 @@ Todos os cinco sistemas compartilham estas características:
 - Carregados no **início do servidor** (mudanças requerem reinicialização)
 - Não requerem **modificações de script** para uso básico
 - Podem ser **combinados com scripting** para comportamento avançado
-
----
-
-[Início](../README.md) | [<< Anterior: Administração e Gerenciamento de Servidor](22-admin-server.md) | **Sistemas de Mundo**

@@ -1,6 +1,5 @@
 # Chapter 1.3: Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -1044,7 +1043,3 @@ Create an abstract `Handler` class with `protected Handler m_下一章` and meth
 | `out` 参数 | `void Func(out int val)` | 仅输出参数 |
 | `inout` 参数 | `void Func(inout array<int> a)` | 输入+输出参数 |
 | `notnull` 参数 | `void Func(notnull EntityAI e)` | 编译器强制非 null |
-
----
-
-[首页](../README.md) | [<< 上一章：数组、映射与集合](02-arrays-maps-sets.md) | **类与继承** | [下一章：Modded 类 >>](04-modded-classes.md)

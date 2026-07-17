@@ -1,6 +1,5 @@
-# Capítulo 6.13: Sistema de Input
+# Sistema de Input
 
-[Início](../README.md) | [<< Anterior: Sistema de Ações](12-action-system.md) | **Sistema de Input** | [Próximo: Sistema do Jogador >>](14-player-system.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # 第 7.2 章：模块/插件系统
 
-[首页](../README.md) | [<< 上一章：单例模式](01-singletons.md) | **模块/插件系统** | [下一章：RPC 模式 >>](03-rpc-patterns.md)
 
 ---
 
@@ -575,7 +574,3 @@ override void OnMissionFinish()
 | 模块应在运行时可热交换 | DayZ 不支持脚本热重载；模块在整个任务生命周期中存活 |
 | 使用接口定义模块契约 | Enforce Script 没有 `interface` 关键字；使用基类虚方法（`override`）替代 |
 | 依赖注入解耦模块 | 不存在 DI 框架；使用管理器查找和 `#ifdef` 守卫处理可选的跨 mod 依赖 |
-
----
-
-[首页](../README.md) | [<< 上一章：单例模式](01-singletons.md) | **模块/插件系统** | [下一章：RPC 模式 >>](03-rpc-patterns.md)

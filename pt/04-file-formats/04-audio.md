@@ -1,6 +1,5 @@
-# Chapter 4.4: Audio (.ogg, .wss)
+# Audio (.ogg, .wss)
 
-[Home](../README.md) | [<< Previous: Matérials](03-materials.md) | **Audio** | [Next: DayZ Tools Workflow >>](05-dayz-tools.md)
 
 ---
 

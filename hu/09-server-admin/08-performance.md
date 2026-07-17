@@ -1,6 +1,5 @@
 # Chapter 9.8: Teljesítmény hangolás
 
-[Kezdőlap](../README.md) | [<< Előző: Perzisztencia](07-persistence.md) | [Következő: Hozzáférés vezérlés >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Egy több gigabájtra növekvő `storage_1/` mappa lelassít minden perzisztenci
 ### Naplózás bekapcsolva hagyva
 
 A CE diagnosztikai naplózás, szkript debug naplózás és admin eszköz naplózás mind minden tickben lemezre ír. Engedélyezd diagnosztizáláshoz, majd kapcsold ki. Tartós bőbeszédű naplózás egy forgalmas szerveren önmagában 1-2 FPS-be kerülhet.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Perzisztencia](07-persistence.md) | [Következő: Hozzáférés vezérlés >>](09-access-control.md)

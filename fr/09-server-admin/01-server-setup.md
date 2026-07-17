@@ -1,6 +1,5 @@
 # Chapter 9.1 : Installation du serveur et premier lancement
 
-[Accueil](../README.md) | **Installation du serveur** | [Suivant : Structure des répertoires >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ C'est normal. Le serveur DayZ est mono-thread. N'exécutez pas plusieurs instanc
 ```cpp
 template = "dayzOffline.chernarusplus";  // Doit correspondre au nom du dossier dans mpmissions/
 ```
-
----
-
-**[Accueil](../README.md)** | **Suivant :** [Structure des répertoires >>](02-directory-structure.md)

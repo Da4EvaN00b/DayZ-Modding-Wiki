@@ -1,6 +1,5 @@
 # Chapter 9.4: Zsákmánygazdaság részletes áttekintés
 
-[Kezdőlap](../README.md) | [<< Előző: serverDZ.cfg referencia](03-server-cfg.md) | **Zsákmánygazdaság részletes áttekintés**
 
 ---
 
@@ -713,7 +712,3 @@ Gazdaságfájlok szerkesztése után tedd az alábbiak egyikét:
 - Töröld a `storage_1/` mappát a teljes törléshez és friss gazdaság indításhoz
 - Állítsd a `RestartSpawn` értéket `1`-re a `globals.xml`-ben egy újraindításra a zsákmány újrarandomizálásához, majd állítsd vissza `0`-ra
 - Várd meg, hogy a tárgyak élettartama természetesen lejárjon (ez órákat vehet igénybe)
-
----
-
-**Előző:** [serverDZ.cfg referencia](03-server-cfg.md) | [Kezdőlap](../README.md) | **Következő:** [Jármű és dinamikus esemény spawnolás](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Capitolo 7.6: Architettura Event-Driven
 
-[Home](../README.md) | [<< Precedente: Sistemi di Permessi](05-permissions.md) | **Architettura Event-Driven** | [Successivo: Ottimizzazione delle Prestazioni >>](07-performance.md)
 
 ---
 
@@ -549,7 +548,3 @@ OnKillEvent.Invoke(killData);
 | Doppio `Insert()` dello stesso handler | L'handler viene chiamato due volte per `Invoke()`; un `Remove()` predefinito (flag `ALL`) cancella tutte le voci in una volta, rimuovendo tutte le iscrizioni | Controlla prima di inserire, o assicurati che `Insert()` venga chiamato una sola volta (es. in `OnInit` con un flag di guardia) |
 | Usare funzioni anonime/lambda come handler | Non possono essere rimosse perché non c'è un riferimento da passare a `Remove()` | Usa sempre metodi nominati come event handler |
 | Lanciare eventi con signature degli argomenti non corrispondenti | Gli iscritti ricevono dati spazzatura o crashano a runtime; nessun controllo in fase di compilazione | Documenta la signature attesa sopra ogni dichiarazione `ScriptInvoker` e falla corrispondere esattamente in tutti gli handler |
-
----
-
-[<< Precedente: Sistemi di Permessi](05-permissions.md) | [Home](../../it/README.md) | [Successivo: Ottimizzazione delle Prestazioni >>](07-performance.md)

@@ -1,6 +1,5 @@
 # 7.6. fejezet: Eseményvezérelt architektúra
 
-[Kezdőlap](../README.md) | [<< Előző: Jogosultsági rendszerek](05-permissions.md) | **Eseményvezérelt architektúra** | [Következő: Teljesítményoptimalizálás >>](07-performance.md)
 
 ---
 
@@ -549,7 +548,3 @@ OnKillEvent.Invoke(killData);
 | Ugyanaz a kezelő dupla `Insert()`-je | A kezelő kétszer hívódik `Invoke()`-onként; egy alapértelmezett `Remove()` (`ALL` jelző) egyszerre törli az összes bejegyzést, eltávolítva minden feliratkozást | Ellenőrizd beszúrás előtt, vagy biztosítsd, hogy az `Insert()` csak egyszer hívódik (pl. `OnInit`-ben őrfeltétellel) |
 | Anonim/lambda függvények használata kezelőként | Nem távolíthatók el, mert nincs referencia a `Remove()`-nak átadásához | Mindig nevesített metódusokat használj eseménykezelőkként |
 | Események eltérő argumentum-szignatúrával való kiváltása | A feliratkozók szemétadatokat kapnak vagy futásidőben összeomlanak; nincs fordítási idejű ellenőrzés | Dokumentáld a várt szignatúrát minden `ScriptInvoker` deklaráció fölött és pontosan egyeztesd az összes kezelőben |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Jogosultsági rendszerek](05-permissions.md) | **Eseményvezérelt architektúra** | [Következő: Teljesítményoptimalizálás >>](07-performance.md)

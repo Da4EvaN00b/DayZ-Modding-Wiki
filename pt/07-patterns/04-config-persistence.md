@@ -1,6 +1,5 @@
-# Chapter 7.4: Config Persistence
+# Config Persistence
 
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)
 
 ---
 
@@ -278,7 +277,3 @@ class MyDataManager
 | Use I/O de arquivo async para evitar bloqueio | Enforce Script não tem I/O de arquivo async; todas as leituras/escritas são síncronas. Carregue no startup, salve em timers. |
 | Valide JSON com um schema | Nenhuma validação de schema JSON existe; valide campos em `OnAfterLoad()` ou com cláusulas de guarda após o carregamento. |
 | Use um banco de dados para dados estruturados | Sem acesso a banco de dados do Enforce Script; arquivos JSON em `$profile:` são o único mecanismo de persistência. |
-
----
-
-[<< Anterior: Padrões RPC](03-rpc-patterns.md) | [Início](../README.md) | [Próximo: Sistemas de Permissão >>](05-permissions.md)

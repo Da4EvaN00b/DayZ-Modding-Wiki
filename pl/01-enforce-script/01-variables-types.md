@@ -1,6 +1,5 @@
 # Rozdział 1.1: Zmienne i typy
 
-[Strona główna](../README.md) | **Zmienne i typy** | [Dalej: Tablice, mapy i zbiory >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -873,7 +872,3 @@ Napisz funkcję `vector SnapToGround(vector pos)`, która przyjmuje dowolną poz
 | Zasięg | Zmienne ograniczone do bloków `{}`; brak ponownej deklaracji w zagnieżdżonych/siostrzanych blokach |
 | Konwersja | `float` na `int` obcina; do parsowania łańcuchów użyj `.ToInt()`, `.ToFloat()`, `.ToVector()` |
 | Formatowanie | Zawsze używaj `string.Format()` do budowania łańcuchów z mieszanych typów |
-
----
-
-[Strona główna](../README.md) | **Zmienne i typy** | [Dalej: Tablice, mapy i zbiory >>](02-arrays-maps-sets.md)

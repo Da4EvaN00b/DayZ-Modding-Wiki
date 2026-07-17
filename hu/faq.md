@@ -1,6 +1,5 @@
 # Gyakran ismetelt kerdesek
 
-[Fooldal](./README.md) | **FAQ**
 
 ---
 

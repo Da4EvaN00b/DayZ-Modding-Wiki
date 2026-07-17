@@ -1,6 +1,5 @@
 # Kapitola 6.6: Systém notifikací
 
-[Domů](../README.md) | [<< Předchozí: Post-processingové efekty](05-ppe.md) | **Notifikace** | [Další: Časovače a CallQueue >>](07-timers.md)
 
 ---
 

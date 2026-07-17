@@ -1,6 +1,5 @@
 # Rozdział 8.9: Profesjonalny szablon moda
 
-[Strona główna](../README.md) | [<< Poprzedni: Budowanie nakładki HUD](08-hud-overlay.md) | **Profesjonalny szablon moda** | [Dalej: Tworzenie własnego pojazdu >>](10-vehicle-mod.md)
 
 ---
 
@@ -1831,7 +1830,3 @@ Z tym profesjonalnym szablonem działającym, możesz:
 4. **Dodać nakładkę HUD** -- Podążaj za [Rozdziałem 8.8: Budowanie nakładki HUD](08-hud-overlay.md) dla zawsze widocznych elementów UI.
 5. **Opublikować na Workshop** -- Podążaj za [Rozdziałem 8.7: Publikacja na Workshop](07-publishing-workshop.md) gdy twój mod jest gotowy.
 6. **Nauczyć się debugowania** -- Przeczytaj [Rozdział 8.6: Debugowanie i testowanie](06-debugging-testing.md) dla analizy logów i rozwiązywania problemów.
-
----
-
-**Poprzedni:** [Rozdział 8.8: Budowanie nakładki HUD](08-hud-overlay.md) | [Strona główna](../README.md)

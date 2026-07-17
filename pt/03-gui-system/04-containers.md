@@ -1,4 +1,4 @@
-# Chapter 3.4: Container Widgets
+# Container Widgets
 
 ```mermaid
 graph LR
@@ -23,7 +23,6 @@ graph LR
     style GA fill:#D97A4A,color:#fff
 ```
 
-[Home](../README.md) | [<< Previous: Sizing & Positioning](03-sizing-positioning.md) | **Container Widgets** | [Next: Programmatic Widgets >>](05-programmatic-widgets.md)
 
 ---
 

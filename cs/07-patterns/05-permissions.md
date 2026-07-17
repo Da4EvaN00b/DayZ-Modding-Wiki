@@ -1,6 +1,5 @@
 # Chapter 7.5: Permission Systems
 
-[Domů](../README.md) | [<< Předchozí: Perzistence konfigurace](04-config-persistence.md) | **Permission Systems** | [Další: Event-Driven Architecture >>](06-events.md)
 
 ---
 
@@ -650,7 +649,3 @@ This is běžný pattern used to migrate from its original flat `AdminUIDs` arra
 | Use RBAC (role-based access control) with group inheritance | Only CF/COT supports three-state permissions; většina mods use flat per-player grants for simplicity |
 | Permissions should be stored in a database | No database access; JSON files in `$profile:` are the pouze option |
 | Use cryptographic tokens for authorization | No crypto libraries in Enforce Script; trust is based on `PlayerIdentity.GetPlainId()` (Steam64 ID) verified by engine |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Perzistence konfigurace](04-config-persistence.md) | **Permission Systems** | [Další: Event-Driven Architecture >>](06-events.md)

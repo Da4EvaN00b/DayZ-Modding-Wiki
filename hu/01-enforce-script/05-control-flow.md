@@ -1,6 +1,5 @@
 # Chapter 1.5: Control Flow
 
-[Home](../README.md) | [<< Previous: Modded Classes](04-modded-classes.md) | **Control Flow** | [Next: String Operations >>](06-strings.md)
 
 ---
 
@@ -572,7 +571,3 @@ foreach (KeyType key, ValueType val : someMap) { }
 // switch/case (no fall-through)
 switch (value) { case X: /* ... */ break; default: break; }
 ```
-
----
-
-[<< 1.4: Modded osztalyok](04-modded-classes.md) | [Kezdolap](../README.md) | [1.6: String muveletek >>](06-strings.md)

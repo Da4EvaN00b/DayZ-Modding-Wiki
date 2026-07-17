@@ -1,6 +1,5 @@
 # Capitulo 9.10: Gestion de Mods
 
-[Inicio](../README.md) | [<< Anterior: Control de Acceso](09-access-control.md) | [Siguiente: Solucion de Problemas >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Si dos mods usan `modded class PlayerBase`, el que se carga **ultimo** (mas a la
 **Espacios en rutas de mods.** Una ruta como `-mod=@My Mod` rompe el parseo. Renombra las carpetas de mods para evitar espacios, o encierra todo el parametro entre comillas: `-mod="@My Mod;@CF"`.
 
 **Mod desactualizado en el servidor, actualizado en el cliente (o viceversa).** El desajuste de version impide la conexion. Manten las versiones del servidor y del Workshop sincronizadas. Actualiza todos los mods y el servidor al mismo tiempo.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Control de Acceso](09-access-control.md) | [Siguiente: Solucion de Problemas >>](11-troubleshooting.md)

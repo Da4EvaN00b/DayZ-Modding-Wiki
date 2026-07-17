@@ -1,6 +1,5 @@
 # 第1.9章: キャストとリフレクション
 
-[ホーム](../README.md) | [<< 前へ: メモリ管理](08-memory-management.md) | **キャストとリフレクション** | [次へ: 列挙型とプリプロセッサ >>](10-enums-preprocessor.md)
 
 ---
 
@@ -641,11 +640,3 @@ if (myObj.Type() == PlayerBase)  // myObjがPlayerBaseの場合true
 | 変数の型 | `obj.Type().GetVariableType(i)` | `typename` |
 | プロパティの読み取り | `EnScript.GetClassVar(obj, name, 0, out val)` | `void` |
 | プロパティの書き込み | `EnScript.SetClassVar(obj, name, 0, val)` | `bool` |
-
----
-
-## ナビゲーション
-
-| 前へ | 上へ | 次へ |
-|----------|----|------|
-| [1.8 メモリ管理](08-memory-management.md) | [パート1: Enforce Script](../README.md) | [1.10 列挙型とプリプロセッサ](10-enums-preprocessor.md) |

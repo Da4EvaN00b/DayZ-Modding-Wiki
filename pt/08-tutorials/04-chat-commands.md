@@ -1,6 +1,5 @@
-# Chapter 8.4: Adding Chat Commands
+# Adding Chat Commands
 
-[Home](../README.md) | [<< Previous: Building an Admin Panel](03-admin-panel.md) | **Adding Chat Commands** | [Next: Using the DayZ Mod Template >>](05-mod-template.md)
 
 ---
 

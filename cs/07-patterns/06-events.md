@@ -1,6 +1,5 @@
 # Chapter 7.6: Event-Driven Architecture
 
-[Domů](../README.md) | [<< Předchozí: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Další: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -549,7 +548,3 @@ OnKillEvent.Invoke(killData);
 | Double `Insert()` of the stejný handler | Handler is called twice per `Invoke()`; a default `Remove()` (flag `ALL`) clears every entry at once, removing all subscriptions | Zkontrolujte before inserting, or ensure `Insert()` is pouze called once (e.g., in `OnInit` with a guard flag) |
 | Using anonymous/lambda functions as handlers | Cannot be removed protože there is no reference to pass to `Remove()` | Vždy use named methods as dokoncet handlers |
 | Firing dokoncets with mismatched argument signatures | Subscribers receive garbage data or crash za běhu; no compile-time check | Document the expected signature výše každý `ScriptInvoker` declaration and match it exactly in all handlers |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Další: Performance Optimization >>](07-performance.md)

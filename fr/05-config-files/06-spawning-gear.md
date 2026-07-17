@@ -1,6 +1,5 @@
 # Chapitre 5.6 : Configuration de l'équipement d'apparition
 
-[Accueil](../README.md) | [<< Précédent : Fichiers de configuration serveur](05-server-configs.md) | **Configuration de l'équipement d'apparition**
 
 ---
 
@@ -663,7 +662,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → densité de grille, taille, limites de pente
        └─ generator_posbubbles → positions (optionnellement en groupes nommés)
 ```
-
----
-
-[Accueil](../README.md) | [<< Précédent : Fichiers de configuration serveur](05-server-configs.md) | **Configuration de l'équipement d'apparition**

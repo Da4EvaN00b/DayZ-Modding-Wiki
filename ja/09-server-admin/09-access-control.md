@@ -1,6 +1,5 @@
 # Chapter 9.9: アクセス制御
 
-[ホーム](../README.md) | [<< 前へ: パフォーマンスチューニング](08-performance.md) | [次へ: MOD管理 >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ DayZServer/
 | 本番環境で `verifySignatures = 0` | 改竄されたMODで誰でも参加可能 | 公開サーバーでは `2` に設定する |
 | ファイアウォールでRCONポートを開くのを忘れる | RCONクライアントがタイムアウトする | ファイアウォールでRCON UDPポート（`RConPort` で設定したもの、例: `2305`）を開く |
 | `BattlEye/` の **bans.txt** にプレイヤーUIDで編集する | BANが機能しない | BattlEyeの **bans.txt** はGUIDを使用し、UIDではない。UIDベースのBANにはサーバールートの **ban.txt** を使用する |
-
----
-
-[ホーム](../README.md) | [<< 前へ: パフォーマンスチューニング](08-performance.md) | [次へ: MOD管理 >>](10-mod-management.md)

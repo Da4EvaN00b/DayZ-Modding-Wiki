@@ -1,6 +1,5 @@
-# Chapter 7.5: Permission Systems
+# Permission Systems
 
-[Home](../README.md) | [<< Previous: Config Persistence](04-config-persistence.md) | **Permission Systems** | [Next: Event-Driven Architecture >>](06-events.md)
 
 ---
 
@@ -250,7 +249,3 @@ graph TD
 | Use RBAC (controle de acesso baseado em funções) com herança de grupos | Apenas CF/COT suporta permissões de três estados; a maioria dos mods usa concessões flat por jogador por simplicidade |
 | Permissões devem ser armazenadas em um banco de dados | Sem acesso a banco de dados; arquivos JSON em `$profile:` são a única opção |
 | Use tokens criptográficos para autorização | Sem bibliotecas criptográficas no Enforce Script; confiança é baseada em `PlayerIdentity.GetPlainId()` (Steam64 ID) verificado pela engine |
-
----
-
-[<< Anterior: Persistência de Config](04-config-persistence.md) | [Início](../README.md) | [Próximo: Arquitetura Orientada a Eventos >>](06-events.md)

@@ -1,6 +1,5 @@
 # 4.6. fejezet: PBO csomagolás
 
-[Főoldal](../README.md) | [<< Előző: DayZ Tools munkafolyamat](05-dayz-tools.md) | **PBO csomagolás** | [Következő: Workbench útmutató >>](07-workbench-guide.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # 第6.2章: 車両システム
 
-[ホーム](../README.md) | [<< 前へ: エンティティシステム](01-entity-system.md) | **車両** | [次へ: 天候 >>](03-weather.md)
 
 ---
 
@@ -526,7 +525,3 @@ Bullet Physics ライブラリのマルチスレッドサポートが有効に�
 | 定期的な燃料消費チェック用の `EOnSimulate` アキュムレータ | Vanilla+ 車両 Mod | `CarScript` オーバーライド |
 | 管理者の全員排出コマンドでの `CrewGetOut()` ループ | VPP Admin Tools | 車両管理モジュール |
 | 衝突ダメージ調整のためのカスタム `OnContact()` オーバーライド | Expansion | `ExpansionCarScript` |
-
----
-
-[ホーム](../README.md) | [<< 前へ: エンティティシステム](01-entity-system.md) | **車両** | [次へ: 天候 >>](03-weather.md)

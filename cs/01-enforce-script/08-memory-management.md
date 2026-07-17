@@ -1,6 +1,5 @@
 # Chapter 1.8: Memory Management
 
-[Domů](../README.md) | [<< Předchozí: Matematika a vektory](07-math-vectors.md) | **Správa paměti** | [Další: Přetypování a reflexe >>](09-casting-reflection.md)
 
 ---
 
@@ -670,7 +669,3 @@ delete obj;                      // Destroys immediately, nulls all refs (Manage
 class Parent { ref Child m_Child; }      // Strong -- parent owns child
 class Child  { Parent m_Parent; }        // Weak   -- child observes parent
 ```
-
----
-
-[<< 1.7: Math & Vectors](07-math-vectors.md) | [Domů](../README.md) | [1.9: Casting & Reflection >>](09-casting-reflection.md)

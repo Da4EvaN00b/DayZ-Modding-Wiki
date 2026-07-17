@@ -1,6 +1,5 @@
 # Chapitre 7.2 : Systèmes de modules / plugins
 
-[Accueil](../README.md) | [<< Précédent : Patron Singleton](01-singletons.md) | **Systèmes de modules / plugins** | [Suivant : Patrons RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -579,7 +578,3 @@ Choisissez l'approche qui correspond au profil de dépendances de votre mod. Si 
 | Les modules devraient être échangeables à chaud à l'exécution | DayZ ne supporte pas le rechargement à chaud des scripts ; les modules vivent pendant tout le cycle de vie de la mission |
 | Utilisez des interfaces pour les contrats de modules | Enforce Script n'a pas de mot-clé `interface` ; utilisez les méthodes virtuelles de classes de base (`override`) à la place |
 | L'injection de dépendances découple les modules | Aucun framework DI n'existe ; utilisez les recherches du gestionnaire et les gardes `#ifdef` pour les dépendances inter-mods optionnelles |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Patron Singleton](01-singletons.md) | **Systèmes de modules / plugins** | [Suivant : Patrons RPC >>](03-rpc-patterns.md)

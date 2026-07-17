@@ -1,6 +1,5 @@
 # Capitolo 7.7: Ottimizzazione delle Prestazioni
 
-[Home](../README.md) | [<< Precedente: Architettura Event-Driven](06-events.md) | **Ottimizzazione delle Prestazioni**
 
 ---
 
@@ -798,7 +797,3 @@ Prima di rilasciare codice sensibile alle prestazioni, verifica:
 | Usa l'elaborazione asincrona per operazioni costose | Enforce Script è single-threaded senza primitive asincrone; distribuisci il lavoro su più frame usando l'elaborazione basata su indice |
 | L'object pooling è un'ottimizzazione prematura | La creazione di widget è genuinamente costosa in Enfusion; il pooling è pratica standard in ogni mod importante (COT, VPP, Expansion) |
 | Profila prima di ottimizzare | Corretto, ma alcuni pattern (scansioni del mondo, allocazione di stringhe per-frame, ricostruzioni per-tasto) sono *sempre* sbagliati in DayZ. Evitali fin dall'inizio. |
-
----
-
-[<< Precedente: Architettura Event-Driven](06-events.md) | [Home](../../it/README.md)

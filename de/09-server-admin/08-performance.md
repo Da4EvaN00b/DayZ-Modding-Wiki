@@ -1,6 +1,5 @@
 # Kapitel 9.8: Performance-Optimierung
 
-[Home](../README.md) | [<< Zurueck: Persistenz](07-persistence.md) | [Weiter: Zugriffskontrolle >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Ein `storage_1/`-Ordner, der auf mehrere Gigabyte anwaechst, verlangsamt jeden P
 ### Logging dauerhaft aktiviert lassen
 
 CE-Diagnose-Logging, Script-Debug-Logging und Admin-Tool-Logging schreiben alle jeden Tick auf die Festplatte. Aktivieren Sie sie zur Diagnose, dann deaktivieren Sie sie. Dauerhaftes ausfuehrliches Logging auf einem ausgelasteten Server kann allein 1-2 FPS kosten.
-
----
-
-[Home](../README.md) | [<< Zurueck: Persistenz](07-persistence.md) | [Weiter: Zugriffskontrolle >>](09-access-control.md)

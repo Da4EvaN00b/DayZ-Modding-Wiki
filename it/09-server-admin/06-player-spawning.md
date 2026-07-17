@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawn dei Giocatori
 
-[Home](../README.md) | [<< Precedente: Spawn dei Veicoli](05-vehicle-spawning.md) | [Successivo: Persistenza >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ Il generatore rifiuta pendenze oltre i 45 gradi. Se tutte le posizioni personali
 ### I giocatori spawnano sempre nello stesso punto
 
 I gruppi con 1-2 posizioni hanno troppi pochi candidati perche il motore possa variare la posizione scelta. Aggiungi piu posizioni per gruppo.
-
----
-
-[Home](../README.md) | [<< Precedente: Spawn dei Veicoli](05-vehicle-spawning.md) | [Successivo: Persistenza >>](07-persistence.md)

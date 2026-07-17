@@ -1,6 +1,5 @@
 # 第 1.9 章：类型转换与反射
 
-[首页](../README.md) | [<< 上一章：内存管理](08-memory-management.md) | **类型转换与反射** | [下一章：枚举与预处理器 >>](10-enums-preprocessor.md)
 
 ---
 
@@ -641,11 +640,3 @@ if (myObj.Type() == PlayerBase)  // 如果 myObj 是 PlayerBase 则为 true
 | 变量类型 | `obj.Type().GetVariableType(i)` | `typename` |
 | 读取属性 | `EnScript.GetClassVar(obj, name, 0, out val)` | `void` |
 | 写入属性 | `EnScript.SetClassVar(obj, name, 0, val)` | `bool` |
-
----
-
-## 导航
-
-| 上一章 | 上级 | 下一章 |
-|----------|----|------|
-| [1.8 内存管理](08-memory-management.md) | [第 1 部分：Enforce Script](../README.md) | [1.10 枚举与预处理器](10-enums-preprocessor.md) |

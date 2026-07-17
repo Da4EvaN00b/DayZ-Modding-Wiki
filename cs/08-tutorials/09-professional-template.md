@@ -1,6 +1,5 @@
 # Kapitola 8.9: Profesionální šablona modu
 
-[Domů](../README.md) | [<< Předchozí: Tvorba HUD překryvu](08-hud-overlay.md) | **Profesionální šablona modu** | [Další: Vytvoření vlastního vozidla >>](10-vehicle-mod.md)
 
 ---
 
@@ -1830,7 +1829,3 @@ S touto profesionální šablonou v provozu můžete:
 4. **Přidat HUD překryv** -- Postupujte podle [Kapitoly 8.8: Tvorba HUD překryvu](08-hud-overlay.md) pro trvale viditelné UI prvky.
 5. **Publikovat na Workshop** -- Postupujte podle [Kapitoly 8.7: Publikování na Workshop](07-publishing-workshop.md), když je váš mod připraven.
 6. **Naučit se ladění** -- Čtěte [Kapitolu 8.6: Ladění a testování](06-debugging-testing.md) pro analýzu logů a řešení problémů.
-
----
-
-**Předchozí:** [Kapitola 8.8: Tvorba HUD překryvu](08-hud-overlay.md) | [Domů](../README.md)

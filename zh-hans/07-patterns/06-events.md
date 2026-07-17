@@ -1,6 +1,5 @@
 # 第 7.6 章：事件驱动架构
 
-[首页](../README.md) | [<< 上一章：权限系统](05-permissions.md) | **事件驱动架构** | [下一章：性能优化 >>](07-performance.md)
 
 ---
 
@@ -559,7 +558,3 @@ OnKillEvent.Invoke(killData);
 | 使用 RBAC（基于角色的访问控制）和组继承 | 只有 CF/COT 支持三态权限；大多数 Mod 为了简单使用平面的每玩家授权 |
 | 权限应存储在数据库中 | 没有数据库访问；`$profile:` 中的 JSON 文件是唯一选择 |
 | 使用加密令牌进行授权 | Enforce Script 中没有加密库；信任基于引擎验证的 `PlayerIdentity.GetPlainId()`（Steam64 ID） |
-
----
-
-[<< 上一章：权限系统](05-permissions.md) | [首页](../README.md) | [下一章：性能优化 >>](07-performance.md)

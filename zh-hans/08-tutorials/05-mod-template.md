@@ -1,6 +1,5 @@
 # Chapter 8.5: Using the DayZ Mod Template
 
-[Home](../README.md) | [<< Previous: Adding Chat Commands](04-chat-commands.md) | **Using the DayZ Mod Template** | [Next: Debugging & Testing >>](06-debugging-testing.md)
 
 ---
 
@@ -406,7 +405,3 @@ pause
 4. **深入学习 config.cpp** -- 阅读 [第 2.2 章：config.cpp 深入解析](../02-mod-structure/02-config-cpp.md) 以了解每个字段。
 5. **学习 mod.cpp 选项** -- 阅读 [第 2.3 章：mod.cpp 与 Workshop](../02-mod-structure/03-mod-cpp.md) 以了解 Workshop 发布。
 6. **添加依赖项** -- 如果 Mod 使用 Community Framework 或其他 Mod，请更新 `requiredAddons[]` 并参阅 [第 2.4 章：你的第一个 Mod](../02-mod-structure/04-minimum-viable-mod.md)。
-
----
-
-**上一篇：** [第 8.4 章：添加聊天命令](04-chat-commands.md) | [首页](../README.md)

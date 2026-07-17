@@ -1,6 +1,5 @@
 # Chapter 8.6: Debugging & Testing Your Mod
 
-[Home](../README.md) | [<< Previous: Using the DayZ Mod Template](05-mod-template.md) | **Debugging & Testing** | [Next: Publishing to the Steam Workshop >>](07-publishing-workshop.md)
 
 ---
 
@@ -705,5 +704,3 @@ In this tutorial you learned:
 - How to establish a reliable testing workflow from edit to verification
 
 **Successivo:** [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md)
-
----

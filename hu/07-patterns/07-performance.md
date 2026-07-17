@@ -1,6 +1,5 @@
 # Chapter 7.7: Performance Optimization
 
-[Home](../README.md) | [<< Previous: Event-Driven Architecture](06-events.md) | **Performance Optimization**
 
 ---
 
@@ -766,7 +765,3 @@ Before shipping performance-sensitive code, verify:
 - [ ] Sort operations run on data change, not per frame
 - [ ] Multiple periodic systems have staggered timers
 - [ ] Entity tracking uses registration, not world scanning
-
----
-
-[<< Elozo: Event-Driven Architecture](06-events.md) | [Kezdolap](../README.md)

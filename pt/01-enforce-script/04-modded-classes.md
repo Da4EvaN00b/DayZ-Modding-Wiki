@@ -1,6 +1,5 @@
-# Chapter 1.4: Modded Classes (The Key to DayZ Modding)
+# Modded Classes (The Key to DayZ Modding)
 
-[Home](../README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)
 
 ---
 
@@ -1120,7 +1119,3 @@ Crie uma `modded class PlayerBase` que adiciona um sistema de reputação. Quand
 1. **Sempre chame `super`** --- a menos que tenha um motivo documentado para não fazer
 2. **Proteja dependências opcionais com `#ifdef`** --- seu mod deve funcionar standalone
 3. **Prefixe seus campos e métodos** --- evite colisões de nomes com outros mods
-
----
-
-[Início](../README.md) | [<< Anterior: Classes & Herança](03-classes-inheritance.md) | **Modded Classes** | [Próximo: Fluxo de Controle >>](05-control-flow.md)

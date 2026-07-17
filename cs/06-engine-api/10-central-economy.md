@@ -1,6 +1,5 @@
 # Chapter 6.10: Central Economy
 
-[Domů](../README.md) | [<< Předchozí: Síťování a RPC](09-networking.md) | **Centrální ekonomika** | [Další: Háčky misí >>](11-mission-hooks.md)
 
 ---
 
@@ -551,7 +550,3 @@ Přidejte a nový `<event>` block in `events.xml` and corresponding spawn positi
 - **Více modů:** Multiple mods can add entries to `types.xml`. Pokud dva mods define the stejný `<type name="">`, the last loaded file wins. Use unique class names to avoid collisions. Merge types.xml entries carefully on community servers.
 - **Výkon:** High `nominal` values (200+) for mnoho item types strain the CE's spawn loop. The CE runs periodic scans that scale with total tracked entity count. Udržujte nominals realistic -- 5-20 for weapons, 20-100 for common items.
 - **Server/klient:** The CE runs celýly on server. Clients have no visibility into CE state. All XML files are server-side pouze and are not distributed to clients.
-
----
-
-[Domů](../README.md) | [<< Předchozí: Síťování a RPC](09-networking.md) | **Centrální ekonomika** | [Další: Háčky misí >>](11-mission-hooks.md)

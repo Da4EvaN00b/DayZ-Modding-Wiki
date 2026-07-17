@@ -1,6 +1,5 @@
 # Kapitel 9.1: Server-Einrichtung & Erster Start
 
-[Home](../README.md) | **Server-Einrichtung** | [Weiter: Verzeichnisstruktur >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ Das ist normal. DayZ Server ist single-threaded. Fuehren Sie nicht mehrere Serve
 ```cpp
 template = "dayzOffline.chernarusplus";  // Muss mit dem mpmissions/-Ordnernamen uebereinstimmen
 ```
-
----
-
-**[Home](../README.md)** | **Weiter:** [Verzeichnisstruktur >>](02-directory-structure.md)

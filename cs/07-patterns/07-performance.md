@@ -1,6 +1,5 @@
 # Chapter 7.7: Performance Optimization
 
-[Domů](../README.md) | [<< Předchozí: Event-Driven Architecture](06-events.md) | **Performance Optimization**
 
 ---
 
@@ -798,7 +797,3 @@ Před shipping performance-sensitive code, verify:
 | Use async processing for expensive operations | Enforce Script is jeden-threaded with no async primitives; batch work across frames using index-based processing místo toho |
 | Object pooling is premature optimization | Widget creation is genuinely expensive in Enfusion; pooling is standard practice in každý major mod (COT, VPP, Expansion) |
 | Profile before optimizing | Correct, but některé patterns (world scans, per-frame string alloc, per-keystroke rebuilds) are *always* wrong in DayZ. Vyhněte se them from the start. |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Event-Driven Architecture](06-events.md) | **Performance Optimization**

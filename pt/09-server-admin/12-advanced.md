@@ -1,6 +1,5 @@
-# Chapter 9.12: Topicos Avancados de Servidor
+# Topicos Avancados de Servidor
 
-[Inicio](../README.md) | [<< Anterior: Solucao de Problemas](11-troubleshooting.md) | [Inicio da Parte 9](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ O arquivo **db/messages.xml** na sua pasta de missao controla mensagens agendada
 - `shutdown` -- `1` para mensagens de sequencia de desligamento, `0` para broadcasts regulares
 
 O sistema de mensagens nao reinicializa o servidor. Ele apenas exibe avisos quando um agendamento de reinicializacao e configurado externamente.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Solucao de Problemas](11-troubleshooting.md) | [Inicio da Parte 9](01-server-setup.md)

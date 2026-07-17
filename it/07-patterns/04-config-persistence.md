@@ -1,6 +1,5 @@
 # Capitolo 7.4: Persistenza della Configurazione
 
-[Home](../README.md) | [<< Precedente: Pattern RPC](03-rpc-patterns.md) | **Persistenza della Configurazione** | [Successivo: Sistemi di Permessi >>](05-permissions.md)
 
 ---
 
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Usa I/O su file asincrono per evitare il blocking | Enforce Script non ha I/O su file asincrono; tutte le letture/scritture sono sincrone. Carica all'avvio, salva su timer. |
 | Valida il JSON con uno schema | Non esiste validazione di schema JSON; valida i campi in `OnAfterLoad()` o con guard clause dopo il caricamento. |
 | Usa un database per dati strutturati | Nessun accesso database da Enforce Script; i file JSON in `$profile:` sono l'unico meccanismo di persistenza. |
-
----
-
-[Home](../README.md) | [<< Precedente: Pattern RPC](03-rpc-patterns.md) | **Persistenza della Configurazione** | [Successivo: Sistemi di Permessi >>](05-permissions.md)

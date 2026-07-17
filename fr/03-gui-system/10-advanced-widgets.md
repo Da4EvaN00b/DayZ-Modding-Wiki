@@ -1,6 +1,5 @@
 # Chapitre 3.10 : Widgets avancés
 
-[Accueil](../README.md) | [<< Précédent : Patrons d'interface des vrais mods](09-real-mod-patterns.md) | **Widgets avancés**
 
 ---
 

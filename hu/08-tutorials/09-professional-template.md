@@ -1,6 +1,5 @@
 # 8.9. fejezet: Professzionális mod sablon
 
-[Főoldal](../README.md) | [<< Előző: HUD overlay építése](08-hud-overlay.md) | **Professzionális mod sablon** | [Következő: Egyéni jármű készítése >>](10-vehicle-mod.md)
 
 ---
 
@@ -1830,7 +1829,3 @@ Ezzel a professzionális sablonnal futva a következőket teheted:
 4. **Adj hozzá HUD overlay-t** -- Kövesd a [8.8. fejezetet: HUD overlay építése](08-hud-overlay.md) a mindig látható UI elemekhez.
 5. **Publikálj a Workshop-ra** -- Kövesd a [8.7. fejezetet: Publikálás a Workshop-ra](07-publishing-workshop.md), amikor a modod kész.
 6. **Tanulj hibakeresést** -- Olvasd el a [8.6. fejezetet: Hibakeresés és tesztelés](06-debugging-testing.md) a napló elemzéshez és hibaelhárításhoz.
-
----
-
-**Előző:** [8.8. fejezet: HUD overlay építése](08-hud-overlay.md) | [Főoldal](../README.md)

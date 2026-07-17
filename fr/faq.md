@@ -1,6 +1,5 @@
 # Frequently Asked Questions
 
-[Home](./README.md) | **FAQ**
 
 ---
 

@@ -1,6 +1,5 @@
 # 7.3. fejezet: RPC kommunikációs minták
 
-[Kezdőlap](../README.md) | [<< Előző: Modul rendszerek](02-module-systems.md) | **RPC kommunikációs minták** | [Következő: Konfiguráció perzisztencia >>](04-config-persistence.md)
 
 ---
 
@@ -656,7 +655,3 @@ Vagy használj centralizált `Cleanup()`-ot, amely kitörli a teljes kezelő té
 | Használj protocol buffereket vagy séma-alapú szerializációt | Az Enforce Scriptben nincs protobuf támogatás; kézzel `Write`/`Read`-elsz primitíveket egyeztetett sorrendben |
 | Validálj minden bemenetet séma érvényesítéssel | Nem létezik séma validáció; minden `ctx.Read()` visszatérési értéket egyenként kell ellenőrizni |
 | Az RPC-k legyenek idempotensek | A gyakorlatban a DayZ-ben ez csak lekérdezési RPC-knél kivitelezhető; a mutációs RPC-k (spawn, törlés, teleport) eredendően nem-idempotensek --- védd jogosultság-ellenőrzéssel helyette |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Modul rendszerek](02-module-systems.md) | **RPC kommunikációs minták** | [Következő: Konfiguráció perzisztencia >>](04-config-persistence.md)

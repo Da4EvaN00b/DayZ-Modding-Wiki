@@ -1,6 +1,5 @@
 # 5.2. fejezet: inputs.xml --- Egyéni billentyűkötések
 
-[Főoldal](../README.md) | [<< Előző: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Következő: Credits.json >>](03-credits-json.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -1215,11 +1214,3 @@ If you are a C++ developer, here are the biggest adjustments:
 | `IsClient()` betoltes kozben | False-t ad | Hasznald az `IsDedicatedServer()` metodust |
 | Forditasi hiba rossz fajl | Felrevezeto hely | Ellenorizd a jelzett utan kovetkezo fajlt |
 | `crash_*.log` fajlok | Nem valos osszeomlasok | Futasideju script kiveteleket tartalmaznak |
-
----
-
-## Navigacio
-
-| Elozo | Fel | Kovetkezo |
-|----------|----|------|
-| [1.11 Hibakezelees](11-error-handling.md) | [Part 1: Enforce Script](../README.md) | [1.13 Fuggvenyek es metodusok](13-functions-methods.md) |

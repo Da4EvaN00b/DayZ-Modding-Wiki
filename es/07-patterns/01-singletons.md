@@ -1,6 +1,5 @@
 # Capitulo 7.1: Patron Singleton
 
-[Inicio](../README.md) | **Patron Singleton** | [Siguiente: Sistemas de Modulos >>](02-module-systems.md)
 
 ---
 
@@ -544,7 +543,3 @@ Antes de publicar un singleton, verifica:
 | Los singletons son un anti-patron; usa inyeccion de dependencias | Enforce Script no tiene contenedor DI. Los singletons son el enfoque estandar para managers globales en todos los mods principales. |
 | La inicializacion lazy siempre es suficiente | Los manejadores RPC deben estar registrados antes de que cualquier cliente se conecte, asi que la init eager en `OnInit()` es frecuentemente necesaria. |
 | Los singletons nunca deberian ser destruidos | Las misiones de DayZ reinician sin reiniciar el proceso del servidor; los singletons *deben* ser destruidos y recreados en cada ciclo de mision. |
-
----
-
-[Inicio](../README.md) | **Patron Singleton** | [Siguiente: Sistemas de Modulos >>](02-module-systems.md)

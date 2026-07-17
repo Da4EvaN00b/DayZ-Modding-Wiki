@@ -1,6 +1,5 @@
 # Chapter 9.5: Spawnovani vozidel a dynamicke udalosti
 
-[Domu](../README.md) | [<< Predchozi: Lootova ekonomika](04-loot-economy.md) | [Dalsi: Spawnovani hracu >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Toto jsou nejcastejsi problemy se spawnovanim vozidel, se kterymi se serverovi a
 **Problem:** Vozidlo se spawnuje zaborene do budovy nebo zahrabane v terenu.
 
 **Reseni:** Zkontrolujte souradnice `<pos>` v `cfgeventspawns.xml`. Otestujte pozice ve hre pomoci adminskehho teleportu pred jejich pridanim do souboru. Pozice by mely byt na rovných silnicich nebo otevrenem terenu a uhel (`a`) by mel byt zarovnan se smerem silnice.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Lootova ekonomika](04-loot-economy.md) | [Dalsi: Spawnovani hracu >>](06-player-spawning.md)

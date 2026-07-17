@@ -1,6 +1,5 @@
 # Chapter 9.12: Pokrocila temata serveru
 
-[Domu](../README.md) | [<< Predchozi: Reseni problemu](11-troubleshooting.md) | [Cast 9 - domu](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ Soubor **db/messages.xml** ve slozce vasi mise ridi planovane zpravy serveru a v
 - `shutdown` -- `1` pro zpravy sekvence vypnuti, `0` pro bezne vysilani
 
 System zprav nerestartuje server. Pouze zobrazuje varovani, kdyz je plan restartu nakonfigurovany externe.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Reseni problemu](11-troubleshooting.md) | [Cast 9 - domu](01-server-setup.md)

@@ -1,6 +1,5 @@
 # Chapter 9.6: 玩家出生
 
-[首页](../README.md) | [<< 上一章: 载具刷新](05-vehicle-spawning.md) | [下一章: 持久化 >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ SetRandomHealth( itemEnt );
 ### 玩家总是在同一地点出生
 
 只有 1-2 个位置的组提供的候选点太少，引擎无法变化所选位置。每组添加更多位置。
-
----
-
-[首页](../README.md) | [<< 上一章: 载具刷新](05-vehicle-spawning.md) | [下一章: 持久化 >>](07-persistence.md)

@@ -1,6 +1,5 @@
 # 1.1. fejezet: Változók és típusok
 
-[Kezdőlap](../README.md) | **Változók és típusok** | [Következő: Tömbök, Map-ek és Set-ek >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -873,7 +872,3 @@ A `"42"` string esetén konvertáld:
 | Hatókör | Változók `{}` blokkokra korlátozva; nincs újradeklarálás beágyazott/testvérblokkokban |
 | Konverzió | `float`-ból `int`-be csonkít; string parseoláshoz használd a `.ToInt()`, `.ToFloat()`, `.ToVector()` metódusokat |
 | Formázás | Mindig használd a `string.Format()`-ot vegyes típusokból álló stringek építéséhez |
-
----
-
-[Kezdőlap](../README.md) | **Változók és típusok** | [Következő: Tömbök, Map-ek és Set-ek >>](02-arrays-maps-sets.md)

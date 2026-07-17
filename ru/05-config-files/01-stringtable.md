@@ -1,6 +1,5 @@
 # Глава 5.1: stringtable.csv --- Локализация
 
-[Главная](../README.md) | **stringtable.csv** | [Далее: inputs.xml >>](02-inputs-xml.md)
 
 ---
 

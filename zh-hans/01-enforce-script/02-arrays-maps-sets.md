@@ -1,6 +1,5 @@
 # 第 1.2 章：数组、映射与集合
 
-[首页](../README.md) | [<< 上一章：变量与类型](01-variables-types.md) | **数组、映射与集合** | [下一章：类与继承 >>](03-classes-inheritance.md)
 
 ---
 
@@ -947,7 +946,3 @@ string GetFirstItem(array<string> items)
 | 随机 | `GetRandomElement()` | 返回随机值 |
 | foreach | `foreach (T val : arr)` | 仅值 |
 | 索引 foreach | `foreach (int i, T val : arr)` | 索引 + 值 |
-
----
-
-[首页](../README.md) | [<< 上一章：变量与类型](01-variables-types.md) | **数组、映射与集合** | [下一章：类与继承 >>](03-classes-inheritance.md)

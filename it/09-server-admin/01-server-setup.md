@@ -1,6 +1,5 @@
 # Chapter 9.1: Configurazione del Server e Primo Avvio
 
-[Home](../README.md) | **Configurazione del Server** | [Successivo: Struttura delle Directory >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ Questo e normale. DayZ Server usa un singolo thread. Non eseguire piu istanze de
 ```cpp
 template = "dayzOffline.chernarusplus";  // Deve corrispondere al nome della cartella in mpmissions/
 ```
-
----
-
-**[Home](../README.md)** | **Successivo:** [Struttura delle Directory >>](02-directory-structure.md)

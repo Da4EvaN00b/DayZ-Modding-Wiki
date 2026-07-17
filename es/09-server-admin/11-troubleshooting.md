@@ -1,6 +1,5 @@
 # Capitulo 9.11: Solucion de Problemas del Servidor
 
-[Inicio](../README.md) | [<< Anterior: Gestion de Mods](10-mod-management.md) | [Siguiente: Temas Avanzados >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Cuando algo sale mal, trabaja a traves de esta lista en orden:
 ```
 
 El paso 8 es la tecnica mas poderosa. Si el servidor funciona vanilla pero se rompe con mods, puedes aislar el mod problematico a traves de busqueda binaria -- agrega la mitad de tus mods, prueba, luego reduce.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Gestion de Mods](10-mod-management.md) | [Siguiente: Temas Avanzados >>](12-advanced.md)

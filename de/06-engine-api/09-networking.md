@@ -1,27 +1,21 @@
 # Kapitel 6.9: Netzwerk & RPC
 
-[Startseite](../README.md) | [<< Zurück: Datei-I/O & JSON](08-file-io.md) | **Netzwerk & RPC** | [Weiter: Central Economy >>](10-central-economy.md)
 
 ---
 
-## Einführung
-
-DayZ ist ein Client-Server-Spiel. Alle autoritativen Logiken laufen auf dem Server, und Clients kommunizieren mit ihm über Remote Procedure Calls (RPCs). Der primäre RPC-Mechanismus ist `ScriptRPC`, der es ermöglicht, beliebige Daten auf einer Seite zu schreiben und auf der anderen zu lesen. Dieses Kapitel behandelt die Netzwerk-API: Senden und Empfangen von RPCs, die Serialisierungskontextklassen, die Legacy-Methode `CGame.RPC()` und `ScriptInputUserData` für eingabeverifizierte Client-zu-Server-Nachrichten.
+DayZ ist ein Client-Server-Spiel. Alle autoritativen Logiken laufen auf dem Server, und Clients kommunizieren mit ihm über Remote Procedure Calls (RPCs). Dieses Kapitel behandelt `ScriptRPC`, die Serialisierungskontextklassen, die Legacy-Methode `CGame.RPC()` und `ScriptInputUserData` für eingabeverifizierte Client-zu-Server-Nachrichten.
 
 ---
 
 ## Client-Server-Architektur
 
-```
-┌────────────┐                    ┌────────────┐
-│   Client   │  ──── RPC ────►   │   Server   │
-│            │  ◄──── RPC ────   │            │
-│ GetGame()  │                    │ GetGame()  │
-│ .IsClient()│                    │ .IsServer()│
-└────────────┘                    └────────────┘
+```mermaid
+graph LR
+    Client["Client<br/>GetGame().IsClient()"] -- "RPC →" --> Server["Server<br/>GetGame().IsServer()"]
+    Server -- "← RPC" --> Client
 ```
 
-### Umgebungspruefungen
+### Umgebungsprüfungen
 
 ```c
 proto native bool GetGame().IsServer();          // true auf Server und Listen-Server-Host
@@ -44,15 +38,7 @@ if (!GetGame().IsServer())
 }
 ```
 
----
-
-## ScriptRPC
-
-**Datei:** `3_Game/gameplay.c:104`
-
-Die primäre RPC-Klasse zum Senden eigener Daten zwischen Client und Server. `ScriptRPC` erweitert `ParamsWriteContext`, daher rufen Sie `.Write()` direkt darauf auf, um Daten zu serialisieren.
-
-### Klassendefinition
+### RPC-Kommunikationsfluss
 
 ```mermaid
 sequenceDiagram
@@ -77,6 +63,17 @@ sequenceDiagram
         Note over Client: No response sent
     end
 ```
+
+---
+
+## ScriptRPC
+
+**Datei:** `3_Game/gameplay.c:104`
+
+Die primäre RPC-Klasse zum Senden eigener Daten zwischen Client und Server. `ScriptRPC` erweitert `ParamsWriteContext`, daher rufen Sie `.Write()` direkt darauf auf, um Daten zu serialisieren.
+
+### Klassendefinition
+
 ```c
 class ScriptRPC : ParamsWriteContext
 {
@@ -462,6 +459,26 @@ Die Engine hat eingebaute Ratenbegrenzung für RPCs. Zu viele RPCs pro Frame zu 
 | Eingabedaten | `ScriptInputUserData` für validierte Client-Eingabe |
 | IDs | Hohe Nummern verwenden (87000+) um Vanilla-Konflikte zu vermeiden |
 | Sicherheit | Client-Daten immer auf dem Server validieren |
+
+---
+
+## Best Practices
+
+- Prüfen Sie immer die Rückgabewerte von `ctx.Read()`. Das Auslassen der Prüfung führt dazu, dass Datenmüll aus dem Puffer gelesen wird, was alle nachfolgenden Lesevorgänge beschädigt.
+- Definieren Sie RPC-ID-Konstanten in `3_Game`, damit sowohl Client als auch Server sie kompilieren. Werden sie in `4_World` oder `5_Mission` platziert, sieht sie nur eine Seite.
+- Verwenden Sie `guaranteed = true` für zustandsverändernde RPCs, `false` nur für kosmetische/häufige Updates.
+- Validieren Sie alle vom Client gesendeten Daten auf dem Server. Begrenzen Sie numerische Bereiche, verifizieren Sie die Identität, prüfen Sie Berechtigungen.
+- Bevorzugen Sie `ScriptRPC` gegenüber dem Legacy-`GetGame().RPC()` für neuen Code. Es vermeidet den Allokations-Overhead von `Param`-Objekten und unterstützt beliebige Daten über `Write`.
+
+---
+
+## Multi-Mod-Überlegungen
+
+- **RPC-ID-Kollisionen** sind das primäre Risiko. Zwei Mods, die dieselbe Ganzzahl-RPC-ID verwenden, fangen gegenseitig ihre Nachrichten ab, was zu stiller Datenbeschädigung oder Abstürzen führt. Verwenden Sie hohe Basisnummern (80000+).
+- Rufen Sie in `modded class`-Überschreibungen immer `super.OnRPC()` auf, damit andere Mods in der Kette ihre eigenen IDs verarbeiten können. Das Vergessen von `super` bricht die RPCs aller anderen Mods.
+- Jedes `ScriptRPC.Send()` mit `guaranteed = true` erzeugt ein zuverlässiges Netzwerkpaket. Bündeln Sie Daten in weniger, größere RPCs, um die Bandbreite nicht zu sättigen.
+- `ScriptRPC.Send()` vom Client geht immer an den Server (der Empfänger-Parameter wird ignoriert). Vom Server aus sendet ein `null`-Empfänger an alle Clients.
+- Verwenden Sie für Mods mit vielen RPC-Typen eine einzelne Engine-RPC-ID und routen Sie intern über einen String-Identifikator, anstatt viele Ganzzahl-IDs zu verbrauchen.
 
 ---
 

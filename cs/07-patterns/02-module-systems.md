@@ -1,6 +1,5 @@
 # Kapitola 7.2: Systémy modulů / pluginů
 
-[Domů](../README.md) | [<< Předchozí: Vzor Singleton](01-singletons.md) | **Systémy modulů / pluginů** | [Další: Vzory RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -575,7 +574,3 @@ Zvolte přístup, který odpovídá profilu závislostí vašeho modu. Pokud ji�
 | Moduly by měly být za provozu vyměnitelné | DayZ nepodporuje hot-reloading skriptů; moduly žijí po celý životní cyklus mise |
 | Používejte rozhraní pro kontrakty modulů | Enforce Script nemá klíčové slovo `interface`; místo toho použijte virtuální metody bázové třídy (`override`) |
 | Dependency injection odděluje moduly | Žádný DI framework neexistuje; použijte vyhledávání manažerů a `#ifdef` ochrany pro volitelné závislosti mezi mody |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Vzor Singleton](01-singletons.md) | **Systémy modulů / pluginů** | [Další: Vzory RPC >>](03-rpc-patterns.md)

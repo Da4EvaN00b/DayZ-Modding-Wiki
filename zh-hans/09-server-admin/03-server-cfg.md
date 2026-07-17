@@ -1,6 +1,5 @@
 # Chapter 9.3: serverDZ.cfg 完整参考
 
-[首页](../README.md) | [<< 上一章: 目录结构](02-directory-structure.md) | **serverDZ.cfg 参考** | [下一章: 战利品经济深入解析 >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Mod 按照 `-mod=` 中指定的顺序加载。依赖顺序很重要：如果 Mod B 依赖 Mod A，请将 Mod A 列在前面。
-
----
-
-**上一章：** [目录结构](02-directory-structure.md) | [首页](../README.md) | **下一章：** [战利品经济深入解析 >>](04-loot-economy.md)

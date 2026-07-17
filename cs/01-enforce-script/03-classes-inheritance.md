@@ -1,6 +1,5 @@
 # Chapter 1.3: Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -1040,7 +1039,3 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | `ref` | `ref MyClass m_Obj;` | Strong reference (owns the object) |
 | Sealed class | `sealed class Name { }` | Nelze dědit (chyba kompilace 1.28+) |
 | Sealed method | `sealed void Method()` | Nelze přepsat v potomcích |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Další: Modded Classes >>](04-modded-classes.md)

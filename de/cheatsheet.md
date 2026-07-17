@@ -1,6 +1,5 @@
 # Enforce Script Spickzettel
 
-[Startseite](./README.md) | **Spickzettel**
 
 ---
 

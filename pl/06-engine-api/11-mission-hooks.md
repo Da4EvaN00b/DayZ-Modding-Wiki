@@ -1,6 +1,5 @@
 # Rozdział 6.11: Hooki misji
 
-[Strona główna](../README.md) | [<< Poprzedni: Centralna Ekonomia](10-central-economy.md) | **Hooki misji** | [Następny: System akcji >>](12-action-system.md)
 
 ---
 
@@ -933,7 +932,3 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Nadpisanie `StartingEquipSetup` dla niestandardowych zestawów startowych | Wiele modów społeczności | Hooki zestawów startowych w MissionServer |
 | Przechwycenie `OnEvent` przed `super` do blokowania zbanowanych graczy | COT | System banów w MissionServer |
 | Czyszczenie `OnMissionFinish` z `Unlink()` widgetów i zerowaniem przypisań | Expansion | Czyszczenie HUD i menu |
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: Centralna Ekonomia](10-central-economy.md) | **Hooki misji** | [Następny: System akcji >>](12-action-system.md)

@@ -1,6 +1,5 @@
 # Capitolo 4.6: Impacchettamento PBO
 
-[Home](../README.md) | [<< Precedente: Flusso di Lavoro DayZ Tools](05-dayz-tools.md) | **Impacchettamento PBO** | [Successivo: Guida a Workbench >>](07-workbench-guide.md)
 
 ---
 

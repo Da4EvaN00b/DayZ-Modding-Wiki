@@ -1,6 +1,5 @@
 # Kapitola 5.6: Konfigurace výbavy při spawnu
 
-[Domů](../README.md) | [<< Předchozí: Konfigurační soubory serveru](05-server-configs.md) | **Konfigurace výbavy při spawnu**
 
 ---
 
@@ -1155,7 +1154,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → hustota mřížky, velikost, limity sklonu
        └─ generator_posbubbles → pozice (volitelně v pojmenovaných skupinách)
 ```
-
----
-
-[Domů](../README.md) | [<< Předchozí: Konfigurační soubory serveru](05-server-configs.md) | **Konfigurace výbavy při spawnu**

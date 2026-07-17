@@ -1,6 +1,5 @@
 # Chapitre 8.12: Building a Trading System
 
-[Accueil](../README.md) | [<< Précédent : Creating Custom Clothing](11-clothing-mod.md) | **Building a Trading System** | [Suivant : The Diagnostic Menu >>](13-diag-menu.md)
 
 ---
 

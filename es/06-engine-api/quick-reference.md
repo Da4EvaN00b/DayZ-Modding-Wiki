@@ -1,6 +1,5 @@
 # Referencia Rápida de la API del Motor
 
-[Inicio](../README.md) | **Referencia Rápida de la API del Motor**
 
 ---
 

@@ -1,6 +1,5 @@
 # Chapitre 1.5 : Flux de contrôle
 
-[Accueil](../README.md) | [<< Précédent : Classes Moddées](04-modded-classes.md) | **Flux de contrôle** | [Suivant : Opérations sur les chaînes >>](06-strings.md)
 
 ---
 
@@ -642,7 +641,3 @@ switch (value) { case X: /* ... */ break; default: break; }
 thread void MyFunc() { Sleep(1000); }
 thread MyFunc();  // appel non-bloquant
 ```
-
----
-
-[<< 1.4 : Classes Moddées](04-modded-classes.md) | [Accueil](../README.md) | [1.6 : Opérations sur les chaînes >>](06-strings.md)

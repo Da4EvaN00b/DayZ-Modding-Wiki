@@ -1,6 +1,5 @@
 # Capitolo 8.12: Costruire un Sistema di Scambio
 
-[Home](../README.md) | [<< Precedente: Creare Abbigliamento Personalizzato](11-clothing-mod.md) | **Costruire un Sistema di Scambio** | [Successivo: Il Menu Diagnostico >>](13-diag-menu.md)
 
 ---
 

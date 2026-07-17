@@ -1,6 +1,5 @@
-# Chapter 1.10: Enums & Preprocessor
+# Enums & Preprocessor
 
-[Home](../README.md) | [<< Previous: Casting & Reflection](09-casting-reflection.md) | **Enums & Preprocessor** | [Next: Error Handling >>](11-error-handling.md)
 
 ---
 
@@ -573,11 +572,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | Build de diagnostico |
 | `PLATFORM_WINDOWS` | Sistema operacional Windows |
 | Custom: `defines[]` | config.cpp do seu mod |
-
----
-
-## Navegacao
-
-| Anterior | Acima | Proximo |
-|----------|-------|---------|
-| [1.9 Casting & Reflexao](09-casting-reflection.md) | [Parte 1: Enforce Script](../README.md) | [1.11 Tratamento de Erros](11-error-handling.md) |

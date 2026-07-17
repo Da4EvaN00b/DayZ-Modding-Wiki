@@ -1,6 +1,5 @@
 # Hibaelharitasi utmutato
 
-[Fooldal](./README.md) | **Hibaelharitasi utmutato**
 
 ---
 

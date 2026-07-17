@@ -1,6 +1,5 @@
 # Rozdział 7.4: Trwałość konfiguracji
 
-[Strona główna](../README.md) | [<< Poprzedni: Wzorce RPC](03-rpc-patterns.md) | **Trwałość konfiguracji** | [Dalej: Systemy uprawnień >>](05-permissions.md)
 
 ---
 
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Używaj asynchronicznego I/O plików aby uniknąć blokowania | Enforce Script nie ma asynchronicznego I/O plików; wszystkie odczyty/zapisy są synchroniczne. Ładuj przy starcie, zapisuj na timerach. |
 | Waliduj JSON schematem | Nie istnieje walidacja schematu JSON; waliduj pola w `OnAfterLoad()` lub z klauzulami zabezpieczającymi po ładowaniu. |
 | Używaj bazy danych do danych strukturalnych | Brak dostępu do bazy danych z Enforce Script; pliki JSON w `$profile:` to jedyny mechanizm trwałości. |
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: Wzorce RPC](03-rpc-patterns.md) | **Trwałość konfiguracji** | [Dalej: Systemy uprawnień >>](05-permissions.md)

@@ -1,6 +1,5 @@
 # Chapter 9.8 : Optimisation des performances
 
-[Accueil](../README.md) | [<< Précédent : Persistance](07-persistence.md) | [Suivant : Contrôle d'accès >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Un dossier `storage_1/` qui atteint plusieurs gigaoctets ralentit chaque cycle d
 ### Journalisation laissée activée
 
 La journalisation de diagnostic CE, la journalisation de débogage des scripts, et la journalisation des outils admin écrivent toutes sur le disque à chaque tick. Activez-les pour le diagnostic, puis désactivez-les. Une journalisation verbeuse permanente sur un serveur occupé peut coûter 1-2 FPS à elle seule.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Persistance](07-persistence.md) | [Suivant : Contrôle d'accès >>](09-access-control.md)

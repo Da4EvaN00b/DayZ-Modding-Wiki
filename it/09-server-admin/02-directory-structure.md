@@ -1,6 +1,5 @@
 # Chapter 9.2: Struttura delle Directory e Cartella Missione
 
-[Home](../README.md) | [<< Precedente: Configurazione del Server](01-server-setup.md) | **Struttura delle Directory** | [Successivo: Riferimento serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ L'attributo `a` e l'angolo di rotazione in gradi.
 | `storage_1/` | Solo cancellazione | Persistenza -- non modificare a mano |
 | `battleye/` | **No** | Anti-cheat -- non toccare |
 | `mapgroup*.xml` | Attenzione | Posizioni del loot negli edifici -- modifica avanzata |
-
----
-
-**Precedente:** [Configurazione del Server](01-server-setup.md) | [Home](../README.md) | **Successivo:** [Riferimento serverDZ.cfg >>](03-server-cfg.md)

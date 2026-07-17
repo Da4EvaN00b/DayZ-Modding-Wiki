@@ -1,6 +1,5 @@
 # Chapter 5.6: スポーンギア設定
 
-[ホーム](../README.md) | [<< 前: サーバー設定ファイル](05-server-configs.md) | **スポーンギア設定**
 
 > **概要：** DayZには、プレイヤーがワールドに入る方法を制御する2つの補完的なシステムがあります：**スポーンポイント**はキャラクターがマップ上のどこに出現するかを決定し、**スポーンギア**はどの装備を持っているかを決定します。この章では、ファイル構造、フィールドリファレンス、実用的なプリセット、Modとの統合を含め、両方のシステムを詳しく扱います。
 
@@ -1153,7 +1152,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → grid density, size, slope limits
        └─ generator_posbubbles → positions (optionally in named groups)
 ```
-
----
-
-[ホーム](../README.md) | [<< 前: サーバー設定ファイル](05-server-configs.md) | **スポーンギア設定**

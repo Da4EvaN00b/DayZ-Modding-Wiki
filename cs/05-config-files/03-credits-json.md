@@ -1,6 +1,5 @@
 # Kapitola 5.3: Credits.json
 
-[Domů](../README.md) | [<< Předchozí: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Další: Formát ImageSet >>](04-imagesets.md)
 
 ---
 

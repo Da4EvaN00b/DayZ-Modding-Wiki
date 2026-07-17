@@ -1,6 +1,5 @@
-# Chapter 9.2: Estrutura de Diretorios e Pasta de Missao
+# Estrutura de Diretorios e Pasta de Missao
 
-[Inicio](../README.md) | [<< Anterior: Configuracao do Servidor](01-server-setup.md) | **Estrutura de Diretorios** | [Proximo: Referencia do serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ O atributo `a` e o angulo de rotacao em graus.
 | `storage_1/` | Apenas deletar | Persistencia -- nao edite manualmente |
 | `battleye/` | **Nao** | Anti-cheat -- nao toque |
 | `mapgroup*.xml` | Cuidado | Posicoes de loot em construcoes -- edicao avancada apenas |
-
----
-
-**Anterior:** [Configuracao do Servidor](01-server-setup.md) | [Inicio](../README.md) | **Proximo:** [Referencia do serverDZ.cfg >>](03-server-cfg.md)

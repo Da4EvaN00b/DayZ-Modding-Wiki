@@ -1,6 +1,5 @@
 # Kapitola 4.5: Pracovní postup s DayZ Tools
 
-[Domů](../README.md) | [<< Předchozí: Zvuk](04-audio.md) | **DayZ Tools** | [Další: Balení PBO >>](06-pbo-packing.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # Глава 1.10: Перечисления и препроцессор
 
-[Главная](../README.md) | [<< Назад: Приведение типов и рефлексия](09-casting-reflection.md) | **Перечисления и препроцессор** | [Далее: Обработка ошибок >>](11-error-handling.md)
 
 ---
 
@@ -597,11 +596,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | Диагностическая сборка |
 | `PLATFORM_WINDOWS` | ОС Windows |
 | Пользовательское: `defines[]` | config.cpp вашего мода |
-
----
-
-## Навигация
-
-| Назад | Вверх | Далее |
-|----------|----|------|
-| [1.9 Приведение типов и рефлексия](09-casting-reflection.md) | [Часть 1: Enforce Script](../README.md) | [1.11 Обработка ошибок](11-error-handling.md) |

@@ -1,6 +1,5 @@
 # Kapitola 6.13: Vstupní systém
 
-[Domů](../README.md) | [<< Předchozí: Systém akcí](12-action-system.md) | **Vstupní systém** | [Další: Systém hráčů >>](14-player-system.md)
 
 ---
 

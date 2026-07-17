@@ -1,6 +1,5 @@
 # Chapter 9.4: Economia del Loot in Dettaglio
 
-[Home](../README.md) | [<< Precedente: Riferimento serverDZ.cfg](03-server-cfg.md) | **Economia del Loot in Dettaglio**
 
 ---
 
@@ -713,7 +712,3 @@ Dopo aver modificato i file dell'economia, esegui una di queste azioni:
 - Cancella `storage_1/` per un wipe completo e un nuovo inizio dell'economia
 - Imposta `RestartSpawn` a `1` in `globals.xml` per un riavvio per ri-randomizzare il loot, poi reimpostalo a `0`
 - Aspetta che i lifetime degli oggetti scadano naturalmente (puo richiedere ore)
-
----
-
-**Precedente:** [Riferimento serverDZ.cfg](03-server-cfg.md) | [Home](../README.md) | **Successivo:** [Spawn di Veicoli ed Eventi Dinamici](05-vehicle-spawning.md)

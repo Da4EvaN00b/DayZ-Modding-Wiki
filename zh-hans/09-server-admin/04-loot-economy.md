@@ -1,6 +1,5 @@
 # Chapter 9.4: 战利品经济深入解析
 
-[首页](../README.md) | [<< 上一章: serverDZ.cfg 参考](03-server-cfg.md) | **战利品经济深入解析**
 
 ---
 
@@ -721,7 +720,3 @@ IF (current_count < min) AND (time_since_last_spawn > restock):
 - 删除 `storage_1/` 进行完全清档并重新开始经济
 - 在 `globals.xml` 中将 `RestartSpawn` 设为 `1` 重启一次以重新随机化战利品，然后设回 `0`
 - 等待物品生命周期自然到期（可能需要数小时）
-
----
-
-**上一章：** [serverDZ.cfg 参考](03-server-cfg.md) | [首页](../README.md) | **下一章：** [载具与动态事件刷新](05-vehicle-spawning.md)

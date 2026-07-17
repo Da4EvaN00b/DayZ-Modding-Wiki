@@ -1,6 +1,5 @@
 # 4.3. fejezet: Anyagok (.rvmat)
 
-[Kezdőlap](../README.md) | [<< Előző: 3D modellek](02-models.md) | **Anyagok** | [Következő: Hang >>](04-audio.md)
 
 ---
 

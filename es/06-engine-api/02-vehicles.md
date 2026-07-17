@@ -1,6 +1,5 @@
 # Capítulo 6.2: Sistema de Vehículos
 
-[Inicio](../README.md) | [<< Anterior: Entity System](01-entity-system.md) | **Vehicles** | [Siguiente: Weather >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Se agregaron funciones de fisica directamente en `Transport` para permitir que l
 ### Colision Dinamica para Todo Transport (1.29 Experimental)
 
 La clase `Transport` (padre de `CarScript` y `BoatScript`) ahora tiene resolucion de colision dinamica. Anteriormente, solo `CarScript` tenia esto. Los mods de botes se benefician de un manejo de colision adecuado.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Entity System](01-entity-system.md) | **Vehicles** | [Siguiente: Weather >>](03-weather.md)

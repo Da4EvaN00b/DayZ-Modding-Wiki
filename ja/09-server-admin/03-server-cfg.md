@@ -1,6 +1,5 @@
 # Chapter 9.3: serverDZ.cfg 完全リファレンス
 
-[ホーム](../README.md) | [<< 前へ: ディレクトリ構造](02-directory-structure.md) | **serverDZ.cfgリファレンス** | [次へ: ルートエコノミー詳解 >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 MODは `-mod=` で指定された順序でロードされます。依存関係の順序が重要です: MOD BがMOD Aを必要とする場合、MOD Aを先にリストしてください。
-
----
-
-**前へ:** [ディレクトリ構造](02-directory-structure.md) | [ホーム](../README.md) | **次へ:** [ルートエコノミー詳解 >>](04-loot-economy.md)

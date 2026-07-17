@@ -1,6 +1,5 @@
 # Rozdział 8.4: Dodawanie komend czatu
 
-[Strona główna](../README.md) | [<< Poprzedni: Budowanie panelu administratora](03-admin-panel.md) | **Dodawanie komend czatu** | [Dalej: Używanie szablonu moda DayZ >>](05-mod-template.md)
 
 ---
 

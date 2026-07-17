@@ -1,6 +1,5 @@
 # Chapter 7.1: Singleton Pattern
 
-[Home](../README.md) | **Singleton Pattern** | [Next: Module Systems >>](02-module-systems.md)
 
 ---
 
@@ -512,7 +511,3 @@ Before shipping a singleton, verify:
 - [ ] The destructor cleans up owned collections (`.Clear()`, set to `null`)
 - [ ] No public fields --- all mutation goes through methods
 - [ ] The constructor does not call `GetInstance()` on other singletons (defer to `OnInit()`)
-
----
-
-[Startseite](../README.md) | **Singleton Pattern** | [Next: Module Systems >>](02-module-systems.md)

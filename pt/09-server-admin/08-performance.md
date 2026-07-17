@@ -1,6 +1,5 @@
-# Chapter 9.8: Ajuste de Performance
+# Ajuste de Performance
 
-[Inicio](../README.md) | [<< Anterior: Persistencia](07-persistence.md) | [Proximo: Controle de Acesso >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Uma pasta `storage_1/` que cresce para varios gigabytes desacelera cada ciclo de
 ### Logging Deixado Ativado
 
 Logging de diagnostico do CE, logging de debug de script e logging de ferramentas de admin escrevem no disco a cada tick. Ative-os para diagnostico e depois desative. Logging verboso persistente em um servidor movimentado pode custar 1-2 FPS por si so.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Persistencia](07-persistence.md) | [Proximo: Controle de Acesso >>](09-access-control.md)

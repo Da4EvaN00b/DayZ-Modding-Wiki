@@ -1,6 +1,5 @@
 # Capitolo 7.3: Pattern di Comunicazione RPC
 
-[Home](../README.md) | [<< Precedente: Sistemi a Moduli](02-module-systems.md) | **Pattern di Comunicazione RPC** | [Successivo: Persistenza Configurazione >>](04-config-persistence.md)
 
 ---
 
@@ -656,7 +655,3 @@ Oppure usa un `Cleanup()` centralizzato che svuota l'intera mappa degli handler 
 | Usa protocol buffer o serializzazione basata su schema | Enforce Script non ha supporto protobuf; fai `Write`/`Read` manuali di primitivi in ordine corrispondente |
 | Valida tutti gli input con enforcement dello schema | Non esiste validazione di schema; ogni valore di ritorno di `ctx.Read()` deve essere controllato individualmente |
 | Le RPC dovrebbero essere idempotenti | Pratico in DayZ solo per RPC di query; le RPC di mutazione (spawn, delete, teleport) sono intrinsecamente non-idempotenti --- proteggile con controlli di permesso |
-
----
-
-[Home](../README.md) | [<< Precedente: Sistemi a Moduli](02-module-systems.md) | **Pattern di Comunicazione RPC** | [Successivo: Persistenza Configurazione >>](04-config-persistence.md)

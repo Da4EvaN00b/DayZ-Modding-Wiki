@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawn graczy
 
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn pojazdow](05-vehicle-spawning.md) | [Dalej: Trwalosc danych >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ Generator odrzuca nachylenia powyzej 45 stopni. Jesli wszystkie niestandardowe p
 ### Gracze zawsze pojawiaja sie w tym samym miejscu
 
 Grupy z 1-2 pozycjami maja zbyt malo kandydatow, aby silnik mogl zroznicowac wybrana pozycje. Dodaj wiecej pozycji na grupe.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn pojazdow](05-vehicle-spawning.md) | [Dalej: Trwalosc danych >>](07-persistence.md)

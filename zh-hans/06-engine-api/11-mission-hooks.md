@@ -1,6 +1,5 @@
 # 第 6.11 章：任务钩子
 
-[首页](../README.md) | [<< 上一章：中央经济](10-central-economy.md) | **任务钩子** | [下一章：动作系统 >>](12-action-system.md)
 
 ---
 
@@ -579,7 +578,3 @@ override void OnInit()                      override void OnInit()
 | `StartingEquipSetup` 重写用于自定义初始装备 | 多个社区模组 | MissionServer 初始装备钩子 |
 | 在 `super` 之前的 `OnEvent` 拦截以阻止被封禁玩家 | COT | MissionServer 中的封禁系统 |
 | `OnMissionFinish` 清理配合控件 `Unlink()` 和置空赋值 | Expansion | HUD 和菜单清理 |
-
----
-
-[首页](../README.md) | [<< 上一章：中央经济](10-central-economy.md) | **任务钩子** | [下一章：动作系统 >>](12-action-system.md)

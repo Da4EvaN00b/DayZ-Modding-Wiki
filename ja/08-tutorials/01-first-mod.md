@@ -1,6 +1,5 @@
 # 第 8.1 章: はじめての Mod（Hello World）
 
-[ホーム](../README.md) | **はじめての Mod** | [次: カスタムアイテムの作成 >>](02-custom-item.md)
 
 ---
 

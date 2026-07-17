@@ -1,6 +1,5 @@
 # Capitolo 8.3: Costruire un Modulo Pannello Admin
 
-[Home](../README.md) | [<< Precedente: Creare un Oggetto Personalizzato](02-custom-item.md) | **Costruire un Pannello Admin** | [Successivo: Aggiungere Comandi Chat >>](04-chat-commands.md)
 
 ---
 

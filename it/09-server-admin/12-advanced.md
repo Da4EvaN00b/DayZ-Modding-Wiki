@@ -1,6 +1,5 @@
 # Chapter 9.12: Argomenti Avanzati del Server
 
-[Home](../README.md) | [<< Precedente: Risoluzione Problemi](11-troubleshooting.md) | [Home Parte 9](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ Il file **db/messages.xml** nella cartella della tua missione controlla i messag
 - `shutdown` -- `1` per messaggi della sequenza di spegnimento, `0` per broadcast regolari
 
 Il sistema dei messaggi non riavvia il server. Visualizza solo avvisi quando un programma di riavvio e configurato esternamente.
-
----
-
-[Home](../README.md) | [<< Precedente: Risoluzione Problemi](11-troubleshooting.md) | [Home Parte 9](01-server-setup.md)

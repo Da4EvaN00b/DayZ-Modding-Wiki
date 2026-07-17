@@ -1,6 +1,5 @@
 # Chapter 4.4: オーディオ (.ogg, .wss)
 
-[Home](../README.md) | [<< 前: マテリアル](03-materials.md) | **オーディオ** | [次: DayZ Tools ワークフロー >>](05-dayz-tools.md)
 
 ---
 

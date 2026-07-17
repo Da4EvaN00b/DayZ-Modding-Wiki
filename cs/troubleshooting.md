@@ -1,6 +1,5 @@
 # Pruvodce resenim problemu
 
-[Domu](./README.md) | **Pruvodce resenim problemu**
 
 ---
 

@@ -1,6 +1,5 @@
 # Chapter 9.12: 高级服务器主题
 
-[首页](../README.md) | [<< 上一章: 故障排除](11-troubleshooting.md) | [第 9 部分首页](01-server-setup.md)
 
 ---
 
@@ -300,7 +299,3 @@ cd /home/dayz/server && ./DayZServer -config=serverDZ.cfg -profiles=profiles -po
 - `shutdown` -- `1` 表示关服序列消息，`0` 表示常规广播
 
 消息系统不会重启服务器。它只在外部配置了重启计划时显示警告。
-
----
-
-[首页](../README.md) | [<< 上一章: 故障排除](11-troubleshooting.md) | [第 9 部分首页](01-server-setup.md)

@@ -1,6 +1,5 @@
 # 7.5. fejezet: Jogosultsági rendszerek
 
-[Kezdőlap](../README.md) | [<< Előző: Konfiguráció perzisztencia](04-config-persistence.md) | **Jogosultsági rendszerek** | [Következő: Eseményvezérelt architektúra >>](06-events.md)
 
 ---
 
@@ -651,7 +650,3 @@ Ez egy gyakori minta az eredeti sima `AdminUIDs` tömbről a hierarchikus `Admin
 | Használj RBAC-ot (szerep-alapú hozzáférés-vezérlés) csoport örökléssel | Csak a CF/COT támogat háromállapotú jogosultságokat; a legtöbb mod az egyszerűség kedvéért sima játékosonkénti megadást használ |
 | A jogosultságokat adatbázisban kell tárolni | Nincs adatbázis-hozzáférés; JSON fájlok a `$profile:`-ban az egyetlen lehetőség |
 | Használj kriptográfiai tokeneket az engedélyezéshez | Nincsenek kriptográfiai könyvtárak az Enforce Scriptben; a bizalom a `PlayerIdentity.GetPlainId()` (Steam64 ID) alapú, amelyet a motor ellenőriz |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Konfiguráció perzisztencia](04-config-persistence.md) | **Jogosultsági rendszerek** | [Következő: Eseményvezérelt architektúra >>](06-events.md)

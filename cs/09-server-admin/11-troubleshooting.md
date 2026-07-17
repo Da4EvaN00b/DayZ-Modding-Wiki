@@ -1,6 +1,5 @@
 # Chapter 9.11: Reseni problemu serveru
 
-[Domu](../README.md) | [<< Predchozi: Sprava modu](10-mod-management.md) | [Dalsi: Pokrocila temata >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Kdyz se neco pokazi, projdete si tento seznam v poradi:
 ```
 
 Krok 8 je nejucinnejsi technika. Pokud server funguje vanilkove, ale rozbije se s mody, muzete izolovat problemovy mod pomoci binárniho vyhledávani -- pridejte polovinu modu, testujte, pak zuzte.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Sprava modu](10-mod-management.md) | [Dalsi: Pokrocila temata >>](12-advanced.md)

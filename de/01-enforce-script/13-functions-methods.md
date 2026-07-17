@@ -1,6 +1,5 @@
 # Kapitel 1.13: Funktionen & Methoden
 
-[Startseite](../README.md) | [<< Zurück: Fallstricke](12-gotchas.md) | **Funktionen & Methoden**
 
 ---
 
@@ -1128,11 +1127,3 @@ class MyMission extends MissionServer
 | Thread beenden | `KillThread(owner, "FnName")` | Stoppt eine laufende Coroutine |
 | Verzögerter Aufruf | `CallLater(Fn, delay, repeat)` | Gegenüber Threads bevorzugt |
 | `Ex()`-Konvention | `void FnEx(...)` | Erweiterte Version von `Fn` |
-
----
-
-## Navigation
-
-| Zurück | Hoch | Weiter |
-|----------|----|------|
-| [1.12 Fallstricke](12-gotchas.md) | [Teil 1: Enforce Script](../README.md) | -- |

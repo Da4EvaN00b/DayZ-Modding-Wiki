@@ -1,6 +1,5 @@
 # Chapitre 6.6 : Systeme de notifications
 
-[Accueil](../README.md) | [<< Precedent : Effets post-traitement](05-ppe.md) | **Notifications** | [Suivant : Timers & CallQueue >>](07-timers.md)
 
 ---
 

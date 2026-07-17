@@ -1,6 +1,5 @@
 # Kapitel 9.11: Server-Fehlerbehebung
 
-[Home](../README.md) | [<< Zurueck: Mod-Verwaltung](10-mod-management.md) | [Weiter: Fortgeschrittene Themen >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Wenn etwas schiefgeht, arbeiten Sie diese Liste der Reihe nach durch:
 ```
 
 Schritt 8 ist die wirkungsvollste Technik. Wenn der Server vanilla funktioniert, aber mit Mods nicht, koennen Sie den Problem-Mod durch binaere Suche isolieren -- fuegen Sie die Haelfte Ihrer Mods hinzu, testen Sie, dann grenzen Sie ein.
-
----
-
-[Home](../README.md) | [<< Zurueck: Mod-Verwaltung](10-mod-management.md) | [Weiter: Fortgeschrittene Themen >>](12-advanced.md)

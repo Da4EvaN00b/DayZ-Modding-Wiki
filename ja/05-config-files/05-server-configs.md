@@ -1,6 +1,5 @@
 # Chapter 5.5: サーバー設定ファイル
 
-[Home](../README.md) | [<< Previous: ImageSet Format](04-imagesets.md) | **サーバー設定ファイル** | [Next: Spawning Gear Configuration >>](06-spawning-gear.md)
 
 ---
 

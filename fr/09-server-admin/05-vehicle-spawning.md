@@ -1,6 +1,5 @@
 # Chapter 9.5 : Apparition des véhicules et événements dynamiques
 
-[Accueil](../README.md) | [<< Précédent : Économie du loot](04-loot-economy.md) | [Suivant : Apparition des joueurs >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Ce sont les problèmes d'apparition de véhicules les plus fréquents rencontré
 **Problème :** Un véhicule apparaît clippé dans un bâtiment ou enterré dans le terrain.
 
 **Solution :** Examinez les coordonnées `<pos>` dans `cfgeventspawns.xml`. Testez les positions en jeu en utilisant la téléportation admin avant de les ajouter au fichier. Les positions doivent être sur des routes plates ou un terrain dégagé, et l'angle (`a`) doit être aligné avec la direction de la route.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Économie du loot](04-loot-economy.md) | [Suivant : Apparition des joueurs >>](06-player-spawning.md)

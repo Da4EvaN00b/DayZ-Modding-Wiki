@@ -1,6 +1,5 @@
 # Chapter 6.19: Terrain & World Queries
 
-[Home](../README.md) | [<< Previous: Animation System](18-animation-system.md) | **Terrain & World Queries** | [Next: Particle & Effect System >>](20-particle-effects.md)
 
 ---
 
@@ -1101,7 +1100,3 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 | `GetObjectsAtPosition` with `null` proxyCargo for area kill zones | Vanilla | `4_World/classes/contaminatedarea/geyserarea.c` |
 | `IsObjectObstructedCache` to batch raycast calls per frame | Vanilla | `4_World/static/miscgameplayfunctions.c` |
 | Combined `PhxInteractionLayers` bitmask for melee obstruction | Vanilla | `4_World/classes/meleetargeting.c` |
-
----
-
-[Home](../README.md) | [<< 前: Animation System](18-animation-system.md) | **Terrain & World Queries**

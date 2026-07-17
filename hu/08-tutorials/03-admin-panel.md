@@ -1,6 +1,5 @@
 # 8.3. fejezet: Admin panel modul építése
 
-[Kezdőlap](../README.md) | [<< Előző: Egyedi tárgy készítése](02-custom-item.md) | **Admin panel építése** | [Következő: Chat parancsok hozzáadása >>](04-chat-commands.md)
 
 ---
 
@@ -1235,5 +1234,3 @@ Ebben az oktatóanyagban megtanultad:
 - Hogyan regisztráld a panelt a `MissionGameplay`-ben megfelelő életciklus kezeléssel
 
 **Következő:** [8.4. fejezet: Chat parancsok hozzáadása](04-chat-commands.md)
-
----

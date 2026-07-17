@@ -1,6 +1,5 @@
 # Capitulo 9.4: Economia de Loot en Profundidad
 
-[Inicio](../README.md) | [<< Anterior: Referencia de serverDZ.cfg](03-server-cfg.md) | **Economia de Loot en Profundidad**
 
 ---
 
@@ -721,7 +720,3 @@ Despues de editar archivos de economia, haz una de estas opciones:
 - Elimina `storage_1/` para un wipe completo e inicio limpio de la economia
 - Pon `RestartSpawn` a `1` en `globals.xml` para un reinicio para re-aleatorizar el loot, luego ponlo de vuelta a `0`
 - Espera a que los lifetimes de los items expiren naturalmente (puede tomar horas)
-
----
-
-**Anterior:** [Referencia de serverDZ.cfg](03-server-cfg.md) | [Inicio](../README.md) | **Siguiente:** [Spawn de Vehiculos y Eventos Dinamicos](05-vehicle-spawning.md)

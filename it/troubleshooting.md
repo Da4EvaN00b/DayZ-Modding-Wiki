@@ -1,6 +1,5 @@
 # Guida alla risoluzione dei problemi
 
-[Home](./README.md) | **Guida alla risoluzione dei problemi**
 
 ---
 

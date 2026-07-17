@@ -1,6 +1,5 @@
 # 4.4. fejezet: Hang (.ogg, .wss)
 
-[Kezdőlap](../README.md) | [<< Előző: Anyagok](03-materials.md) | **Hang** | [Következő: DayZ Tools munkafolyamat >>](05-dayz-tools.md)
 
 ---
 

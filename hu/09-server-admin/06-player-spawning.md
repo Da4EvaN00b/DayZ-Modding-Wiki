@@ -1,6 +1,5 @@
 # Chapter 9.6: Játékos spawnolás
 
-[Kezdőlap](../README.md) | [<< Előző: Jármű spawnolás](05-vehicle-spawning.md) | [Következő: Perzisztencia >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ A generátor elutasítja a 45 foknál meredekebb lejtőket. Ha minden egyedi poz
 ### Játékosok mindig ugyanazon a helyen spawnolnak
 
 Az 1-2 pozíciós csoportoknak túl kevés jelöltjük van ahhoz, hogy a motor változtassa a kiválasztott pozíciót. Adj hozzá több pozíciót csoportonként.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Jármű spawnolás](05-vehicle-spawning.md) | [Következő: Perzisztencia >>](07-persistence.md)

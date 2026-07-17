@@ -1,6 +1,5 @@
 # Chapter 9.7: Stan swiata i trwalosc danych
 
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn graczy](06-player-spawning.md) | [Dalej: Optymalizacja wydajnosci >>](08-performance.md)
 
 Trwalosc danych DayZ utrzymuje swiat przy zyciu miedzy restartami. Zrozumienie jej dzialania pozwala zarzadzac bazami, planowac wipe'y i unikac uszkodzenia danych.
 
@@ -188,7 +187,3 @@ Powtarzaja sie regularnie w spolecznosciach administratorow serwerow:
 | Pomylenie resetu pogody z pelnym czyszczeniem | Usuniecie `events.xy` resetuje tylko pozycje zdarzen dynamicznych. Nie resetuje lootu, baz ani graczy. | Wiedz, ktore pliki kontroluja co (zobacz tabele katalogow powyzej). |
 | Flaga nie odswiezona na czas | Po 40 dniach (FlagRefreshMaxDuration) flaga wygasa i wszystkie powiazane elementy bazy staja sie kwalifikowane do czyszczenia. Gracze traca cala baze. | Przypominaj graczom o interwale odswiezania. Obniz FlagRefreshMaxDuration na serwerach z mala populacja. |
 | Edycja globals.xml podczas pracy serwera | Zmiany nie sa stosowane do restartu. Co gorsza, serwer moze nadpisac twoje edycje przy zamknieciu. | Edytuj pliki konfiguracyjne tylko gdy serwer jest zatrzymany. |
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn graczy](06-player-spawning.md) | [Dalej: Optymalizacja wydajnosci >>](08-performance.md)

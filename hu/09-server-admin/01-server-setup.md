@@ -1,6 +1,5 @@
 # Chapter 9.1: Szerver telepítés és első indítás
 
-[Kezdőlap](../README.md) | **Szerver telepítés** | [Következő: Könyvtárszerkezet >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ Ez normális. A DayZ szerver egymagos. Ne futtass több szerverpéldányt ugyana
 ```cpp
 template = "dayzOffline.chernarusplus";  // Meg kell egyeznie a mpmissions/ mappa nevével
 ```
-
----
-
-**[Kezdőlap](../README.md)** | **Következő:** [Könyvtárszerkezet >>](02-directory-structure.md)

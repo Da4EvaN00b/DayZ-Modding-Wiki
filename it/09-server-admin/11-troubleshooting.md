@@ -1,6 +1,5 @@
 # Chapter 9.11: Risoluzione Problemi del Server
 
-[Home](../README.md) | [<< Precedente: Gestione delle Mod](10-mod-management.md) | [Successivo: Argomenti Avanzati >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Quando qualcosa va storto, segui questa lista in ordine:
 ```
 
 Il passo 8 e la tecnica piu potente. Se il server funziona vanilla ma si rompe con le mod, puoi isolare la mod problematica tramite ricerca binaria -- aggiungi meta delle tue mod, testa, poi restringi.
-
----
-
-[Home](../README.md) | [<< Precedente: Gestione delle Mod](10-mod-management.md) | [Successivo: Argomenti Avanzati >>](12-advanced.md)

@@ -1,6 +1,5 @@
 # Kapitola 8.10: Vytvoření vlastního modu vozidla
 
-[Domů](../README.md) | [<< Předchozí: Profesionální šablona modu](09-professional-template.md) | **Vytvoření vlastního vozidla** | [Další: Vytvoření vlastního oblečení >>](11-clothing-mod.md)
 
 ---
 

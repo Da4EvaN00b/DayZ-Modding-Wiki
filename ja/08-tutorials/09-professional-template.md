@@ -1,6 +1,5 @@
 # チャプター 8.9: プロフェッショナルModテンプレート
 
-[ホーム](../README.md) | [<< 前へ: HUDオーバーレイの構築](08-hud-overlay.md) | **プロフェッショナルModテンプレート** | [次へ: カスタム車両の作成 >>](10-vehicle-mod.md)
 
 ---
 
@@ -1834,7 +1833,3 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 4. **HUDオーバーレイを追加する** -- 常時表示のUI要素のために [チャプター 8.8: HUDオーバーレイの構築](08-hud-overlay.md) に従います。
 5. **Workshopに公開する** -- Modの準備ができたら [チャプター 8.7: Workshopへの公開](07-publishing-workshop.md) に従います。
 6. **デバッグを学ぶ** -- ログ分析とトラブルシューティングのために [チャプター 8.6: デバッグとテスト](06-debugging-testing.md) を読みます。
-
----
-
-**前へ:** [チャプター 8.8: HUDオーバーレイの構築](08-hud-overlay.md) | [ホーム](../README.md)

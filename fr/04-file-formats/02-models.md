@@ -1,6 +1,5 @@
 # Chapitre 4.2 : Modèles 3D (.p3d)
 
-[Accueil](../README.md) | [<< Précédent : Textures](01-textures.md) | **Modèles 3D** | [Suivant : Matériaux >>](03-materials.md)
 
 ---
 

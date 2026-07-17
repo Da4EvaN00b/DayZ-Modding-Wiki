@@ -1,6 +1,5 @@
 # Capitulo 9.2: Estructura de Directorios y Carpeta de Mision
 
-[Inicio](../README.md) | [<< Anterior: Configuracion del Servidor](01-server-setup.md) | **Estructura de Directorios** | [Siguiente: Referencia de serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ El atributo `a` es el angulo de rotacion en grados.
 | `storage_1/` | Solo eliminar | Persistencia -- no editar manualmente |
 | `battleye/` | **No** | Anti-cheat -- no tocar |
 | `mapgroup*.xml` | Con cuidado | Posiciones de loot en edificios -- solo edicion avanzada |
-
----
-
-**Anterior:** [Configuracion del Servidor](01-server-setup.md) | [Inicio](../README.md) | **Siguiente:** [Referencia de serverDZ.cfg >>](03-server-cfg.md)

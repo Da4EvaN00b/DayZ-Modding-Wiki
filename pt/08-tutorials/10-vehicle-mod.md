@@ -1,6 +1,5 @@
-# Capítulo 8.10: Criando um Mod de Veículo Personalizado
+# Criando um Mod de Veículo Personalizado
 
-[Início](../README.md) | [<< Anterior: Template Profissional de Mod](09-professional-template.md) | **Criando um Veículo Personalizado** | [Próximo: Criando Roupas Personalizadas >>](11-clothing-mod.md)
 
 ---
 

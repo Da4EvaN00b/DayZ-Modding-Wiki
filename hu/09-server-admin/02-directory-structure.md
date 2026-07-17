@@ -1,6 +1,5 @@
 # Chapter 9.2: Könyvtárszerkezet és küldetés mappa
 
-[Kezdőlap](../README.md) | [<< Előző: Szerver telepítés](01-server-setup.md) | **Könyvtárszerkezet** | [Következő: serverDZ.cfg referencia >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ Az `a` attribútum az elforgatási szög fokban.
 | `storage_1/` | Csak törlés | Perzisztencia -- ne szerkeszd kézzel |
 | `battleye/` | **Nem** | Csalásellenes -- ne nyúlj hozzá |
 | `mapgroup*.xml` | Óvatosan | Épület zsákmány pozíciók -- csak haladó szerkesztés |
-
----
-
-**Előző:** [Szerver telepítés](01-server-setup.md) | [Kezdőlap](../README.md) | **Következő:** [serverDZ.cfg referencia >>](03-server-cfg.md)

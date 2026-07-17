@@ -1,6 +1,5 @@
-# Chapter 1.9: Casting & Reflection
+# Casting & Reflection
 
-[Home](../README.md) | [<< Previous: Memory Management](08-memory-management.md) | **Casting & Reflection** | [Next: Enums & Preprocessor >>](10-enums-preprocessor.md)
 
 ---
 
@@ -604,11 +603,3 @@ if (myObj.Type() == PlayerBase)  // true if myObj IS a PlayerBase
 | Tipo da variavel | `obj.Type().GetVariableType(i)` | `typename` |
 | Ler propriedade | `EnScript.GetClassVar(obj, name, 0, out val)` | `void` |
 | Escrever propriedade | `EnScript.SetClassVar(obj, name, 0, val)` | `bool` |
-
----
-
-## Navegacao
-
-| Anterior | Acima | Proximo |
-|----------|-------|---------|
-| [1.8 Gerenciamento de Memoria](08-memory-management.md) | [Parte 1: Enforce Script](../README.md) | [1.10 Enums & Preprocessador](10-enums-preprocessor.md) |

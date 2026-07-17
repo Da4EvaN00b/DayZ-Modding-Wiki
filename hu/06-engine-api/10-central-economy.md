@@ -1,6 +1,5 @@
 # Chapter 6.10: Central Economy
 
-[Home](../README.md) | [<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Next: Mission Hooks >>](11-mission-hooks.md)
 
 ---
 
@@ -529,7 +528,3 @@ Add a new `<event>` block in `events.xml` and corresponding spawn positions in `
 | Count flags | Which items count toward nominal (cargo, hoarder, map, player) |
 | Esemenyek | Dynamic spawns with their own lifecycle (crashes, vehicles, infected) |
 | ECE flags | `ECE_NOLIFETIME`, `ECE_EQUIP` for script-spawned items |
-
----
-
-[<< Elozo: Halozatkezeles & RPC](09-networking.md) | **Kozponti gazdasag** | [Kezdolap](../README.md)

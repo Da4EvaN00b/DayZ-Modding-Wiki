@@ -1,6 +1,5 @@
 # Глава 5.2: inputs.xml --- Пользовательские клавиши
 
-[Главная](../README.md) | [<< Предыдущая: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Следующая: Credits.json >>](03-credits-json.md)
 
 ---
 

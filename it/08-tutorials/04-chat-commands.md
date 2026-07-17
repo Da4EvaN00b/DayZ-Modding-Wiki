@@ -1,6 +1,5 @@
 # Capitolo 8.4: Aggiungere Comandi Chat
 
-[Home](../README.md) | [<< Precedente: Costruire un Pannello Admin](03-admin-panel.md) | **Aggiungere Comandi Chat** | [Successivo: Usare il Template Mod DayZ >>](05-mod-template.md)
 
 ---
 

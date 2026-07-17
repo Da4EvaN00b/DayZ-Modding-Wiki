@@ -1,6 +1,5 @@
 # Kapitel 1.4: Modded-Klassen (Der Schlüssel zum DayZ-Modding)
 
-[Startseite](../README.md) | [<< Zurück: Klassen & Vererbung](03-classes-inheritance.md) | **Modded-Klassen** | [Weiter: Kontrollfluss >>](05-control-flow.md)
 
 ---
 
@@ -1120,7 +1119,3 @@ Erstellen Sie eine `modded class PlayerBase`, die ein Reputationssystem hinzufü
 1. **Immer `super` aufrufen** --- es sei denn, Sie haben einen dokumentierten Grund, es nicht zu tun
 2. **Optionale Abhängigkeiten mit `#ifdef` absichern** --- Ihre Mod sollte eigenständig funktionieren
 3. **Felder und Methoden mit Präfixen versehen** --- Namenskollisionen mit anderen Mods vermeiden
-
----
-
-[Startseite](../README.md) | [<< Zurück: Klassen & Vererbung](03-classes-inheritance.md) | **Modded-Klassen** | [Weiter: Kontrollfluss >>](05-control-flow.md)

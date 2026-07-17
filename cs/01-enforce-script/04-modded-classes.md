@@ -1,6 +1,5 @@
 # Chapter 1.4: Modded Classes (The Key to DayZ Modding)
 
-[Home](../README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)
 
 ---
 
@@ -1120,7 +1119,3 @@ Create a `modded class PlayerBase` that adds a reputation system. When a player 
 1. **Always call `super`** --- unless you have a documented reason not to
 2. **Guard optional dependencies with `#ifdef`** --- your mod should work standalone
 3. **Prefix your fields and methods** --- avoid name collisions with other mods
-
----
-
-[Domů](../README.md) | [<< Předchozí: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Další: Control Flow >>](05-control-flow.md)

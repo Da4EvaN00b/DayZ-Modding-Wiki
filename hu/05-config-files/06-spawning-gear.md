@@ -1,6 +1,5 @@
 # 5.6. fejezet: Spawn felszerelés konfiguráció
 
-[Főoldal](../README.md) | [<< Előző: Szerver konfigurációs fájlok](05-server-configs.md) | **Spawn felszerelés konfiguráció**
 
 ---
 
@@ -814,7 +813,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → rács sűrűség, méret, lejtés korlátok
        └─ generator_posbubbles → pozíciók (opcionálisan elnevezett csoportokban)
 ```
-
----
-
-[Főoldal](../README.md) | [<< Előző: Szerver konfigurációs fájlok](05-server-configs.md) | **Spawn felszerelés konfiguráció**

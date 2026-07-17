@@ -1,6 +1,5 @@
 # Kapitola 5.4: Formát ImageSet
 
-[Domů](../README.md) | [<< Předchozí: Credits.json](03-credits-json.md) | **Formát ImageSet** | [Další: Konfigurační soubory serveru >>](05-server-configs.md)
 
 ---
 

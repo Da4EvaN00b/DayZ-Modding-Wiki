@@ -1,6 +1,5 @@
-# Chapter 9.5: Spawn de Veiculos e Eventos Dinamicos
+# Spawn de Veiculos e Eventos Dinamicos
 
-[Inicio](../README.md) | [<< Anterior: Economia de Loot](04-loot-economy.md) | [Proximo: Spawn de Jogadores >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Estes sao os problemas de spawn de veiculos mais frequentes encontrados por admi
 **Problema:** Um veiculo spawna clipado dentro de uma construcao ou enterrado no terreno.
 
 **Solucao:** Revise as coordenadas `<pos>` no `cfgeventspawns.xml`. Teste posicoes in-game usando teleporte de admin antes de adiciona-las ao arquivo. Posicoes devem estar em estradas planas ou terreno aberto, e o angulo (`a`) deve se alinhar com a direcao da estrada.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Economia de Loot](04-loot-economy.md) | [Proximo: Spawn de Jogadores >>](06-player-spawning.md)

@@ -1,6 +1,5 @@
-# Chapter 9.3: Referencia Completa do serverDZ.cfg
+# Referencia Completa do serverDZ.cfg
 
-[Inicio](../README.md) | [<< Anterior: Estrutura de Diretorios](02-directory-structure.md) | **Referencia do serverDZ.cfg** | [Proximo: Economia de Loot em Profundidade >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Mods sao carregados na ordem especificada em `-mod=`. A ordem de dependencia importa: se o Mod B requer o Mod A, liste o Mod A primeiro.
-
----
-
-**Anterior:** [Estrutura de Diretorios](02-directory-structure.md) | [Inicio](../README.md) | **Proximo:** [Economia de Loot em Profundidade >>](04-loot-economy.md)

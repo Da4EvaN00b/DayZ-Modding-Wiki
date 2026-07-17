@@ -1,6 +1,5 @@
 # Chapter 9.1: サーバーセットアップと初回起動
 
-[ホーム](../README.md) | **サーバーセットアップ** | [次へ: ディレクトリ構造 >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ https://www.battlemetrics.com/ などの外部ツールや `gamedig` npmパッ�
 ```cpp
 template = "dayzOffline.chernarusplus";  // mpmissions/ のフォルダ名と一致する必要があります
 ```
-
----
-
-**[ホーム](../README.md)** | **次へ:** [ディレクトリ構造 >>](02-directory-structure.md)

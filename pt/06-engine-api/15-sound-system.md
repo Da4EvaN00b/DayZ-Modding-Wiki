@@ -1,6 +1,5 @@
-# Capítulo 6.15: Sistema de Som
+# Sistema de Som
 
-[Início](../README.md) | [<< Anterior: Sistema do Jogador](14-player-system.md) | **Sistema de Som** | [Próximo: Sistema de Crafting >>](16-crafting-system.md)
 
 ---
 
@@ -1060,7 +1059,3 @@ Nomes de controladores disponíveis incluem: `rain`, `night`, `meadow`, `trees`,
 - **Multi-Mod:** Nomes de classes CfgSoundShaders e CfgSoundSets compartilham um namespace global entre todos os mods carregados. Colisões de nomes fazem os sons de um mod silenciosamente substituírem os de outro. Sempre use um prefixo de mod único.
 - **Desempenho:** Cada `EffectSound` ativo consome um canal de áudio. O motor tem um pool limitado de canais -- sons simultâneos excessivos (50+) podem fazer sons mais novos falharem silenciosamente. Use `limitation` em CfgSoundShaders para limitar instâncias concorrentes de sons frequentes.
 - **Servidor/Cliente:** Toda reprodução de som é apenas do lado do cliente. O servidor não tem saída de áudio. Métodos de conveniência de entidade (`PlaySoundSet`, `StopSoundSet`) incluem proteções de servidor internamente, mas chamadas diretas a `SEffectManager` não.
-
----
-
-[Início](../README.md) | [<< Anterior: Sistema do Jogador](14-player-system.md) | **Sistema de Som** | [Próximo: Sistema de Crafting >>](16-crafting-system.md)

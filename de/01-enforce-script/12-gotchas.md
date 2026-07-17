@@ -1,6 +1,5 @@
 # Kapitel 1.12: Was NICHT existiert (Fallstricke)
 
-[Startseite](../README.md) | [<< Zurück: Fehlerbehandlung](11-error-handling.md) | **Fallstricke** | [Weiter: Funktionen & Methoden >>](13-functions-methods.md)
 
 ---
 
@@ -1209,11 +1208,3 @@ Wenn Sie C++-Entwickler sind, hier die größten Umstellungen:
 | `IsClient()` während des Ladens | Gibt false zurück | `IsDedicatedServer()` verwenden |
 | Kompilierfehler falsche Datei | Irreführender Ort | Datei prüfen, die nach der gemeldeten geparst wird |
 | `crash_*.log`-Dateien | Keine echten Abstürze | Es sind Laufzeit-Script-Ausnahmen |
-
----
-
-## Navigation
-
-| Zurück | Hoch | Weiter |
-|----------|----|------|
-| [1.11 Fehlerbehandlung](11-error-handling.md) | [Teil 1: Enforce Script](../README.md) | [1.13 Funktionen & Methoden](13-functions-methods.md) |

@@ -1,6 +1,5 @@
 # 第1.13章: 関数とメソッド
 
-[ホーム](../README.md) | [<< 前へ: 落とし穴](12-gotchas.md) | **関数とメソッド**
 
 ---
 
@@ -673,11 +672,3 @@ class MyMission extends MissionServer
 | スレッド終了 | `KillThread(owner, "FnName")` | 実行中のコルーチンを停止 |
 | 遅延呼び出し | `CallLater(Fn, delay, repeat)` | スレッドより推奨 |
 | `Ex()` 規則 | `void FnEx(...)` | `Fn` の拡張バージョン |
-
----
-
-## ナビゲーション
-
-| 前 | 上 | 次 |
-|----------|----|------|
-| [1.12 落とし穴](12-gotchas.md) | [パート1: Enforce Script](../README.md) | -- |

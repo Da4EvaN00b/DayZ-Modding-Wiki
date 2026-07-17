@@ -1,6 +1,5 @@
 # Chapter 9.3: Kompletna dokumentacja serverDZ.cfg
 
-[Strona glowna](../README.md) | [<< Poprzedni: Struktura katalogow](02-directory-structure.md) | **Dokumentacja serverDZ.cfg** | [Dalej: Szczegolowy przewodnik po ekonomii lootu >>](04-loot-economy.md)
 
 ---
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Mody sa ladowane w kolejnosci podanej w `-mod=`. Kolejnosc zaleznosci ma znaczenie: jesli Mod B wymaga Modu A, wymien Mod A jako pierwszy.
-
----
-
-**Poprzedni:** [Struktura katalogow](02-directory-structure.md) | [Strona glowna](../README.md) | **Dalej:** [Szczegolowy przewodnik po ekonomii lootu >>](04-loot-economy.md)

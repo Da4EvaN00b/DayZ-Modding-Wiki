@@ -1,6 +1,5 @@
 # Capitulo 6.9: Redes y RPC
 
-[Inicio](../README.md) | [<< Anterior: File I/O & JSON](08-file-io.md) | **Redes y RPC** | [Siguiente: Central Economy >>](10-central-economy.md)
 
 ---
 

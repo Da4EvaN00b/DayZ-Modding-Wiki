@@ -1,6 +1,5 @@
 # Enforce Script Cheat Sheet
 
-[Home](./README.md) | **Cheat Sheet**
 
 ---
 

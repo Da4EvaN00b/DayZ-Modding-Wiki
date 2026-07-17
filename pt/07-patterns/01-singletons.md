@@ -1,6 +1,5 @@
-# Chapter 7.1: Singleton Pattern
+# Singleton Pattern
 
-[Home](../README.md) | **Singleton Pattern** | [Next: Module Systems >>](02-module-systems.md)
 
 ---
 
@@ -484,7 +483,3 @@ Antes de publicar um singleton, verifique:
 | Singletons são um anti-padrão; use injeção de dependência | Enforce Script não tem container de DI. Singletons são a abordagem padrão para managers globais em todos os mods principais. |
 | Inicialização lazy é sempre suficiente | Handlers de RPC devem ser registrados antes de qualquer cliente conectar, então init eager em `OnInit()` é frequentemente necessário. |
 | Singletons nunca devem ser destruídos | Missões DayZ reiniciam sem reiniciar o processo do servidor; singletons *devem* ser destruídos e recriados em cada ciclo de missão. |
-
----
-
-[Início](../README.md) | **Padrão Singleton** | [Próximo: Sistemas de Módulos >>](02-module-systems.md)

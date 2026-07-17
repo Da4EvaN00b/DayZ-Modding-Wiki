@@ -1,6 +1,5 @@
 # Capitolo 5.6: Configurazione dell'Equipaggiamento di Spawn
 
-[Home](../README.md) | [<< Precedente: File di Configurazione del Server](05-server-configs.md) | **Configurazione dell'Equipaggiamento di Spawn**
 
 ---
 
@@ -653,7 +652,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → densità griglia, dimensione, limiti pendenza
        └─ generator_posbubbles → posizioni (opzionalmente in gruppi nominati)
 ```
-
----
-
-[Home](../README.md) | [<< Precedente: File di Configurazione del Server](05-server-configs.md) | **Configurazione dell'Equipaggiamento di Spawn**

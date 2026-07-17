@@ -1,6 +1,5 @@
 # Chapter 7.4: Config Persistence
 
-[Domů](../README.md) | [<< Předchozí: Vzory RPC](03-rpc-patterns.md) | **Perzistence konfigurace** | [Další: Permission Systems >>](05-permissions.md)
 
 ---
 
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Use async file I/O to avoid blocking | Enforce Script has no async file I/O; all reads/writes are synchronous. Načtěte při startu, save on timers. |
 | Validate JSON with a schema | No JSON schema platnýation exists; platnýate fields in `OnAfterLoad()` or with guard clauses after loading. |
 | Use a database for structured data | No database access from Enforce Script; JSON files in `$profile:` are the pouze persistence mechanism. |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Vzory RPC](03-rpc-patterns.md) | **Perzistence konfigurace** | [Další: Permission Systems >>](05-permissions.md)

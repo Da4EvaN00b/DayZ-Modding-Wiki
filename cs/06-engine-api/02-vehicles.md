@@ -1,6 +1,5 @@
 # Chapter 6.2: Vehicle System
 
-[Domů](../README.md) | [<< Předchozí: Systém entit](01-entity-system.md) | **Vozidla** | [Další: Počasí >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Na `Transport` byly přidány fyzikální funkce umožňující vozidlům **usno
 ### Dynamická kolize pro všechny Transport (1.29 experimentální)
 
 Třída `Transport` (rodič `CarScript` a `BoatScript`) má nyní dynamické řešení kolizí. Předtím to měl pouze `CarScript`. Mody lodí těží ze správného zpracování kolizí.
-
----
-
-[Domů](../README.md) | [<< Předchozí: Systém entit](01-entity-system.md) | **Vozidla** | [Další: Počasí >>](03-weather.md)

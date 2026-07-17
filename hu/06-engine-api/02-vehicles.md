@@ -1,6 +1,5 @@
 # 6.2. fejezet: Járműrendszer
 
-[Kezdőlap](../README.md) | [<< Előző: Entitásrendszer](01-entity-system.md) | **Járművek** | [Következő: Időjárás >>](03-weather.md)
 
 ---
 
@@ -527,7 +526,3 @@ Fizikai funkciok lettek hozzaadva kozvetlenul a `Transport` osztalyhoz, hogy leh
 ### Dinamikus utkozes minden Transport-hoz (1.29 Kiserleti)
 
 A `Transport` osztaly (a `CarScript` es a `BoatScript` szuloje) most dinamikus utkozesfeloldast kapott. Korabban csak a `CarScript` rendelkezett ezzel. A hajo modok profitalnak a megfelelo utkozes-kezelesebol.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Entitásrendszer](01-entity-system.md) | **Járművek** | [Következő: Időjárás >>](03-weather.md)

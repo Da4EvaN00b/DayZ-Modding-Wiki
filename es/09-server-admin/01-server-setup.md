@@ -1,6 +1,5 @@
 # Capitulo 9.1: Configuracion del Servidor y Primer Inicio
 
-[Inicio](../README.md) | **Configuracion del Servidor** | [Siguiente: Estructura de Directorios >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ Esto es normal. DayZ Server usa un solo hilo. No ejecutes multiples instancias d
 ```cpp
 template = "dayzOffline.chernarusplus";  // Debe coincidir con el nombre de carpeta en mpmissions/
 ```
-
----
-
-**[Inicio](../README.md)** | **Siguiente:** [Estructura de Directorios >>](02-directory-structure.md)

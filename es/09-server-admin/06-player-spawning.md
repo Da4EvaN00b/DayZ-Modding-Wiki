@@ -1,6 +1,5 @@
 # Capitulo 9.6: Spawn de Jugadores
 
-[Inicio](../README.md) | [<< Anterior: Spawn de Vehiculos](05-vehicle-spawning.md) | [Siguiente: Persistencia >>](07-persistence.md)
 
 ---
 
@@ -305,7 +304,3 @@ El generador rechaza pendientes superiores a 45 grados. Si todas las posiciones 
 ### Jugadores siempre spawneando en el mismo punto
 
 Los grupos con 1-2 posiciones tienen muy pocos candidatos para que el motor varie la posicion elegida. Agrega mas posiciones por grupo.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Spawn de Vehiculos](05-vehicle-spawning.md) | [Siguiente: Persistencia >>](07-persistence.md)

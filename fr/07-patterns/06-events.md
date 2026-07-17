@@ -1,6 +1,5 @@
 # Chapitre 7.6 : Architecture événementielle
 
-[Accueil](../README.md) | [<< Précédent : Systèmes de permissions](05-permissions.md) | **Architecture événementielle** | [Suivant : Optimisation des performances >>](07-performance.md)
 
 ---
 
@@ -549,7 +548,3 @@ OnKillEvent.Invoke(killData);
 | Double `Insert()` du même gestionnaire | Le gestionnaire est appelé deux fois par `Invoke()` ; un `Remove()` par défaut (flag `ALL`) efface toutes les entrées d'un coup, retirant tous les abonnements | Vérifier avant d'insérer, ou s'assurer que `Insert()` n'est appelé qu'une fois (ex: dans `OnInit` avec un drapeau de garde) |
 | Utiliser des fonctions anonymes/lambda comme gestionnaires | Ne peuvent pas être retirées car il n'y a pas de référence à passer à `Remove()` | Toujours utiliser des méthodes nommées comme gestionnaires d'événements |
 | Déclencher des événements avec des signatures d'arguments incompatibles | Les abonnés reçoivent des données aberrantes ou crashent à l'exécution ; pas de vérification de type à la compilation | Documenter la signature attendue au-dessus de chaque déclaration `ScriptInvoker` et la respecter exactement dans tous les gestionnaires |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Systèmes de permissions](05-permissions.md) | **Architecture événementielle** | [Suivant : Optimisation des performances >>](07-performance.md)

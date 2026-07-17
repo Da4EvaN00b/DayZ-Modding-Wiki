@@ -1,6 +1,5 @@
 # Chapitre 4.1 : Textures (.paa, .edds, .tga)
 
-[Accueil](../README.md) | **Textures** | [Suivant : Modèles 3D >>](02-models.md)
 
 ---
 

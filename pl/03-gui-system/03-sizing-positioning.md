@@ -1,6 +1,5 @@
 # Rozdział 3.3: Rozmiarowanie i pozycjonowanie
 
-[Strona główna](../README.md) | [<< Poprzedni: Format pliku layoutu](02-layout-files.md) | **Rozmiarowanie i pozycjonowanie** | [Następny: Widgety kontenerowe >>](04-containers.md)
 
 ---
 

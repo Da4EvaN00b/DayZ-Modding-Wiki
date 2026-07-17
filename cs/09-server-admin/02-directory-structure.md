@@ -1,6 +1,5 @@
 # Chapter 9.2: Adresarova struktura a slozka mise
 
-[Domu](../README.md) | [<< Predchozi: Nastaveni serveru](01-server-setup.md) | **Adresarova struktura** | [Dalsi: Reference serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ Atribut `a` je uhel rotace ve stupních.
 | `storage_1/` | Pouze mazat | Persistence -- nerucne neupravujte |
 | `battleye/` | **Ne** | Anti-cheat -- nesahejte |
 | `mapgroup*.xml` | Opatrne | Pozice lootu v budovach -- pouze pokrocila uprava |
-
----
-
-**Predchozi:** [Nastaveni serveru](01-server-setup.md) | [Domu](../README.md) | **Dalsi:** [Reference serverDZ.cfg >>](03-server-cfg.md)

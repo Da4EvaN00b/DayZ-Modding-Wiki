@@ -1,6 +1,5 @@
 # Chapter 1.3: Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -1044,7 +1043,3 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | `out` param | `void Func(out int val)` | 出力専用パラメータ |
 | `inout` param | `void Func(inout array<int> a)` | 入出力パラメータ |
 | `notnull` param | `void Func(notnull EntityAI e)` | コンパイラが非 null を強制 |
-
----
-
-[ホーム](../README.md) | [<< 前： Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [次： Modded Classes >>](04-modded-classes.md)

@@ -1,6 +1,5 @@
 # Chapter 9.11 : Dépannage du serveur
 
-[Accueil](../README.md) | [<< Précédent : Gestion des mods](10-mod-management.md) | [Suivant : Sujets avancés >>](12-advanced.md)
 
 ---
 
@@ -266,7 +265,3 @@ Quand quelque chose ne va pas, parcourez cette liste dans l'ordre :
 ```
 
 L'étape 8 est la technique la plus puissante. Si le serveur fonctionne en vanilla mais casse avec des mods, vous pouvez isoler le mod problématique par recherche binaire -- ajoutez la moitié de vos mods, testez, puis affinez.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Gestion des mods](10-mod-management.md) | [Suivant : Sujets avancés >>](12-advanced.md)

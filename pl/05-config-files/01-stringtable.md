@@ -1,6 +1,5 @@
 # Rozdział 5.1: stringtable.csv --- Lokalizacja
 
-[Strona główna](../README.md) | **stringtable.csv** | [Następny: inputs.xml >>](02-inputs-xml.md)
 
 ---
 

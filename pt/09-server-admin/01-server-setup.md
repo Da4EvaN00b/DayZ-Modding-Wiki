@@ -1,6 +1,5 @@
-# Chapter 9.1: Configuracao do Servidor e Primeiro Lancamento
+# Configuracao do Servidor e Primeiro Lancamento
 
-[Inicio](../README.md) | **Configuracao do Servidor** | [Proximo: Estrutura de Diretorios >>](02-directory-structure.md)
 
 ---
 
@@ -300,7 +299,3 @@ Isso e normal. O servidor DayZ usa uma unica thread. Nao execute multiplas insta
 ```cpp
 template = "dayzOffline.chernarusplus";  // Deve corresponder ao nome da pasta em mpmissions/
 ```
-
----
-
-**[Inicio](../README.md)** | **Proximo:** [Estrutura de Diretorios >>](02-directory-structure.md)

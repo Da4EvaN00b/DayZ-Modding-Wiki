@@ -1,6 +1,5 @@
 # Chapter 8.5: Using the DayZ Mod Template
 
-[Home](../README.md) | [<< Previous: Adding Chat Commands](04-chat-commands.md) | **Using the DayZ Mod Template** | [Next: Debugging & Testing >>](06-debugging-testing.md)
 
 ---
 
@@ -406,7 +405,3 @@ S vaším modem založeným na šabloně v provozu můžete:
 4. **Prostudovat config.cpp do hloubky** -- Přečtěte si [Kapitolu 2.2: config.cpp do hloubky](../02-mod-structure/02-config-cpp.md), abyste pochopili každé pole.
 5. **Naučit se možnosti mod.cpp** -- Přečtěte si [Kapitolu 2.3: mod.cpp a Workshop](../02-mod-structure/03-mod-cpp.md) pro publikování na Workshop.
 6. **Přidat závislosti** -- Pokud váš mod používá Community Framework nebo jiný mod, aktualizujte `requiredAddons[]` a podívejte se na [Kapitolu 2.4: Váš první mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Předchozí:** [Kapitola 8.4: Přidání chatových příkazů](04-chat-commands.md) | [Domů](../README.md)

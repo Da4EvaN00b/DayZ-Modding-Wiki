@@ -1,6 +1,5 @@
 # 3.6. fejezet: Események kezelése
 
-[Kezdőlap](../README.md) | [<< Előző: Programozott widget létrehozás](05-programmatic-widgets.md) | **Események kezelése** | [Következő: Stílusok, betűtípusok és képek >>](07-styles-fonts.md)
 
 ---
 

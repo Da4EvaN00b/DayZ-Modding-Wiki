@@ -1,6 +1,5 @@
 # Chapter 9.8: Ladeni vykonu
 
-[Domu](../README.md) | [<< Predchozi: Persistence](07-persistence.md) | [Dalsi: Rizeni pristupu >>](09-access-control.md)
 
 ---
 
@@ -225,7 +224,3 @@ Slozka `storage_1/`, ktera naroste na nekolik gigabajtu, zpomaluje kazdy cyklus 
 ### Logovani ponechano povolene
 
 Diagnosticke logovani CE, logovani ladeni skriptu a logovani admin nastroju vse zapisuji na disk kazdy tick. Povolte je pro diagnostiku, pak je vypnete. Trvale podrobne logovani na vytizenem serveru muze stat 1-2 FPS samo o sobe.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Persistence](07-persistence.md) | [Dalsi: Rizeni pristupu >>](09-access-control.md)

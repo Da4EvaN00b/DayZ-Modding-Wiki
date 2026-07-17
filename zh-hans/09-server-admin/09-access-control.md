@@ -1,6 +1,5 @@
 # Chapter 9.9: 访问控制
 
-[首页](../README.md) | [<< 上一章: 性能调优](08-performance.md) | [下一章: Mod 管理 >>](10-mod-management.md)
 
 ---
 
@@ -181,7 +180,3 @@ DayZServer/
 | 生产环境中 `verifySignatures = 0` | 任何人可以携带篡改过的 mod 加入 | 在任何面向公众的服务器上设为 `2` |
 | 忘记在防火墙中开放 RCON 端口 | RCON 客户端超时 | 在防火墙中开放 RCON UDP 端口（你用 `RConPort` 设置的端口，例如 `2305`） |
 | 用玩家 UID 编辑 `BattlEye/` 中的 **bans.txt** | 封禁不起作用 | BattlEye 的 **bans.txt** 使用 GUID，不是 UID；使用服务器根目录中的 **ban.txt** 进行基于 UID 的封禁 |
-
----
-
-[首页](../README.md) | [<< 上一章: 性能调优](08-performance.md) | [下一章: Mod 管理 >>](10-mod-management.md)

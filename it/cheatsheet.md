@@ -1,6 +1,5 @@
 # Scheda di Riferimento Rapido di Enforce Script
 
-[Home](./README.md) | **Scheda di Riferimento Rapido**
 
 ---
 

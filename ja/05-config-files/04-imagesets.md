@@ -1,6 +1,5 @@
 # Chapter 5.4: ImageSetフォーマット
 
-[ホーム](../README.md) | [<< 前: Credits.json](03-credits-json.md) | **ImageSetフォーマット** | [次: サーバー設定ファイル >>](05-server-configs.md)
 
 ---
 

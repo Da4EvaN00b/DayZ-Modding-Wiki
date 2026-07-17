@@ -1,6 +1,5 @@
 # Enforce Script gyorsreferencia
 
-[Kezdőlap](./README.md) | **Gyorsreferencia**
 
 ---
 

@@ -1,6 +1,5 @@
 # Capitulo 7.3: Patrones de Comunicacion RPC
 
-[Inicio](../README.md) | [<< Anterior: Sistemas de Modulos](02-module-systems.md) | **Patrones de Comunicacion RPC** | [Siguiente: Persistencia de Configuracion >>](04-config-persistence.md)
 
 ---
 
@@ -656,7 +655,3 @@ O usa un `Cleanup()` centralizado que limpie todo el mapa de manejadores (como l
 | Usar protocol buffers o serializacion basada en esquema | Enforce Script no tiene soporte de protobuf; manualmente haces `Write`/`Read` de primitivas en orden coincidente |
 | Validar todas las entradas con imposicion de esquema | No existe validacion de esquema; cada valor de retorno de `ctx.Read()` debe ser verificado individualmente |
 | Los RPCs deberian ser idempotentes | Practico en DayZ solo para RPCs de consulta; los RPCs de mutacion (generar, eliminar, teletransportar) son inherentemente no idempotentes --- protege con verificaciones de permisos en su lugar |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Sistemas de Modulos](02-module-systems.md) | **Patrones de Comunicacion RPC** | [Siguiente: Persistencia de Configuracion >>](04-config-persistence.md)

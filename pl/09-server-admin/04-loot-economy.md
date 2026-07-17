@@ -1,6 +1,5 @@
 # Chapter 9.4: Szczegolowy przewodnik po ekonomii lootu
 
-[Strona glowna](../README.md) | [<< Poprzedni: Dokumentacja serverDZ.cfg](03-server-cfg.md) | **Szczegolowy przewodnik po ekonomii lootu**
 
 ---
 
@@ -721,7 +720,3 @@ Po edycji plikow ekonomii zrob jedno z ponizszych:
 - Usun `storage_1/` dla pelnego wipe'a i swiezego startu ekonomii
 - Ustaw `RestartSpawn` na `1` w `globals.xml` na jeden restart, aby losowo rozmiesic loot, a nastepnie wroc do `0`
 - Poczekaj, az lifetime przedmiotow wygasnie naturalnie (moze to trwac godziny)
-
----
-
-**Poprzedni:** [Dokumentacja serverDZ.cfg](03-server-cfg.md) | [Strona glowna](../README.md) | **Dalej:** [Spawn pojazdow i zdarzen dynamicznych](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Chapter 1.3: Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -1054,7 +1053,3 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | Omettre le mot-cle `override` | Devrait creer une nouvelle methode | Cree souvent un bug subtil ou la methode parente s'execute au lieu de celle de l'enfant |
 | Constructeurs multiples (surcharge) | Fonctionnalite POO standard | Fonctionne mais rarement utilise dans les mods DayZ -- la plupart des classes utilisent un seul constructeur avec des valeurs par defaut |
 | Classes/methodes `sealed` | Empeche l'heritage ou la redefinition (impose a la compilation depuis 1.28) | Presque jamais utilise dans le modding DayZ car l'extensibilite est l'objectif |
-
----
-
-[Accueil](../README.md) | [<< Previous: Tableaux, Maps et Sets](02-arrays-maps-sets.md) | **Classes et heritage** | [Next: Classes moddees >>](04-modded-classes.md)

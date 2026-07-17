@@ -1,6 +1,5 @@
 # Chapter 9.5: Spawn pojazdow i zdarzen dynamicznych
 
-[Strona glowna](../README.md) | [<< Poprzedni: Ekonomia lootu](04-loot-economy.md) | [Dalej: Spawn graczy >>](06-player-spawning.md)
 
 ---
 
@@ -344,7 +343,3 @@ Oto najczestsze problemy ze spawnem pojazdow spotykane przez administratorow ser
 **Problem:** Pojazd pojawia sie wcisniety w budynek lub zakopany w terenie.
 
 **Rozwiazanie:** Przejrzyj wspolrzedne `<pos>` w `cfgeventspawns.xml`. Przetestuj pozycje w grze uzywajac teleportacji administratora przed dodaniem ich do pliku. Pozycje powinny byc na plaskich drogach lub otwartym terenie, a kat (`a`) powinien byc wyrownany z kierunkiem drogi.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Ekonomia lootu](04-loot-economy.md) | [Dalej: Spawn graczy >>](06-player-spawning.md)

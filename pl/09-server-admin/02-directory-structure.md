@@ -1,6 +1,5 @@
 # Chapter 9.2: Struktura katalogow i folder misji
 
-[Strona glowna](../README.md) | [<< Poprzedni: Konfiguracja serwera](01-server-setup.md) | **Struktura katalogow** | [Dalej: Kompletna dokumentacja serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -438,7 +437,3 @@ Atrybut `a` to kat obrotu w stopniach.
 | `storage_1/` | Tylko usuwanie | Trwalosc -- nie edytuj recznie |
 | `battleye/` | **Nie** | Anty-cheat -- nie ruszaj |
 | `mapgroup*.xml` | Ostroznie | Pozycje lootu w budynkach -- tylko zaawansowana edycja |
-
----
-
-**Poprzedni:** [Konfiguracja serwera](01-server-setup.md) | [Strona glowna](../README.md) | **Dalej:** [Kompletna dokumentacja serverDZ.cfg >>](03-server-cfg.md)

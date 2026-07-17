@@ -1,6 +1,5 @@
 # 5.1. fejezet: stringtable.csv --- Lokalizáció
 
-[Főoldal](../README.md) | **stringtable.csv** | [Következő: inputs.xml >>](02-inputs-xml.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # Troubleshooting Guide
 
-[Home](./README.md) | **Troubleshooting Guide**
 
 ---
 

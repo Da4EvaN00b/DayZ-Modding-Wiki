@@ -1,6 +1,5 @@
 # 3.1. fejezet: Widget típusok
 
-[Kezdőlap](../README.md) | **Widget típusok** | [Következő: Layout fájlok >>](02-layout-files.md)
 
 ---
 
