@@ -945,6 +945,37 @@ override void InvokeOnDisconnect(PlayerBase player)
 }
 ```
 
+### 7. Assuming InvokeOnConnect Fires Once Per Player
+
+`MissionServer.InvokeOnConnect()` runs **twice** for every single player connection, not once. Looking at the `OnEvent` table above: vanilla calls it from both the `ClientNewEventTypeID` arm (new character) and the `ClientReadyEventTypeID` arm (existing character loaded) -- and on a normal reconnect, **both** fire in sequence for the same player. Most tutorials and most instincts treat it as a single "player joined" hook, and code that is not idempotent breaks silently:
+
+```c
+// WRONG -- runs on EVERY InvokeOnConnect call, i.e. twice per connect
+override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
+{
+    super.InvokeOnConnect(player, identity);
+    if (!identity) return;
+    LoadPlayerData(identity.GetPlainId());   // reloads from disk and OVERWRITES the cache
+                                               // the SECOND time, discarding anything the
+                                               // first call's listeners already wrote into it
+}
+```
+
+If the second invocation re-reads a file and replaces whatever is already cached, it silently throws away every write that happened between the two calls -- a "welcome bonus," a loaded stat, anything another system populated in response to the first call. The same applies to any other non-idempotent side effect placed in this hook: a webhook post, a one-shot grant, an analytics event -- all of them fire twice.
+
+**Fix:** make the operation idempotent (skip the work if it already happened), or move the side effect to a hook that genuinely fires once, such as your own event fired only after the first successful load:
+
+```c
+override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
+{
+    super.InvokeOnConnect(player, identity);
+    if (!identity) return;
+    string uid = identity.GetPlainId();
+    if (IsAlreadyLoaded(uid)) return;   // guard makes the double-fire harmless
+    LoadPlayerData(uid);
+}
+```
+
 ---
 
 ## Summary

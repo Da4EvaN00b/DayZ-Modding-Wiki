@@ -39,6 +39,7 @@ These are problems where the mod does not appear, does not activate, or is rejec
 | "Cannot register cfg class X" | Duplicate `CfgPatches` class name | Another mod already uses that class name. Rename your `CfgPatches` class to something unique with your mod prefix. |
 | Mod loads only in singleplayer | Server does not have the mod installed | Ensure the server's `-mod=` launch parameter includes your mod path, and the PBO is in the server's `@YourMod/Addons/` folder. |
 | "Addon X is not signed" | Server requires signed addons | Sign your PBOs with your private key and provide the `.bikey` to the server's `keys/` folder. See [Chapter 4.6](04-file-formats/06-pbo-packing.md). |
+| Server crashes with `ACCESS_VIOLATION` a few seconds into boot, no script log written at all | A single PBO is over 2 GB, or a `CfgPatches` ownership array (`units[]`/`weapons[]`/`magazines[]`/`ammo[]`) contains a literal empty string `""`, or a merged/generated `config.cpp` is missing a `};` after one of its inner class bodies | All three pass `CfgConvert`/`AddonBuilder` clean -- the offline compiler cannot see any of them. Check PBO file sizes first (split anything over 2 GB, same `$PBOPREFIX$` on both halves), then grep every ownership array inside `CfgPatches` for a bare `""`, then verify every class body ends in `};`, not just the outer containers. See [Chapter 2.2](02-mod-structure/02-config-cpp.md) and [Chapter 4.6](04-file-formats/06-pbo-packing.md). |
 
 ---
 
@@ -63,6 +64,7 @@ These appear in the script log as `SCRIPT (E):` or `SCRIPT ERROR:` lines.
 | Syntax error with no clear message | Backslash `\` or escaped quote `\"` in string literal | Enforce Script's CParser does not support `\\` or `\"`. Use forward slashes for paths (`"my/path/file"`). For quotes, use single-quote characters. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
 | `JsonFileLoader` returns null data | Assigning the return value of `JsonLoadFile()` | `JsonLoadFile()` returns `void`. Pre-allocate the object and pass it by reference: `ref MyConfig cfg = new MyConfig(); JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);`. See [Chapter 6.8](06-engine-api/08-file-io.md). |
 | `Object.IsAlive()` crash | Calling `IsAlive()` on a null `Object` reference | `IsAlive()` is defined on `Object` (object.c:523), but the reference must not be null. Always null-check first: `if (obj && obj.IsAlive()) { ... }` |
+| `Virtual Machine Exception: Object::GetHealth01 cannot be called on client` (client log only, server log stays clean) | Reading raw health (`GetHealth()`/`GetHealth01()`) from client-side script | These two are server-only at runtime -- they compile fine everywhere, but throw when actually called on a client, and the exception silently aborts the rest of that function. Use `GetHealthLevel()` (a 0-4 bucket) or `IsDamageDestroyed()` on the client instead, or have the server send a real percentage over RPC. See [Chapter 6.1](06-engine-api/01-entity-system.md). |
 | No ternary operator support | Using `condition ? a : b` syntax | Enforce Script has no ternary operator. Use an `if`/`else` block instead. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
 | `do...while` loop error | Using `do { } while(cond)` | Enforce Script does not support `do...while`. Use a `while` loop with a `break` condition instead. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
 | Multiline method call fails | Splitting a single method call across lines incorrectly | Avoid splitting chained calls with comments or preprocessor directives between lines. Keep method call chains on one line or use intermediate variables. |
@@ -105,6 +107,7 @@ Issues with GUI layouts, widgets, menus, and input.
 | Image or icon not showing | Path uses backslashes or wrong extension | Use forward slashes in image paths. Verify the file exists and is in a recognized format (`.paa`, `.edds`). Use `ImageWidget` for images, not `TextWidget`. |
 | Slider does not respond to input | Missing script handler or wrong widget type | Ensure the slider widget has a `ScriptClass` assigned and that your handler processes `OnChange` events. Initialize the slider range in script. |
 | UI looks different at other resolutions | Using hardcoded pixel values | Use proportional sizing (`halign`, `valign`, `hfill`, `vfill`) instead of fixed pixel values. Test at multiple resolutions. See [Chapter 3.3](03-gui-system/03-sizing-positioning.md). |
+| A specific button/label/panel never updates or never responds, but the rest of the screen works fine | `FindAnyWidget("Name")` did not find that name in the loaded `.layout` and returned `null` -- a typo, a rename in one file but not the other, or a name that was removed from the layout | This fails completely silently: the standard `if (w) { ... }` null-guard prevents the crash but also means the block just never runs, forever, with nothing in any log. Grep the `.c` file's `FindAnyWidget("X")` calls against the actual `Name`s declared in the `.layout` it loads -- do not start by re-reading the event-handler code, it is usually correct. See [Chapter 3.1](03-gui-system/01-widget-types.md). |
 
 ---
 
@@ -356,6 +359,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 
 | Symptom (what you see) | Go to |
 |-------------------------|-------|
+| `ACCESS_VIOLATION` crash on boot, no script log | [Section 1](#1-mod-wont-load) |
 | Addon Builder fails | [Section 5](#5-build-and-pbo-issues) |
 | Array index out of range | [Section 2](#2-script-errors) |
 | Buttons not clickable | [Section 4](#4-ui-problems) |
@@ -369,6 +373,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 | File patching not working | [Section 5](#5-build-and-pbo-issues) |
 | FPS drops | [Section 6](#6-performance-issues) |
 | Game input stuck | [Section 4](#4-ui-problems) |
+| GetHealth01 cannot be called on client | [Section 2](#2-script-errors) |
 | Image not showing | [Section 4](#4-ui-problems) |
 | Item invisible | [Section 7](#7-item-vehicle-and-entity-issues) |
 | Item won't spawn | [Section 7](#7-item-vehicle-and-entity-issues) |
@@ -395,6 +400,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 | Variable redeclaration | [Section 2](#2-script-errors) |
 | Vehicle won't drive | [Section 7](#7-item-vehicle-and-entity-issues) |
 | Widget invisible | [Section 4](#4-ui-problems) |
+| Widget never updates / never responds | [Section 4](#4-ui-problems) |
 | Works offline fails online | [Section 3](#3-rpc-and-network-issues) |
 
 ---

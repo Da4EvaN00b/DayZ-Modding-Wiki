@@ -452,6 +452,14 @@ GenericListboxWidgetTypeID
 - Use `WrapSpacerWidget` for dynamic lists and `GridSpacerWidget` for fixed grids. Do not manually position children in a flow layout.
 - Avoid `CanvasWidget` for production UI -- it redraws every frame and has no batching. Use it only for debug overlays.
 
+> **The null check is not the whole fix -- it just prevents the crash. The feature is still broken.** `FindAnyWidget("Name")` resolves a widget by string, at runtime, against whatever the `.layout` file actually contains. There is no compile-time link between the name you type in a `.c` file and the name declared in the `.layout` -- a typo, a renamed widget, or a category list in code that outgrew its layout all produce the exact same outcome: `null`, silently, forever. The idiomatic `if (w) { w.SetText(...); }` guard that everyone writes to avoid a crash also perfectly hides the bug -- the block simply never executes, the screen renders fine, and nothing in any log says a button, filter, or stat bar was never wired up.
+>
+> This is not hypothetical: a full sweep of one production DayZ codebase (1,000+ `FindAnyWidget`/`FindWidget` call sites against 2,000+ widget names actually declared across its `.layout` files) turned up **147 live, confirmed-broken lookups** -- buttons with no handler, labels that never updated, stat bars parented to `null`. If a specific widget in your UI mysteriously never updates or never responds to a click, do not start by re-reading the event-handler code (it is very often correct). Instead, grep the `.c` file's `FindAnyWidget("...")` calls against the actual `Name`s declared in the `.layout` it loads -- the mismatch is almost always there, not in the logic around it.
+>
+> Two patterns will otherwise produce false positives in a manual check like this: widgets built purely from script (`Widget.CreateWidget(...)` followed by `.SetName("literal")`) never appear in any `.layout` file at all, and names built by string concatenation (`label + "BarFill"`) will not match a plain-text search for the literal.
+
+
+
 ---
 
 ## Theory vs Practice

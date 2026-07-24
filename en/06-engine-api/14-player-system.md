@@ -841,6 +841,21 @@ if (identity)
 }
 ```
 
+> **"PlayerIdentity is server-only" is a widely repeated claim, and it is only half true.** Other players' `PlayerIdentity` objects are indeed not replicated to your client -- that part is correct. But the **local** player's own identity is available on his own client: `GetIdentity()` is declared on `Man` itself (not gated behind a server-only class), and vanilla client code calls it directly. A client does not need a round-trip to the server just to learn its own UID.
+>
+> The null case you actually need to guard for is **timing**, not permanent absence: identity is not populated the instant the mission starts, so read it fresh at the point of use --
+> ```c
+> string GetLocalUID()
+> {
+>     Man player = GetGame().GetPlayer();
+>     if (!player) return "";
+>     PlayerIdentity identity = player.GetIdentity();
+>     if (!identity) return "";   // not populated YET, not "never will be"
+>     return identity.GetPlainId();
+> }
+> ```
+> -- and never cache it once at `OnInit()`/mission start, or you will lock in an empty string for the whole session.
+
 ### 3. Not Checking IsAlive() Before Operations
 
 Dead player entities still exist in the world as corpses. Many operations are meaningless or harmful on dead players.

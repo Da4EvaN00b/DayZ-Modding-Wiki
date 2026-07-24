@@ -1060,6 +1060,48 @@ class FlyingCar extends BaseVehicle
 }
 ```
 
+### 7. A `static` Method With the Same Name as an Inherited One
+
+Enforce Script does not overload on `static` -- a method name is the whole key within a class hierarchy, so adding a `static` method whose name matches one already declared *anywhere up the inheritance chain* is a duplicate declaration, not a new overload. Worse, this failure is not confined to your file: **it fails the entire script module you added it to** -- one bad name in one class can take down every mod's `5_Mission` files (or `4_World`, or `3_Game`), not just your own.
+
+```c
+// Looks completely self-contained:
+class MyMenu extends UIScriptedMenu
+{
+    // A static convenience API so other code can close the menu without an instance
+    static void Close()          // ERROR: Multiple declaration of function 'Close'
+    {
+        GetGame().GetUIManager().CloseMenu(MENU_MY_MENU);
+    }
+}
+```
+
+The error message names only *your* line -- `UIScriptedMenu`'s parent class `UIMenuPanel` already declares `proto native void Close();`, but the compiler never tells you that; it just reports a "multiple declaration" against a class you wrote yourself, with no mention of the base class you never opened. The names most likely to collide are exactly the generic ones you would naturally pick for a menu helper: `Close`, `Init`, `Refresh`, `Cleanup`, `Update`, `OnShow`, `OnHide`.
+
+**Fix:** rename the static to something that cannot collide, and use the inherited instance method for its intended purpose:
+
+```c
+class MyMenu extends UIScriptedMenu
+{
+    //! For code that has no menu instance to call Close() on.
+    static void CloseIfOpen()
+    {
+        UIManager uiMgr = GetGame().GetUIManager();
+        if (uiMgr && uiMgr.IsMenuOpen(MENU_MY_MENU))
+            uiMgr.CloseMenu(MENU_MY_MENU);   // by ID -- see the note below
+    }
+
+    void OnSomeEvent()
+    {
+        Close();   // the inherited instance method -- correct here
+    }
+}
+```
+
+Before adding any method to a class that `extends` an engine type, it is worth checking the base class you are extending for a method of the same name -- inheritance reserves every name in the whole chain, silently, whether you read that chain or not.
+
+> **Related pitfall:** if your static helper used to close the menu with `UIManager.Back()` instead of `CloseMenu(id)`, be aware `Back()` closes whatever menu is currently on **top** of the stack -- not necessarily yours. If anything else opened above your menu, a caller asking to close *your* screen silently closes someone else's instead. `CloseMenu(id)` walks the parent chain and closes the menu you actually asked for.
+
 ---
 
 ## Practice Exercises

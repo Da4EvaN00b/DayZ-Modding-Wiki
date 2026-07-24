@@ -1002,6 +1002,54 @@ This does not cause an error, but it is misleading. Only list dependencies you a
 
 It works, but is poor practice. Keep item/entity definitions in a separate PBO (`Data/config.cpp`) and script definitions in `Scripts/config.cpp`.
 
+### 8. An Empty String in units[]/weapons[]/magazines[]/ammo[]
+
+```cpp
+// WRONG -- a lone empty-string entry
+class CfgPatches
+{
+    class MyMod_SomeGun_CFG
+    {
+        units[] = {};
+        weapons[] = {};
+        magazines[] = { "MyMod_SomeGun_Mag" };
+        ammo[] = { "" };          // <-- looks harmless, is not
+        requiredAddons[] = { "DZ_Data", "DZ_Weapons_Firearms" };
+    };
+};
+
+// RIGHT -- an empty array, not an array containing an empty string
+ammo[] = {};
+```
+
+These four arrays inside `CfgPatches` are **ownership claims**, resolved by the engine's addon-graph merger against every other loaded addon -- not validated by `CfgConvert`. A literal `""` asks the merger to resolve a class named the empty string, and on at least one production build this crashed the dedicated server with an `ACCESS_VIOLATION` a few seconds into boot, before any script log was even written -- with `CfgConvert -bin`/`-txt` reporting the same file as 100% clean, because syntactically it is. If you inherited or generated a large config (a merge of many vendor-supplied per-addon files is the most common source), grep every `units[]`/`weapons[]`/`magazines[]`/`ammo[]` array inside `CfgPatches` for a bare `""` -- a naive "extract quoted strings" regex (`"([^"]+)"`, one-or-more characters) will not find it, because it requires at least one character inside the quotes. Use a zero-or-more pattern (`"([^"]*)"`) or check for it explicitly.
+
+### 9. A Class Missing Its Terminating Semicolon -- Accepted by CfgConvert, Fatal to the Real Engine
+
+```cpp
+// WRONG -- CfgConvert accepts this. The real engine's addon-merge pass does not.
+class MyMod_SomeItem_CFG
+{
+    requiredAddons[] = {};
+    units[] = {};
+    weapons[] = {};
+}
+class MyMod_NextItem_CFG          // <-- the missing ";" above merges the classes together
+{
+    ...
+};
+
+// RIGHT -- every class body ends with "};"
+class MyMod_SomeItem_CFG
+{
+    requiredAddons[] = {};
+    units[] = {};
+    weapons[] = {};
+};
+```
+
+This is easy to introduce with any script or merge tool that splits a config file on `;` to find class boundaries and then forgets to write that same `;` back out for each piece it re-emits. `CfgConvert.exe -bin`/`-txt` can validate the resulting file as clean with a stable class count -- the offline compiler is more forgiving here than the game's own addon-merge pass at boot, which is a completely different code path and can fail with a hard `ACCESS_VIOLATION` instead of a helpful parse error. If a merged or auto-generated `config.cpp` passes `CfgConvert` but the server still crashes on boot with no script log at all, do not assume the syntax is fine just because the offline tool said so -- check that every single class body, not just the outermost containers, ends in `};`.
+
 ---
 
 ## Complete Template

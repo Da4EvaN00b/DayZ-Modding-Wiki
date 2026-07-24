@@ -370,6 +370,8 @@ GetGame().GetPlayer().SpawnEntityOnGroundPos("AKM", GetGame().GetPlayer().GetPos
 - **Separate from game runtime:** You still need to save files and restart the mission to see changes in-game
 - **Incomplete mod context:** Cross-mod references may show as errors even when they work in-game
 
+> **"Enforce Script has no live debugging" is only half true.** There is genuinely no official breakpoint/step/inspect debugger. But "no debugger" is not the same claim as "no way to iterate without a full rebuild-and-restart cycle" -- and it is worth not conflating the two when you are deciding how your dev loop should work. File Patching (above) already gives you script/layout/texture/sound hot-reload on reconnect, without a PBO rebuild. Beyond that, community tooling exists (search for DayZ script hot-reload / recompile-on-host tooling) that can push changed script files into an already-running game session without even a reconnect -- useful for iterating on UI logic and HUD layouts specifically. Whatever you use, understand its actual limit: reloading changed *code* is not the same as re-running *startup-time* logic (config parsing, `OnInit`), so a clean, from-scratch boot is still the only valid proof that a config-level or startup-level fix actually works.
+
 ---
 
 ## Common Error Patterns and Solutions

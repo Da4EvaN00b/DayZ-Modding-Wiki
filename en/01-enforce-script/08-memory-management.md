@@ -466,6 +466,61 @@ This means:
 
 ---
 
+## static Fields Survive a Mission Restart
+
+A mission restart -- a player disconnecting to the main menu and reconnecting, or an admin running `#restart` -- is **not** a process restart. The script VM and every class it has loaded stay resident; only the `Mission` object is torn down and rebuilt. `static` field initializers run **once per game process launch**, not once per mission, so any `static` value your code changed during the previous mission is still sitting there when the next one starts:
+
+```c
+class MyLockCounter
+{
+    static int s_Count = 0;                 // initializer runs ONCE per process
+    static void Acquire() { s_Count++; if (s_Count == 1) DoTheRealWork(); }
+}
+// Mission A leaves s_Count at 1 (something forgot to release).
+// Player disconnects to the menu and reconnects -- the process never died.
+// Mission B: the first Acquire() takes s_Count from 1 to 2, so the "==1" branch
+// never runs. The bug appears on the mission AFTER the mistake was made.
+```
+
+The result is a bug that surfaces one mission later than its cause, and restarting the game to investigate makes it vanish -- which is exactly why it tends to get filed as "could not reproduce." Any mod-level singleton, counter, cache, or registry with mutable `static` state needs an explicit `Cleanup()` called from mission teardown (`MissionGameplay.OnMissionFinish()` client-side, `MissionServer.OnMissionFinish()` server-side):
+
+```c
+static void Cleanup()
+{
+    s_Count = 0;      // reset scalars unconditionally
+    s_Owners = null;   // null every static ref -- a live one is a GC root and leaks
+}                       // its whole object graph into the next mission
+```
+
+Reset the state **unconditionally**, not only inside a "recover gracefully" branch that itself bails out when there is no live mission -- that guard is true precisely during teardown, which is exactly when the reset needs to run.
+
+---
+
+## There Is No `Object.IsDeleted()` -- the Null Check *Is* the Lifetime Check
+
+Enforce Script has no built-in way to ask "has this object been removed from the world?" It is tempting to write one using `IsDamageDestroyed()`, since the name sounds close enough:
+
+```c
+// WRONG -- this answers a HEALTH question, not a LIFETIME question
+bool IsDeleted(EntityAI e) { return e.IsDamageDestroyed(); }
+```
+
+`IsDamageDestroyed()` is `true` for a **corpse** or a wrecked vehicle -- an object that still very much exists in the world. A guard written as `if (!thing.IsDeleted()) Delete(thing);` actually reads as "delete this only while it is still alive," which is backwards from what most callers intend, and both methods return an ordinary `bool` -- nothing about the mistake is visible at the call site or from the compiler.
+
+When the engine actually removes an entity, every **raw (non-`ref`)** reference to it goes `null` -- that null is the only honest "is this still around" signal script has:
+
+```c
+static void DespawnAndClean(EntityAI e)
+{
+    if (!e) return;             // already gone -- this IS the lifetime check
+    GetGame().ObjectDelete(e);
+}
+```
+
+Never pair `IsDeleted()`-style checks with `IsAlive()` on the same object expecting them to mean different things -- on a corpse, both answer the identical underlying fact (`IsAlive()` is itself defined as `!IsDamageDestroyed()`), so one of the branches becomes silently unreachable.
+
+---
+
 ## Real-World Example: Proper Manager Class
 
 Here is a complete example showing proper memory management patterns for a typical DayZ mod manager:

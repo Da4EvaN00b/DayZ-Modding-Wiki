@@ -250,7 +250,7 @@ vector pos = s.ToVector(); // Vector(100.5, 0, 200.3)
 
 ## String Comparison
 
-Strings are compared by value using standard operators. Comparison is **case-sensitive** and follows lexicographic (dictionary) order.
+Strings are compared by value using `==` and `!=`. Comparison is **case-sensitive**.
 
 ```c
 string a = "Apple";
@@ -259,9 +259,21 @@ string c = "Apple";
 
 bool equal    = (a == c);  // true
 bool notEqual = (a != b);  // true
-bool less     = (a < b);   // true  ("Apple" < "Banana" lexicographically)
-bool greater  = (b > a);   // true
 ```
+
+> **Do not use `<` / `>` / `<=` / `>=` to order strings.** They are not documented as a supported string operation, and the entire vanilla script dump (2,800+ files) never uses them on a `string` -- not once. What they actually do is unverified and may not be lexicographic comparison at all; treat the result as undefined and do not rely on it, even if it happens to "work" in a quick test. If you need to compare two strings for sorting, convert both to arrays and compare element-by-element, or key your sort on a numeric/derived value instead.
+>
+> This also applies to comparing individual characters (there is no `char` type -- `string.Get(i)` returns a one-character `string`). Comparing "digit-ness" or "letter-ness" with `ch >= "0" && ch <= "9"` inherits the same problem. Use `ToAscii()` instead, which converts a string's first character to its ASCII code and is a documented, `proto native` API:
+>
+> ```c
+> protected bool IsDigit(string ch)
+> {
+>     int code = ch.ToAscii();
+>     return (code >= 48 && code <= 57);   // '0'..'9'
+> }
+> ```
+>
+> General rule for any Enforce Script API or operator you are unsure about: grep the vanilla dump for a real, first-party use of it. Zero hits across thousands of engine files is strong evidence the thing does not behave the way you expect.
 
 ### Case-insensitive comparison
 
@@ -518,7 +530,8 @@ int n    = s.ToInt();
 float f  = s.ToFloat();
 vector v = s.ToVector();
 
-// Comparison (case-sensitive, lexicographic)
+// Comparison (case-sensitive)
 bool eq = (a == b);
-bool lt = (a < b);
+// Do not use <, >, <=, >= on strings -- undocumented, unused by vanilla, undefined result.
+// For character checks, use ToAscii() instead.
 ```

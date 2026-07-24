@@ -1535,6 +1535,20 @@ void DamageEntity(EntityAI target, float amount)
 - **Register net sync variables only in the constructor, never conditionally.** The registration order must be identical on server and client. Adding variables outside the constructor or behind `if` checks causes desync.
 - **Prefer `obj.Delete()` (deferred) over `GetGame().ObjectDelete()` (immediate).** Immediate deletion during iteration or event processing can cause null pointer crashes. Deferred deletion is safe in all contexts.
 - **Cast with `Class.CastTo()` instead of direct casts.** `Class.CastTo(result, source)` returns false on failure without crashing, while a direct cast to a wrong type produces undefined behavior.
+- **`GetHealth()` and `GetHealth01()` throw on a client -- they are not merely "server-authoritative," they are refused at the call site.** See the dedicated warning below; do not assume any health read is safe on both sides just because it compiled.
+
+> **`GetHealth()` / `GetHealth01()` are server-only at runtime, and nothing before runtime warns you.** Both are declared `proto native` with no client/server note in their doc comments, so they compile cleanly in client-side script (a 5_Mission UI panel, an inventory screen). Call either one from a client and it throws:
+> ```
+> SCRIPT    (E): Virtual Machine Exception
+> Reason: Object::GetHealth01 cannot be called on client.
+> ```
+> The exception aborts the rest of the enclosing function -- any code after the throwing line (including a loop that was supposed to fill a list) never runs, and nothing else in the log explains why a panel came up empty. This is easy to miss because `grep "SCRIPT (E)"` can return zero hits on a log full of them -- the real log line has extra padding (`SCRIPT    (E)`), so search with `SCRIPT +\(E\)` or similar.
+>
+> What **is** safe to read on a client:
+> - `GetHealthLevel(zone)` -- a coarse `0` (pristine) to `4` (ruined) bucket, not a percentage. Vanilla's own `carhud.c` and `iteminspectmenu` read this client-side.
+> - `IsDamageDestroyed()` -- also safe client-side, and it is what `IsAlive()` is defined as (`!IsDamageDestroyed()`).
+>
+> If your client UI needs a real percentage rather than a bucket, the server has to compute it and send it -- there is no client-safe way to get an exact float. Vanilla proves the split itself in `crafttannedleather.c`: the client-side `CanDo()` uses `GetHealthLevel()` with a comment explaining it is "necessary like this on CLIENT," while the server-side `Do()` uses `GetHealth01()`.
 
 ---
 
@@ -1542,4 +1556,4 @@ void DamageEntity(EntityAI target, float amount)
 
 - If two mods both `modded class ItemBase` and override `EEInit()`, only the last-loaded mod's code runs unless both call `super`. This is the most common source of mod conflicts.
 - `RegisterNetSyncVariable*()` adds network traffic per entity. Keep synced variable count under 8 per entity. Use RPCs for infrequent updates.
-- `SetHealth()`, `ProcessDirectDamage()`, and `Delete()` are server-authoritative. Calling them on the client causes desync. `GetHealth()`, `GetPosition()`, and type checks are safe on both sides.
+- `SetHealth()`, `ProcessDirectDamage()`, and `Delete()` are server-authoritative. Calling them on the client causes desync. `GetPosition()` and type checks are safe on both sides -- `GetHealth()`/`GetHealth01()` are not (see the warning above); use `GetHealthLevel()` or `IsDamageDestroyed()` client-side instead.

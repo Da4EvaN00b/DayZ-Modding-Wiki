@@ -556,6 +556,21 @@ class CfgPatches
 };
 ```
 
+### Keep Every Single PBO Under 2 GB
+
+A large content mod (a big weapon pack, a big vehicle pack, a texture-heavy overhaul) can hit a hard, undocumented ceiling: **a single PBO that crosses 2 GB (2^31 bytes) can make the dedicated server crash with an `ACCESS_VIOLATION` a few seconds into boot**, before any script log is even written and before `config.cpp` is parsed. `CfgConvert` and `AddonBuilder` both report success -- this is not a config problem, it is the engine's PBO/addon reader overflowing a signed 32-bit size or offset field for that one file. It reproduces deterministically: swap a >2 GB PBO out of the mod folder and the exact same server, same config, same everything else boots clean.
+
+This is a different, tighter limit than the commonly-cited ~4 GB unsigned ceiling for a single file -- you can hit this one at roughly half that size. If your build tooling emits a size warning for a PBO ("bigger than any vanilla PBO, consider splitting it"), treat it as a boot-blocker, not a suggestion.
+
+**The fix is to split the content, not to fight the packer.** Move a subset of the folder's contents into a sibling source folder and pack it as a second PBO **with the exact same `$PBOPREFIX$`** as the original:
+
+```
+MyMod/Data/Weapons/Rifles/      -> packs to MyMod_Weapons_Rifles.pbo   (prefix: MyMod\Data\Weapons\Rifles)
+MyMod/Data/Weapons/Rifles2/     -> packs to MyMod_Weapons_Rifles2.pbo  (prefix: MyMod\Data\Weapons\Rifles  <- same!)
+```
+
+Because the *physical* folder name (`Rifles2`) never has to appear in the *virtual* prefix, every existing `model=`/texture reference under `Rifles/...` keeps resolving correctly with zero script or config changes -- you are only moving files between two PBOs that both present themselves under the same virtual path.
+
 ---
 
 ## Common Build Errors and Solutions
