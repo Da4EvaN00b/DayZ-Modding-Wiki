@@ -1,6 +1,6 @@
 # Variables & Types
 
-> **Summary:** The Enforce Script primitive types (`int`, `float`, `bool`, `string`, `vector`, `typename`), how to declare variables and constants, how type conversion works, and the scoping rules that differ from C-family languages. There is no `auto` keyword --- every variable needs an explicit type.
+> **Summary:** The Enforce Script primitive types (`int`, `float`, `bool`, `string`, `vector`, `typename`), how to declare variables and constants, how type conversion works, and the scoping rules that differ from C-family languages. An `auto` keyword exists for local type inference, but the vanilla scripts almost never use it --- write the explicit type unless you have a specific reason not to.
 
 ---
 
@@ -110,22 +110,27 @@ void MyFunction()
 }
 ```
 
-### There Is No `auto` Keyword
+### The `auto` Keyword Exists, But Explicit Types Are the Vanilla Idiom
 
-If you come from C++, C#, or other Enfusion-era documentation, you may expect an `auto` keyword for type inference. **Enforce Script in DayZ does not have it.** Every declaration needs an explicit type:
+Older community write-ups claim DayZ's Enforce Script has no `auto` keyword and that it fails with `Unknown type 'auto'`. That claim is outdated: the vanilla scripts use `auto` for local type inference in 32 compiling declarations, including with generic template types --- for example `auto p = new Param10<string,int, float, float, int, int, float, float, bool, bool>(...)` (`4_world/plugins/pluginbase/plugindeveloper.c`), `auto param = new Param2<bool, EntityAI>(enabled, g_Game.GetPlayer())` (`4_world/plugins/pluginbase/plugindiagmenu/plugindiagmenuclient.c`), and `auto vehicle = CarScript.Cast(vehCommand.GetTransport())` (`4_world/classes/useractionscomponent/actions/continuous/vehicles/actionstartengine.c`) --- and all of these compile as part of the shipped game.
+
+Bohemia documents the keyword under *Automatic type detection*: "the variable type will be detected automatically at compile time when the keyword `auto` is used as placeholder", with primitives among the worked examples --- `auto variable1 = 1;` gives an `int`, `auto variablePi = 3.14;` gives a `float`, `auto variableInst = new MyCustomClass();` gives the class type.
 
 ```c
 void Example()
 {
-    // auto count = 10;                    // ERROR: Unknown type 'auto'
-    int count = 10;                        // CORRECT
+    auto count = 10;                        // Inferred as int (per Bohemia's own example)
+    int count2 = 10;                        // Equivalent, explicit form
 
-    // auto p = new Param2<string, int>("kills", 5);   // ERROR
-    Param2<string, int> p = new Param2<string, int>("kills", 5);  // CORRECT
+    auto p = new Param2<string, int>("kills", 5);   // Inferred as Param2<string, int>
 }
 ```
 
-Using `auto` fails with `Unknown type 'auto'`, and --- worse --- every later use of that variable cascades into misleading follow-up errors (`Bad type`, `Can't find variable`). If you see a wall of nonsense errors, check whether an `auto` declaration earlier in the file started it. `auto` is still a *reserved word*, so you cannot use it as an identifier either.
+Because the type is detected *from the initializer*, a bare `auto x;` has nothing to infer from. Note also that `auto` is a keyword, so it cannot double as an identifier --- no vanilla declaration uses `auto` as a variable or member name.
+
+Two caveats worth keeping in mind. First, every one of the 32 compiling vanilla uses infers a **reference** type --- from a `new X(...)` or from a `.Cast()`; the primitive form above is documented by Bohemia but has no vanilla precedent. Second, vanilla reaches for `auto` in only two shapes: boxing values into `ParamN<...>` types before an RPC or event call, and short-lived `.Cast()` results.
+
+Outside those, thousands of vanilla declarations spell out the explicit type. Treat this chapter's explicit-type style as the idiomatic default --- not because `auto` is broken, but because a visible type is easier to read at the declaration site, especially for collections.
 
 ### Constants
 
@@ -344,7 +349,7 @@ void StringExamples()
 }
 ```
 
-The full string method reference --- searching, splitting, replacing, case conversion, substrings, in-place modification, and the `\\`/`\"` escaping trap --- lives in [String Operations](06-strings.md).
+The full string method reference --- searching, splitting, replacing, case conversion, substrings, in-place modification, and the supported escape sequences (`\n` `\r` `\t` `\\` `\"`) --- lives in [String Operations](06-strings.md).
 
 ---
 
@@ -691,15 +696,15 @@ posB[1] = 99;             // Only posB changes
 // posA is still "10 20 30"
 ```
 
-### 7. Reaching for `auto`
+### 7. Reaching for `auto` by Habit
 
-There is no type inference. Write the explicit type, even for long generic declarations:
+`auto` compiles, but relying on it makes long generic declarations harder to read at a glance, and it is not how vanilla code is written. Prefer the explicit type, especially for collection types where the type itself is documentation:
 
 ```c
-// BAD: does not compile -- Unknown type 'auto'
-// auto data = new map<string, ref array<int>>;
+// COMPILES, but obscures the type at the declaration site:
+auto data = new map<string, ref array<int>>;
 
-// GOOD
+// PREFERRED: the type is visible without reading the initializer
 map<string, ref array<int>> data = new map<string, ref array<int>>;
 ```
 
@@ -745,7 +750,7 @@ Write a function `vector SnapToGround(vector pos)` that takes any position and r
 |---------|-----------|
 | Types | `int`, `float`, `bool`, `string`, `vector`, `typename`, `void` |
 | Defaults | `0`, `0.0`, `false`, `""`, `"0 0 0"`, `null` |
-| No `auto` | Every variable needs an explicit type --- `auto` fails with `Unknown type 'auto'` |
+| `auto` | Exists for local type inference, but vanilla code almost never uses it --- prefer an explicit type |
 | Constants | `const` keyword, `UPPER_SNAKE_CASE` convention |
 | Strings | Value type; `+` converts numbers automatically; full reference in [String Operations](06-strings.md) |
 | Vectors | Init with `"x y z"` string or `Vector(x,y,z)`, access with `[0]`, `[1]`, `[2]`; math in [Math & Vector Operations](07-math-vectors.md) |

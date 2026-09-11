@@ -255,8 +255,8 @@ modded class PlayerBase
 **Vanilla DayZ** defines all items here:
 
 ```c
-// 4_World/Entities/ItemBase/Edible_Base.c
-class Edible_Base extends ItemBase
+// Vanilla 4_world/entities/itembase/edible_base.c:1
+class Edible_Base : ItemBase
 {
     // All food items inherit from this
 };
@@ -440,7 +440,7 @@ Step 5: Compile ALL mods' 5_Mission scripts (ordered by requiredAddons)
 
 Within each step, mods are ordered by the dependency graph built from `requiredAddons[]`. If ModB lists `"ModA_Scripts"` in its `requiredAddons`, ModA's scripts for that layer compile first.
 
-> **Community-verified behavior:** When two mods have no dependency relationship (neither lists the other in `requiredAddons[]`), they compile in ASCII alphabetical order of the `CfgMods` class name. For example, a mod with `class AlphaMod` compiles before `class BetaMod` if neither depends on the other. You can confirm this yourself by putting a `Print()` call at global scope in each mod's `3_Game` scripts and reading the order in the script log.
+> **Commonly reported, not documented:** Some modders report that when two mods have no dependency relationship (neither lists the other in `requiredAddons[]`), they compile in ASCII alphabetical order of the `CfgMods` class name -- for example, `class AlphaMod` before `class BetaMod`. No Bohemia documentation describes a tie-breaking rule, so treat it as anecdotal rather than guaranteed engine behavior, and never design a mod that depends on it. If your code needs a specific order relative to another mod, declare that mod's `CfgPatches` class in `requiredAddons[]` -- that is the documented load-order mechanism, and the only one the engine enforces. You can observe the order on your own setup by putting a `Print()` call at global scope in each mod's `3_Game` scripts and reading the order in the script log.
 
 ### Initialization Order
 
@@ -570,8 +570,10 @@ class LNT_ZoneManager
 
 ```c
 // WRONG: in 4_World/LNT_AdminPanel.c
-class LNT_AdminPanel : UIScriptedMenu  // UIScriptedMenu works in 4_World,
-{                                       // but MissionGameplay hooks are in 5_Mission
+class LNT_AdminPanel : UIScriptedMenu  // UIScriptedMenu is declared in 3_Game
+{                                       // (3_game/tools/uiscriptedmenu.c:66), so this
+                                        // compiles -- but the MissionGameplay hooks that
+                                        // open and close a menu live in 5_Mission
     // This will cause problems when trying to register the UI
 };
 

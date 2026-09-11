@@ -47,7 +47,9 @@ DayZ Tools is a free application on Steam that includes everything you need to b
 3. In the dropdown filter at the top, change **Games** to **Tools**
 4. Search for **DayZ Tools**
 5. Click **Install**
-6. Wait for the download to complete (it is roughly 12-15 GB)
+6. Wait for the download to complete. Budget several gigabytes, and note that the project drive you create in Step 2 needs a further 20 GB at minimum.
+
+Before you launch the tools for the first time, **start DayZ itself at least once**. Bohemia calls this out explicitly: without it, Workbench fails with "game is not installed, exiting".
 
 Once installed, you will find DayZ Tools in your Steam library under Tools. The default installation path is:
 
@@ -75,15 +77,19 @@ DayZ modding uses a virtual drive letter **P:** as a shared workspace. All mods 
 
 ### Creating the P: Drive
 
-1. Open **DayZ Tools** from Steam
-2. In the main DayZ Tools window, click **P: Drive Management** (or look for a button labeled "Mount P drive" / "Setup P drive")
-3. Click **Create/Mount P: Drive**
-4. Choose a location for the P: drive data (default is fine, or pick a drive with enough space)
-5. Wait for the process to complete
+This is the procedure Bohemia documents, and it is two operations, not one: create the drive, then extract the game data onto it.
+
+1. Launch **DayZ Tools** from Steam, choosing **Play DayZ Tools**
+2. In the menu bar, click **Settings**
+3. Untick **Default** next to the Project Drive path and choose a location with **at least 20 GB free**
+4. In the **Drive Letter** dropdown, pick a letter. `P:\` is the recommended one and is what every guide, including this chapter, assumes
+5. Click **Apply**
+6. Back in the menu bar, go to **Tools > Extract Game Data**
+7. Wait for it to finish -- this is the slow part, and it is the step that actually puts the game's files on the drive
 
 ### Verify It Works
 
-Open **File Explorer** and navigate to `P:\`. You should see a directory that contains DayZ game data. If the P: drive exists and you can browse it, you are ready to proceed.
+Open **File Explorer** and navigate to `P:\`. You should see the extracted game data -- a `DZ` folder and a `scripts` folder among others. An empty or nearly empty `P:\` means step 6 did not run or did not complete; the drive mapping alone gets you nothing to reference.
 
 ### Alternative: Manual P: Drive
 
@@ -93,11 +99,11 @@ If the DayZ Tools GUI does not work, you can create a P: drive manually using a 
 subst P: "C:\DayZWorkdrive"
 ```
 
-Replace `C:\DayZWorkdrive` with any folder you want. This creates a temporary drive mapping that lasts until you reboot. For a permanent mapping, use `net use` or the DayZ Tools GUI.
+Replace `C:\DayZWorkdrive` with any folder you want. This creates a temporary drive mapping that lasts until you reboot, and it maps a letter only -- it does **not** extract the game data, so you still need **Tools > Extract Game Data** from DayZ Tools pointed at that location before you can reference vanilla paths.
 
 ### What If I Do Not Want to Use P: Drive?
 
-You can develop without the P: drive by placing your mod folder directly in the DayZ game directory and using `-filePatching` mode. However, the P: drive is the standard workflow and all official documentation assumes it. We strongly recommend setting it up.
+You can keep your source anywhere, but the official workflow puts it on the P: drive and so does every Bohemia walkthrough -- including the file-patching setup in Step 7, which links the DayZ installation folder to your source tree. Set it up; the rest of this chapter assumes it.
 
 ---
 
@@ -135,7 +141,9 @@ P:\MyFirstMod\
 | `Scripts/5_Mission/MyFirstMod/` | Subfolder for your mod's mission scripts |
 | `Scripts/5_Mission/MyFirstMod/MissionHello.c` | Your actual script file |
 
-You need exactly **3 files**. Let us create them one by one.
+That is three files: `mod.cpp`, `Scripts/config.cpp`, and one script. Steps 4 to 6 create them one at a time.
+
+The folder name `MyFirstMod` is your mod's **root prefix**. It shows up again in the PBO prefix in Step 7, in the `files[]` paths inside `config.cpp`, and in the file-patching junction -- so pick it once and keep it consistent everywhere.
 
 ---
 
@@ -154,7 +162,7 @@ overview = "My very first DayZ mod. Prints Hello World to the script log.";
 
 - **`name`** -- The display name shown in the DayZ launcher mod list. Players see this when selecting mods.
 - **`author`** -- Your name or team name.
-- **`version`** -- Any version string you like. The engine does not parse it.
+- **`version`** -- A free-form version string. Bohemia documents `mod.cpp` as presentation metadata, and nothing in the game's scripts reads `version`, so do not expect it to drive dependency or compatibility checks. Use it for humans.
 - **`overview`** -- A description shown when expanding the mod details.
 
 Save the file. That is your mod's identity card.
@@ -289,19 +297,20 @@ DayZ loads mods from `.pbo` archive files (similar to .zip but in a format the e
 1. Open **DayZ Tools** from Steam
 2. Click **Addon Builder** to launch it
 3. Set **Source directory** to: `P:\MyFirstMod\Scripts\`
-4. Set **Output/Destination directory** to a new folder: `P:\@MyFirstMod\Addons\`
+4. Set **Output/Destination directory** to a new folder: `P:\Mods\@MyFirstMod\addons\`
 
-   Create the `@MyFirstMod\Addons\` folder first if it does not exist.
+   Create `P:\Mods\@MyFirstMod\addons\` first if it does not exist. Keep `addons` (and later `keys`) **lowercase**, along with the files inside them -- Bohemia's packing instructions call this out because the DayZ Linux server binaries are case-sensitive.
 
 5. In **Addon Builder Options**:
    - Set **Prefix** to: `MyFirstMod\Scripts`
+   - At the bottom left, select **Options** and set **path to project folder** to your work drive (`P:\`)
    - Leave other options at defaults
-6. Click **Pack**
+6. Click **Pack**. If it fails, enable **Enable extended logging** to see why, or try it with **Binarize** unchecked.
 
 If successful, you will see a file at:
 
 ```
-P:\@MyFirstMod\Addons\Scripts.pbo
+P:\Mods\@MyFirstMod\addons\Scripts.pbo
 ```
 
 ### Set Up the Final Mod Structure
@@ -309,23 +318,32 @@ P:\@MyFirstMod\Addons\Scripts.pbo
 Now copy your `mod.cpp` next to the `Addons` folder:
 
 ```
-P:\@MyFirstMod\
+P:\Mods\@MyFirstMod\
     mod.cpp                         <-- Copy from P:\MyFirstMod\mod.cpp
-    Addons\
+    addons\
         Scripts.pbo                 <-- Created by Addon Builder
 ```
 
 The `@` prefix on the folder name is a convention for distributable mods. It signals to server administrators and the launcher that this is a mod package.
 
-### Alternative: Test Without Packing (File Patching)
+### Set Up File Patching for Fast Iteration
 
-During development, you can skip PBO packing entirely using file patching mode. This loads scripts directly from your source folders:
+File patching lets the engine read loose `.c` files from your source tree, so a script edit costs a reconnect instead of a repack. It is layered **on top of** the packed mod you just built -- you do not skip packing, and `-mod=` keeps pointing at `@MyFirstMod`.
 
+One extra step is needed: a directory junction that makes your source tree visible inside the DayZ installation folder, under your mod's root prefix (`MyFirstMod`). Run it once, in a command prompt, substituting your own DayZ path:
+
+```batch
+mklink /J "C:\Program Files (x86)\Steam\steamapps\common\DayZ\MyFirstMod" "P:\MyFirstMod"
 ```
-DayZDiag_x64.exe -mod=P:\MyFirstMod -filePatching
-```
 
-File patching is faster for iteration because you edit a `.c` file, restart the game, and see the changes immediately. No packing step needed. However, file patching only works with the diagnostic executable (`DayZDiag_x64.exe`) and is not suitable for distribution.
+Open the DayZ installation folder afterwards: a `MyFirstMod` entry should be there, and browsing into it should show the same `Scripts` folder you created on `P:`. If it does not, file patching will silently do nothing.
+
+Two more conditions:
+
+- File patching works only with the diagnostic executable, `DayZDiag_x64.exe` -- never with the retail build, and never for distribution.
+- Any server you connect to needs `allowFilePatching = 1;` in its `serverDZ.cfg`, or your client will be refused. For a local diag server also set `BattlEye = 0;` and `verifySignatures = 0;`.
+
+With that in place, a `.c` edit applies on the next reconnect or mission restart. A `config.cpp` edit does not: repack and relaunch. [Chapter 8.6](06-debugging-testing.md#file-patching-edit-without-rebuilding) explains why, and what the official documentation does and does not settle.
 
 ---
 
@@ -346,26 +364,26 @@ There are two ways to load your mod: through the launcher or via command-line pa
 
 For faster iteration, launch DayZ directly with command-line parameters. Create a shortcut or batch file:
 
-**Using the Diagnostic Executable (with file patching, no PBO needed):**
+**Diagnostic executable, with file patching (needs the junction from Step 7):**
 
 ```batch
-"C:\Program Files (x86)\Steam\steamapps\common\DayZ\DayZDiag_x64.exe" -mod=P:\MyFirstMod -filePatching -server -config=serverDZ.cfg -port=2302
+"C:\Program Files (x86)\Steam\steamapps\common\DayZ\DayZDiag_x64.exe" "-mod=P:\Mods\@MyFirstMod" -filePatching -server -config=serverDZ.cfg -port=2302
 ```
 
-**Using the packed PBO:**
+**Diagnostic executable, packed PBO only (what players will run, minus the diag build):**
 
 ```batch
-"C:\Program Files (x86)\Steam\steamapps\common\DayZ\DayZDiag_x64.exe" -mod=P:\@MyFirstMod -server -config=serverDZ.cfg -port=2302
+"C:\Program Files (x86)\Steam\steamapps\common\DayZ\DayZDiag_x64.exe" "-mod=P:\Mods\@MyFirstMod" -server -config=serverDZ.cfg -port=2302
 ```
 
-The `-server` flag launches a local listen server. The `-filePatching` flag allows loading scripts from unpacked folders.
+The `-server` flag launches a local listen server. `-filePatching` adds the loose-file path on top of the packed mod; the `serverDZ.cfg` you point at needs `allowFilePatching = 1;` for a file-patching client to connect. Test the second form too before you release -- it is the one that proves your PBO is actually complete.
 
 ### Quick Test: Offline Mode
 
 The fastest way to test is to launch DayZ in offline mode:
 
 ```batch
-DayZDiag_x64.exe -mod=P:\MyFirstMod -filePatching
+DayZDiag_x64.exe "-mod=P:\Mods\@MyFirstMod" -filePatching
 ```
 
 Then in the main menu, click **Play** and select **Offline Mode** (or **Community Offline**). This starts a local single-player session without needing a server.
@@ -427,7 +445,7 @@ If the log contains lines starting with `SCRIPT (E):`, something went wrong. Rea
 
 ### Problem: No Log Output At All (Mod Does Not Seem to Load)
 
-**Check your launch parameters.** The `-mod=` path must point to the correct folder. If using file patching, verify the path points to the folder containing `Scripts/config.cpp` directly (not the `@` folder).
+**Check your launch parameters.** `-mod=` must point at the `@MyFirstMod` folder -- the one holding `mod.cpp` and `addons\` -- not at your source tree. If file patching is not taking effect, check the junction separately: open the DayZ installation folder and confirm the `MyFirstMod` link is there and browsable.
 
 **Check that config.cpp exists at the right level.** It must be at `Scripts/config.cpp` inside your mod root. If it is in the wrong folder, the engine silently ignores your mod.
 
@@ -562,19 +580,19 @@ Now that you have a working mod, here are the natural progressions:
 
 ## Tips
 
-- Test with `-filePatching` before building PBOs. It cuts iteration time from minutes to seconds.
+- Use `-filePatching` for script iteration. It cuts the edit-test cycle from minutes to seconds -- but it runs on top of a packed mod plus the junction from Step 7, so pack first.
 - Start with the `5_Mission` layer. Only add `3_Game` and `4_World` when you actually need them.
 - Always call `super` first in overridden methods. Omitting it silently breaks vanilla behavior and every other mod hooking the same method.
 - Use a unique prefix in `Print()` output (e.g., `[MyFirstMod]`). Logs contain thousands of lines -- a prefix is the only way to find yours.
-- A missing semicolon or brace in `config.cpp` causes a hard crash or silent mod skip with no clear error.
+- A missing semicolon or brace in `config.cpp` is a parse failure, and the symptom is usually that your classes simply are not there rather than a readable error. Check the `.RPT` file first when a mod loads but nothing it defines exists.
 
 ---
 
 ## Gotchas
 
-- The `version` field in `mod.cpp` is purely cosmetic. The engine does not parse it for dependency resolution.
-- If you misspell an addon name in `requiredAddons`, the entire PBO is silently skipped with no error in the script log. Check the `.RPT` file instead.
-- `config.cpp` changes and newly added `.c` files are **not** covered by file patching. You still need a PBO rebuild for those.
-- Some APIs (like `GetGame().GetPlayer().GetIdentity()`) return NULL in offline mode, causing crashes that do not happen on a real server.
+- Treat `mod.cpp` as presentation only. Bohemia documents it as the file that "holds information for mod presentation", and the game's own mod reader pulls `name`, `picture`, `logo`, `logoSmall`, `logoOver`, `tooltip` and `overview` -- not `version`. Version your mod for people, not for the engine.
+- A typo in `requiredAddons` is a dependency that cannot resolve, and the failure does not show up as a script error. Check the `.RPT` file rather than the script log when a mod seems to load but does nothing. (How the engine reacts in detail is not documented by Bohemia; the practical advice is to read the `.RPT`.)
+- File patching is not a way to skip packing. The documented procedure packs the PBO first, loads it with `-mod=@MyFirstMod`, and then exposes the source tree through a junction so loose `.c` and `.layout` files can be read. Script edits apply on the next reconnect or mission restart. After a `config.cpp` edit, repack and relaunch -- no primary Bohemia source says a loose `config.cpp` is re-read under file patching, and it is parsed at engine startup in any case.
+- Offline and listen-server sessions do not exercise the same code paths as a dedicated server -- identity and network-dependent APIs are the usual place this bites, so null-check anything you read from `GetIdentity()` instead of assuming it is populated. Always retest on a real dedicated server before release; [Chapter 8.6](06-debugging-testing.md#testing-server-mods) covers how.
 
 **Next:** [Chapter 8.2: Creating a Custom Item](02-custom-item.md)

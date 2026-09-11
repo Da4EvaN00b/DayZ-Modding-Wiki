@@ -22,7 +22,6 @@ Styles are predefined visual appearances that can be applied to widgets via the 
 | `rover_sim_colorable` | Colored panel style, commonly used for backgrounds |
 | `rover_sim_black` | Dark panel background |
 | `rover_sim_black_2` | Darker panel variant |
-| `Outline_1px_BlackBackground` | 1-pixel outline with solid black background |
 | `OutlineFilled` | Outline with a filled interior |
 | `DayZDefaultPanelRight` | DayZ default right panel style |
 | `DayZNormal` | DayZ normal text/widget style |
@@ -62,20 +61,21 @@ PanelWidgetClass TitleBar {
 
 ```c
 // Change color at runtime
-PanelWidget bar = PanelWidget.Cast(root.FindAnyWidget("TitleBar"));
+Widget bar = Widget.Cast(root.FindAnyWidget("TitleBar"));
 bar.SetColor(ARGB(240, 107, 165, 255));
 ```
 
 ### Styling a Dialog Container
 
-A common pattern is to combine `Outline_1px_BlackBackground` with a wrap spacer so the dialog frame draws a clean 1-pixel border and sizes itself to its contents:
+A common pattern is to combine `OutlineFilled` with a wrap spacer so the dialog frame draws a bordered, filled background and sizes itself to its contents. `OutlineFilled` is one of the styles the vanilla `WrapSpacerWidget` style block defines (`gui/looknfeel/dayzwidgets.styles`), alongside `Colorable`, `dashed`, and `Outline`:
 
 ```
 WrapSpacerWidgetClass LNT_ConfirmDialog {
- style Outline_1px_BlackBackground
+ style OutlineFilled
  Padding 5
  "Size To Content V" 1
 
+ {
  TextWidgetClass DialogText {
   text "Are you sure?"
   "text halign" center
@@ -87,6 +87,7 @@ WrapSpacerWidgetClass LNT_ConfirmDialog {
   size 120 30
   hexactsize 1
   vexactsize 1
+ }
  }
 }
 ```
@@ -253,7 +254,7 @@ Common vanilla imagesets and images:
 "set:dayz_gui image:icon_pin"           -- Map pin icon
 "set:dayz_gui image:icon_refresh"       -- Refresh icon
 "set:dayz_gui image:icon_x"            -- Close/X icon
-"set:dayz_gui image:icon_missing"      -- Warning/missing icon
+"set:dayz_gui image:icon_engine_alert" -- Warning/alert icon
 "set:dayz_gui image:iconHealth0"       -- Health/plus icon
 "set:dayz_gui image:DayZLogo"          -- DayZ logo
 "set:dayz_gui image:Expand"            -- Expand arrow
@@ -266,7 +267,7 @@ A single `ImageWidget` can hold multiple images in different slots (`image0`, `i
 
 ```
 ImageWidgetClass StatusIcon {
- image0 "set:dayz_gui image:icon_missing"
+ image0 "set:dayz_gui image:icon_engine_alert"
  image1 "set:dayz_gui image:iconHealth0"
 }
 ```
@@ -297,7 +298,7 @@ The `mode` attribute controls how the image blends with what's behind it:
 |---|---|
 | `blend` | Standard alpha blending (most common) |
 | `additive` | Colors add together (glow effects) |
-| `stretch` | Stretch to fill without blending |
+| `opaque` | Opaque, ignores alpha entirely |
 
 ### Image Mask Transitions
 
@@ -315,7 +316,7 @@ This is useful for loading bars, health displays, and reveal animations.
 
 ## ImageSet Format
 
-An imageset file (`.imageset`) defines named regions within a sprite atlas texture. DayZ supports two imageset formats.
+An imageset file (`.imageset`) defines named regions within a sprite atlas texture. Use the native format shown below for DayZ GUI resources.
 
 ### DayZ Native Format
 
@@ -358,23 +359,9 @@ Key fields:
 - `Name` -- Imageset name (used in `"set:<name>"`)
 - `RefSize` -- Reference size of the source texture in pixels (width height)
 - `path` -- Path to the texture file (`.edds`)
-- `mpix` -- Mipmap level (0 = standard resolution, 1 = 2x resolution)
-- Each image entry defines `Name`, `Pos` (x y in pixels), and `Size` (width height in pixels)
+- `mpix` -- Identifies which texture variant a `Textures` entry corresponds to when an imageset ships more than one resolution tier. This is not a simple `0 = standard, 1 = 2x` flag: vanilla `gui/imagesets/playstation_buttons.imageset` pairs `mpix 1` with its base texture and `mpix 2` with an `@2x` file, while other single-texture imagesets (e.g. `bleedingdrops.imageset`) use `mpix 0` as their only entry, and others (`ccgui_enforce.imageset`, `rover_imageset.imageset`) use `mpix 3` with a single texture. Copy the texture-tier setup from a matching vanilla imageset and test the intended display scaling.
+- Each image entry defines `Name`, `Pos` (x y in pixels), `Size` (width height in pixels), and `Flags` (for example, `0` or `ISVerticalTile` as on the vanilla `Gradient` image).
 
-### XML Format
-
-Some large mods use an XML-based imageset format:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<imageset name="my_icons" file="MyMod/GUI/imagesets/my_icons.edds">
-  <image name="icon_sword" pos="0 0" size="64 64" />
-  <image name="icon_shield" pos="64 0" size="64 64" />
-  <image name="icon_potion" pos="128 0" size="64 64" />
-</imageset>
-```
-
-Both formats accomplish the same thing. The native format is used by vanilla DayZ; the XML format is sometimes easier to read and edit by hand.
 
 ---
 
@@ -386,7 +373,7 @@ To create your own imageset for a mod:
 
 Use an image editor (Photoshop, GIMP, etc.) to create a single texture that contains all your icons/images arranged on a grid. Common sizes are 256x256, 512x512, or 1024x1024 pixels.
 
-Save as `.tga`, then convert to `.edds` using DayZ Tools (TexView2 or the ImageTool).
+Export your source artwork and create the `.edds` GUI texture resource through Workbench; use a matching shipped atlas as the resource template. TexView 2/ImageToPAA belong to the PAA material-texture workflow.
 
 ### Step 2: Create the Imageset File
 
@@ -476,7 +463,7 @@ class UIColor
     static int Secondary()    { return ARGB(255, 60, 60, 60); }
     static int Accent()       { return ARGB(255, 100, 200, 100); }
     static int Danger()       { return ARGB(255, 200, 50, 50); }
-    static int Transparent()  { return ARGB(1, 0, 0, 0); }
+    static int Transparent()  { return ARGB(0, 0, 0, 0); }
     static int SemiBlack()    { return ARGB(180, 0, 0, 0); }
 }
 ```
@@ -500,7 +487,7 @@ This is a pattern used by client theming mods; the version above is this wiki's 
 | Any widget | `color`, `visible`, `style`, `priority`, `inheritalpha` |
 | TextWidget | `text`, `font`, `"text halign"`, `"text valign"`, `"exact text"`, `"exact text size"`, `"bold text"`, `wrap` |
 | ImageWidget | `image0`, `mode`, `"src alpha"`, `stretch`, `"flip u"`, `"flip v"` |
-| ButtonWidget | `text`, `style`, `switch toggle` |
+| ButtonWidget | `text`, `style`, `switch once` |
 | PanelWidget | `color`, `style` |
 | SliderWidget | `"fill in"` |
 | ProgressBarWidget | `style` |

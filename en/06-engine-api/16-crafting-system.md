@@ -1,5 +1,10 @@
 # Crafting System
 
+> **Summary:** The recipe pipeline --- `RecipeBase` subclasses declaring exactly two
+> ingredient slots, `PluginRecipesManager` caching ingredient-to-recipe lookups at startup,
+> and `ActionWorldCraft` driving the player-facing craft. Field defaults, sentinel values
+> and execution order are taken from `recipebase.c`; the counts are from the extraction, not
+> from memory.
 
 ---
 
@@ -13,7 +18,13 @@ There are two fundamental approaches to crafting in DayZ:
 
 2. **Action-based crafting** --- Custom `ActionContinuousBase` subclasses handle crafting directly without the recipe system. This approach is used for specialized transformations like basebuilding construction, cooking, and gardening where the recipe abstraction does not fit.
 
-This chapter focuses primarily on the recipe system, which handles the vast majority of item crafting in vanilla DayZ (over 150 registered recipes).
+This chapter focuses primarily on the recipe system, which handles the vast majority of
+item crafting in vanilla DayZ. Counting the supplied extraction:
+`4_World/classes/recipes/recipes/` holds **221** recipe source files, but
+`PluginRecipesManagerBase.RegisterRecipies()` contains **203** `RegisterRecipe(new ...)`
+calls of which only **129 are live** --- the remaining ~74 (almost all of the `Paint*`
+family) are commented out. So "how many recipes exist" and "how many are registered" are
+different numbers, and a recipe file existing does not mean it is active.
 
 ---
 
@@ -93,9 +104,14 @@ const float DEFAULT_SPAWN_DISTANCE = 0.6;   // ground spawn offset from player
 const float CRAFTING_TIME_UNIT_SIZE = 4.0;  // multiplied by m_AnimationLength to get seconds
 
 // pluginrecipesmanager.c
-const int MAX_NUMBER_OF_RECIPES = 2048;     // hard limit on registered recipes
+const int MAX_NUMBER_OF_RECIPES = GetMaxNumberOfRecipes();  // static method, returns 2048
 const int MAX_CONCURENT_RECIPES = 128;      // max recipes resolved in a single query
+const int MAX_INGREDIENTS = 5;              // manager-side working arrays, NOT a recipe limit
 ```
+
+Note the difference between the two ingredient numbers: `RecipeBase.MAX_NUMBER_OF_INGREDIENTS`
+is `2` and is the real limit on a recipe; `PluginRecipesManager.MAX_INGREDIENTS = 5` only
+sizes the manager's internal lookup arrays and does not let a recipe take five ingredients.
 
 > **Key insight:** Every recipe has exactly two ingredient "slots" (index 0 and index 1). Each slot can accept multiple item types (e.g., slot 0 accepts `Rag` OR `BandageDressing` OR `DuctTape`), but the player always combines exactly two items.
 
@@ -117,14 +133,63 @@ Every crafting recipe is a class that extends `RecipeBase`. The constructor call
 | `m_Specialty` | `float` | `0.0` | Soft skills: positive = roughness, negative = precision. |
 | `m_AnywhereInInventory` | `bool` | `false` | If `true`, neither item needs to be in the player's hands. |
 
+> **The zero defaults are active values, not "do nothing".** Enforce Script zero-initialises
+> these arrays, and almost none of the checks treat `0` as neutral. Reading the actual
+> implementations in `recipebase.c`:
+>
+> | Field | Left at default `0` this means | Disable it with |
+> |-------|-------------------------------|-----------------|
+> | `m_MaxDamageIngredient[i]` | `CheckConditions()` tests `m_MaxDamageIngredient[i] >= 0`, so the ingredient's `GetHealthLevel()` must be `<= 0` --- **Pristine only** | `-1` |
+> | `m_MaxQuantityIngredient[i]` | quantity must be `<= 0` --- nothing will ever match | `-1` |
+> | `m_MinQuantityIngredient[i]` | quantity must be `>= 0` --- harmless, but say what you mean | `-1` |
+> | `m_ResultSetHealth[i]` | `ApplyModificationsResults()` tests `!= -1`, so it calls `SetHealth("","",0)` --- but see the ordering note below | `-1` |
+> | `m_ResultSetQuantity[i]` | tests `!= -1`, so it calls `SetQuantity(0)` --- an empty result | `-1` |
+> | `m_ResultInheritsHealth[i]` | tests `!= -1`, so the result inherits health from **ingredient 0** | `-1` |
+> | `m_ResultInheritsColor[i]` | tests `!= -1`, so the classname gets ingredient 0's `color` appended | `-1` |
+>
+> **Ordering matters between the two health fields.** In `ApplyModificationsResults()` the
+> `m_ResultSetHealth` block (`recipebase.c:318-322`) is immediately followed by the
+> `m_ResultInheritsHealth` block (L323 onward). With *every* field left at its zero default
+> --- exactly the scenario this table describes --- both branches fire, the inherit runs
+> second, and it overwrites the zero. So the observable default is **not** a ruined result:
+> it is the result inheriting ingredient 0's health fraction
+> (`ing.GetHealth01("","") * res.GetMaxHealth("","")`). Setting only `m_ResultSetHealth = -1`
+> while leaving `m_ResultInheritsHealth` at `0` changes nothing observable; setting only
+> `m_ResultInheritsHealth = -1` is what actually exposes the `SetHealth(0)`.
+>
+> This is exactly why every vanilla recipe writes out *every* field explicitly, mostly as
+> `-1`, even the ones it does not care about. Copy that habit; do not rely on defaults.
+>
+> The condition checks use `>= 0`, so **any** negative value disables them --- `-1` is a
+> convention, not a magic number. The modification fields are different: they test against
+> the specific sentinels above, so there `-1` (or `0`) really is exact.
+>
+> Watch out for one more trap here: the official Bohemia sample
+> `DayZ-Samples/Test_Crafting/Scripts/4_World/ExampleRecipe.c` writes
+> `m_IngredientAddHealth[0] = -1; // -1 = do nothing` and `m_IngredientDestroy[0] = -1;`.
+> Both comments are wrong. `ApplyModificationsIngredients()` tests
+> `m_IngredientAddHealth[i] != 0`, so `-1` actually removes one health point, and
+> `m_IngredientDestroy` is a `bool` tested as `== 1`. Follow the vanilla recipes, not that
+> sample's comments.
+
 #### Ingredient Conditions (per slot, indexed 0 or 1)
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `m_MinDamageIngredient[i]` | `0` | Minimum damage level required. `-1` = disable check. |
-| `m_MaxDamageIngredient[i]` | `0` | Maximum damage level allowed. `-1` = disable check. |
-| `m_MinQuantityIngredient[i]` | `0` | Minimum quantity required. `-1` = disable check. |
-| `m_MaxQuantityIngredient[i]` | `0` | Maximum quantity allowed. `-1` = disable check. |
+| `m_MinDamageIngredient[i]` | `0` | Minimum `GetHealthLevel()` required. Any negative value disables the check. |
+| `m_MaxDamageIngredient[i]` | `0` | Maximum `GetHealthLevel()` allowed (`3` = "not ruined"). Any negative value disables the check. |
+| `m_MinQuantityIngredient[i]` | `0` | Minimum quantity required. For a `Magazine` ingredient this is compared against `GetAmmoCount()` instead. Any negative value disables the check. |
+| `m_MaxQuantityIngredient[i]` | `0` | Maximum quantity allowed (`GetAmmoCount()` for magazines). Any negative value disables the check. |
+
+For non-magazine items the **minimum**-quantity check --- and only that one --- is
+additionally skipped when `GetQuantityMax() == 0`. In `CheckConditions()`
+(`recipebase.c:429-475`) the `GetQuantityMax() != 0` guard sits on the
+`m_MinQuantityIngredient` branch alone (L436); the `m_MaxQuantityIngredient` branch (L441)
+is **unguarded** and runs for every non-magazine ingredient regardless of `GetQuantityMax()`.
+That matters for the zero defaults above: a quantity-less item sails past the minimum check,
+but a default `m_MaxQuantityIngredient` of `0` still requires `GetQuantity() <= 0` and will
+reject anything that reports a positive quantity. The magazine branch has no such guard on
+either side.
 
 #### Ingredient Modifications (per slot, applied after crafting)
 
@@ -134,7 +199,18 @@ Every crafting recipe is a class that extends `RecipeBase`. The constructor call
 | `m_IngredientSetHealth[i]` | `0` | Set health to this value. `-1` = do nothing. |
 | `m_IngredientAddQuantity[i]` | `0` | Quantity delta applied. `0` = do nothing. Negative values consume. |
 | `m_IngredientDestroy[i]` | `false` | If `true`, ingredient is deleted after crafting. |
-| `m_IngredientUseSoftSkills[i]` | `false` | Allow soft skills to modify ingredient changes. |
+| `m_IngredientUseSoftSkills[i]` | `false` | Allow soft skills to modify ingredient changes (see the soft-skills caveat under *Theory vs Practice*). |
+
+Two ordering rules that are easy to miss in `ApplyModificationsIngredients()`:
+
+- `m_IngredientDestroy[i]` short-circuits everything. When it is set, the ingredient is
+  queued for deletion and **none** of the health/quantity modifications run for that slot.
+- `m_IngredientAddHealth[i]` and `m_IngredientSetHealth[i]` are an `if`/`else if` pair.
+  If `AddHealth` is non-zero, `SetHealth` is never applied --- they are not additive.
+
+Quantity is applied with `AddQuantity(delta, true)`, whose return value tells the engine
+the item destroyed itself; magazines instead go through `ServerSetAmmoCount()`, and a
+magazine whose new count would be `<= 0` is queued for deletion.
 
 #### Result Configuration (per result, indexed 0 to `MAXIMUM_RESULTS - 1`)
 
@@ -145,7 +221,7 @@ Every crafting recipe is a class that extends `RecipeBase`. The constructor call
 | `m_ResultSetHealth[i]` | `0` | Set result health. `-1` = do nothing. |
 | `m_ResultInheritsHealth[i]` | `0` | `-1` = do nothing. `>= 0` = inherit from ingredient N. `-2` = average of all ingredients. |
 | `m_ResultInheritsColor[i]` | `0` | `-1` = do nothing. `>= 0` = append ingredient N's `color` config value to classname. |
-| `m_ResultToInventory[i]` | `0` | `-2` = spawn on ground. `-1` = player inventory. `>= 0` = swap position with ingredient N. |
+| `m_ResultToInventory[i]` | `0` | `-1` = `player.GetInventory().CreateInInventory()`. Anything else falls through to a ground spawn via `SpawnEntityOnGroundRaycastDispersed()`. `-2` is the value vanilla uses for "ground"; the `>= 0` swap branch exists but its entire body is commented out, so it also just spawns on the ground. |
 | `m_ResultReplacesIngredient[i]` | `0` | `-1` = do nothing. `>= 0` = transfer properties/attachments from ingredient N. |
 | `m_ResultUseSoftSkills[i]` | `false` | Allow soft skills to modify result values. |
 | `m_ResultSpawnDistance[i]` | `0.6` | Ground spawn offset distance from player. |
@@ -307,7 +383,8 @@ bool CanDo(ItemBase ingredients[], PlayerBase player)
 Common patterns in vanilla overrides:
 
 ```c
-// CraftSplint: different quantity requirements per ingredient type
+// CraftSplint: different quantity requirements per ingredient type.
+// Abridged -- the real method also has a BandageDressing branch requiring a full stack.
 override bool CanDo(ItemBase ingredients[], PlayerBase player)
 {
     ItemBase ingredient1 = ingredients[0];
@@ -501,7 +578,9 @@ This is the action that drives all recipe-based crafting. Players do not interac
 4. On start, `CAContinuousCraft` reads the recipe's duration from `PluginRecipesManager.GetRecipeLengthInSecs()`.
 5. On completion (`OnFinishProgressServer`), the action calls `PluginRecipesManager.PerformRecipeServer()`.
 
-**Key implementation details:**
+**Key implementation details** (abridged --- the real `OnFinishProgressServer()` also
+brackets the call with `ClearActionJuncture()` / `ClearInventoryReservationEx()` before and
+`AddActionJuncture()` after, depending on `g_Game.IsMultiplayer()`):
 
 ```c
 class ActionWorldCraft : ActionContinuousBase
@@ -621,7 +700,8 @@ Your override runs here with sorted ingredients, results array, and specialty we
 
 ### 6. Cleanup: DeleleIngredientsPass()
 
-All ingredients queued for deletion are destroyed.
+All ingredients queued for deletion are destroyed. The method name really is misspelled
+("Delele") in vanilla --- spell it that way if you override it.
 
 ---
 
@@ -720,13 +800,20 @@ override void Do(ItemBase ingredients[], PlayerBase player, array<ItemBase> resu
 The `m_ResultInheritsColor` system creates variant items based on an ingredient's config `color` value. The result classname becomes `AddResult_name + color_string`:
 
 ```c
-AddResult("GhillieHood_");              // base name ending with underscore
+// Vanilla CraftDrysackBag (craftdrysackbag.c:41,47) -- a live registered recipe.
+AddResult("DrysackBag_");               // base name ending with underscore
 m_ResultInheritsColor[0] = 0;           // inherit color from ingredient 0
 
-// If ingredient 0 has color "Green" in its config, the result becomes "GhillieHood_Green"
+// If ingredient 0 has color "Green" in its config, the result becomes "DrysackBag_Green"
 ```
 
-This was used extensively for the paint recipe system (now mostly commented out in vanilla).
+The mechanism is live, not a leftover of the commented-out paint family. Five of the 129
+registered recipes use it: `CraftDrysackBag` (`pluginrecipesmanagerbase.c:151`),
+`CraftArmbandFlag` (L147), `CraftArmbandRaincoat` (L100), `CraftWitchHoodCoif` (L150) and
+`PokeHolesBarrel` (L21). Note that `CraftGhillieHood` is **not** one of them --- despite the
+obvious fit, it writes the concrete `AddResult("GhillieHood_Tan")` with
+`m_ResultInheritsColor[0] = -1`. The paint recipes did use the pattern heavily, and those
+are the ones now inside the block comment.
 
 ### Crafting Duration
 
@@ -778,18 +865,28 @@ The official Bohemia sample demonstrates the simplest possible recipe mod:
 
 ### Vanilla Recipe Categories
 
-Examining the ~150 registered vanilla recipes reveals these patterns:
+Counted from the **129 live** `RegisterRecipe(new ...)` calls in
+`4_World/classes/recipes/recipes/pluginrecipesmanagerbase.c` (commented-out registrations
+excluded), grouped by class-name prefix:
 
-| Category | Count | Pattern | Example |
-|----------|-------|---------|---------|
-| Craft | ~50 | Two ingredients -> new item | `CraftTorch`, `CraftSplint` |
-| DeCraft | ~15 | Reverse crafting, disassemble | `DeCraftSplint`, `DeCraftHandDrillKit` |
-| Repair | ~8 | Tool + damaged item -> improved item | `RepairWithTape`, `CleanWeapon` |
-| SawOff | ~7 | Hacksaw + weapon -> shorter variant | `SawoffMosin`, `SawOffIzh18` |
-| Prepare | ~6 | Knife + animal/fish -> meat/pelts | `PrepareChicken`, `PrepareCarp` |
-| Split | ~4 | Tool + stackable -> smaller pieces | `SplitStones`, `SplitFirewood` |
-| CutOut | ~4 | Knife + vegetable -> seeds | `CutOutTomatoSeeds` |
-| Utility | ~10 | Purify, disinfect, fuel, fill, test | `PurifyWater`, `FuelChainsaw` |
+| Prefix | Live count | Pattern | Example |
+|--------|-----------|---------|---------|
+| `Craft*` | 55 | Two ingredients -> new item | `CraftTorch`, `CraftSplint` |
+| `DeCraft*` | 22 | Reverse crafting, disassemble | `DeCraftSplint`, `DeCraftHandDrillKit` |
+| `Repair*` | 8 | Tool + damaged item -> improved item | `RepairWithTape` |
+| `Prepare*` | 7 | Knife + animal/fish -> meat/pelts | `PrepareChicken`, `PrepareCarp` |
+| `Sawoff*` / `SawOff*` | 6 | Hacksaw + weapon -> shorter variant | `SawoffMosin`, `SawOffIzh18` |
+| `Split*` | 4 | Tool + stackable -> smaller pieces | `SplitStones`, `SplitFirewood` |
+| `CutOut*` | 4 | Knife + vegetable -> seeds | `CutOutTomatoSeeds` |
+| `Sharpen*` | 3 | Whetstone/knife + item -> sharpened | `SharpenLongStick` |
+| `Attach*` | 2 | Sewing an attachment onto clothing | `AttachHolster` |
+| `Clean*` | 1 | | `CleanWeapon` |
+| everything else | 17 | Purify, disinfect, fuel, fill, test, ... | `PurifyWater`, `FuelChainsaw` |
+
+`Paint*` is the notable absentee: 62 paint recipe files ship in the folder and every one of
+their registrations is commented out, so none of them are live. Note also that the two
+spellings `Sawoff*` and `SawOff*` both exist in vanilla --- match the exact class name when
+you call `UnregisterRecipe()`.
 
 ---
 
@@ -805,7 +902,10 @@ The `RecipeBase` fields suggest a highly flexible system: up to 10 results per r
 - **Most recipes produce one result.** Despite `MAXIMUM_RESULTS = 10`, vanilla recipes rarely produce more than one item. The multi-result path is less tested.
 - **Soft skills modifiers are effectively disabled.** The `CAContinuousCraft` component has a comment `//removed softskills` next to the time calculation. The specialty weight is still passed to `Do()` but rarely used.
 - **The `m_ResultToInventory >= 0` swap path is commented out.** The code for swapping result position with an ingredient exists in `SpawnItems()` but the swap logic is inside a commented block. Only `-2` (ground) and `-1` (inventory) work.
-- **`m_AnywhereInInventory` is rarely used.** Most recipes require at least one item in hands. This field exists but is not widely exercised.
+- **`m_AnywhereInInventory` is set by exactly one vanilla recipe.** Across the 221 recipe
+  files, `m_AnywhereInInventory = true` appears once, in `crafttannedleather.c:13`; every
+  other recipe leaves it `false` and so requires at least one item in hands. The field works,
+  but it is effectively untested territory.
 
 ---
 
@@ -924,7 +1024,7 @@ override bool CanDo(ItemBase ingredients[], PlayerBase player)
 
 - All recipe execution happens server-side via `PerformRecipeServer()`.
 - Client validates recipes locally for UI display but the server re-validates before executing.
-- The `RecipeSanityCheck()` on the server verifies items are within acceptable distance (5 meters) and not owned by another live player.
+- The server-side sanity check is driven by the `ERecipeSanityCheck` flags in `pluginrecipesmanager.c`: `IS_IN_PLAYER_INVENTORY = 1`, `NOT_OWNED_BY_ANOTHER_LIVE_PLAYER = 2`, `CLOSE_ENOUGH = 4`, with `const float ACCEPTABLE_DISTANCE = 5`. The accepted result is `SANITY_CHECK_ACCEPTABLE_RESULT = NOT_OWNED_BY_ANOTHER_LIVE_PLAYER | CLOSE_ENOUGH` --- note that `IS_IN_PLAYER_INVENTORY` is deliberately **not** required, which is what lets you craft against an item lying on the ground.
 
 ---
 
@@ -935,7 +1035,7 @@ override bool CanDo(ItemBase ingredients[], PlayerBase player)
 | `4_World/classes/recipes/recipebase.c` | `RecipeBase` --- base class, field definitions, execution pipeline |
 | `4_World/classes/recipes/cacheobject.c` | `CacheObject`, `RecipeCacheData` --- bitmask cache entries |
 | `4_World/classes/recipes/recipes/pluginrecipesmanagerbase.c` | `PluginRecipesManagerBase` --- vanilla recipe registration |
-| `4_World/classes/recipes/recipes/*.c` | All vanilla recipe implementations (~100+ files) |
+| `4_World/classes/recipes/recipes/*.c` | All vanilla recipe implementations (221 files in the extraction; 129 registrations are live) |
 | `4_World/plugins/pluginbase/pluginrecipesmanager.c` | `PluginRecipesManager` --- runtime manager, cache, execution |
 | `4_World/classes/craftingmanager.c` | `CraftingManager` --- client crafting state machine |
 | `4_World/classes/useractionscomponent/actions/continuous/actionworldcraft.c` | `ActionWorldCraft` --- the crafting action |

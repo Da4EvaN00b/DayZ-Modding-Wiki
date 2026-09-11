@@ -30,9 +30,9 @@ if (groups.length === 0) {
 const lines = []
 lines.push('# DayZ Modding Wiki')
 lines.push('')
-lines.push('> Community documentation for DayZ modding: the Enforce Script language, mod structure, GUI system, file formats, engine API, patterns, step-by-step tutorials, and server administration. Grounded in the vanilla DayZ scripts and official Bohemia Interactive samples; all code examples are original and self-contained. English is the canonical language (11 translations available via the site language switcher).')
+lines.push('> Community documentation for DayZ modding: the Enforce Script language, mod structure, GUI system, file formats, engine API, patterns, step-by-step tutorials, and server administration. The wiki draws on vanilla DayZ scripts, official samples, and community mod sources. English is the canonical language (11 translations available via the site language switcher).')
 lines.push('')
-lines.push('Key facts for language models writing Enforce Script: it is NOT C/C++. There is no ternary operator, no `auto`, no `try/catch`, no `do...while`, no `#include`, and multi-line call expressions break the parser. See the "What Does NOT Exist" page below before generating code.')
+lines.push(`DayZ uses Enforce Script. Consult [Variables & Types](${SITE}/en/01-enforce-script/01-variables-types), [Functions & Methods](${SITE}/en/01-enforce-script/13-functions-methods), and [Language Gotchas](${SITE}/en/01-enforce-script/12-gotchas) for supported syntax, examples, and caveats before writing or adapting code.`)
 lines.push('')
 
 for (const group of groups) {

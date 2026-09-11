@@ -198,14 +198,18 @@ int white  = ARGB(255, 255, 255, 255);   // Opaque white  (same as -1)
 // Using the float version (0.0-1.0 per channel)
 int color = ARGBF(1.0, 0.5, 0.25, 0.1);
 
-// Decompose a color back to floats
-float a, r, g, b;
-InverseARGBF(color, a, r, g, b);
+// Decompose a packed color without a framework dependency
+float a = ((color >> 24) & 255) / 255.0;
+float r = ((color >> 16) & 255) / 255.0;
+float g = ((color >> 8) & 255) / 255.0;
+float b = (color & 255) / 255.0;
 
 // Apply to any widget
 widget.SetColor(ARGB(255, 100, 150, 200));
 widget.SetAlpha(0.5);  // Override just the alpha
 ```
+
+> **Color helpers:** `ARGB()` and `ARGBF()` are ordinary script functions defined in `scripts/1_core/proto/proto.c`. Dabs Framework supplies an `InverseARGBF()` implementation in [its 1_Core helpers](https://github.com/InclementDab/DayZ-Dabs-Framework/blob/fd859fd891f45a4a9c9089597db0c621ef3a9de5/DabsFramework/Scripts/1_Core/DabsFramework/proto.c); calling that name requires an available implementation, such as Dabs or your own equivalent. The bit operations above work without that dependency.
 
 The hexadecimal format `0xAARRGGBB` is also common:
 
@@ -225,10 +229,10 @@ widget.SetHandler(myEventHandler);  // ScriptedWidgetEventHandler instance
 Attach arbitrary data to a widget for later retrieval:
 
 ```c
-widget.SetUserData(myDataObject);  // Must inherit from Managed
+widget.SetUserData(myDataObject);  // API accepts Class
 
 // Later retrieve it:
-Managed data;
+Class data;
 widget.GetUserData(data);
 MyDataClass myData = MyDataClass.Cast(data);
 ```
@@ -466,8 +470,9 @@ class WidgetPool
     {
         w.Show(false);
         int idx = m_Active.Find(w);
-        if (idx >= 0)
-            m_Active.Remove(idx);
+        if (idx < 0)
+            return;
+        m_Active.Remove(idx);
         m_Pool.Insert(w);
     }
 
@@ -522,7 +527,7 @@ In practice, most mods use **layout files** for the structure and **code** for p
 |---------|--------|---------|
 | `CreateWidget()` creates any widget type | All TypeIDs work with `CreateWidget()` | `ScrollWidget` and `WrapSpacerWidget` created programmatically often need manual flag setup (`EXACTSIZE`, sizing) that layout files handle automatically |
 | `Unlink()` frees all memory | Widget and children are destroyed | References held in script variables become dangling. Always set widget refs to `null` after `Unlink()` or you risk crashes |
-| `SetHandler()` routes all events | One handler receives all widget events | The handler only receives events for widgets that have called `SetHandler(this)`. Children do not inherit the handler from their parent |
+| `SetHandler()` routes all events | One handler receives all widget events | A child does not acquire its parent's handler object, but unconsumed events can propagate up the widget tree. A root handler can therefore handle child events; test where your event is consumed |
 | `CreateWidgets()` from layout is instant | Layout loads synchronously | Large layouts with many nested widgets cause a frame spike. Pre-load layouts during loading screens, not during gameplay |
 | Proportional sizing (0.0-1.0) scales to parent | Values are relative to parent dimensions | Without `EXACTSIZE` flag, even `CreateWidget()` values like `100` are treated as proportional (0-1 range), causing widgets to fill the entire parent |
 

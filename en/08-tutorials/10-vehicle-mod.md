@@ -347,11 +347,15 @@ The `SimulationModule` controls how the vehicle drives. Key parameters:
 | Parameter | Effect |
 |-----------|--------|
 | `drive` | `0` = rear-wheel drive, `1` = front-wheel drive, `2` = all-wheel drive |
-| `torqueMax` | Peak engine torque in Nm. Higher = more acceleration. Vanilla Niva is ~114. |
-| `powerMax` | Peak horsepower. Higher = faster top speed. Vanilla Niva is ~68. |
+| `torqueMax` | Peak engine torque. Higher = more acceleration. |
+| `powerMax` | Peak engine power. Higher = faster top speed. |
 | `rpmRedline` | Engine redline RPM. Beyond this, the engine bounces off the rev limiter. |
 | `ratios[]` | Gear ratios. Lower numbers = taller gears = higher top speed but slower acceleration. |
 | `transmissionRatio` | Final drive ratio. Acts as a multiplier on all gears. |
+
+> **On units and baseline values.** This wiki cannot give you verified vanilla numbers for `torqueMax` and `powerMax`, and it will not invent them. `DZ/vehicles/wheeled/config.cpp` is empty in the extraction this wiki was checked against, and neither token appears anywhere else in the extracted configs or scripts, so the units (`torqueMax` in Nm, `powerMax` in horsepower or kW) are unconfirmed too. The practical approach: open the `config.cpp` of the vanilla vehicle closest to what you want, copy its `SimulationModule` wholesale, and tune from there. Relative changes behave predictably even when you do not know the unit; absolute figures copied from a community guide often do not.
+>
+> The `"DZ_Vehicles_Wheeled"` addon name has no `CfgPatches` class of its own in the extraction -- unsurprising, since the same directory's `config.cpp` is empty -- but it is independently attested as a real dependency target: `DZ/sounds/hpp/config.cpp`'s `CfgPatches` class `DZ_Sounds_Effects` lists `requiredAddons[]={"DZ_Data","DZ_Vehicles_Wheeled","DZ_Vehicles_Water"}`. The parent class itself is also confirmed: `OffroadHatchback extends CarScript` at `scripts/4_world/entities/vehicles/inheritedcars/offroadhatchback.c:1`.
 
 ### About DamageZones
 

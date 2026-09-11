@@ -79,6 +79,7 @@ class WeatherUI
 | `Insert(func)` | Add a callback to the subscriber list |
 | `Remove(func)` | Remove a specific callback |
 | `Invoke(...)` | Call all subscribed callbacks with the given arguments |
+| `Count(func)` | How many times that callback is currently registered -- useful for catching an accidental double `Insert()` |
 | `Clear()` | Remove all subscribers |
 
 ### Event-Driven Pattern
@@ -140,8 +141,10 @@ Many vanilla DayZ classes expose `ScriptInvoker` events:
 DayZPlayer player = g_Game.GetPlayer();
 player.GetOnDeathStart().Insert(OnPlayerDeath);  // Subscribe
 
-// MissionBase has event hooks (virtual methods, not ScriptInvokers)
-class MissionBase
+// The Mission base class has event hooks (virtual methods, not ScriptInvokers).
+// Declared in 3_game/gameplay.c:702-713 and inherited by MissionBase,
+// MissionServer and MissionGameplay.
+class Mission
 {
     void OnUpdate(float timeslice);
     void OnEvent(EventType eventTypeId, Param params);
@@ -573,7 +576,7 @@ For events that carry complex payloads, use `Param` wrappers:
 
 ### Param Classes
 
-DayZ provides `Param1<T>` through `Param4<T1, T2, T3, T4>` for wrapping typed data:
+DayZ provides `Param1<T1>` through `Param10<T1 ... T10>`, all extending `Param` (`1_core/param.c`), for wrapping typed data:
 
 ```c
 // Firing with structured data:

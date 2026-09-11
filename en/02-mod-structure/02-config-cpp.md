@@ -65,7 +65,9 @@ Two path styles appear inside `config.cpp`, and mixing them arbitrarily is a com
 | Script module directories (`files[]` in `class defs`) | Forward slashes, no leading separator | `"MyMod/Scripts/3_Game"` |
 | Asset references (`model`, textures, sound `samples[]`) | Backslashes, model paths with a leading `\` | `"\MyMod\Data\Models\item.p3d"` |
 
-Pick these conventions and keep them consistent across your mod. One hard rule sits outside `config.cpp`: in **Enforce Script string literals** (`.c` files), always use forward slashes -- backslash escape sequences break the script parser (see [Gotchas & Pitfalls](../01-enforce-script/12-gotchas.md)).
+Pick these conventions and keep them consistent across your mod.
+
+A related convention applies outside `config.cpp`, in **Enforce Script string literals** (`.c` files). The `\\` and `\"` escape sequences are supported there, and vanilla uses both: `3_game/objectspawner.c:4` declares `"DZ\\plants"` in a path array (alongside the forward-slash form `"DZ/plants"`), and `3_game/tools/jsonfileloader.c:14` formats `"Cannot open file \"%1\" for reading"`. What favours forward slashes is that engine subsystems expect them in resource paths -- `3_game/particles/particlelist.c:391-393` rewrites `\` to `/` and warns that the wrong delimiter was used, but only in a diagnostic build: both the rewrite and the warning sit inside `#ifdef DIAG_DEVELOPER` (`:390`-`:395`), under a comment that reads "Silently fail on retail" (`:389`). On a **retail** build neither happens -- the backslash path falls straight through unmodified (`:397`). Prefer `/` in in-game resource paths for that reason: on the build your players actually run, nothing fixes a wrong delimiter for you.
 
 ---
 
@@ -163,15 +165,11 @@ class CfgMods
         name = "My Mod Name";     // Human-readable name
         author = "AuthorName";    // Author string
         credits = "AuthorName";   // Credits string
-        creditsJson = "MyMod/Scripts/Data/Credits.json";  // Path to credits file
-        versionPath = "MyMod/Scripts/Data/Version.hpp";   // Path to version file
         overview = "Description"; // Mod description
         picture = "";             // Logo image path
         action = "";              // URL (website/Discord)
-        type = "mod";             // "mod" for client, "servermod" for server-only
+        type = "mod";             // Declares the mod's intended side
         extra = 0;                // Reserved, always 0
-        hideName = 0;             // Hide mod name in launcher (0 = show, 1 = hide)
-        hidePicture = 0;          // Hide mod picture in launcher
 
         // Keybind definitions (optional)
         inputs = "MyMod/Scripts/Data/Inputs.xml";
@@ -191,11 +189,24 @@ class CfgMods
 };
 ```
 
+### Which Keys the Engine Actually Reads
+
+`CfgMods` accumulates keys from three different sources, and telling them apart saves you from copying a key that does nothing on a plain server:
+
+| Key | Read by | Notes |
+|-----|---------|-------|
+| `type`, `inputs`, `skeletonDefinitions`, `dependencies[]`, `class defs` | Engine (native) | The set Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents. `type = "mod";` is annotated *required* there. |
+| `name`, `picture`, `logo`, `logoSmall`, `logoOver`, `tooltip`, `overview` | Vanilla script | `ModStructure.LoadData()` reads exactly these seven for the in-game mod list (`3_game/client/mods/modstructure.c:24-30`). |
+| `author`, `credits`, `creditsJson`, `versionPath`, `version` | Community Framework | CF's `modded class ModStructure` adds the readers (`JM/CF/Scripts/3_Game/CommunityFramework/Mods/ModStructure.c:74-77,130,143,176-190`). Nothing in vanilla script reads them. |
+| `dir`, `extra`, `defines[]` | Not read by any script | Widely used by convention; no vanilla script reader and no entry on the Modding Structure page. |
+
+`creditsJson` in particular is a **Community Framework integration point**, not a vanilla key: CF loads the referenced JSON and merges it into the in-game credits screen (`.../Credits/CreditsLoader.c:24-47`). Include it only when your mod already depends on CF; on a server without CF it is inert.
+
 ### Key Fields Explained
 
-**`dir`** -- The root path prefix for all file paths in this config. When the engine sees `files[] = { "MyMod/Scripts/3_Game" }`, it uses `dir` as the base.
+**`dir`** -- The root path prefix commonly written for the mod's own bookkeeping. Script-side `files[]` entries in `class defs` are full paths from the PBO prefix, so they work whether or not `dir` is present.
 
-**`type`** -- Either `"mod"` (loaded via `-mod=`) or `"servermod"` (loaded via `-servermod=`). Server mods run only on the dedicated server. This is how you separate server-only logic from client code.
+**`type`** -- Declares the side the package is meant for: `"mod"` or `"servermod"`. Bohemia documents `type = "mod";` as required and lists no other value; what actually routes a package to clients or keeps it server-side is the launch flag that loads it (`-mod=` versus `-servermod=`). Keep the declaration consistent with how you ship the package -- see [Server vs Client Architecture](06-server-client-split.md#the-configcpp-type-field).
 
 **`dependencies`** -- Which vanilla script modules your mod extends. Almost always `{ "Game", "World", "Mission" }`. Possible values: `"Core"`, `"GameLib"`, `"Game"`, `"World"`, `"Mission"`.
 
@@ -360,7 +371,9 @@ Widget styles define reusable visual properties (colors, fonts, padding) for GUI
 
 ## defines Array
 
-The `defines[]` array in `CfgMods` creates preprocessor symbols that other mods can check with `#ifdef`. Since DayZ 1.21, the engine also automatically registers the `CfgMods` class name itself as a `#define`, so `#ifdef MyMod` works without an explicit `defines[]` entry.
+The `defines[]` array in `CfgMods` creates preprocessor symbols that other mods can check with `#ifdef`.
+
+> **Do not rely on implicit mod-presence defines.** Some modders report that a mod's `CfgMods` class name becomes usable with `#ifdef` even without an explicit `defines[]` entry. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents `type`, `inputs`, `skeletonDefinitions`, `dependencies[]` and `class defs` under `CfgMods` and does not mention `defines[]` at all, so neither the array nor an implicit class-name symbol has a documented contract you can lean on. Declare an explicit `defines[]` presence flag (as shown below) whenever you want other mods to detect yours with `#ifdef`, and declare it in every package whose own code tests it. The same caution applies in reverse when you integrate with someone else's mod: do not assume `#ifdef <TheirModName>` is available, because mods publish their detection symbols by different means. Use whatever symbol that mod's own documentation tells you to test.
 
 ```cpp
 defines[] =
@@ -522,7 +535,7 @@ class CfgVehicles
 
 ### The += Operator for Config Arrays
 
-Since DayZ 1.17, you can use `+=` to append to arrays without overwriting entries from other mods:
+You can use `+=` to append to an array inherited from a parent class instead of overwriting it. This is not a DayZ-specific addition -- it is long-standing Real Virtuality config syntax ([Array+=](https://community.bistudio.com/wiki/Array%2B%3D) on the Bohemia community wiki, introduced in Arma 3), inherited by DayZ's config parser along with the rest of the engine's config system. Shipped DayZ mods rely on it: DayZ Expansion appends to vanilla arrays this way in `DayZExpansion/NamalskAdventure/Dta/Weapons/Ammunition/config.cpp:18-21`, which re-declares vanilla's `Ammunition_Base` with `Magazine_Base` as its **direct** parent and then appends `repairableWithKits[]+={100};` at that same level -- the direct-parent relationship the limitation below requires, not a class "extending" `Ammunition_Base` from further down -- and in sixteen configs across that repository:
 
 ```cpp
 class CfgVehicles
@@ -535,6 +548,8 @@ class CfgVehicles
 ```
 
 Without `+=`, using `=` replaces the entire array, potentially removing attachments added by other mods or vanilla.
+
+> **`+=` appends across exactly one inheritance step.** It adds to an array inherited from the **direct** parent, and only when that parent states the array explicitly. Inherit through an intermediate class that does not restate the array and the `+=` degrades into a plain `=`, so you replace the array instead of extending it -- the outcome you were trying to avoid, with no error to tell you. When appending to a vanilla array, inherit directly from the class that declares it, or restate the array at each level.
 
 Buildings, vehicles, weapons, and complete item definitions go well beyond this primer -- the [Creating a Custom Item](../08-tutorials/02-custom-item.md) tutorial and the [Entity System](../06-engine-api/01-entity-system.md) chapter own that ground.
 
@@ -635,7 +650,6 @@ class CfgMods
         author = "Northlight";
         overview = "Lantern Core - shared library and admin framework";
         inputs = "Lantern_Core/Scripts/Data/Inputs.xml";
-        creditsJson = "Lantern_Core/Scripts/Data/Credits.json";
         type = "mod";
         defines[] = { "LANTERN_CORE" };        // Presence flag for downstream mods
         dependencies[] = { "Core", "Game", "World", "Mission" };
@@ -1022,19 +1036,19 @@ class CfgPatches
 ammo[] = {};
 ```
 
-These four arrays inside `CfgPatches` are **ownership claims**, resolved by the engine's addon-graph merger against every other loaded addon -- not validated by `CfgConvert`. A literal `""` asks the merger to resolve a class named the empty string, and on at least one production build this crashed the dedicated server with an `ACCESS_VIOLATION` a few seconds into boot, before any script log was even written -- with `CfgConvert -bin`/`-txt` reporting the same file as 100% clean, because syntactically it is. If you inherited or generated a large config (a merge of many vendor-supplied per-addon files is the most common source), grep every `units[]`/`weapons[]`/`magazines[]`/`ammo[]` array inside `CfgPatches` for a bare `""` -- a naive "extract quoted strings" regex (`"([^"]+)"`, one-or-more characters) will not find it, because it requires at least one character inside the quotes. Use a zero-or-more pattern (`"([^"]*)"`) or check for it explicitly.
+These four arrays inside `CfgPatches` are **ownership claims**, resolved by the engine's addon-graph merger against every other loaded addon. A literal `""` asks the merger to resolve a class named the empty string, which is not a meaningful classname. No published source documents a specific crash signature for it, so treat any particular failure mode as anecdotal; the reliable point is the practical risk, because this typo is easy to introduce in a large or generated config and easy to miss visually. If you inherited or generated a large config (a merge of many vendor-supplied per-addon files is the most common source), grep every `units[]`/`weapons[]`/`magazines[]`/`ammo[]` array inside `CfgPatches` for a bare `""` -- a naive "extract quoted strings" regex (`"([^"]+)"`, one-or-more characters) will not find it, because it requires at least one character inside the quotes. Use a zero-or-more pattern (`"([^"]*)"`) or check for it explicitly, and test any suspect config on a non-production server before deploying it.
 
-### 9. A Class Missing Its Terminating Semicolon -- Accepted by CfgConvert, Fatal to the Real Engine
+### 9. A Class Missing Its Terminating Semicolon
 
 ```cpp
-// WRONG -- CfgConvert accepts this. The real engine's addon-merge pass does not.
+// WRONG -- a missing ";" after a class body is a config syntax error
 class MyMod_SomeItem_CFG
 {
     requiredAddons[] = {};
     units[] = {};
     weapons[] = {};
 }
-class MyMod_NextItem_CFG          // <-- the missing ";" above merges the classes together
+class MyMod_NextItem_CFG
 {
     ...
 };
@@ -1048,7 +1062,9 @@ class MyMod_SomeItem_CFG
 };
 ```
 
-This is easy to introduce with any script or merge tool that splits a config file on `;` to find class boundaries and then forgets to write that same `;` back out for each piece it re-emits. `CfgConvert.exe -bin`/`-txt` can validate the resulting file as clean with a stable class count -- the offline compiler is more forgiving here than the game's own addon-merge pass at boot, which is a completely different code path and can fail with a hard `ACCESS_VIOLATION` instead of a helpful parse error. If a merged or auto-generated `config.cpp` passes `CfgConvert` but the server still crashes on boot with no script log at all, do not assume the syntax is fine just because the offline tool said so -- check that every single class body, not just the outermost containers, ends in `};`.
+This is easy to introduce with any script or merge tool that splits a config file on `;` to find class boundaries and then forgets to write that same `;` back out for each piece it re-emits.
+
+Binarizing is the usual place a defect like this surfaces. The community wiki's [Config.cpp/bin File Format](https://community.bistudio.com/wiki/Config.cpp/bin_File_Format) page states that shipping a binarised config "guarantees the config.cpp it came from was syntactically correct (no missing semicolons, duplicate or missing classes, etc.)". That page carries Bohemia's "contains unofficial information" banner, so read it as a community description of the toolchain rather than a vendor guarantee, and do not assume binarization is the only stage that can reject a config. The guidance holds regardless of which stage catches it: check that every class body, not just the outermost containers, ends in `};`, especially in merged or auto-generated configs, and ship a binarised `config.bin` so the check happens at build time instead of at boot.
 
 ---
 
@@ -1085,7 +1101,6 @@ class CfgMods
         name = "My Mod";
         author = "YourName";
         credits = "YourName";
-        creditsJson = "MyMod/Scripts/Data/Credits.json";
         overview = "A brief description of what this mod does.";
         type = "mod";
 

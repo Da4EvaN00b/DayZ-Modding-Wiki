@@ -65,7 +65,11 @@ Lantern                          (root namespace)
 
 ### Data Model
 
-Each player (identified by Steam64 ID) has an array of granted permission strings:
+Each player has an array of granted permission strings, keyed by their player identity.
+
+> **Which identity do you key on?** `PlayerIdentity` offers two. Vanilla documents `GetId()` as the "unique id of player (hashed steamID, database Xbox id...)" that "can be used in database or logs", and `GetPlainId()` as the "plaintext unique id of player" that **cannot** be used in database or logs (`3_game/gameplay.c:366-371`). Community Online Tools follows that guidance and keys its permission store on `GetId()`. The examples below use the plaintext id because it is what a server owner can read and type into a JSON file by hand, which is the whole point of a hand-editable permission file -- but if you persist or log identities beyond that file, use `GetId()`, and never write a plaintext id into a log line.
+
+The shape either way:
 
 ```c
 class LNT_PermissionsData
@@ -264,6 +268,8 @@ class LNT_GroupManager
 ## Three-State Role Trees
 
 The most expressive architecture defines roles as a *tree* of nodes, where each node carries one of three states: **ALLOW**, **DENY**, or **INHERIT**. A node set to INHERIT takes its effective state from its parent. This lets you grant a broad category and then carve out a specific exception underneath it, something neither of the previous two architectures can express.
+
+This is not a theoretical design. Community Online Tools ships it: `JMPermission` holds a `JMPermissionType` of `INHERIT`, `ALLOW` or `DISALLOW` per node, builds each node's full name by joining parent names with dots, and resolves checks against strings such as `"COT.View"` (`JM/COT/Scripts/4_World/CommunityOnlineTools/Classes/PermissionsOld/JMPermission.c:31-101`).
 
 ### Concept
 
@@ -504,7 +510,7 @@ if (granted == "*")
     return true;
 ```
 
-**Convention:** Every permission system in the DayZ modding community uses `"*"` for superadmin. Do not invent a different convention.
+**Convention:** `"*"` is the widely recognised spelling for "everything", and it is the one server owners will try first, so prefer it over inventing `"all"`, `"admin"` or `"root"`. It is not universal, though: Community Online Tools has no superadmin string at all, because its three-state tree expresses the same thing by setting a parent node to ALLOW. Document whichever spelling you choose.
 
 ### Prefix Wildcard: `"Lantern.Admin.*"`
 
@@ -654,4 +660,4 @@ This is the pattern Lantern uses to migrate a server from an original flat `Admi
 |---------------|-------------|
 | Use RBAC (role-based access control) with group inheritance | Three-state (allow/deny/inherit) trees are the most powerful option, but most mods ship flat per-player grants for simplicity |
 | Permissions should be stored in a database | No database access; JSON files in `$profile:` are the only option |
-| Use cryptographic tokens for authorization | No crypto libraries in Enforce Script; trust is based on `PlayerIdentity.GetPlainId()` (Steam64 ID) verified by the engine |
+| Use cryptographic tokens for authorization | No crypto libraries in Enforce Script; trust rests on the `PlayerIdentity` the engine hands your RPC handler. Read the id from that object -- never from the RPC payload |

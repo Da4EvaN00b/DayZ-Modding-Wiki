@@ -37,7 +37,7 @@ Understand how DayZ mods are organized.
 | [2.1](02-mod-structure/01-five-layers.md) | The 5-Layer Script Hierarchy |
 | [2.2](02-mod-structure/02-config-cpp.md) | config.cpp Deep Dive |
 | [2.3](02-mod-structure/03-mod-cpp.md) | mod.cpp & Workshop |
-| [2.4](02-mod-structure/04-minimum-viable-mod.md) | Your First Mod |
+| [2.4](02-mod-structure/04-minimum-viable-mod.md) | Anatomy of a Minimal Mod |
 | [2.5](02-mod-structure/05-file-organization.md) | File Organization |
 | [2.6](02-mod-structure/06-server-client-split.md) | Server/Client Architecture |
 
@@ -113,7 +113,7 @@ DayZ engine APIs for mod developers.
 | [6.23](06-engine-api/23-world-systems.md) | World Systems |
 
 ### Part 7: Patterns & Best Practices
-Production-ready patterns you can drop into your mod, built around the wiki's Lantern teaching framework.
+Recurring structural patterns --- singletons, module systems, RPC, permissions, events --- worked through the wiki's Lantern teaching framework. Read them as designs to adapt, not as drop-in code: none has been compiled or run against a live DayZ build as part of this documentation.
 
 | Chapter | Topic |
 |---------|-------|
@@ -181,15 +181,13 @@ Standalone lookup material that sits outside the chapter sequence:
 
 ## About the Lantern Examples
 
-The framework-style code that runs through this wiki belongs to **Lantern**, a fictional mod family (packages such as `Lantern_Core`, class prefix `LNT_`, singleton entry point `LanternCore`) created by the equally fictional team "Northlight" purely as a teaching vehicle. Lantern is not a real, published mod: every line of its code was written from scratch for this documentation, and the complete implementations live in the Part 7 pattern chapters. Where a chapter needs two interacting mods, a second fictional content mod, **NightPatrol** (prefix `NP_`), plays the counterpart.
+The framework-style code that runs through this wiki belongs to **Lantern**, a fictional mod family (packages such as `Lantern_Core`, class prefix `LNT_`, singleton entry point `LanternCore`) attributed to the equally fictional team "Northlight" purely as a teaching vehicle. Lantern is not a real, published mod --- do not go looking for it on the Workshop, and do not expect a `Lantern_Core` PBO to exist. The Part 7 pattern chapters carry its fullest treatment. Where a chapter needs two interacting mods, a second fictional content mod, **NightPatrol** (prefix `NP_`), plays the counterpart.
 
 ---
 
 ## Contributing
 
-This documentation is grounded in the vanilla DayZ scripts (2,800+ files), official Bohemia Interactive tools and documentation, and original example code written specifically for this wiki.
-
-All code examples in this wiki are original work.
+This documentation is written against the vanilla DayZ scripts and official Bohemia Interactive documentation and tools. Example code is written for the wiki rather than copied from a published mod, and the Lantern/NightPatrol framework is fictional (see above). Examples illustrate APIs and structure; they are not compiled or run as part of producing these pages, so verify anything you adopt against your own build.
 
 Pull requests welcome! See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 

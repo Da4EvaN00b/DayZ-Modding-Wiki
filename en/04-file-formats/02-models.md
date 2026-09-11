@@ -19,8 +19,8 @@ This chapter covers the P3D format structure, the LOD system, named selections, 
 - [Named Selections](#named-selections)
 - [Memory Points](#memory-points)
 - [The Proxy System](#the-proxy-system)
-- [Model.cfg for Animations](#modelcfg-for-animations)
-- [Importing from FBX/OBJ](#importing-from-fbxobj)
+- [Model.cfg for Animations](#model-cfg-for-animations)
+- [Importing from FBX/OBJ](#importing-from-fbx-obj)
 - [Common Model Types](#common-model-types)
 - [Common Mistakes](#common-mistakes)
 - [Best Practices](#best-practices)
@@ -150,13 +150,7 @@ graph TB
 
 ### LOD Resolution Values (Visual LODs)
 
-The engine uses a formula based on distance and object size to determine which visual LOD to render:
-
-```
-LOD selected = (distance_to_object * LOD_factor) / object_bounding_sphere_radius
-```
-
-Lower values = closer camera. The engine finds the LOD whose resolution value is the closest match to the calculated value.
+LOD selection depends on projected size, distance and engine settings; inspect transitions in the model preview and game. Lower resolution values represent the more detailed visual LODs.
 
 ### Creating LODs in Object Builder
 
@@ -296,42 +290,34 @@ A proxy is a special reference placed in the Resolution LOD that points to anoth
 
 Proxy names follow the pattern: `proxy:\path\to\model.p3d`
 
-For attachment proxies on weapons, the standard names are:
-
-| Proxy Path | Attachment Type |
-|------------|----------------|
-| `proxy:\dz\weapons\attachments\magazine\mag_placeholder.p3d` | Magazine slot |
-| `proxy:\dz\weapons\attachments\optics\optic_placeholder.p3d` | Optics rail |
-| `proxy:\dz\weapons\attachments\suppressor\sup_placeholder.p3d` | Suppressor mount |
-| `proxy:\dz\weapons\attachments\handguard\handguard_placeholder.p3d` | Handguard slot |
-| `proxy:\dz\weapons\attachments\stock\stock_placeholder.p3d` | Stock/buttstock slot |
+Use an existing proxy resource and its matching config as your reference. For example, `DZ\weapons\firearms\aug\config.cpp` defines `CfgNonAIVehicles.Proxyscope` for `DZ\weapons\firearms\aug\proxy\scope.p3d`. A guessed `*_placeholder.p3d` path is not a usable substitute for a real resource.
 
 ### Adding Proxies in Object Builder
 
 1. In the Resolution LOD, position the 3D cursor where the attachment should appear.
 2. Go to **Structure --> Proxy --> Create**.
-3. Enter the proxy path (e.g., `dz\weapons\attachments\magazine\mag_placeholder.p3d`).
+3. Enter the proxy path (e.g., `dz\weapons\firearms\aug\proxy\scope.p3d`).
 4. The proxy appears as a small arrow indicating position and orientation.
 5. Rotate and position the proxy to align correctly with the attachment geometry.
 
 ### Proxy Index
 
-Each proxy has an index number (starting from 1). When a model has multiple proxies of the same type, the index differentiates them. The index is referenced in config.cpp:
+Repeated proxies have instance indices in the model. Configure attachment-slot association with the matching proxy class; do not confuse a model instance index with a made-up `Attachments.magazine.proxyIndex` config recipe. The vanilla AUG config provides this concrete example:
 
 ```cpp
-class MyWeapon: Rifle_Base
+class CfgNonAIVehicles
 {
-    class Attachments
+    class ProxyAttachment;
+    class Proxyscope: ProxyAttachment
     {
-        class magazine
-        {
-            type = "magazine";
-            proxy = "proxy:\dz\weapons\attachments\magazine\mag_placeholder.p3d";
-            proxyIndex = 1;
-        };
+        scope = 2;
+        inventorySlot = "weaponOpticsAug";
+        model = "\dz\weapons\firearms\aug\proxy\scope.p3d";
     };
 };
 ```
+
+Choose the proxy resource and slot for your own model rather than redefining this vanilla class unchanged.
 
 ---
 
@@ -368,7 +354,7 @@ class CfgModels
                 minValue = 0;
                 maxValue = 1;
                 offset0 = 0;
-                offset1 = 0.05;           // 5cm translation
+                offset1 = 0.05;           // Translation relative to the configured axis
             };
 
             class trigger_move
@@ -412,7 +398,7 @@ class CfgSkeletons
 
 | Type | Keyword | Movement | Controlled By |
 |------|---------|----------|---------------|
-| **Translation** | `translation` | Linear movement along an axis | `offset0` / `offset1` (meters) |
+| **Translation** | `translation` | Linear movement along an axis | `offset0` / `offset1` (relative to the configured axis) |
 | **Rotation** | `rotation` | Rotation around an axis | `angle0` / `angle1` (radians) |
 | **RotationX/Y/Z** | `rotationX` | Rotation around a fixed world axis | `angle0` / `angle1` |
 | **Hide** | `hide` | Show/hide a selection | `hideValue` threshold |
@@ -561,7 +547,7 @@ Vehicles combine many systems:
 
 1. **Start with the Geometry LOD.** Block out your collision shape first, then build the visual detail on top. This prevents the common mistake of creating a beautiful model that cannot collide properly.
 
-2. **Use reference models.** Extract vanilla P3D files from the game data and study them in Object Builder. They show exactly what the engine expects for each item type.
+2. **Use reference models.** Study editable MLOD source models from DayZ-Samples in Object Builder. Extracted retail ODOL models are binarized output, not editable model sources.
 
 3. **Validate frequently.** Use Object Builder's **Structure --> Validate** after every significant change. Fix warnings before they become mysterious in-game bugs.
 
@@ -579,7 +565,7 @@ Vehicles combine many systems:
 
 | Pattern | Where you see it | Detail |
 |---------|------------------|--------|
-| Full LOD chain with 5+ resolution levels | Official Bohemia sample projects (Test_Weapon) | Shows the complete LOD hierarchy: Resolution 1.0 through 16.0, plus Geometry, Fire Geometry, Memory, Shadow |
+| Editable official model sources | DayZ-Samples `Test_Building` and `Test_SmartCar` | Inspect the source P3D and its matching model.cfg instead of assuming a fixed LOD chain for every asset |
 | Complex skeletons with 20+ bones | Vehicle mods with many moving parts | Helicopter and boat models use extensive bone hierarchies for doors, rotors, rudders, and turrets |
 | Proxy stacking for modular weapons | Weapon packs sharing proxy rigs | Multiple proxy slots on the rail selections allow optic + laser + grip combos on one receiver |
 
@@ -587,6 +573,6 @@ Vehicles combine many systems:
 
 ## Compatibility & Impact
 
-- **Multi-Mod:** Two mods can safely reference different P3D models without conflict. Conflicts arise only when both mods try to `modded class` the same entity and change its `model` path in config.cpp.
+- **Multi-Mod:** Two mods can safely reference different P3D models without conflict. Conflicts arise only when both mods try to override the same config class and change its `model` path.
 - **Performance:** Each visible P3D adds draw calls proportional to its material count. Models with 10+ materials per LOD can be expensive in scenes with many instances. Keep material count under 4 per visual LOD when possible.
-- **Version:** The P3D format (MLOD/ODOL) has remained stable across DayZ updates. Object Builder occasionally receives minor updates via DayZ Tools, but the format itself has not changed since DayZ 1.0.
+- **Source models:** Keep editable MLOD originals alongside model.cfg; binarized ODOL output is not the editable source.

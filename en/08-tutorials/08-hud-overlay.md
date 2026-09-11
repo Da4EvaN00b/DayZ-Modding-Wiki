@@ -470,8 +470,9 @@ RPC IDs must be unique across all mods. We define ours in the `3_Game` layer so 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
 
-// Max player slots. There is no GetGame().GetMaxPlayers() native, so set
-// this to match your server config (the value in your startup parameters).
+// Max player slots. No GetGame().GetMaxPlayers() accessor appears in the
+// extracted scripts, so set this to match your server config (the value
+// in your startup parameters).
 const int SIH_MAX_PLAYERS = 60;
 ```
 
@@ -516,9 +517,9 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // There is no GetGame().GetMaxPlayers(). The configured slot
-        // count lives in the server config, not in a script-reachable
-        // CGame native, so we use a known constant here.
+        // No GetGame().GetMaxPlayers() accessor appears in the extracted
+        // scripts. The configured slot count lives in the server config
+        // rather than in script, so we use a known constant here.
         maxPlayers = SIH_MAX_PLAYERS;
 
         // Send response back to the requesting client
@@ -697,7 +698,7 @@ if (toggleInput && toggleInput.LocalPress())
 
 ### Key Name Reference
 
-Common key names for `<btn>`:
+Common key names for `<btn>`. These are a distinct namespace from Enforce script's `KeyCode` enum (`KeyCode.KC_*`, e.g. `KC_LMENU`, `KC_NUMPADENTER`) — `inputs.xml` `<btn name>` takes `k*` names, Enforce script takes `KeyCode.KC_*`. DayZ declares these keyboard names in `bin/constants.xml` (root `<inputs version="141">`); for example, `kLMenu` and `kRMenu` are Left Alt and Right Alt. See the [input binding reference](../05-config-files/02-inputs-xml.md) for the keyboard and mouse names:
 
 | Key Name | Key |
 |----------|-----|
@@ -706,7 +707,7 @@ Common key names for `<btn>`:
 | `kNumpad0` through `kNumpad9` | Numpad |
 | `kLControl` | Left Control |
 | `kLShift` | Left Shift |
-| `kLAlt` | Left Alt |
+| `kLMenu` | Left Alt |
 
 Modifier combos use nesting:
 

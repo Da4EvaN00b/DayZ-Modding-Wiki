@@ -16,7 +16,7 @@ This chapter covers audio formats, the config-driven sound system, 3D positional
 - [Audio Formats](#audio-formats)
 - [CfgSoundShaders and CfgSoundSets](#cfgsoundshaders-and-cfgsoundsets)
 - [Sound Categories](#sound-categories)
-- [3D Positional Audio](#3d-positional-audio)
+- [3D Positional Audio](#_3d-positional-audio)
 - [Volume and Distance Attenuation](#volume-and-distance-attenuation)
 - [Looping Sounds](#looping-sounds)
 - [Adding Custom Sounds to a Mod](#adding-custom-sounds-to-a-mod)
@@ -43,7 +43,7 @@ This chapter covers audio formats, the config-driven sound system, 3D positional
 
 ### Key Rules for OGG in DayZ
 
-- **3D positional sounds MUST be mono.** If you provide a stereo file for a 3D sound, the engine may not spatialize it correctly or may ignore one channel.
+- **Prefer mono sources for point-like 3D sounds.** If you provide a stereo file for a 3D sound, the engine may not spatialize it correctly or may ignore one channel.
 - **UI and music sounds can be stereo.** Non-positional sounds (menus, HUD feedback, background music) work correctly in stereo.
 - **Sample rate should be 44100 Hz** for most sounds. Lower rates (22050 Hz) can be used for distant ambient sounds to save space.
 
@@ -97,7 +97,7 @@ class CfgSoundShaders
             {"MyMod\sound\gunshot_02", 1},
             {"MyMod\sound\gunshot_03", 1}
         };
-        volume = 1.0;                          // Base volume (0.0 - 1.0)
+        volume = 1.0;                          // Base volume multiplier
         range = 300;                           // Maximum audible distance (meters)
         rangeCurve[] = {{0, 1.0}, {300, 0.0}}; // Volume falloff curve
     };
@@ -109,7 +109,7 @@ class CfgSoundShaders
 | Property | Type | Description |
 |----------|------|-------------|
 | `samples[]` | array | List of `{path, weight}` pairs. Path excludes the file extension. |
-| `volume` | float | Base volume multiplier (0.0 to 1.0). |
+| `volume` | float | Base volume multiplier; tune it with the source level. |
 | `range` | float | Maximum audible distance in meters. |
 | `rangeCurve[]` | array | Array of `{distance, volume}` points defining attenuation over distance. |
 | `frequency` | float | Playback speed multiplier. 1.0 = normal, 0.5 = half speed (lower pitch), 2.0 = double speed (higher pitch). |
@@ -294,9 +294,9 @@ DayZ uses 3D spatial audio to position sounds in the game world. When a gun fire
 
 ### Requirements for 3D Audio
 
-1. **Audio file must be mono.** Stereo files will not spatialize correctly.
-2. **SoundSet `spatial` must be `1`.** This enables the 3D positioning system.
-3. **Sound source must have a world position.** The engine needs coordinates to calculate direction and distance.
+1. **SoundSet `spatial` must be `1`.** This enables the 3D positioning system.
+2. **Sound source must have a world position.** The engine needs coordinates to calculate direction and distance.
+3. **Mono is the recommended format for a point source, not an engine-enforced requirement.** Vanilla's `saw_metal_loop_SoundSet` (`DZ\sounds\hpp\config.cpp`) inherits `spatial=1` from `baseCharacterLoud_SoundSet` and plays stereo samples (`HackSaw_metal_loop_01.ogg` through `_06.ogg`, 2-channel Vorbis). How a stereo source spatializes still depends on the SoundSet's 3D processing preset, so mono remains the safer default for a clean point-source result.
 
 ### How the Engine Spatializes Sound
 
@@ -407,7 +407,7 @@ void StartAlarm(vector position)
 {
     if (!m_AlarmSound)
     {
-        m_AlarmSound = SEffectManager.PlaySound("MyMod_Alarm_SoundSet", position);
+        m_AlarmSound = SEffectManager.PlaySound("MyMod_Alarm_SoundSet", position, 0, 0, true);
     }
 }
 
@@ -557,7 +557,7 @@ Audacity is the recommended tool for DayZ audio production:
 | Tool | Purpose | Cost |
 |------|---------|------|
 | **Audacity** | General audio editing, format conversion | Free |
-| **Reaper** | Professional DAW, advanced editing | $60 (personal license) |
+| **Reaper** | Professional DAW, advanced editing | Commercial license |
 | **FFmpeg** | Command-line batch audio conversion | Free |
 | **Ocenaudio** | Simple editor with real-time preview | Free |
 
@@ -577,19 +577,16 @@ done
 
 ### 1. Stereo File for 3D Sound
 
-**Symptom:** Sound does not spatialize, plays centered or only in one ear.
-**Fix:** Convert to mono before exporting. 3D positional sounds require mono audio files.
+**Symptom:** Sound may not spatialize cleanly -- it can play centered, favor one ear, or spatialize inconsistently, depending on the SoundSet's 3D processing preset. This is a preset-dependent authoring pitfall, not a hard engine block: vanilla's `saw_metal_loop_SoundSet` plays stereo `HackSaw_metal_loop_0X.ogg` samples under a `spatial=1` SoundSet.
+**Fix:** Convert to mono before exporting. Mono remains the reliable, preset-independent starting point for localized point sources.
 
-### 2. File Extension in samples[] Path
+### 2. Incorrect samples[] Path
 
-**Symptom:** Sound does not play, no error in log (engine silently fails to find the file).
-**Fix:** Remove the `.ogg` extension from the path in `samples[]`. The engine adds it automatically.
+**Symptom:** A sound does not play.
+**Fix:** Check the packed resource path and the matching sound shader. Vanilla uses extensionless paths and also explicit `.ogg` paths, such as `StitchUpSelf_Soundshader` in `DZ\sounds\hpp\config.cpp`; an extension alone does not prove the path is invalid.
 
 ```cpp
-// WRONG
-samples[] = {{"MyMod\sound\gunshot_01.ogg", 1}};
-
-// CORRECT
+// Extensionless form used by many sound shaders
 samples[] = {{"MyMod\sound\gunshot_01", 1}};
 ```
 
@@ -631,7 +628,7 @@ frequencyRandomizer = 0.05;    // +/- 5% pitch variation
 
 ## Best Practices
 
-1. **Always export 3D sounds as mono OGG.** This is the single most important rule. Stereo files will not spatialize.
+1. **Use mono OGG for point sources.** Verify spatialization with the chosen SoundSet processing settings.
 
 2. **Provide 3-5 sample variants** for frequently heard sounds (gunshots, footsteps, impacts). Random selection prevents the "machine gun effect" of identical repeated audio.
 
@@ -666,5 +663,5 @@ These are the recurring ways sound is wired up in DayZ. Each is grounded in vani
 
 - **Multi-Mod:** SoundShader and SoundSet class names are global. Two mods defining the same class name will conflict (last loaded wins). Always prefix names with your mod identifier (e.g., `MyMod_Shot_SoundShader`).
 - **Performance:** OGG files are decompressed at runtime. Mods with hundreds of unique audio files increase memory usage. Keep individual files under 500 KB and reuse samples across variants.
-- **Version:** DayZ's audio system (CfgSoundShaders/CfgSoundSets) has been stable since 1.0. The `sound3DProcessingType` and `volumeCurve` named presets were added in later updates but are backward-compatible.
+- **Presets:** Resolve sound processing, attenuation and volume-curve names against the game configuration used by your mod.
 

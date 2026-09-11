@@ -226,7 +226,7 @@ DayZDiag is a special diagnostic build of DayZ with features the retail version 
 
 | Feature | Retail DayZ | DayZDiag |
 |---------|-------------|----------|
-| File patching support | No | Yes |
+| File patching support | No | Yes (`-filePatching`) |
 | `DEVELOPER` define active | No | Yes |
 | `DIAG_DEVELOPER` define active | No | Yes |
 | Additional error detail in logs | Basic | Verbose |
@@ -246,30 +246,32 @@ C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools\Bin\
 
 Create a batch file or shortcut with these parameters:
 
+These examples assume the layout the official procedure uses: your source tree at `P:\MyMod`, packed output at `P:\Mods\@MyMod\addons\`. `-mod=` always points at the **packed** mod folder, never at the raw source tree -- file patching is layered on top of a packed mod, not a substitute for one. See [Setting Up File Patching](#setting-up-file-patching) below for the junction that makes the loose files visible.
+
 **Client (singleplayer with server):**
 
 ```batch
-DayZDiag_x64.exe -filePatching -mod=P:\MyMod -profiles=clientprofile -server -port=2302
+DayZDiag_x64.exe -filePatching "-mod=P:\Mods\@MyMod" -profiles=clientprofile -server -port=2302
 ```
 
 **Client (connect to separate server):**
 
 ```batch
-DayZDiag_x64.exe -filePatching -mod=P:\MyMod -connect=127.0.0.1 -port=2302
+DayZDiag_x64.exe -filePatching "-mod=P:\Mods\@MyMod" -connect=127.0.0.1 -port=2302
 ```
 
 **Dedicated server:**
 
 ```batch
-DayZDiag_x64.exe -filePatching -server -mod=P:\MyMod -config=serverDZ.cfg -port=2302 -profiles=serverprofile
+DayZDiag_x64.exe -filePatching -server "-mod=P:\Mods\@MyMod" -config=serverDZ.cfg -port=2302 -profiles=serverprofile
 ```
 
 Key parameters:
 
 | Parameter | Purpose |
 |-----------|---------|
-| `-filePatching` | Enable loading loose files from P: drive (see next section) |
-| `-mod=P:\MyMod` | Load your mod from the P: drive |
+| `-filePatching` | Let the engine read loose source files for a loaded mod instead of only the packed PBO contents (see [Setting Up File Patching](#setting-up-file-patching)) |
+| `-mod=P:\Mods\@MyMod` | Load your packed mod. Several mods can be given at once, separated by semicolons |
 | `-profiles=folder` | Set the profile folder for logs and configs |
 | `-server` | Run as a local listen server (singleplayer testing) |
 | `-connect=IP` | Connect to a server at the given IP |
@@ -288,47 +290,84 @@ File patching is the single biggest time-saver in DayZ modding. Without it, ever
 
 ### How It Works
 
-When DayZ loads with the `-filePatching` parameter, it checks the P: drive for loose files before loading files from PBOs. If it finds a file on P: that matches a file in a PBO, the loose file takes priority.
+File patching does not replace packing -- it sits on top of it. Your mod is still loaded as a packed PBO; `-filePatching` lets the engine prefer a loose file over the packed copy when it can find one at the addon's own path.
 
-This means:
+The path it looks at is **inside the DayZ installation folder**, not the P: drive as such. You make your source tree appear there with a directory junction named after your mod's root prefix. Bohemia's own walkthrough creates it like this, for a mod whose root prefix is `FirstMod`:
 
-1. Your mod is set up on P: drive (via `SetupWorkdrive.bat` or manual junction)
-2. You launch DayZDiag with `-filePatching -mod=P:\MyMod`
-3. DayZ loads your scripts from P: drive directly -- not from the PBO
-4. You edit a `.c` file on P: drive, save it
-5. You reconnect or restart the mission in-game
-6. DayZ picks up your changed file immediately
+```batch
+mklink /J "DayZInstallationFolder\FirstMod" "P:\FirstMod"
+```
 
-No PBO rebuild needed. The edit-test cycle goes from minutes to seconds.
+After that, `<DayZ install>\FirstMod\Scripts\...` is the same tree as `P:\FirstMod\Scripts\...`, and the engine can resolve `FirstMod/Scripts/4_World/PlayerBase.c` as a loose file.
+
+So the cycle is:
+
+1. Pack the mod once, producing `P:\Mods\@MyMod\addons\*.pbo`
+2. Create the junction once: `mklink /J "<DayZ install>\MyMod" "P:\MyMod"`
+3. Launch DayZDiag with `-filePatching "-mod=P:\Mods\@MyMod"`
+4. Edit a `.c` file in your source tree and save it
+5. Reconnect or restart the mission in-game
+6. The engine picks up the edited script
+
+No repack needed for that loop. The edit-test cycle goes from minutes to seconds.
 
 ### Setting Up File Patching
 
-1. Make sure your mod source is on the P: drive (from [Chapter 8.1](01-first-mod.md))
-2. Launch: `DayZDiag_x64.exe -filePatching -mod=P:\MyMod -server -port=2302`
-3. Edit a `.c` file, save, reconnect in-game -- your changes are live
+Three things have to be in place. Missing any of them gives you no file patching and, in the third case, no usable error either.
+
+1. **A packed mod.** Pack your source with Addon Builder into `P:\Mods\@MyMod\addons\` and load it with `-mod=P:\Mods\@MyMod`.
+
+2. **A junction from the DayZ installation folder to your source tree**, named after your mod's root prefix. Run this once, from a command prompt with the privileges to create links:
+
+```batch
+mklink /J "C:\Program Files (x86)\Steam\steamapps\common\DayZ\MyMod" "P:\MyMod"
+```
+
+   Then open the DayZ installation folder and confirm a `MyMod` entry is there and that browsing into it shows your source files. If it does not, nothing below will work.
+
+3. **`allowFilePatching = 1;` on the server you connect to.** The official description of that `serverDZ.cfg` parameter is *"enable connection of clients with `-filePatching` launch parameter enabled"* -- without it, a client launched with `-filePatching` is refused. For a local diag server Bohemia's walkthrough also turns off two checks that a development build cannot satisfy:
+
+```cpp
+BattlEye = 0;          // the diag executable does not run with BattlEye
+verifySignatures = 0;  // unsigned development PBOs
+allowFilePatching = 1; // allow clients with unpacked data to join
+```
+
+Then launch and iterate:
+
+```batch
+DayZDiag_x64.exe -filePatching "-mod=P:\Mods\@MyMod" -server -port=2302
+```
+
+Edit a `.c` file, save, reconnect in-game -- your changes are live. Before you publish, remove `-filePatching`, repack every PBO, and verify the mod works without it.
 
 ### What Works With File Patching
 
 | File Type | File Patching Works? |
 |-----------|---------------------|
-| Script files (`.c`) | Yes |
-| Layout files (`.layout`) | Yes |
-| Textures (`.edds`, `.paa`) | Yes |
-| Sound files | Yes |
-| `config.cpp` | **No** -- must rebuild PBO |
-| `mod.cpp` | **No** -- must rebuild PBO |
-| New files (not in PBO) | **No** -- must rebuild PBO to register them |
+| Script files (`.c`) | Yes -- reload on reconnect/mission restart |
+| Layout files (`.layout`) | Usually -- reload on reconnect/mission restart, but not on every setup. Treat a layout that will not refresh as a repack, not as a bug in your markup; see the note below |
+| Textures (`.edds`, `.paa`) | Yes -- reload on reconnect/mission restart |
+| Sound files | Yes -- reload on reconnect/mission restart |
+| `config.cpp` | **Repack and relaunch.** It is parsed at engine startup, so no reconnect or mission restart can pick up an edit -- and whether a loose `config.cpp` is read at all under file patching is not stated by any primary Bohemia source (see below). Repacking removes the question. |
+| `mod.cpp` | Repack and relaunch. It is read at startup by the launcher/engine, so the same applies. |
+| New `.c` files | If the file lands inside a directory already listed in a `files[]` entry, a reconnect or mission restart picks it up. If it needs a new `files[]` or module entry, that is a `config.cpp` edit -- repack and relaunch. |
 
-The key limitation: `config.cpp` changes always require a PBO rebuild. This includes adding new classes, changing `requiredAddons`, or modifying `CfgMods`. If you add a brand new `.c` file, you also need a PBO rebuild so that the `config.cpp` script loading knows about the new file.
+**What is settled, and what is not.** `.c` and `.layout` edits applying on reconnect or mission restart is the documented purpose of file patching -- Bohemia's walkthrough packs the PBO expressly *"so we can create and edit scripts through file patching."* `config.cpp` is different, and the honest answer is that it is **unresolved**: no primary source says whether a loose `config.cpp` is re-read under `-filePatching`, and it is parsed at engine startup either way, so nothing short of a relaunch could pick it up. Repack and relaunch after a `config.cpp` edit. That is correct under either reading, and it costs one extra Addon Builder run.
+
+> **Layouts are the flaky case.** Script and config behaviour is the same everywhere, but `.layout` patching has been reported broken on some builds and working on others, and this wiki says so in [Chapter 2.4](../02-mod-structure/04-minimum-viable-mod.md) too: layouts "may not load from unpacked folders on all setups". No current-build test was run for this chapter either. If a layout edit will not take, repack before you start rewriting the widget tree.
+
+> **The official documentation contradicts itself on this flag.** `DayZ:Modding_Basics` packs the PBO first and then junctions the source tree in so loose files can be read, and the `allowFilePatching` entry on `DayZ:Server_Configuration` describes it as allowing *"clients with unpacked data to join"*. The Launch Parameters list on that same page says the opposite: *"`-filePatching` - Ensures that only PBOs are loaded and NO unpacked data."* Two of the three descriptions agree that the flag enables loose data, and the procedure only makes sense that way, so that is what this chapter documents -- but the stray bullet is in the official reference and you will run into it.
 
 ### The File Patching Workflow
 
 Here is the ideal development cycle:
 
 ```
-1. Build your PBO once (to establish the file list in config.cpp)
-2. Launch DayZDiag with -filePatching -mod=P:\MyMod
-3. Edit a .c file on P: drive
+0. Once: mklink /J "<DayZ install>\MyMod" "P:\MyMod"
+1. Pack the PBO (needed once per config.cpp change, not per script edit)
+2. Launch DayZDiag with -filePatching "-mod=P:\Mods\@MyMod"
+3. Edit a .c file in your source tree
 4. Save the file
 5. In-game: disconnect and reconnect (or restart mission)
 6. Check the script log for your changes
@@ -370,7 +409,7 @@ GetGame().GetPlayer().SpawnEntityOnGroundPos("AKM", GetGame().GetPlayer().GetPos
 - **Separate from game runtime:** You still need to save files and restart the mission to see changes in-game
 - **Incomplete mod context:** Cross-mod references may show as errors even when they work in-game
 
-> **"Enforce Script has no live debugging" is only half true.** There is genuinely no official breakpoint/step/inspect debugger. But "no debugger" is not the same claim as "no way to iterate without a full rebuild-and-restart cycle" -- and it is worth not conflating the two when you are deciding how your dev loop should work. File Patching (above) already gives you script/layout/texture/sound hot-reload on reconnect, without a PBO rebuild. Beyond that, community tooling exists (search for DayZ script hot-reload / recompile-on-host tooling) that can push changed script files into an already-running game session without even a reconnect -- useful for iterating on UI logic and HUD layouts specifically. Whatever you use, understand its actual limit: reloading changed *code* is not the same as re-running *startup-time* logic (config parsing, `OnInit`), so a clean, from-scratch boot is still the only valid proof that a config-level or startup-level fix actually works.
+> **"Enforce Script has no live debugging" is only half true.** There is genuinely no official breakpoint/step/inspect debugger. But "no debugger" is not the same claim as "no way to iterate without a full rebuild-and-restart cycle" -- and it is worth not conflating the two when you are deciding how your dev loop should work. File Patching (above) already gives you script, texture and sound reload on reconnect without repacking, and usually layouts too. Beyond that, community tooling exists (search for DayZ script hot-reload / recompile-on-host tooling) that can push changed script files into an already-running game session without even a reconnect -- useful for iterating on UI logic and HUD layouts specifically. Whatever you use, understand its actual limit: reloading changed *code* is not the same as re-running *startup-time* logic (config parsing, `OnInit`), so a clean, from-scratch boot is still the only valid proof that a config-level or startup-level fix actually works.
 
 ---
 
@@ -493,7 +532,7 @@ If your mod has server-side logic, you need a local dedicated server.
 Launch DayZDiag with `-server` to run both client and server in a single process:
 
 ```batch
-DayZDiag_x64.exe -filePatching -mod=P:\MyMod -server -port=2302
+DayZDiag_x64.exe -filePatching "-mod=P:\Mods\@MyMod" -server -port=2302
 ```
 
 This is the fastest way to test, but it does not perfectly replicate a dedicated server environment.
@@ -504,13 +543,15 @@ Run a separate DayZDiag server process, then connect to it with a DayZDiag clien
 
 Server:
 ```batch
-DayZDiag_x64.exe -filePatching -server -mod=P:\MyMod -config=serverDZ.cfg -port=2302 -profiles=serverprofile
+DayZDiag_x64.exe -filePatching -server "-mod=P:\Mods\@MyMod" -config=serverDZ.cfg -port=2302 -profiles=serverprofile
 ```
 
 Client:
 ```batch
-DayZDiag_x64.exe -filePatching -mod=P:\MyMod -connect=127.0.0.1 -port=2302
+DayZDiag_x64.exe -filePatching "-mod=P:\Mods\@MyMod" -connect=127.0.0.1 -port=2302
 ```
+
+That `serverDZ.cfg` needs `allowFilePatching = 1;` (plus `BattlEye = 0;` and `verifySignatures = 0;` for a diag build), or the client will not be let in.
 
 This gives you separate client and server logs, which is essential for debugging RPC communication and client-server split logic.
 
@@ -535,7 +576,7 @@ Here is a self-contained batch file you can adapt. It packs one addon with **Add
 setlocal
 
 set MOD_SRC=P:\MyMod
-set MOD_OUT=C:\Program Files (x86)\Steam\steamapps\common\DayZ\@MyMod\addons
+set MOD_OUT=P:\Mods\@MyMod\addons
 set DAYZ_DIAG=C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools\Bin\DayZDiag_x64.exe
 set ADDON_BUILDER=C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools\Bin\AddonBuilder\AddonBuilder.exe
 
@@ -543,7 +584,7 @@ echo [build] Packing PBO...
 "%ADDON_BUILDER%" "%MOD_SRC%\MyMod" "%MOD_OUT%" -clear -packonly || goto :error
 
 echo [build] Launching DayZDiag listen server...
-start "" "%DAYZ_DIAG%" -filePatching -mod=%MOD_SRC% -server -port=2302 -profiles=P:\serverprofile
+start "" "%DAYZ_DIAG%" -filePatching "-mod=P:\Mods\@MyMod" -server -port=2302 -profiles=P:\serverprofile
 
 echo [build] Waiting for the log to appear...
 timeout /t 5 >nul
@@ -676,15 +717,15 @@ Your mod may conflict with CF, Expansion, or other popular mods via duplicate RP
 
 ### 5. Not Using File Patching
 
-Rebuilding PBOs for every single-line change wastes enormous time. Set up file patching once (see [above](#file-patching----edit-without-rebuilding)).
+Repacking for every single-line script change wastes enormous time. Set file patching up once -- packed mod, junction, `allowFilePatching = 1` -- and script edits then apply on reconnect (see [above](#file-patching-edit-without-rebuilding)).
 
 ### 6. Not Checking Both Client and Server Logs
 
 For RPC/client-server issues, the error is often on one side and the symptom on the other. Check both `%LocalAppData%\DayZ\` (client) and your server's profile folder.
 
-### 7. Changing config.cpp Without Rebuilding
+### 7. Changing config.cpp Without Restarting the Process
 
-File patching does not apply to `config.cpp`. New classes, `requiredAddons` changes, and `CfgMods` edits always require a PBO rebuild.
+`config.cpp` is parsed at engine startup, so new classes, `requiredAddons` changes and `CfgMods` edits never arrive through a reconnect or a mission restart. Repack the PBO and relaunch the executable. File patching does not change this: it is documented for scripts, and nothing in the official reference says a loose `config.cpp` is re-read.
 
 ### 8. Wrong Script Layer
 
@@ -725,7 +766,7 @@ Lower layers cannot see higher layers. If `3_Game/` code references `PlayerBase`
 |---------|--------|---------|
 | `SCRIPT (W)` warnings | Warnings are non-fatal and can be safely ignored | Warnings often predict future crashes. A "Cannot open file" warning today becomes a null pointer crash tomorrow when code assumes the file was loaded. |
 | Listen server testing | Good enough to verify scripts work | Listen servers hide entire categories of bugs: RPCs that never cross the network, missing authority checks, null `PlayerIdentity` on the server, and race conditions between client and server init. |
-| File patching | Edit any file and see changes instantly | `config.cpp` is never file-patched. New `.c` files are not picked up either. Both require a PBO rebuild. Only modifications to existing script and layout files are live-reloaded. |
+| File patching | Point `-mod=` at your source folder and edit anything | The mod still has to be packed and loaded as a PBO; file patching adds a loose-file path on top, resolved through a junction in the DayZ installation folder, and the server must allow it. `.c` edits then apply on reconnect, and `.layout` edits usually do. `config.cpp` does not -- repack and relaunch, since it is parsed at startup and no primary source says a loose copy is read. |
 | Workbench debugger | Full IDE debugging experience | Workbench can syntax-check and run isolated scripts, but it does not replicate the full game environment. Many APIs return null or behave differently outside the game. |
 
 ---

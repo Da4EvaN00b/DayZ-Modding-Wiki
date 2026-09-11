@@ -44,13 +44,13 @@ Key rules:
 |---|---|---|
 | `position` | `x y` | Widget position (proportional 0-1 or pixel values) |
 | `size` | `w h` | Widget dimensions (proportional 0-1 or pixel values) |
-| `halign` | `left_ref`, `center_ref`, `right_ref` | Horizontal alignment reference point |
-| `valign` | `top_ref`, `center_ref`, `bottom_ref` | Vertical alignment reference point |
+| `halign` | `left`, `center_ref`, `right_ref` | Horizontal alignment reference point |
+| `valign` | `top`, `center_ref`, `bottom_ref` | Vertical alignment reference point |
 | `hexactpos` | `0` or `1` | 0 = proportional X position, 1 = pixel X position |
 | `vexactpos` | `0` or `1` | 0 = proportional Y position, 1 = pixel Y position |
 | `hexactsize` | `0` or `1` | 0 = proportional width, 1 = pixel width |
 | `vexactsize` | `0` or `1` | 0 = proportional height, 1 = pixel height |
-| `fixaspect` | `none`, `fixwidth`, `fixheight`, `inside`, `outside` | Keep the widget's aspect ratio (see [fixaspect Values](#fixaspect-values)) |
+| `fixaspect` | `none`, `fixwidth`, `inside`, `outside` | Keep the widget's aspect ratio (see [fixaspect Values](#fixaspect-values)) |
 | `scaled` | `0` or `1` | Scale with DayZ UI scaling setting |
 | `priority` | integer | Z-order (higher values render on top) |
 
@@ -130,10 +130,12 @@ These apply to `WrapSpacerWidgetClass` and `GridSpacerWidgetClass`.
 
 | Attribute | Values | Description |
 |---|---|---|
-| `switch` | `normal`, `once` | `normal` = momentary push button; `once` = stays pressed after clicking (used for tabs and toggles) |
+| `switch` | `normal`, `once` | Both values occur in vanilla layouts; manage persistent on/off state explicitly with `CheckBoxWidget`, `GetState()` and `SetState()` |
 | `style` | style name | Visual style for the button |
 
 ### fixaspect Values
+
+The values below are used in shipped layouts. Copy a matching vanilla pattern and test resizing; this list is not an exhaustive declaration of every native parser value.
 
 The `fixaspect` attribute keeps a widget's aspect ratio constant when the screen aspect ratio or the parent size would otherwise distort it. The value is a **keyword**, not a number:
 
@@ -141,11 +143,10 @@ The `fixaspect` attribute keeps a widget's aspect ratio constant when the screen
 |-------|----------|
 | `none` | No aspect ratio constraint (default) |
 | `fixwidth` | Width stays as authored; **height** is recalculated to keep the aspect ratio |
-| `fixheight` | Height stays as authored; **width** is recalculated to keep the aspect ratio |
 | `inside` | Widget fits entirely inside its authored rectangle while keeping the ratio (letterbox) |
 | `outside` | Widget fills its authored rectangle while keeping the ratio (content may extend past the edges) |
 
-By far the most common use is `fixaspect fixwidth` on an `ImageWidgetClass` with a square proportional size -- without it, an icon that is square at 16:9 becomes stretched at 21:9. The vanilla HUD uses it on every crosshair image. `inside` is the vanilla choice for radial menus (a square menu letterboxed into any screen), and `outside` for full-screen background art that must cover the whole frame.
+By far the most common use is `fixaspect fixwidth` on an `ImageWidgetClass` with a square proportional size -- without it, an icon that is square at 16:9 becomes stretched at 21:9. Vanilla HUD icon layouts include this pattern; inspect the specific image you are adapting. `inside` is the vanilla choice for radial menus (a square menu letterboxed into any screen), and `outside` for full-screen background art that must cover the whole frame.
 
 See [Sizing & Positioning](03-sizing-positioning.md#the-fixaspect-attribute) for how `fixaspect` interacts with the four exact-size flags.
 
@@ -187,7 +188,7 @@ FrameWidgetClass MyPanel {
 }
 ```
 
-Inherit from `ScriptedWidgetEventHandler` and call `SetHandler(this)` inside `OnWidgetScriptInit` -- that is the vanilla pattern (every built-in `scriptclass`, from the HUD spacers to the inventory grid, does exactly this). `SetHandler` routes the widget's UI events (`OnClick`, `OnMouseEnter`, `OnChildAdd`, ...) to the same object, so one class both configures the widget and reacts to it:
+Inherit from `ScriptedWidgetEventHandler` and call `SetHandler(this)` inside `OnWidgetScriptInit` -- that is the vanilla pattern (for example, `ScrollBarContainer` initializes its root handler this way). `SetHandler` routes the widget's UI events (`OnClick`, `OnMouseEnter`, `OnChildAdd`, ...) to the same object, so one class both configures the widget and reacts to it:
 
 ```c
 class MyPanelHandler : ScriptedWidgetEventHandler
@@ -264,7 +265,7 @@ Parameters in such a design fall into three kinds:
 | Literal string | `Tooltip_Text "Repairs the item"` | Display text, style names |
 | Name reference | `Target_Widget "RepairIcon"` | A string the framework resolves at runtime -- a widget name, a property name, a function name |
 
-Here is a complete reusable tooltip handler built on the pattern. The class is written once; every widget that wants a tooltip declares it in the layout with its own text and delay:
+Here is a tooltip-handler skeleton showing the attribute-binding pattern; implement timer scheduling and tooltip display where indicated. The class is written once; every widget that wants a tooltip declares it in the layout with its own text and delay:
 
 ```c
 class LNT_TooltipHandler : ScriptedWidgetEventHandler
@@ -551,7 +552,7 @@ ScrollWidgetClass ListScroll {
 2. **Mixing proportional and pixel values** -- If `hexactsize 0`, the size values are 0.0-1.0 proportional. If `hexactsize 1`, they are pixel values. Using `300` with proportional mode means 300x the parent width.
 3. **Not quoting multi-word attributes** -- Write `"text halign" center`, not `text halign center`. An unquoted multi-word attribute is silently ignored.
 4. **Placing ScriptParamsClass inside the children block** -- `ScriptParamsClass` sits in its own `{ }` brace block. When the widget has children, the params block is a second brace block *after* the children block, never inside it.
-5. **Writing numeric `fixaspect` values** -- `fixaspect` takes keywords (`none`, `fixwidth`, `fixheight`, `inside`, `outside`), not numbers.
+5. **Writing numeric `fixaspect` values** -- `fixaspect` takes keywords (`none`, `fixwidth`, `inside`, `outside`), not numbers.
 
 ---
 

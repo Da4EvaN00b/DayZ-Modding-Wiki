@@ -207,7 +207,12 @@ class CfgMods
         // Mod type. Always "mod" for script mods.
         type = "mod";
 
-        // credits: optional path to a Credits.json file.
+        // creditsJson: NOT a vanilla key. Vanilla's ModStructure reads only
+        // name, picture, logo, logoSmall, logoOver, tooltip and overview from
+        // CfgMods. creditsJson is read by Community Framework, which also
+        // replaces the credits screen loader to aggregate per-mod credits, so
+        // it does nothing unless @CF is loaded. This template stays
+        // dependency-free; leave it out unless you require CF.
         // creditsJson = "MyProfessionalMod/Scripts/Credits.json";
 
         // inputs: path to your Inputs.xml for custom keybinds.
@@ -1255,10 +1260,21 @@ This defines the visual structure of the UI panel. DayZ layouts use a custom tex
 // SIZING RULES:
 //   hexactsize 1 + vexactsize 1 = size is in pixels (e.g., size 400 300)
 //   hexactsize 0 + vexactsize 0 = size is proportional (0.0 to 1.0)
-//   halign/valign control anchor point:
-//     left_ref/top_ref     = anchored to parent's left/top edge
-//     center_ref           = centered in parent
-//     right_ref/bottom_ref = anchored to parent's right/bottom edge
+//   halign/valign control the anchor point. The spellings are not symmetrical,
+//   so copy them exactly. These are the only values the shipped DayZ layouts use:
+//     halign left        = anchored to parent's left edge   (NOT 'left_ref')
+//     halign center_ref  = centered horizontally
+//     halign right_ref   = anchored to parent's right edge
+//     valign top         = anchored to parent's top edge    (NOT 'top_ref')
+//     valign center_ref  = centered vertically
+//     valign bottom_ref  = anchored to parent's bottom edge
+//     valign bottom      = also anchored to parent's bottom edge (rare: 1 use across
+//                          216 shipped layouts, vs. 837 for bottom_ref)
+//
+//   halign/valign anchor the widget itself. Text or content alignment is a
+//   different, differently-spelled property: 'text halign'/'text valign' and
+//   'content_halign'/'content_valign' take bare center/left/right/bottom
+//   (no '_ref' suffix). Do not mix the two families up.
 //
 // IMPORTANT:
 //   - Never use negative sizes. Use alignment and position instead.
@@ -1414,9 +1430,16 @@ This defines custom keybinds that appear in the game's Options > Controls menu. 
     KEY NAMES:
     - Keyboard: kA through kZ, k0-k9, kInsert, kHome, kEnd, kDelete,
       kNumpad0-kNumpad9, kF1-kF12, kLControl, kRControl, kLShift, kRShift,
-      kLAlt, kRAlt, kSpace, kReturn, kBack, kTab, kEscape
-    - Mouse: mouse1 (left), mouse2 (right), mouse3 (middle)
-    - Combo keys: use <combo> element with multiple <btn> children
+      kLMenu, kRMenu, kSpace, kReturn, kBackspace, kTab, kEscape
+      (DayZ declares these names in bin/constants.xml, whose root is
+      <inputs version="141">. This is a distinct namespace from Enforce
+      script's KeyCode enum, which uses KeyCode.KC_* names instead,
+      e.g. KC_LMENU, KC_NUMPADENTER.)
+    - Mouse: mBLeft (left), mBRight (right), mBMiddle (middle)
+      (also mB4-mB8, mWheelUp, mWheelDown)
+    - Combo keys: nest the primary key <btn> inside the modifier <btn>.
+      Vanilla bin/preset_x1mousekey.xml uses this form for Ctrl+X/Y
+      (UABuldUndo/UABuldRedo); see the example below.
 -->
 <modded_inputs>
     <inputs>
@@ -1440,13 +1463,12 @@ This defines custom keybinds that appear in the game's Options > Controls menu. 
         </input>
 
         <!--
-        COMBO KEY EXAMPLE (uncomment to use):
+        COMBO KEY EXAMPLE (replace the single-key input above to use):
         This would bind to Ctrl+H instead of a single key.
         <input name="UAMyModPanel">
-            <combo>
-                <btn name="kLControl"/>
+            <btn name="kLControl">
                 <btn name="kH"/>
-            </combo>
+            </btn>
         </input>
         -->
     </preset>

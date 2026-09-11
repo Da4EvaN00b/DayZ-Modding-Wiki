@@ -1,5 +1,6 @@
 # Math & Vector Operations
 
+> **Summary:** The static `Math` class for scalar operations (rounding, trig, random numbers, clamping, interpolation) and the `vector` type's static helpers for 3D math (distance, direction, normalization, rotation) --- a complete reference organized by category, with DayZ-specific examples for each.
 
 ---
 

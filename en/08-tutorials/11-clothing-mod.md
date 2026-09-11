@@ -42,7 +42,7 @@ We will create a **Tactical Camo Jacket** -- a military-style jacket with woodla
 
 ## Step 1: Choose a Base Class
 
-Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that directly. DayZ provides intermediate base classes for each body slot:
+Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that directly. DayZ provides intermediate base classes for each body slot -- but these live in the **script** (`.c`) side of the engine, not in `config.cpp`:
 
 | Base Class | Body Slot | Examples |
 |------------|-----------|----------|
@@ -56,7 +56,7 @@ Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that
 | `Glasses_Base` | Eyewear | Sunglasses |
 | `Backpack_Base` | Back | Backpacks, bags |
 
-The full inheritance chain is: `Clothing_Base -> Clothing -> Top_Base -> GorkaEJacket_ColorBase -> YourJacket`
+**Two separate inheritance chains, matched by name:** `config.cpp` (`CfgVehicles`) and Enforce Script (`4_World/entities/itembase/`) are compiled independently, and each has its own class hierarchy for clothing. In vanilla `DZ\characters\tops\config.cpp`, the actual `CfgVehicles` chain is `Clothing_Base -> Clothing -> GorkaEJacket_ColorBase -> GorkaEJacket_Summer` -- `Top_Base` never appears there. `Top_Base` (`class Top_Base : Clothing {};`) exists only in `4_World/entities/itembase/clothing_base.c`, where the *script* chain is `Clothing -> Top_Base -> GorkaEJacket_ColorBase`. The engine links the two by class name at runtime, not by inheritance, so when you write `class MCM_TacticalJacket_ColorBase : GorkaEJacket_ColorBase` in `config.cpp`, you never write `Top_Base` there -- you only see it if you also write a script class with a matching name (as in [Step 6](#step-6-script-behavior-optional)).
 
 ### Why Extend an Existing Vanilla Item
 
@@ -256,10 +256,12 @@ Some clothing accepts attachments (like Plate Carrier pouches). Add them with `a
 Create `MyClothingMod/Data/Stringtable.csv`:
 
 ```csv
-"Language","English","Czech","German","Russian","Polish","Hungarian","Italian","Spanish","French","Chinese","Japanese","Portuguese","ChineseSimp","Korean"
-"STR_MCM_TacticalJacket_Woodland","Tactical Jacket (Woodland)","","","","","","","","","","","","",""
-"STR_MCM_TacticalJacket_Woodland_Desc","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","","","","","","","","","","","","",""
+"Language","original","english","czech","german","russian","polish","hungarian","italian","spanish","french","chinese","japanese","portuguese","chinesesimp",
+"STR_MCM_TacticalJacket_Woodland","Tactical Jacket (Woodland)","Tactical Jacket (Woodland)","","","","","","","","","","","","",
+"STR_MCM_TacticalJacket_Woodland_Desc","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","","","","","","","","","","","","",
 ```
+
+This header matches the real column set and order used by DayZ's own `languagecore/stringtable.csv` -- 14 lowercase language columns after the key (`original, english, czech, german, russian, polish, hungarian, italian, spanish, french, chinese, japanese, portuguese, chinesesimp`, no `korean` column), with a trailing comma after the last value on every row.
 
 ### Spawning (types.xml)
 

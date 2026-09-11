@@ -1,5 +1,10 @@
 # Sound System
 
+> **Summary:** How a `CfgSoundShaders` / `CfgSoundSets` definition becomes audible ---
+> `SEffectManager`, the `PlaySoundSet` family on `Object`, the `EffectSound` handle, and
+> the lower-level `SoundParams` -> `SoundObjectBuilder` -> `AbstractWave` chain. Playback is
+> client-side; the entity convenience methods guard the dedicated server for you, the
+> `SEffectManager` calls do not.
 
 ---
 
@@ -66,11 +71,11 @@ class CfgSoundShaders
             {"MyMod\Sounds\data\alert_01", 1},
             {"MyMod\Sounds\data\alert_02", 1}
         };
-        volume = 0.8;       // Base volume (0.0 - 1.0)
+        volume = 0.8;       // Linear gain multiplier -- NOT capped at 1.0
         frequency = 1;      // Playback speed multiplier
-        range = 100;         // Maximum audible distance in meters
-        radius = 50;         // Distance at which attenuation begins
-        limitation = 0;      // Max simultaneous instances (0 = unlimited)
+        range = 100;        // Maximum audible distance in meters
+        radius = 50;        // Distance at which attenuation begins
+        limitation = 0;     // Max simultaneous instances (0 = unlimited)
     };
 };
 ```
@@ -80,11 +85,15 @@ class CfgSoundShaders
 | Property | Type | Description |
 |----------|------|-------------|
 | `samples[]` | array | Pairs of `{path, probability}`. Multiple entries for random variation. |
-| `volume` | float | Base volume multiplier, 0.0 to 1.0. |
+| `volume` | float | Linear gain multiplier. **Not** clamped to `1.0` --- vanilla shaders in `DZ/sounds/hpp/config.cpp` use values from well under `0.1` up to `6`. Values above 1 amplify. |
 | `frequency` | float | Pitch multiplier. 1.0 = normal, 2.0 = double speed. |
-| `range` | float | Maximum distance (meters) at which the sound can be heard. |
-| `radius` | float | Distance (meters) at which volume attenuation begins. |
+| `range` | float | Maximum distance (meters) at which the sound can be heard. Present on ~2,600 vanilla shaders --- this is the one you almost always set. |
+| `radius` | float | Distance (meters) at which volume attenuation begins. Rare in vanilla (fewer than a dozen uses); most shaders rely on the sound set's `volumeCurve` instead. |
 | `limitation` | int | Maximum concurrent instances of this shader. 0 = no limit. |
+
+Vanilla sample paths are written from the PBO root with no extension, e.g.
+`{"DZ\sounds\Characters\attacks\knife\Knife_Attack_Stealth_pt1_1", 1}`. Use the same
+shape for your own mod: `{"MyMod\Sounds\data\alert_01", 1}`.
 
 ### CfgSoundSets
 
@@ -103,8 +112,9 @@ class CfgSoundSets
         sound3DProcessingType = "character3DProcessingType";
         // Volume attenuation curve
         volumeCurve = "characterAttenuationCurve";
-        // Distance filter preset
-        distanceFilter = "defaultDistanceFilter";
+        // Distance filter preset, declared in CfgDistanceFilters. See the warning
+        // below about the widely copy-pasted "defaultDistanceFilter".
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
         // 1 = 3D positional sound, 0 = 2D (UI/HUD)
         spatial = 1;
         // 1 = loops continuously, 0 = plays once
@@ -125,7 +135,29 @@ class CfgSoundSets
 | `doppler` | int | `1` to enable doppler pitch shifting for moving sources. |
 | `sound3DProcessingType` | string | Engine processing preset for 3D sounds. |
 | `volumeCurve` | string | Attenuation curve name controlling volume over distance. |
-| `distanceFilter` | string | Low-pass filter preset applied with distance. |
+| `distanceFilter` | string | Distance/frequency attenuation filter preset. `"none"` disables it. |
+
+> **`"defaultDistanceFilter"` does not resolve to any known filter.** It is copy-pasted
+> through a lot of community sound configs --- for instance
+> `DayZExpansion/Teleporter/Sounds/config.cpp:76` and
+> `DayZExpansion/NamalskAdventure/Sounds/config.cpp:221,230,239,248` both set it --- but it is
+> **not among the 18 classes declared in vanilla's `class CfgDistanceFilters`**
+> (`DZ/sounds/hpp/config.cpp:2406`), which is the container these presets are defined in, and
+> it is not declared in the mods that set it either. The name it is most likely a corruption
+> of, `defaultDistanceFreqAttenuationFilter`, **is defined** as that container's first member
+> at `DZ/sounds/hpp/config.cpp:2408`, and vanilla sound sets reference it 16 times.
+>
+> Other declared members you can use include `explosionDistanceFreqAttenuationFilter`,
+> `infectedDistanceFreqAttenuationFilter`, `weaponShotDistanceFreqAttenuationFilter`,
+> `softVehiclesDistanceFreqAttenuationFilter`, `BaseCharacter_AttenuationFilter` and
+> `BaseFootsteps_AttenuationFilter`; the literal `"none"` disables the filter. Prefer one of
+> those, or inherit from a vanilla sound set that already sets it.
+>
+> Note the limit of this argument. A `distanceFilter` name being absent from
+> `CfgDistanceFilters` is not on its own proof that the engine rejects it --- vanilla itself
+> sets `distanceFilter="Sakhal_Trees_AttenuationFilter"` three times without declaring that
+> class in the container. What makes `defaultDistanceFilter` unsafe is the combination: it is
+> neither declared nor referenced anywhere, with zero matches across the entire extraction.
 
 ### CfgPatches Dependency
 
@@ -163,7 +195,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = "defaultDistanceFilter";
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 
     // One-shot alert inherits the base
@@ -245,7 +277,12 @@ EffectSound sound = SEffectManager.PlaySoundEnviroment(
 );
 ```
 
-This variant calls `AddEnvSoundVariables` on the `SoundObjectBuilder`, which updates environment-related sound controllers (rain, wind, forest, etc.) based on the position. Use this for ambient or environmental sounds that should react to surroundings.
+This variant passes `enviroment = true` through to `CreateSound()`, which calls
+`EffectSound.SetEnviromentVariables(true)`. When the sound is later loaded,
+`EffectSound.SoundLoadEx()` calls `m_SoundObjectBuilder.AddEnvSoundVariables(GetPosition())`,
+seeding the environment sound controllers (rain, windy, forest, ...) from the effect's
+cached position. Use it for ambient or environmental sounds that should react to
+surroundings. Note the engine spells it *Enviroment*, one "n" short.
 
 ### Create Without Playing
 
@@ -259,7 +296,9 @@ EffectSound sound = SEffectManager.CreateSound(
     false   // environment variables
 );
 
-// Configure before playing
+// Configure before playing.
+// NOTE: per the header comment, SetSoundMaxVolume is really the fade-in
+// target rather than a hard ceiling -- use SetSoundVolume to set volume.
 sound.SetSoundMaxVolume(0.5);
 
 // Play when ready
@@ -319,7 +358,7 @@ bool PlaySoundSet(
 
 **Behavior details:**
 
-- Automatically guards against dedicated server (returns `false` on server).
+- Automatically guards against dedicated server: the whole body is inside `if (g_Game && !g_Game.IsDedicatedServer())`, and it returns `false` there.
 - If the `sound` reference already holds a playing sound and `loop` is `false`, it calls `StopSoundSet` first.
 - If `loop` is `true` and `sound` is already set, it returns `true` without creating a duplicate.
 - Calls `SetAutodestroy(true)` on the created sound.
@@ -380,20 +419,21 @@ The "Safe" variant is useful when a sound set might change dynamically (e.g. swi
 | `SetSoundSet(string name)` | Set the CfgSoundSets name. Must be called before playing. |
 | `GetSoundSet()` | Get the current sound set name. |
 | `SetSoundLoop(bool loop)` | Enable or disable looping. Can be called during playback. |
-| `SetSoundVolume(float vol)` | Set relative volume (0.0 to 1.0). |
-| `GetSoundVolume()` | Get the current relative volume. |
-| `SetSoundMaxVolume(float vol)` | Set maximum volume ceiling (used for fade-in target). |
+| `SetSoundVolume(float vol)` | Sets the *relative* volume --- it stores the value and forwards it to `AbstractWave.SetVolumeRelative()`. The headers publish no numeric range; `1.0` is the class default. |
+| `GetSoundVolume()` | Returns the relative volume last set by `SetSoundVolume()`. |
+| `SetSoundMaxVolume(float vol)` | Stores a max volume and re-applies the *current* volume. The engine header carries its own hedge: "Seems to purely be used for fade in effect, rather than really setting the max volume...". Do not rely on it as a hard ceiling. |
 | `SetSoundFadeIn(float sec)` | Set fade-in duration in seconds. |
 | `SetSoundFadeOut(float sec)` | Set fade-out duration in seconds. |
 | `SetDoppler(bool enabled)` | Enable or disable doppler effect. |
 | `SetSoundWaveKind(WaveKind kind)` | Set the wave channel. Must be called before playing. |
-| `GetSoundWaveLength()` | Get the total length of the sound in seconds. |
+| `GetSoundWaveLength()` | Get the total length of the sound in seconds. A misspelled `GetSoundWaveLenght()` also exists in the same class; both are present, so either compiles. |
 | `GetSoundWaveTime()` | Get elapsed playback time in seconds. |
 | `SetAutodestroy(bool auto)` | If `true`, effect auto-cleans on stop. |
 | `IsAutodestroy()` | Check autodestroy setting. |
-| `SetParent(Object obj, int pivot)` | Attach sound to follow an entity. |
-| `SetPosition(vector pos)` | Set world position. |
-| `SetCurrentLocalPosition(vector pos)` | Set position relative to parent. |
+| `SetParent(Object obj, int pivot)` | Attach sound to follow an entity. `Effect` also declares a one-argument `SetParent(Object)` overload, which is what `SEffectManager.PlaySoundOnObject()` uses. |
+| `SetPosition(vector pos)` | **Only updates the cached position variable.** The engine header warns: "for immediate effect use SetCurrent variant". Use `SetCurrentPosition()` to move a sound that is already playing. |
+| `SetCurrentPosition(vector pos, bool updateCached = true)` | Move the live sound in world space. |
+| `SetCurrentLocalPosition(vector pos, bool updateCached = true)` | Set position relative to parent. |
 
 ### Position Methods
 
@@ -465,6 +505,10 @@ enum WaveKind
 }
 ```
 
+The member **order** above matches `scripts/3_game/sound.c:1-14` exactly, but the trailing
+comments are this chapter's glosses --- the header carries no per-member documentation, so
+treat those descriptions as inference from usage rather than as vendor documentation.
+
 For UI sounds that should ignore 3D positioning, set `WAVEUI`:
 
 ```c
@@ -484,7 +528,9 @@ uiSound.SoundPlay();
 
 **Config requirements:**
 - `spatial = 1` in `CfgSoundSets`
-- Audio file **must be mono** (single channel). Stereo files will not spatialize correctly.
+- A mono (single-channel) audio file is the conventional choice for a point source, but it is
+  not an engine requirement: vanilla ships **10,364 stereo sample references inside
+  `spatial = 1` sound sets** against 21,905 mono ones. See *Common Mistakes* #1 below.
 - Set appropriate `range` and `radius` in `CfgSoundShaders`.
 
 ```c
@@ -536,7 +582,7 @@ class CfgSoundSets
         spatial = 1;
         loop = 1;   // <-- loops continuously
         doppler = 0;
-        distanceFilter = "defaultDistanceFilter";
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -812,26 +858,33 @@ class CfgSoundSets
         spatial = 1;
         loop = 1;
         doppler = 0;
-        distanceFilter = "defaultDistanceFilter";
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 ### 4. Weapon Custom Sound (Fire Mode Switch)
 
-From vanilla `weapon_base.c`:
+This is `Weapon_Base.OnFireModeChange()` from
+`4_World/entities/firearms/weapon_base.c`, reproduced as written --- note that vanilla
+guards the whole block against the dedicated server, because `SEffectManager` does not:
 
 ```c
-void PlayFireModeSound()
+void OnFireModeChange(int fireMode)
 {
-    EffectSound eff;
+    if ( !g_Game.IsDedicatedServer() )
+    {
+        EffectSound eff;
 
-    if (fireMode == 0)
-        eff = SEffectManager.PlaySound("Fire_Mode_Switch_Marked_Click_SoundSet", GetPosition());
-    else
-        eff = SEffectManager.PlaySound("Fire_Mode_Switch_Simple_Click_SoundSet", GetPosition());
+        if ( fireMode == 0 )
+            eff = SEffectManager.PlaySound("Fire_Mode_Switch_Marked_Click_SoundSet", GetPosition());
+        else
+            eff = SEffectManager.PlaySound("Fire_Mode_Switch_Simple_Click_SoundSet", GetPosition());
 
-    eff.SetAutodestroy(true);
+        eff.SetAutodestroy(true);
+    }
+
+    ResetBurstCount();
 }
 ```
 
@@ -885,9 +938,31 @@ class MyExplosiveBarrel : BuildingSuper
 
 ## Common Mistakes
 
-### 1. Using Stereo Files for 3D Sounds
+### 1. Assuming Stereo Files Cannot Be Used with `spatial = 1`
 
-Audio files used with `spatial = 1` **must be mono** (single channel). Stereo files will not be spatialized correctly by the engine --- the sound will appear to come from everywhere or only one side. Always convert your audio to mono `.ogg` for any 3D positional sound.
+A widely repeated community rule says audio used with `spatial = 1` *must* be mono, and that
+stereo files "will not spatialize correctly." **Vanilla contradicts it at scale.** Resolving
+every `CfgSoundSets` entry in `DZ/sounds/hpp/config.cpp` to its `soundShaders[]` and their
+`samples[]`, carrying `spatial` down through class inheritance, and reading the Ogg Vorbis
+identification header of each referenced file gives:
+
+| Inherited `spatial` | Mono sample refs | Stereo sample refs |
+|---|---|---|
+| `1` | 21,905 | **10,364** |
+| `0` | 0 | 50 |
+
+Across the whole sound tree, 7,622 of the 25,893 shipped `.ogg` files are two-channel, and
+5,381 of those sit under `weapons/` --- about as positional as DayZ audio gets. A worked
+example you can re-check in two greps: `saw_metal_loop_SoundSet` inherits from
+`baseCharacterLoud_SoundSet`, which sets `spatial=1`; its shader `Hsaw_metal_loop_Soundshader`
+points at `DZ\sounds\Characters\actions\construction\HackSaw_metal_loop_01`, and that file's
+Vorbis identification header reads **2 channels, 44,100 Hz**.
+
+**What to actually do:** mono is still the sensible default for a point source --- it removes
+any ambiguity about what a spatialized source should pan to, and it halves the asset size.
+Treat it as a convention, not as an engine guarantee. No Bohemia primary source stating a
+channel requirement was located, and no runtime measurement of how the engine renders a
+stereo source under `spatial = 1` was taken for this chapter.
 
 ### 2. Not Stopping Sounds in Destructor
 
@@ -949,7 +1024,10 @@ Note: `PlaySoundSet` / `StopSoundSet` on `Object` already include this guard int
 
 ### 4. Missing CfgSoundSets Definition
 
-If the sound set name passed to `SEffectManager.PlaySound()` does not match any class in `CfgSoundSets`, the engine will fail to create a valid `SoundParams` and the sound will not play. You will see errors like `"Invalid sound set"` in the script log.
+If the sound set name passed to `SEffectManager.PlaySound()` does not match any class in
+`CfgSoundSets`, `SoundParams.IsValid()` returns false and `EffectSound.SoundLoadEx()`
+bails out with `SoundError("Invalid sound set.")` --- that exact string in the script log
+is the symptom to grep for.
 
 Always verify:
 - The sound set name in script matches the class name in config **exactly** (case-sensitive).
@@ -998,8 +1076,10 @@ The engine exposes global sound controllers for environmental audio. You can ove
 // Override a controller value
 SetSoundControllerOverride("rain", 1.0, SoundControllerAction.Overwrite);
 
-// Limit a controller to a maximum value
-SetSoundControllerOverride("wind", 0.5, SoundControllerAction.Limit);
+// Limit a controller to a maximum value.
+// NOTE: the controller is named "windy", not "wind" -- an unknown
+// controller name is simply ignored, so a typo fails silently.
+SetSoundControllerOverride("windy", 0.5, SoundControllerAction.Limit);
 
 // Mute all environment controllers
 MuteAllSoundControllers();
@@ -1038,7 +1118,7 @@ Available controller names include: `rain`, `night`, `meadow`, `trees`, `hills`,
 | `scripts/3_game/effects/effectsound.c` | `EffectSound` class --- the main sound wrapper |
 | `scripts/3_game/effectmanager.c` | `SEffectManager` --- static manager for all effects |
 | `scripts/3_game/sound.c` | `AbstractSoundScene`, `SoundObjectBuilder`, `SoundObject`, `SoundParams`, `AbstractWave` |
-| `scripts/3_game/entities/object.c` | `PlaySoundSet`, `StopSoundSet`, `PlaySoundLoop` on `Object` |
+| `scripts/3_game/entities/object.c` | `PlaySoundSet`, `PlaySoundSetLoop`, `PlaySoundSetAtMemoryPoint*`, `StopSoundSet` on `Object`. Also `PlaySoundLoop(string sound_name, float range, bool create_local = true)`, which is a **different, older API** returning a `SoundOnVehicle` entity rather than an `EffectSound` --- do not confuse it with `PlaySoundSetLoop`. |
 | `scripts/3_game/entities/soundonvehicle.c` | `SoundOnVehicle` entity class |
 | `scripts/4_world/static/betasound.c` | `BetaSound.SaySound()` --- legacy action sound helper |
 
@@ -1048,7 +1128,11 @@ Available controller names include: `rain`, `night`, `meadow`, `trees`, `hills`,
 
 - **Always call `SetAutodestroy(true)` on one-shot sounds.** Without it, `EffectSound` instances accumulate in `SEffectManager`'s internal registry and are only cleaned on mission end, causing a memory leak over long play sessions.
 - **Guard all sound playback with `!GetGame().IsDedicatedServer()`.** Dedicated servers have no audio device. Calling sound methods on the server wastes CPU cycles and may log warnings. The `PlaySoundSet` convenience methods include this guard internally, but `SEffectManager.PlaySound()` does not.
-- **Use mono OGG files for all 3D positional sounds.** Stereo files will not spatialize correctly -- the engine cannot determine left/right panning from a stereo source. Reserve stereo for UI sounds with `spatial = 0`.
+- **Prefer mono OGG files for 3D positional sounds --- as a convention, not because the engine
+  requires it.** Mono removes any ambiguity about what a spatialized source should pan to, and
+  it halves the asset size. It is not an engine rule: vanilla ships 10,364 stereo sample
+  references inside `spatial = 1` sound sets, 5,381 of the stereo files under `weapons/`
+  alone. See *Common Mistakes* #1.
 - **Stop looping sounds in your object's destructor.** If the owning entity is deleted without stopping the loop, the sound plays indefinitely as an orphaned effect with no way to stop it.
 - **Prefix CfgSoundShaders and CfgSoundSets class names with your mod identifier.** Sound config classes are global. Two mods using the same class name (e.g., `Alert_SoundSet`) will collide silently, with the last-loaded mod's definition winning.
 
@@ -1057,5 +1141,5 @@ Available controller names include: `rain`, `night`, `meadow`, `trees`, `hills`,
 ## Compatibility & Impact
 
 - **Multi-Mod:** CfgSoundShaders and CfgSoundSets class names share a global namespace across all loaded mods. Name collisions cause one mod's sounds to silently replace another's. Always use a unique mod prefix.
-- **Performance:** Each active `EffectSound` consumes an audio channel. The engine has a limited channel pool -- excessive simultaneous sounds (50+) can cause newer sounds to fail silently. Use `limitation` in CfgSoundShaders to cap concurrent instances of frequent sounds.
+- **Performance:** Each active `EffectSound` holds an engine sound object and, once playing, an `AbstractWave`. The engine's channel pool is finite, so enough simultaneous sounds will start dropping new ones --- but no specific channel count is published in the script headers, and none was measured for this chapter, so treat any exact number you see quoted in community guides as folklore. The supported way to bound this is `limitation` in `CfgSoundShaders`, which vanilla sets on roughly 70 shaders.
 - **Server/Client:** All sound playback is client-side only. The server has no audio output. Entity convenience methods (`PlaySoundSet`, `StopSoundSet`) include server guards internally, but direct `SEffectManager` calls do not.

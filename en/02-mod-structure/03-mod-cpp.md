@@ -66,6 +66,8 @@ The `@` prefix on the folder name is convention for Steam Workshop mods but not 
 | `type` | string | `"mod"` or `"servermod"` | No |
 | `extra` | int | Reserved field (always 0) | No |
 
+> **What Bohemia documents.** The [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page lists ten `mod.cpp` keys -- `name`, `picture`, `logoSmall`, `logo`, `logoOver`, `tooltip`, `overview`, `action`, `author`, `version` -- and describes the file as holding "information for mod presentation". The rest of the table above (`tooltipOwned`, `actionURL`, `authorID`, `type`, `extra`) is community convention seen in published mods; it does no harm, but do not expect documented behaviour from it. In particular `type` is documented under `CfgMods` in a PBO's `config.cpp`, not here.
+
 ---
 
 ## Field Details
@@ -439,7 +441,7 @@ class Defs
 };
 ```
 
-Note: This example places script module definitions in `mod.cpp` rather than `config.cpp`. Both locations work -- the engine reads both files. However, the standard convention is to put `CfgMods` and script module definitions in `config.cpp`. Placing them in `mod.cpp` is an alternative approach used by some mods.
+Note: a `class Defs` block like this does appear in published mods' `mod.cpp` files, always alongside the same script module paths declared in `Scripts/config.cpp` under `CfgMods` (see [config.cpp Deep Dive](02-config-cpp.md)). It has no documented effect there. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page describes `mod.cpp` as an "optional config file, holds information for mod presentation" and lists only presentation keys for it, while placing `class defs` -- and the script module classes inside it -- under `CfgMods` in a PBO's `config.cpp`. Treat a `class Defs` block in `mod.cpp` as inert leftover rather than a second valid location, and declare your script modules in `config.cpp`.
 
 ---
 
@@ -493,7 +495,7 @@ type = "servermod";
 | Pattern | Detail |
 |---------|--------|
 | Localized `name` field | A `$STR_` stringtable reference in `name` (and `tooltip`/`overview`) makes the launcher listing itself multi-language |
-| Script modules in mod.cpp | Some mods place `class Defs` with script module paths directly in mod.cpp instead of config.cpp |
+| Script modules in mod.cpp | Some published mods carry a `class Defs` block with script module paths in `mod.cpp` in addition to the declaration in `config.cpp`'s `CfgMods`. Only the `config.cpp` one is documented; treat the `mod.cpp` copy as inert leftover (see note above) |
 | Missing `name` field | Some mods omit `name` entirely; the launcher falls back to the folder name as display text |
 | All image fields identical | Setting `logo`, `logoSmall`, and `logoOver` to the same `.edds` file is common when only one logo asset exists |
 | Empty image paths | Early-stage mods leave `picture=""` during development and add branding before Workshop publish |

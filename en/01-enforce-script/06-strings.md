@@ -432,8 +432,9 @@ string SanitizeForLog(string input)
 ```c
 string GetFileName(string path)
 {
-    // Engine paths ($profile:, $mission:) use forward slashes --
-    // avoid backslashes in string literals entirely (they can break the parser)
+    // Engine paths ($profile:, $mission:) use forward slashes by convention.
+    // Escaped backslashes are legal in string literals (see 1.12 Gotchas);
+    // they are simply not the delimiter these prefixes use.
     int lastSlash = path.LastIndexOf("/");
 
     if (lastSlash >= 0 && lastSlash < path.Length() - 1)
@@ -474,8 +475,8 @@ string GetFileName(string path)
 | Concept | Theory | Reality |
 |---------|--------|---------|
 | `ToLower()` / `Replace()` return value | Expected to return a new string (like C#) | They modify in place. `ToLower()` and `ToUpper()` return `int` (length), `Replace()` returns `int` (count) -- a constant source of bugs |
-| `string.Format` placeholders | `%d`, `%f`, `%s` like C printf | Only `%1` through `%9` work; C-style specifiers are silently ignored |
-| Backslash `\\` in strings | Standard escape character | Can break DayZ's CParser in JSON contexts -- prefer forward slashes for paths |
+| `string.Format` placeholders | `%d`, `%f`, `%s` like C printf | Positional only. The declaration takes nine optional parameters and the engine's own example uses `%1`/`%2`/`%3` (`1_core/proto/enstring.c:515-526`), so `%1`..`%9` is the whole vocabulary. What a C-style specifier renders as is not documented -- do not write one |
+| Backslash `\\` in strings | Standard escape character | Standard here too. Bohemia lists `\n \r \t \\ \"` as the supported escapes, and vanilla ships `"DZ\\plants"` in `3_game/objectspawner.c:4`. Forward slashes remain the convention for engine resource paths, but that is style, not a parser limit |
 
 ---
 

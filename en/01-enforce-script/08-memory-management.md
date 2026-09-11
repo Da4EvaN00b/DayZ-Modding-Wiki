@@ -248,12 +248,12 @@ void Example()
 
 ## notnull Parameter Modifier
 
-The `notnull` modifier on a function parameter tells the compiler that null is not a valid argument. The compiler enforces this at call sites.
+The `notnull` modifier on a function parameter declares that null is never a valid argument. How it is enforced is not documented -- the keyword does not appear on Bohemia's Enforce Script syntax page -- so treat it as a contract the caller must honour rather than as a guarantee you can lean on inside the function.
 
 ```c
 void ProcessPlayer(notnull PlayerBase player)
 {
-    // No need to check for null -- the compiler guarantees it
+    // The caller is responsible for never passing null here
     string name = player.GetIdentity().GetName();
     Print("Processing: " + name);
 }
@@ -265,11 +265,11 @@ void CallExample(PlayerBase maybeNull)
         ProcessPlayer(maybeNull); // OK -- we checked first
     }
 
-    // ProcessPlayer(null); // COMPILE ERROR: cannot pass null to notnull parameter
+    // ProcessPlayer(null); // Never do this -- it violates the parameter's contract
 }
 ```
 
-Use `notnull` on parameters where null would always be a programming error. It catches bugs at compile time rather than causing crashes at runtime.
+Use `notnull` on parameters where null would always be a programming error: it documents the contract in the signature, and vanilla's own script relies on it (`array<T>.InsertAll` at `1_core/proto/enscript.c:449` dereferences its `notnull` parameter immediately). It is not a substitute for checking at the call site.
 
 ---
 
@@ -752,8 +752,8 @@ ref array<ref MyClass> m_List;   // Array AND elements are strongly held
 // Auto pointer (legacy strong reference -- prefer ref)
 autoptr MyClass local;           // Released when scope exits, same as a plain local
 
-// notnull (compile-time null guard)
-void Func(notnull MyClass obj);  // Compiler rejects null arguments
+// notnull (contract: never pass null; enforcement undocumented)
+void Func(notnull MyClass obj);  // Null-check at the call site
 
 // Manual delete (immediate, bypasses ARC)
 delete obj;                      // Destroys immediately, nulls all refs (Managed)

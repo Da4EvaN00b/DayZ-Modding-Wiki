@@ -1,9 +1,6 @@
 # Enums & Preprocessor
 
-
----
-
-> **Goal:** Understand enum declarations, enum reflection tools, bitflag patterns, constants, and the preprocessor system for conditional compilation.
+> **Summary:** Understand enum declarations, enum reflection tools, bitflag patterns, constants, and the preprocessor system for conditional compilation.
 
 ---
 
@@ -334,6 +331,21 @@ DayZ provides these built-in defines based on build type and platform:
 | `PLATFORM_XBOX` | Xbox platform | Console-specific UI |
 | `PLATFORM_PS4` | PlayStation platform | Console-specific logic |
 | `BUILD_EXPERIMENTAL` | Experimental branch | Experimental features |
+| `DAYZ_1_29`, `DAYZ_1_30`, ... | The running game's major.minor version | Gating code on a specific game version |
+
+`1_core/defines.c` is a documentation-only file (`#ifdef DOXYGEN`) listing the symbols the C++ side injects. It records the version symbol as `DAYZ_X_XX` — "define filled in with the current Major and Minor version (e.g. `DAYZ_1_16`)" (`1_core/defines.c:12-14`). Vanilla gates on it directly:
+
+```c
+// 3_game/systems/dynamicmusicplayer/dynamicmusicplayerregistry.c:116
+#ifdef DAYZ_1_29 // Road to Badlands exclusive
+RegisterTrackMenu("Music_Menu_R2B_SoundSet", true);
+#else
+RegisterTrackMenu("Music_Menu_SoundSet", true);
+...
+#endif
+```
+
+The same file documents `BULDOZER`, `WORKBENCH`, `NO_GUI` / `NO_GUI_INGAME` (both "present for server builds"), `ENABLE_LOGGING`, `LOG_TO_FILE`, `LOG_TO_SCRIPT`, `LOG_TO_RPT`, `FEATURE_CURSOR` and `FEATURE_NETWORK_RECONCILIATION`, several of which it notes are toggled by launch parameters. This is not the only way to branch on version — a mod can equally read a version at runtime — but it is the mechanism vanilla itself uses.
 
 ```c
 void InitPlatform()
@@ -595,7 +607,7 @@ switch (state)
 | Inherit | `enum EChild : EParent { D, E };` |
 | To string | `typename.EnumToString(EName, value)` |
 | From string | `int val = typename.StringToEnum(EName, "A")` |
-| Bitflag combine | `flags = A | B` |
+| Bitflag combine | `flags = A \| B` |
 | Bitflag test | `if (flags & A)` |
 
 ### Preprocessor
@@ -616,4 +628,5 @@ switch (state)
 | `DEVELOPER` | Developer build |
 | `DIAG_DEVELOPER` | Diagnostic build |
 | `PLATFORM_WINDOWS` | Windows OS |
+| `DAYZ_1_29` (`DAYZ_X_XX`) | Current game major.minor version |
 | Custom: `defines[]` | Your mod's config.cpp |

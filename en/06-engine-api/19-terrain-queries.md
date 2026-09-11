@@ -5,9 +5,9 @@
 
 ## Introduction
 
-Every spatial operation in DayZ --- spawning objects on the ground, checking line of sight, detecting nearby entities, determining surface type for footstep sounds --- depends on querying the world. The engine exposes three categories of spatial API: **terrain queries** (height, surface type, normals), **object queries** (finding entities near a position), and **raycasting** (tracing a line through the world to detect collisions). This chapter documents every available method, its exact signature, and the practical patterns found in vanilla code.
+Every spatial operation in DayZ --- spawning objects on the ground, checking line of sight, detecting nearby entities, determining surface type for footstep sounds --- depends on querying the world. The engine exposes three categories of spatial API: **terrain queries** (height, surface type, normals), **object queries** (finding entities near a position), and **raycasting** (tracing a line through the world to detect collisions). This chapter documents selected methods and practical patterns found in vanilla code. Declaration blocks summarize existing APIs; usage fragments assume the named positions, objects and player are supplied by the enclosing method. Custom helper functions are illustrative, and need testing against your map and gameplay rules.
 
-All terrain and surface functions live on the `CGame` class, accessed via `GetGame()` or the global `g_Game`. Raycasting is provided by the static `DayZPhysics` class. World state (time, date, coordinates) is accessed through the `World` object returned by `GetGame().GetWorld()`.
+The terrain and surface functions covered here live on the `CGame` class, accessed via `GetGame()` or the global `g_Game`. Raycasting is provided by the static `DayZPhysics` class. World state (time, date, coordinates) is accessed through the `World` object returned by `GetGame().GetWorld()`.
 
 ---
 
@@ -45,7 +45,7 @@ partPos[1] = g_Game.SurfaceY(partPos[0], partPos[2]); // Snap particles to groun
 
 ### SurfaceRoadY --- Height Including Roads
 
-Returns height including road surfaces (bridges, elevated roads). Use this when you need the actual walkable surface, not raw terrain.
+Returns height including road surfaces (bridges, elevated roads). Use this when you need terrain plus roadway geometry, such as a bridge. For a height-dependent search, pass an explicit Y coordinate to `SurfaceRoadY3D()` and select the detection mode; this is not a general walkability validator.
 
 ```c
 // Signatures (CGame)
@@ -61,7 +61,7 @@ enum RoadSurfaceDetection
     UNDER,    // Find nearest surface under given point
     ABOVE,    // Find nearest surface above given point
     CLOSEST,  // Find nearest surface to given point
-    LEGACY,   // UNDER but without proxy support (default)
+    LEGACY,   // UNDER but without proxy support; the default for SurfaceRoadY()
 }
 ```
 
@@ -82,7 +82,7 @@ class SurfaceDetectionParameters
     SurfaceDetectionType type = SurfaceDetectionType.Scenery; // Scenery or Roadway
     vector position;                                          // 3D position to trace from
     bool includeWater = false;                                // Return water if higher than surface
-    UseObjectsMode syncMode = UseObjectsMode.Wait;            // Wait, NoWait, or NoLock
+    UseObjectsMode syncMode = UseObjectsMode.Wait;            // Roadway only: Wait, NoWait, NoLock
     Object ignore = null;                                     // Object to ignore (Roadway only)
     RoadSurfaceDetection rsd = RoadSurfaceDetection.ABOVE;    // Search direction (Roadway only)
 };
@@ -98,23 +98,34 @@ class SurfaceDetectionResult
     float normalZ = 0;         // Surface normal Z component
     SurfaceInfo surface = null; // Surface material info handle
     bool aboveWater = false;   // Whether water was the returned surface
+    Object object = null;      // Detected object (Roadway only)
 };
 ```
 
-**Vanilla example** (`transport.c`):
+**Roadway query pattern** based on `Transport.DetectFlippedUsingSurface()`; call it with a world position and the object to exclude:
 
 ```c
-VehicleFlippedContext ctx;
-ctx.m_SurfaceParams = new SurfaceDetectionParameters();
-ctx.m_SurfaceResult = new SurfaceDetectionResult();
-ctx.m_SurfaceParams.rsd = RoadSurfaceDetection.CLOSEST;
-ctx.m_SurfaceParams.position = corners[i];
-g_Game.GetSurface(ctx.m_SurfaceParams, ctx.m_SurfaceResult);
+bool TryGetRoadwayHeight(vector position, Object ignoreObject, out float height)
+{
+    SurfaceDetectionParameters parameters = new SurfaceDetectionParameters();
+    SurfaceDetectionResult result = new SurfaceDetectionResult();
+    parameters.type = SurfaceDetectionType.Roadway;
+    parameters.includeWater = false;
+    parameters.ignore = ignoreObject;
+    parameters.rsd = RoadSurfaceDetection.CLOSEST;
+    parameters.position = position;
+
+    if (!GetGame().GetSurface(parameters, result))
+        return false;
+
+    height = result.height;
+    return true;
+}
 ```
 
 ### GetHighestSurfaceYDifference
 
-Utility method on `CGame` that returns the largest height difference between a set of positions. Useful for slope checks.
+Utility method on `CGame` that samples `SurfaceRoadY()` at each supplied X,Z position and returns the maximum minus minimum height. Pass a non-empty array; the empty-array sentinel result is not a meaningful slope measurement.
 
 ```c
 float GetHighestSurfaceYDifference(array<vector> positions);
@@ -207,13 +218,8 @@ angles[1] = angles[1] + 270; // Correct rotation for vertical alignment
 A convenience method on `CGame` that converts the surface normal to Euler angles, ready for `SetOrientation()`.
 
 ```c
-vector GetSurfaceOrientation(float x, float z)
-{
-    vector normal = g_Game.SurfaceGetNormal(x, z);
-    vector angles = normal.VectorToAngles();
-    angles[1] = angles[1] + 270;
-    return angles;
-}
+// Use the existing helper, which also handles its flat-surface correction.
+vector orientation = GetGame().GetSurfaceOrientation(x, z);
 ```
 
 ### SurfaceGetNoiseMultiplier
@@ -236,7 +242,7 @@ proto native bool SurfaceIsSea(float x, float z);    // True if position is over
 proto native bool SurfaceIsPond(float x, float z);    // True if position is over a pond/lake
 ```
 
-There is no single `SurfaceIsWater` function in the engine. To check for any water, combine both:
+To test whether X,Z is over sea or pond water, combine these two queries:
 
 ```c
 bool IsOverWater(float x, float z)
@@ -263,22 +269,22 @@ proto native float SurfaceGetSeaWaveCurrent();  // Current sea wave height
 proto native float GetWaterDepth(vector posWS);
 ```
 
-Returns the water depth at a world-space position. Returns 0 or negative if the position is above water.
+Returns water depth at a world-space position. Check the returned depth against the threshold your feature needs; do not use it alone as a universal sea/pond classification test.
 
 ### Water Surface Height
 
 ```c
-proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS);   // Without visual wave offset
-proto native float GetWaterSurfaceHeightWithFakeWave(vector posWS); // With visual wave offset
+proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS);   // Nearest water or object surface below; ignores land, without fake wave
+proto native float GetWaterSurfaceHeightWithFakeWave(vector posWS); // Same query, with fake wave
 ```
 
 ---
 
 ## Object Queries
 
-### GetObjectsAtPosition --- Cylinder Search
+### GetObjectsAtPosition --- Horizontal Radius Search
 
-Finds all objects within a horizontal radius of a position. The search is a vertical cylinder (infinite height), meaning objects above and below the position are included regardless of vertical distance.
+The native declaration describes a circle of the given radius around the position. Use `GetObjectsAtPosition3D()` when the query must account for vertical distance; its documented search shape is a sphere.
 
 ```c
 // Signatures (CGame)
@@ -286,7 +292,7 @@ proto native void GetObjectsAtPosition(vector pos, float radius, out array<Objec
 proto native void GetObjectsAtPosition3D(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargos);
 ```
 
-The `3D` variant searches a sphere instead of a cylinder, respecting vertical distance.
+Filter the returned entities according to your feature; a spatial query does not itself enforce gameplay eligibility.
 
 **Usage:**
 
@@ -316,10 +322,10 @@ array<CargoBase> proxyCargos = new array<CargoBase>;
 g_Game.GetObjectsAtPosition(pos, 100.0, objects, proxyCargos);
 ```
 
-> **WARNING: Performance.** `GetObjectsAtPosition` queries every object in range. A radius of 100m in a populated area can return hundreds or thousands of objects. Always:
+> **Performance:** Query cost and result count depend on radius and scene density. Profile your use case:
 > - Use the smallest radius that serves your purpose
-> - Cache results; do not call every frame
-> - Filter results immediately and discard the array
+> - Cache or throttle periodic scans where stale results are acceptable
+> - Filter results and reuse arrays when appropriate
 > - Prefer the `3D` variant when vertical filtering matters
 
 ---
@@ -330,7 +336,7 @@ Raycasting traces a line (or thick line) through the world and reports what it h
 
 ### ObjIntersect Modes
 
-Every raycast must specify which geometry to test against. These are defined in `3_game/constants.c`:
+`RaycastRV` and `RaycastRVProxy` select geometry intersection modes (defaulting to view geometry). Bullet raycasts instead select physics layers. These are defined in `3_game/constants.c`:
 
 ```c
 enum ObjIntersect
@@ -358,7 +364,7 @@ Controls what the raycast reports. Defined in `1_core/proto/endebug.c`:
 ```c
 enum CollisionFlags
 {
-    FIRSTCONTACT,   // Stop at first hit (any), fastest
+    FIRSTCONTACT,   // First contact; useful for a yes/no collision test
     NEARESTCONTACT, // Return only the nearest contact (default)
     ONLYSTATIC,     // Only static/terrain objects
     ONLYDYNAMIC,    // Only dynamic objects (players, items, vehicles)
@@ -550,7 +556,7 @@ class RaycastRVResult
     Object obj;        // Object hit (NULL if terrain only). If hierLevel > 0, this is the proxy
     Object parent;     // If hierLevel > 0, the root parent of the proxy
     vector pos;        // World position of the collision
-    vector dir;        // Normal direction at collision (or intersection direction)
+    vector dir;        // Outward direction, or direction AND size of line/object intersection
     int hierLevel;     // 0 = landscape/world object, > 0 = proxy (attachment, component)
     int component;     // Index of component in the geometry level
     SurfaceInfo surface; // Surface material info handle
@@ -645,7 +651,7 @@ if (DayZPhysics.SphereCastBullet(rayStart, rayEnd, 0.01, layers, ignore, hitObj,
 }
 ```
 
-**Vanilla example** (target temperature debug --- find entity under cursor):
+**Illustrative example** (choose a layer mask for an entity-under-cursor ray; this is not the mask used by `PluginTargetTemperature`):
 
 ```c
 PhxInteractionLayers hitMask = PhxInteractionLayers.BUILDING
@@ -684,7 +690,7 @@ class CollisionOverlapCallback : Managed
 {
     bool OnContact(IEntity other, Contact contact)
     {
-        return true; // Return true to continue checking, false to stop
+        return true; // Default callback return value
     }
 };
 ```
@@ -699,7 +705,7 @@ class MyOverlapCallback : CollisionOverlapCallback
     override bool OnContact(IEntity other, Contact contact)
     {
         m_Hits.Insert(other);
-        return true; // Continue checking
+        return true; // Match the base callback default
     }
 };
 
@@ -734,11 +740,11 @@ proto static bool GetHitSurfaceAndLiquid(Object other, vector begPos, vector end
 // Exact distance between two points
 float dist = vector.Distance(posA, posB);
 
-// Squared distance --- MUCH faster, use for comparisons
+// Squared distance, useful for comparisons
 float distSq = vector.DistanceSq(posA, posB);
 ```
 
-**Always prefer `DistanceSq` for distance comparisons.** It avoids the expensive square root operation:
+**For a non-negative range, you can compare squared distances** without taking a square root:
 
 ```c
 // GOOD: compare squared distances
@@ -748,10 +754,10 @@ if (vector.DistanceSq(myPos, targetPos) < maxRangeSq)
     // Within range
 }
 
-// BAD: computing square root every check
+// Equivalent comparison using ordinary distance
 if (vector.Distance(myPos, targetPos) < maxRange)
 {
-    // Works but slower
+    // Within range
 }
 ```
 
@@ -766,7 +772,7 @@ dir.Normalize();
 vector playerDir = player.GetDirection();
 
 // Convert angles to direction vector
-vector dir = orientation.AnglesToVector();
+vector forward = orientation.AnglesToVector();
 
 // Convert direction to angles
 vector angles = direction.VectorToAngles();
@@ -778,7 +784,7 @@ vector angles = direction.VectorToAngles();
 // Offset a position along a direction
 vector newPos = origin + (direction * distance);
 
-// Get a position at eye level
+// Approximate standing eye-height offset; use a head bone for posture-aware placement
 vector eyePos = player.GetPosition() + "0 1.5 0";
 
 // Vector component access
@@ -820,7 +826,7 @@ float worldTimeMs = GetWorldTime(); // Global function from 1_Core
 // Check if it is currently nighttime
 bool nighttime = GetGame().GetWorld().IsNight();
 
-// Get sun/moon state (0 = full sun, 1 = full moon)
+// Read the engine's sun/moon value
 float sunOrMoon = GetGame().GetWorld().GetSunOrMoon();
 
 // Moon brightness
@@ -862,11 +868,16 @@ GetGame().GetWorldName(worldName);
 The `WorldData` class holds environment configuration for the current map: temperature curves, sunrise/sunset times, weather settings. It is subclassed per map (e.g., `ChernarusPlusData`, `EnochData`).
 
 ```c
-// Access current WorldData (only available in 4_World and above)
-WorldData worldData = g_Game.GetMission().GetWorldData(); // if available
+// WorldData and Mission.GetWorldData are declared in 3_Game.
+Mission mission = GetGame().GetMission();
+if (mission)
+{
+    WorldData worldData = mission.GetWorldData();
+    // Check worldData before reading configuration.
+}
 ```
 
-Key properties include monthly min/max temperatures, sunrise/sunset hours, and weather probability settings. These are set in the `Init()` method per map:
+Key properties include monthly min/max temperatures, sunrise/sunset hours, and weather probability settings. The following is a fragment of the base `WorldData.Init()` defaults, not the effective values for every map. Map subclasses such as `ChernarusPlusData` override temperatures and can read environment overrides from gameplay configuration:
 
 ```c
 m_Sunrise_Jan = 8.54;
@@ -945,7 +956,7 @@ Object FindNearestBuilding(vector pos, float searchRadius)
 
 ### Check if Position is Indoors
 
-A common technique is to raycast straight up. If something is above you within a reasonable distance, you are likely indoors.
+This illustrative upward ray detects overhead geometry within 20 metres. It is only a shelter heuristic: a bridge, tree or other overhead object can hit, and an indoor space with a taller ceiling can miss.
 
 ```c
 bool IsIndoors(vector pos)
@@ -974,7 +985,8 @@ bool IsSlopeTooSteep(vector pos, float maxSlopeDegrees)
 
     // The Y component of the normal indicates how vertical the surface is
     // Y = 1.0 means perfectly flat, Y = 0.0 means vertical wall
-    float slopeAngle = Math.Acos(normal[1]) * Math.RAD2DEG;
+    normal.Normalize();
+    float slopeAngle = Math.Acos(Math.Clamp(normal[1], -1.0, 1.0)) * Math.RAD2DEG;
 
     return slopeAngle > maxSlopeDegrees;
 }
@@ -1007,7 +1019,7 @@ The vanilla `MiscGameplayFunctions` class provides ready-made obstruction checks
 bool obstructed = MiscGameplayFunctions.IsObjectObstructed(targetObject);
 
 // With distance check
-bool obstructed = MiscGameplayFunctions.IsObjectObstructed(
+bool obstructedWithDistance = MiscGameplayFunctions.IsObjectObstructed(
     targetObject,
     true,            // doDistanceCheck
     playerPos,       // distanceCheckPos
@@ -1036,24 +1048,20 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 
 ## Best Practices
 
-- **Use `DistanceSq` instead of `Distance` for comparisons.** The square root in `Distance` is expensive. Pre-compute `maxRange * maxRange` and compare against `DistanceSq`. The vanilla codebase does this extensively in action targeting and vicinity checks.
-- **Keep `GetObjectsAtPosition` radius as small as possible.** Every meter of radius dramatically increases the number of objects returned. A 100m radius in a city can return thousands of objects. Cache results and reuse them within the same frame.
-- **Never raycast every frame without throttling.** Even `RaycastRV` is expensive at scale. Use timers (0.1--0.5 second intervals) for periodic checks. The rangefinder uses a 0.5-second timer for its measurements.
-- **Prefer `RaycastRVProxy` over `RaycastRV` for complex queries.** The proxy version returns structured results with hierarchy information, surface data, and component indices. It is what the vanilla action system uses for cursor targeting.
-- **Use `ground_only = true` when you only need terrain height.** This skips all object intersection tests and is significantly faster than a full raycast.
-- **Combine `SurfaceIsSea` and `SurfaceIsPond` for water checks.** There is no single `SurfaceIsWater` function. Always check both unless you specifically need to distinguish between sea and pond.
-
+- **Use squared distances for repeated range comparisons** when the threshold is non-negative.
+- **Keep object-query radius focused** and profile representative areas. Cache or throttle periodic scans where latency is acceptable.
+- **Choose update frequency for the feature.** Cursor targeting can need frame updates; a periodic environmental scan usually does not. The vanilla rangefinder uses a 0.5-second measurement timer.
+- **Use `RaycastRVProxy` when you need hierarchy and surface information**, as vanilla action targeting does.
+- **Use `ground_only = true` for a ground-only ray**, or `SurfaceY()` when an X,Z terrain-height query is sufficient.
+- **Combine `SurfaceIsSea` and `SurfaceIsPond`** for a sea-or-pond test, and handle bridges/height separately if your feature needs actual water contact.
 ---
 
 ## Compatibility & Impact
 
-> **Mod Compatibility:** Terrain and raycast queries are read-only operations that do not modify world state. Multiple mods can safely call these functions simultaneously without conflicts.
-
-- **Server/Client:** All terrain queries (`SurfaceY`, `SurfaceGetType`, `SurfaceGetNormal`, `SurfaceIsSea`, `SurfaceIsPond`) are safe to call on both server and client. World modification methods like `SetDate()` are server-authoritative.
-- **Performance Impact:** `GetObjectsAtPosition` with large radii is the most common performance mistake. A mod that calls it every frame with a 50m+ radius will cause noticeable server lag. Raycast operations are cheaper but still should not run every frame on many entities.
-- **Map Dependency:** `SurfaceGetType` returns different surface names depending on the map. Chernarus and Livonia share most surface type names (`cp_gravel`, `cp_concrete`, etc.), but custom maps may define their own. Always handle unknown surface types gracefully.
-- **WorldData Subclassing:** If your mod needs to read or override temperature or weather data, note that `WorldData` is subclassed per map. Modding the base class affects all maps; modding `ChernarusPlusData` only affects Chernarus.
-
+- **Server/client:** Run gameplay decisions on the authoritative side. Query results depend on the world and entities available on that machine; read-only queries do not make client and server scenes identical. Set shared world date from the server.
+- **Performance:** Profile query frequency, radius and result processing under representative load. No fixed radius or call interval guarantees acceptable cost.
+- **Map dependency:** Surface names come from map/object configuration. Handle unknown names instead of assuming every map uses Chernarus surface names.
+- **WorldData subclassing:** Read the effective map subclass and gameplay overrides before changing temperature/weather defaults. A base-class override can affect multiple maps, but subclasses may override the same methods or values.
 ---
 
 ## Theory vs Practice
@@ -1061,10 +1069,10 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 | Documentation/Expectation | Actual Behavior |
 |--------------------------|-----------------|
 | `SurfaceY` returns ground height | Returns raw terrain height, ignoring roads, bridges, and objects. Use `SurfaceRoadY` for surfaces that include roads. |
-| `RaycastRV` `ignore` parameter ignores one object | Only ignores one object. For multiple exclusions, use `RaycastRVProxy` with the `excluded` array parameter. |
-| `GetObjectsAtPosition` returns all objects | Returns objects with physics bodies. Pure visual objects (particles, effects) are not returned. |
+| `RaycastRV` `ignore` parameter names one object | The API also exposes a separate `with` argument. For multiple exclusions, use `RaycastRVProxy` with the `excluded` array parameter. |
+| `GetObjectsAtPosition` is a gameplay filter | It returns spatial results; filter for the entity classes and conditions your feature needs. The declaration does not promise a physics-body-only filter. |
 | `RaycastRVResult.obj` is always the world object | When `hierLevel > 0`, `obj` is the proxy (attachment/component) and `parent` is the actual world object. Always check `hierLevel`. |
-| `CollisionFlags.ALLOBJECTS` returns everything | Returns the first contact per object, not all contacts per object. Multiple results come from multiple distinct objects. |
+| `CollisionFlags.ALLOBJECTS` returns every contact | It requests first contact per object; do not assume the result array is a list of every geometric intersection or a deduplicated gameplay-entity list. |
 | Surface type names are standardized | Surface names are map-dependent configuration values from CfgSurfaces. Custom maps define custom surface names. |
 
 ---
@@ -1073,7 +1081,7 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 
 | Mistake | Fix |
 |---------|-----|
-| Calling `GetObjectsAtPosition` every frame with a large radius | Use a timer (0.25--1.0 second interval). Cache the results array. |
+| Calling `GetObjectsAtPosition` every frame with a large radius | Choose a timer or cache policy appropriate to the feature, then profile it. |
 | Using `vector.Distance` in a loop comparing many objects | Use `vector.DistanceSq` and compare against `maxRange * maxRange`. |
 | Ignoring the `hierLevel` field in `RaycastRVResult` | When `hierLevel > 0`, the hit is on a proxy. Use `parent` to get the actual world entity. |
 | Using `SurfaceY` for spawn placement on bridges or buildings | `SurfaceY` returns terrain height only. For structures, raycast downward with `ObjIntersectGeom` or use `SurfaceRoadY`. |
@@ -1084,8 +1092,7 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 
 ---
 
-## Observed in Real Mods
-
+## Observed in Vanilla Code
 
 | Pattern | Source | File/Location |
 |---------|--------|---------------|
@@ -1094,7 +1101,7 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 | `SurfaceGetNormal` + `VectorToAngles` for terrain-aligned placement | Vanilla | `4_World/classes/hologram.c` |
 | `RaycastRV` with `ObjIntersectIFire` for rangefinder measurement | Vanilla | `4_World/entities/itembase/rangefinder.c` |
 | `RaycastRVProxy` with `ALLOBJECTS` for action cursor targeting | Vanilla | `4_World/classes/useractionscomponent/actiontargets.c` |
-| `RayCastBullet` with combined `PhxInteractionLayers` for teleport | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
+| `RayCastBullet` with combined `PhxInteractionLayers` for melee obstruction | Vanilla | `4_World/classes/meleetargeting.c` |
 | `SphereCastBullet` with small radius for precise hit detection | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
 | `GetObjectsAtPosition` with `null` proxyCargo for area kill zones | Vanilla | `4_World/classes/contaminatedarea/geyserarea.c` |
 | `IsObjectObstructedCache` to batch raycast calls per frame | Vanilla | `4_World/static/miscgameplayfunctions.c` |

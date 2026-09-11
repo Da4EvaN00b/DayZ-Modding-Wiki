@@ -1,0 +1,527 @@
+{
+  "D:\\StarDZ\\docs\\wiki\\en\\cheatsheet.md": {
+    "mtime": 1784314571.1570373,
+    "ast_hash": "",
+    "semantic_hash": "c81d71b163362aa19f1eab2a3d1b4bb3"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\faq.md": {
+    "mtime": 1784314507.0084362,
+    "ast_hash": "",
+    "semantic_hash": "aa293d739dc37427c07aecb1eeac12d9"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\glossary.md": {
+    "mtime": 1784314806.3147368,
+    "ast_hash": "",
+    "semantic_hash": "563a92f9d1043c9e3d104b6b48ce1795"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\index.md": {
+    "mtime": 1784297676.7789438,
+    "ast_hash": "",
+    "semantic_hash": "6697118582a3ea742683f036ee480586"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\README.md": {
+    "mtime": 1784297683.032223,
+    "ast_hash": "",
+    "semantic_hash": "a3339cbdbc6e319f871b8b29bbe1a420"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\troubleshooting.md": {
+    "mtime": 1784895224.2500775,
+    "ast_hash": "",
+    "semantic_hash": "a3dbf45f58c8723eb65756772cc3a9ca"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\01-variables-types.md": {
+    "mtime": 1784314007.4647532,
+    "ast_hash": "",
+    "semantic_hash": "3320c3132d698a8b6159e01615512d6a"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\02-arrays-maps-sets.md": {
+    "mtime": 1784314002.710619,
+    "ast_hash": "",
+    "semantic_hash": "2c6fc84244e810e47549c2454999146e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\03-classes-inheritance.md": {
+    "mtime": 1784895113.706614,
+    "ast_hash": "",
+    "semantic_hash": "bdfc4e035b6af9296640f010bbef898e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\04-modded-classes.md": {
+    "mtime": 1784314010.2079778,
+    "ast_hash": "",
+    "semantic_hash": "1571f322286929de50dbff5810e5188e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\05-control-flow.md": {
+    "mtime": 1784297586.690317,
+    "ast_hash": "",
+    "semantic_hash": "0b9f45539bd98628712fb3ed8f2f3031"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\06-strings.md": {
+    "mtime": 1784895022.13835,
+    "ast_hash": "",
+    "semantic_hash": "3c48a5504cf1ea922c7606ed8bced6b4"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\07-math-vectors.md": {
+    "mtime": 1784313975.8740015,
+    "ast_hash": "",
+    "semantic_hash": "d8eca5f9c1b82ab95e6510939e6af80e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\08-memory-management.md": {
+    "mtime": 1784895138.9954462,
+    "ast_hash": "",
+    "semantic_hash": "200e72679d6602ad5c40947aaeb53253"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\09-casting-reflection.md": {
+    "mtime": 1784297668.9771476,
+    "ast_hash": "",
+    "semantic_hash": "6708a2227800c9ad2d90850f3d82670b"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\10-enums-preprocessor.md": {
+    "mtime": 1784313949.4424841,
+    "ast_hash": "",
+    "semantic_hash": "abf9d84793dca05b8ad2c86401290352"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\11-error-handling.md": {
+    "mtime": 1784297657.684202,
+    "ast_hash": "",
+    "semantic_hash": "1443b950faeb616075212e25797bf68f"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\12-gotchas.md": {
+    "mtime": 1784298136.219798,
+    "ast_hash": "",
+    "semantic_hash": "7d87f3bdecc27efe1f6b3028d2e3cbaf"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\01-enforce-script\\13-functions-methods.md": {
+    "mtime": 1784314067.4368033,
+    "ast_hash": "",
+    "semantic_hash": "73f9eb61733aa287673164e0ea530454"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\01-five-layers.md": {
+    "mtime": 1784297871.8636088,
+    "ast_hash": "",
+    "semantic_hash": "f056fcfc5b0271963a4dddff522f559d"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\02-config-cpp.md": {
+    "mtime": 1784895074.018775,
+    "ast_hash": "",
+    "semantic_hash": "9e875c1921b10a76489760eabd900bfc"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\03-mod-cpp.md": {
+    "mtime": 1784297814.9995067,
+    "ast_hash": "",
+    "semantic_hash": "7016ef224ba6ed149af7961239e232aa"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\04-minimum-viable-mod.md": {
+    "mtime": 1784297795.3506558,
+    "ast_hash": "",
+    "semantic_hash": "b600af062c02249d81737cfe55dc97ea"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\05-file-organization.md": {
+    "mtime": 1784314067.1976411,
+    "ast_hash": "",
+    "semantic_hash": "6e3121ddd92b763a251373c802d3817d"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\02-mod-structure\\06-server-client-split.md": {
+    "mtime": 1784315126.4337347,
+    "ast_hash": "",
+    "semantic_hash": "d2cdfa18ce05fb8ee2f2159187168d2d"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\01-widget-types.md": {
+    "mtime": 1784895057.1063397,
+    "ast_hash": "",
+    "semantic_hash": "6c84cf5855cb05053492e7d4e171d56b"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\02-layout-files.md": {
+    "mtime": 1784298153.661553,
+    "ast_hash": "",
+    "semantic_hash": "0a67808eb8206070048898e638b7aacc"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\03-sizing-positioning.md": {
+    "mtime": 1784296850.46797,
+    "ast_hash": "",
+    "semantic_hash": "cce8c46f44f96454d08cc3f42ef9dbdd"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\04-containers.md": {
+    "mtime": 1784296850.469248,
+    "ast_hash": "",
+    "semantic_hash": "00b6ceecd7376d5976ad36ae798bba53"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\05-programmatic-widgets.md": {
+    "mtime": 1784314057.9351695,
+    "ast_hash": "",
+    "semantic_hash": "d756e9938de77e28bf305dd3031262d3"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\06-event-handling.md": {
+    "mtime": 1784297858.9142072,
+    "ast_hash": "",
+    "semantic_hash": "916482694dbdb4e64ec1bd5d8ddbadc4"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\07-styles-fonts.md": {
+    "mtime": 1784297905.183353,
+    "ast_hash": "",
+    "semantic_hash": "bb0ca5272ee515287a7e55f4485d230c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\08-dialogs-modals.md": {
+    "mtime": 1784315381.967541,
+    "ast_hash": "",
+    "semantic_hash": "59122602c3e736fad799afc87ac94d18"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\09-real-mod-patterns.md": {
+    "mtime": 1784314535.4362397,
+    "ast_hash": "",
+    "semantic_hash": "c033b7d92d1ce806597e0c2aeb69b3a4"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\03-gui-system\\10-advanced-widgets.md": {
+    "mtime": 1784314149.222902,
+    "ast_hash": "",
+    "semantic_hash": "2549c9135046e3e820c08b7fefb9d2de"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\01-textures.md": {
+    "mtime": 1784296850.4759505,
+    "ast_hash": "",
+    "semantic_hash": "bb9d9ca5cb948a2b00d99e3af60596cf"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\02-models.md": {
+    "mtime": 1784297953.9506052,
+    "ast_hash": "",
+    "semantic_hash": "5d0b62d0b2857bbb4732bbb39ef789f6"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\03-materials.md": {
+    "mtime": 1784314142.0246391,
+    "ast_hash": "",
+    "semantic_hash": "82e9420b812e49d72c6d3c501133db96"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\04-audio.md": {
+    "mtime": 1784314145.5186675,
+    "ast_hash": "",
+    "semantic_hash": "88cd575acf42ebbdb12da46064753b56"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\05-dayz-tools.md": {
+    "mtime": 1784298153.00116,
+    "ast_hash": "",
+    "semantic_hash": "66ef2d57c8060aeee765120e2f016ab3"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\06-pbo-packing.md": {
+    "mtime": 1784895092.1773572,
+    "ast_hash": "",
+    "semantic_hash": "fe2861898cacea1ced9d798d5db1676d"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\07-workbench-guide.md": {
+    "mtime": 1784298012.6487112,
+    "ast_hash": "",
+    "semantic_hash": "0a6abf53ee78360be9d9d71b72f33122"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\04-file-formats\\08-building-modeling.md": {
+    "mtime": 1784296850.4879997,
+    "ast_hash": "",
+    "semantic_hash": "bdf23d9a51f5b814167d521d9cfb93dd"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\01-stringtable.md": {
+    "mtime": 1784298139.0450878,
+    "ast_hash": "",
+    "semantic_hash": "59d8a7aa961abea597ae9a53bfe7453b"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\02-inputs-xml.md": {
+    "mtime": 1784298146.461541,
+    "ast_hash": "",
+    "semantic_hash": "045fa31ea0009e69904a23d834c85842"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\03-credits-json.md": {
+    "mtime": 1784314169.2988276,
+    "ast_hash": "",
+    "semantic_hash": "d60de57ad4af98a3dec8ddecba64492e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\04-imagesets.md": {
+    "mtime": 1784314312.3399987,
+    "ast_hash": "",
+    "semantic_hash": "662690833ca0b27c0bea20d3811b6021"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\05-server-configs.md": {
+    "mtime": 1784298270.5581503,
+    "ast_hash": "",
+    "semantic_hash": "89333a6716442f7ac8aa5ba7fea86416"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\05-config-files\\06-spawning-gear.md": {
+    "mtime": 1784297848.925916,
+    "ast_hash": "",
+    "semantic_hash": "1154a7b15feb66aaa2e4f8341ee053d9"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\01-entity-system.md": {
+    "mtime": 1784895040.149146,
+    "ast_hash": "",
+    "semantic_hash": "7f6533e1dc4aea23d1e59ea3432cd429"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\02-vehicles.md": {
+    "mtime": 1784298099.679832,
+    "ast_hash": "",
+    "semantic_hash": "56fd696bffc2392385ad0b9b8e4a38d5"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\03-weather.md": {
+    "mtime": 1784298138.5004594,
+    "ast_hash": "",
+    "semantic_hash": "a798df4cf1aaec59a6f2dee6f86806e0"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\04-cameras.md": {
+    "mtime": 1784296850.4969342,
+    "ast_hash": "",
+    "semantic_hash": "f226cec2956df8f5dd305993e9cd108c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\05-ppe.md": {
+    "mtime": 1784296850.4979358,
+    "ast_hash": "",
+    "semantic_hash": "929f78dd270c7298df9a219ba08901ac"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\06-notifications.md": {
+    "mtime": 1784314248.2165718,
+    "ast_hash": "",
+    "semantic_hash": "72e405d72d0f5adcd950956d308f28fa"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\07-timers.md": {
+    "mtime": 1784314193.924143,
+    "ast_hash": "",
+    "semantic_hash": "ea2a897baea5bf2203d911f66634d326"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\08-file-io.md": {
+    "mtime": 1784314238.415983,
+    "ast_hash": "",
+    "semantic_hash": "7b596aac3d2dd6b34ed92aaca27f47d1"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\09-networking.md": {
+    "mtime": 1784297954.0942953,
+    "ast_hash": "",
+    "semantic_hash": "bad5aa1feeb2d0f08115344831dd0611"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\10-central-economy.md": {
+    "mtime": 1784297981.0505664,
+    "ast_hash": "",
+    "semantic_hash": "4d12364987980b15084a686e7ac85f61"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\11-mission-hooks.md": {
+    "mtime": 1784895153.446529,
+    "ast_hash": "",
+    "semantic_hash": "6caa32d33ca2364f7bee30521d058197"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\12-action-system.md": {
+    "mtime": 1784296850.5086234,
+    "ast_hash": "",
+    "semantic_hash": "466cdc83afc12a750e2e606dd3b84353"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\13-input-system.md": {
+    "mtime": 1784315154.4619174,
+    "ast_hash": "",
+    "semantic_hash": "f8dcff01d382dbcc1328c668cc127ec2"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\14-player-system.md": {
+    "mtime": 1784895161.8910992,
+    "ast_hash": "",
+    "semantic_hash": "20f5093dd91b95524cafda55bd062835"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\15-sound-system.md": {
+    "mtime": 1784314219.709185,
+    "ast_hash": "",
+    "semantic_hash": "86a7fbf8aa9d08adc14e01f964e2be87"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\16-crafting-system.md": {
+    "mtime": 1784296850.5136225,
+    "ast_hash": "",
+    "semantic_hash": "c308416d8301fa205cb26df1ee7b2d7c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\17-construction-system.md": {
+    "mtime": 1784314245.5148144,
+    "ast_hash": "",
+    "semantic_hash": "ca23dee0f769c279f27c98855940271b"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\18-animation-system.md": {
+    "mtime": 1784314431.6493413,
+    "ast_hash": "",
+    "semantic_hash": "5cd2f39b0c95b60d2bfa99f0429c2584"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\19-terrain-queries.md": {
+    "mtime": 1784296850.5166268,
+    "ast_hash": "",
+    "semantic_hash": "27121194a99615705ce1844674c695b2"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\20-particle-effects.md": {
+    "mtime": 1784296850.5166268,
+    "ast_hash": "",
+    "semantic_hash": "658be891e02d040ddcd1ea8c6a92ab1d"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\21-zombie-ai-system.md": {
+    "mtime": 1784314266.0680342,
+    "ast_hash": "",
+    "semantic_hash": "daff79822f5ae1687683810ab5a760a4"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\22-admin-server.md": {
+    "mtime": 1784316221.3262918,
+    "ast_hash": "",
+    "semantic_hash": "6e58a7eb479f119cc4976a9e32c56f10"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\23-world-systems.md": {
+    "mtime": 1784296850.520653,
+    "ast_hash": "",
+    "semantic_hash": "2bb316a3d16641ea6b5a96edcd044163"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\06-engine-api\\quick-reference.md": {
+    "mtime": 1784296850.5222595,
+    "ast_hash": "",
+    "semantic_hash": "7e62a3b891b91fdbc72cb1cfa8077f51"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\01-singletons.md": {
+    "mtime": 1784319250.0071032,
+    "ast_hash": "",
+    "semantic_hash": "4aae8fda6d2b1b77fd1de975257cd443"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\02-module-systems.md": {
+    "mtime": 1784319265.7558792,
+    "ast_hash": "",
+    "semantic_hash": "8fae77258d4a02c573e1821ebb2f9c1c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\03-rpc-patterns.md": {
+    "mtime": 1784315286.8213766,
+    "ast_hash": "",
+    "semantic_hash": "5e92264e92e1a166803d2a6aabfca95c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\04-config-persistence.md": {
+    "mtime": 1784319242.518317,
+    "ast_hash": "",
+    "semantic_hash": "9689173be9948865567747a306babb6c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\05-permissions.md": {
+    "mtime": 1784315185.0003788,
+    "ast_hash": "",
+    "semantic_hash": "bd68a824424b418c321fcb098659d3c6"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\06-events.md": {
+    "mtime": 1784319274.9771848,
+    "ast_hash": "",
+    "semantic_hash": "31f978d99691c5931ddfff8569fa17f1"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\07-patterns\\07-performance.md": {
+    "mtime": 1784314321.8056953,
+    "ast_hash": "",
+    "semantic_hash": "ab1ba3d630c8979dde108ced6282ea44"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\01-first-mod.md": {
+    "mtime": 1784314282.4416008,
+    "ast_hash": "",
+    "semantic_hash": "12137b6e99c6dcd8ad4f36915a915df8"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\02-custom-item.md": {
+    "mtime": 1784296850.538973,
+    "ast_hash": "",
+    "semantic_hash": "69e4f034f932df9c20e228003c01e64c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\03-admin-panel.md": {
+    "mtime": 1784314678.594426,
+    "ast_hash": "",
+    "semantic_hash": "cd0183467bf49759ddc77ff2c4d561bd"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\04-chat-commands.md": {
+    "mtime": 1784318929.819771,
+    "ast_hash": "",
+    "semantic_hash": "abf0cdadfa54f913dbd2ed5ef0378202"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\05-mod-template.md": {
+    "mtime": 1784314471.5301242,
+    "ast_hash": "",
+    "semantic_hash": "391dc884161f7c63a99488a864600ec9"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\06-debugging-testing.md": {
+    "mtime": 1784895244.1369898,
+    "ast_hash": "",
+    "semantic_hash": "aabf1e101fe1da23bb364069d21e06bd"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\07-publishing-workshop.md": {
+    "mtime": 1784314327.8240833,
+    "ast_hash": "",
+    "semantic_hash": "c8b3c7646fea347152349581f9538a92"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\08-hud-overlay.md": {
+    "mtime": 1784319370.0830357,
+    "ast_hash": "",
+    "semantic_hash": "1fc09030b76ee6673a1c49422845a258"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\09-professional-template.md": {
+    "mtime": 1784319296.4699602,
+    "ast_hash": "",
+    "semantic_hash": "cdd355db6368445191e26b77a480864c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\10-vehicle-mod.md": {
+    "mtime": 1784296850.547948,
+    "ast_hash": "",
+    "semantic_hash": "7d69e61688477e092686e914ccb8056e"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\11-clothing-mod.md": {
+    "mtime": 1784296850.548695,
+    "ast_hash": "",
+    "semantic_hash": "2c17b11607b165cc0a19ebc9f669d88c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\12-trading-system.md": {
+    "mtime": 1784319129.3105009,
+    "ast_hash": "",
+    "semantic_hash": "ef1d430d5140cff23d287828de42504c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\08-tutorials\\13-diag-menu.md": {
+    "mtime": 1784296850.5495076,
+    "ast_hash": "",
+    "semantic_hash": "f1adfd6cd1fa993bf69e95cb0cb8858c"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\01-server-setup.md": {
+    "mtime": 1784296850.5505302,
+    "ast_hash": "",
+    "semantic_hash": "cb9d6e50790b15ea1381bf7b992cce31"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\02-directory-structure.md": {
+    "mtime": 1784296850.553064,
+    "ast_hash": "",
+    "semantic_hash": "b5f78a5aec444172e8edcd728b233694"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\03-server-cfg.md": {
+    "mtime": 1784314523.2140858,
+    "ast_hash": "",
+    "semantic_hash": "8ce5be8e6441ac7f4de40dfe40b67e77"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\04-loot-economy.md": {
+    "mtime": 1784298153.2181027,
+    "ast_hash": "",
+    "semantic_hash": "ec222868f6937bd07b8bee6b54a6a8f2"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\05-vehicle-spawning.md": {
+    "mtime": 1784296850.557969,
+    "ast_hash": "",
+    "semantic_hash": "e3062df12ba2caa728a342da05b4d211"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\06-player-spawning.md": {
+    "mtime": 1784297918.734999,
+    "ast_hash": "",
+    "semantic_hash": "c0332c918e312349a0f0404bfc351306"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\07-persistence.md": {
+    "mtime": 1784314553.9250734,
+    "ast_hash": "",
+    "semantic_hash": "94b3192f17c18ebefd5b9568d17cced3"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\08-performance.md": {
+    "mtime": 1784296850.5612464,
+    "ast_hash": "",
+    "semantic_hash": "82bd0ab81574f6648b2d00787e1fd653"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\09-access-control.md": {
+    "mtime": 1784314413.753683,
+    "ast_hash": "",
+    "semantic_hash": "49c9bf58456d771c697d760f7db67bbb"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\10-mod-management.md": {
+    "mtime": 1784314471.6756732,
+    "ast_hash": "",
+    "semantic_hash": "d109cecd840d091103881769e18da724"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\11-troubleshooting.md": {
+    "mtime": 1784314573.427912,
+    "ast_hash": "",
+    "semantic_hash": "d30ce4b159616f475a6a35608c5c1b85"
+  },
+  "D:\\StarDZ\\docs\\wiki\\en\\09-server-admin\\12-advanced.md": {
+    "mtime": 1784315243.3922906,
+    "ast_hash": "",
+    "semantic_hash": "c598eecc502f267e917dc083a3fbb844"
+  }
+}

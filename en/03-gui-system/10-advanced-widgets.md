@@ -303,6 +303,8 @@ Approximate a circle with a polygon: walk around the circumference in fixed angl
 ```c
 void DrawCanvasCircle(CanvasWidget canvas, float centerX, float centerY, float radius, float lineWidth, int color, int segments)
 {
+    if (segments < 3)
+        return;
     float stepDeg = 360.0 / segments;
 
     // Start at angle 0 (rightmost point of the circle)
@@ -367,7 +369,7 @@ protected void RenderScaleRuler()
 
 ### World-Space Overlay Pattern
 
-A recurring advanced-UI task is anchoring 2D screen elements to 3D world positions: nameplates over teammates, waypoint markers, distance labels, or debug wireframes. The engine gives you the one conversion you need -- `GetGame().GetScreenPosRelative(worldPos)` (declared in `scripts/3_game/global/game.c`) returns a vector whose `x` and `y` components are the screen position in the 0..1 range and whose `z` component is the distance between the camera and the world position. The vanilla in-game HUD uses exactly this call to place the player tag over a nearby survivor (`scripts/5_mission/gui/ingamehud.c`, `ShowPlayerTag()`).
+A recurring advanced-UI task is anchoring 2D screen elements to 3D world positions: nameplates over teammates, waypoint markers, distance labels, or debug wireframes. The engine gives you the one conversion you need -- `GetGame().GetScreenPosRelative(worldPos)` (declared in `scripts/3_game/global/game.c`) returns a vector whose `x` and `y` components are the screen position in the 0..1 range and whose `z` component is the distance between the camera and the world position. The vanilla `scripts/5_mission/gui/ingamehud.c` uses this projection in `ShowPlayerTag()` to test visibility, then places a text-widget tag at a fixed `(0.55, 0.55)`. The following teaching example instead moves labels to the projected coordinates.
 
 **Architecture:**
 
@@ -453,6 +455,8 @@ class LNT_Nameplates
     void OnUpdate(float timeslice)
     {
         m_Canvas.Clear();
+        foreach (TextWidget pooledLabel : m_LabelPool)
+            pooledLabel.Show(false);
 
         PlayerBase localPlayer = PlayerBase.Cast(GetGame().GetPlayer());
         if (!localPlayer)
@@ -604,7 +608,7 @@ static void ClearCanvas()
 
 ### Performance Considerations
 
-- **Clear and redraw every frame.** `CanvasWidget` does not retain state between frames in most use cases where the view changes (camera movement, etc.). Call `Clear()` at the start of each update.
+- **Clear and redraw every frame.** Call `Clear()` before rebuilding dynamic drawing for a changed camera or scene; drawing new lines does not explicitly clear old content.
 - **Minimize line count.** Each `DrawLine()` call has overhead. For complex shapes like circles, use fewer segments (12-18) for distant objects, more (36) for close ones.
 - **Check screen bounds first.** Convert world positions to screen coordinates and skip objects that are off-screen or behind the camera (`screenPos[2] < 0`).
 - **Use `ignorepointer 1`.** Always set this flag on canvas overlays so they do not intercept mouse events.
@@ -757,7 +761,7 @@ Access these by enum via `MapMarkerTypes.GetMarkerTypeFromID(eMapMarkerTypes.MAR
 // Set the map center to a world position
 m_Map.SetMapPos(playerWorldPos);
 
-// Get/set zoom level (0.0 = fully zoomed out, 1.0 = fully zoomed in)
+// Get/set map scale; choose useful values by testing the displayed terrain
 float currentScale = m_Map.GetScale();
 m_Map.SetScale(0.33);  // moderate zoom level
 
@@ -1136,7 +1140,7 @@ proto native void SetWidgetWorld(
 
 Renders a camera view from a `BaseWorld` into the widget area. Used for security cameras, rear-view mirrors, or picture-in-picture displays.
 
-From `scripts/2_gamelib/entities/rendertarget.c`:
+The following adapts `scripts/2_gamelib/entities/rendertarget.c`, whose entity example is guarded by `GAME_TEMPLATE`. The native widget declarations are in `enwidgets.c`; the guarded example is not evidence that this entity runs in the retail game:
 
 ```c
 // Create render target programmatically
@@ -1193,7 +1197,7 @@ imgWidget.SetImageTexture(0, rtTexture);
 
 3. **Check screen bounds for world-space overlay drawing.** Before calling `DrawLine()`, verify both endpoints are on screen. Off-screen draws are wasted work.
 
-4. **Map markers: clear-and-rebuild pattern.** There is no `RemoveUserMark()` method. Call `ClearUserMarks()` then re-add all active markers each update. This is the pattern used by every vanilla and mod implementation.
+4. **Map markers: clear-and-rebuild pattern.** There is no `RemoveUserMark()` method. Call `ClearUserMarks()` then re-add all active markers each update. Rebuild markers when your marker data changes; choose the update frequency for your use case.
 
 5. **ItemPreviewWidget needs a real EntityAI.** You cannot preview a classname string -- you need a spawned entity reference. For inventory previews, use the actual inventory item.
 
@@ -1207,20 +1211,20 @@ imgWidget.SetImageTexture(0, rtTexture);
 
 ## Where These Widgets Appear in Vanilla DayZ
 
-Every widget in this chapter is used somewhere in the shipped game. These are good reading references when you want a working, in-context example straight from the vanilla scripts:
+These source references illustrate the APIs. Check conditional compilation before treating a script example as active retail behavior:
 
 | Source | Widget | Usage |
 |-----|--------|-------|
 | Map menu | `MapWidget` + `CanvasWidget` | Scale ruler rendered with alternating black/grey line segments |
 | Inspect menu | `ItemPreviewWidget` | 3D item inspection with drag rotation and scroll zoom |
 | Inventory | `PlayerPreviewWidget` | Character preview with equipment sync and injury animations |
-| In-game HUD | `CanvasWidget` + `GetScreenPosRelative()` | Player tag anchored over a nearby survivor |
+| In-game HUD | `TextWidget` + `GetScreenPosRelative()` | Projection gates visibility; the tag itself uses a fixed UI position |
 | Script console | `MapWidget` | Debug teleport via `ScreenToMap()` on double-click |
 | Hint panel | `RichTextWidget` | In-game hint panel with formatted description text |
 | Menus | `RichTextWidget` | Controller button icons via `InputUtils.GetRichtextButtonIconFromInputAction()` |
 | Book menu | `HtmlWidget` | Loading and paging through `.html` text files |
 | Main menu | `VideoWidget` | Onboarding video with end callback |
-| Render target | `RenderTargetWidget` | Camera-to-widget rendering with configurable refresh rate |
+| GameLib render-target example (`GAME_TEMPLATE`) | `RenderTargetWidget` | Guarded camera-to-widget example with configurable refresh rate |
 
 ---
 

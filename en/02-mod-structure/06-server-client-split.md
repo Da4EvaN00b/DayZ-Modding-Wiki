@@ -185,7 +185,7 @@ void OnPlayerAction(PlayerBase player, int actionID)
 
 ## The mod.cpp type Field
 
-The `mod.cpp` file at the root of your mod folder contains a `type` field that controls WHERE the mod is loaded:
+The `mod.cpp` file at the root of your mod folder commonly carries a `type` field. Treat it as **declarative metadata that should match how you actually launch the mod, not the mechanism that places it there**: what determines whether a PBO reaches clients or stays server-only is which launch flag loads it -- `-mod=` versus `-servermod=`. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents `-mod=` as how a mod is loaded, and documents `type` under `CfgMods` in a PBO's `config.cpp` rather than as a `mod.cpp` key, so the `mod.cpp` copy is convention. Launcher and build tooling decides which launch list a package goes into from its own bookkeeping; the `type` field is where you record that intent so the launcher display and Workshop categorization stay consistent with it. Ship a `type = "servermod"` package but launch it with `-mod=` and you are not exercising some documented "servermod behavior" -- you are just launching a mod, with whatever that package's code assumes about being server-only left unverified.
 
 ### type = "mod" (Both Sides)
 
@@ -251,7 +251,7 @@ class CfgMods
 };
 ```
 
-This field should match your `mod.cpp` type field. If they disagree, you get unpredictable behavior. Keep them consistent.
+This field should match your `mod.cpp` type field for the same reason covered above: neither field is the mechanism that routes the PBO to server or client -- the launch flag (`-mod=` vs `-servermod=`) is. Two details are worth knowing before you lean on the declaration. Bohemia's `CfgMods` reference annotates `type = "mod";` as *required* and documents no other value. And in the vanilla scripts, `CfgMods` is read by `ModLoader` and `ModStructure` (`3_game/client/mods/modloader.c:17-23`), which enumerate the mod entries for the in-game mod list and never read `type` at all; the string `"servermod"` does not appear anywhere in the script extraction. That is not proof the engine ignores it -- the config is also read natively -- but it does mean no script-visible behaviour hangs on it. Keep the two fields consistent as hygiene and as documentation of intent; no specific engine error is documented for a mismatch.
 
 The `config.cpp` also contains the `defines[]` array, which is how you enable preprocessor symbols for cross-mod detection:
 
@@ -275,7 +275,7 @@ class CfgMods
 };
 ```
 
-Notice that the server mod re-declares `LANTERN_AI` and adds `LANTERN_AISERVER`. This is deliberate: a `defines[]` symbol declared on a `-mod` package does **not** propagate to a `-servermod` package. Each package's `defines[]` only exist within that package's own compilation, so the server package must list every symbol its own code checks. Declaring both here lets server-side code tell whether just the client mod is present or the full server package is loaded.
+Notice that the server mod re-declares `LANTERN_AI` and adds `LANTERN_AISERVER`. Treat this as the defensive pattern rather than a guaranteed engine rule. `defines[]` is not documented on Bohemia's `CfgMods` reference at all, so there is no published contract for how a symbol declared in one package is scoped when another package compiles -- and community reports of cross-mod `#ifdef` detection describe it as inconsistent. Re-declaring every symbol your own code tests in that package's own `defines[]`, as done here, sidesteps the question entirely and is correct whatever the underlying mechanism turns out to be.
 
 ---
 
@@ -427,8 +427,10 @@ The 5-layer hierarchy (Chapter 2.1) intersects with the server-client split. Not
 Layers 1 through 4 compile and run on **all sides**. The code is the same. This is why entity class definitions, config classes, and RPC constants all live in `3_Game` or `4_World` -- both sides need them.
 
 Layer 5 (`5_Mission`) is where the split becomes explicit:
-- `MissionServer` is a class that only exists on the server (and listen server). It handles server-side initialization, update loops, and cleanup.
-- `MissionGameplay` is a class that only exists on the client (and listen server). It handles client-side UI, HUD, and player-facing features.
+- `MissionServer` is only *instantiated* on the server (and listen server). It handles server-side initialization, update loops, and cleanup.
+- `MissionGameplay` is only *instantiated* on the client (and listen server). It handles client-side UI, HUD, and player-facing features.
+
+Both classes are **compiled into every build** -- they live in the vanilla `5_mission` module (`5_mission/mission/missionserver.c:5` and `missiongameplay.c:1`, both extending `MissionBase`). What differs per side is which one the engine creates, not which one exists. That distinction matters when you decide whether a `modded class` needs a preprocessor guard -- see [Preprocessor Guards](#preprocessor-guards).
 
 When you write `modded class MissionServer`, that code runs on the dedicated server. When you write `modded class MissionGameplay`, that code runs on the client.
 
@@ -464,7 +466,7 @@ Enforce Script supports preprocessor directives that let you conditionally compi
 
 ### The SERVER Define
 
-The engine defines `SERVER` in the **dedicated server build only**. The vanilla header documents it as a define "always present on dedicated servers" and recommends preferring it over `IsDedicatedServer()` where a compile-time answer works (`1_core/defines.c`). A **listen server** runs the ordinary client binary (launched with `-server`), so `SERVER` is **not** defined there --- `#ifndef SERVER` client code compiles into a listen server host exactly as it does into a remote client. This is a **compile-time** distinction, not a runtime one:
+The engine defines `SERVER` in the **dedicated server build only**. The vanilla header is explicit: the `ServerDefines` group is "Defines for dedicated server code", noted as "Only defined when CGame.IsDedicatedServer equals true", and `SERVER` itself is documented as a "Define always present on dedicated servers" that "should be preferred over using CGame.IsDedicatedServer when possible" (`1_core/defines.c:104-115`). Because `IsDedicatedServer()` is false on a **listen server**, `SERVER` is **not** defined there --- `#ifndef SERVER` client code compiles into a listen server host exactly as it does into a remote client. This is a **compile-time** distinction, not a runtime one:
 
 ```c
 #ifdef SERVER
@@ -482,16 +484,16 @@ The engine defines `SERVER` in the **dedicated server build only**. The vanilla 
 
 | Approach | When to Use | Example |
 |----------|-------------|---------|
-| `#ifndef SERVER` | Wrapping code that references client-only types (widgets, UI classes) | Client UI helper classes, `MissionGameplay` bodies that use widget types |
+| `#ifndef SERVER` | Wrapping your own client-only helper classes (typically UI logic) that you deliberately keep out of the server build | Your own UI helper classes, `MissionGameplay` bodies that reference them |
 | `#ifdef SERVER` | Wrapping entire class definitions that should only exist on server | Server-only helper classes |
 | `GetGame().IsServer()` | Runtime branching within code that runs on both sides | Entity update logic that differs per side |
 | `GetGame().IsClient()` | Runtime branching within code that runs on both sides | Playing effects only on client |
 
 ### Worked Example: Client Mission Hook in a Shared Mod
 
-`MissionGameplay` compiles into **both** the server and the client build -- the class exists in every vanilla script module (`5_mission/mission/missiongameplay.c`), it is simply only *instantiated* on the client and the listen server host. You do NOT need `#ifndef SERVER` just to mod `MissionGameplay`. The guard is only required when the modded class body references **client-only types** such as widget classes or UI helpers that do not exist on the server.
+`MissionGameplay` compiles into **both** the server and the client build -- the class exists in every vanilla script module (`5_mission/mission/missiongameplay.c`), it is simply only *instantiated* on the client and the listen server host. You do NOT need `#ifndef SERVER` just to mod `MissionGameplay`. The guard is only required when the modded class body references a type that is genuinely unavailable on the server -- almost always one of **your own** helper classes that you chose to compile out with its own `#ifndef SERVER`. It is not because vanilla widget or UI types are missing there: `Widget` itself is declared unguarded at `1_core/proto/enwidgets.c:107`, and every built-in widget subclass with it, so they resolve on the server exactly as `MissionGameplay` does. The guard is still useful for keeping client-only *logic* -- input handling, HUD updates -- out of the server build even when the vanilla types involved would compile fine there.
 
-Several large public mods mod `MissionGameplay` without any `#ifndef SERVER` guard, and that is correct: the vanilla `MissionGameplay` type is unguarded, so it resolves on every build. You only need the guard once your modded body pulls in client-only types.
+Several large public mods mod `MissionGameplay` without any `#ifndef SERVER` guard, and that is correct: the vanilla `MissionGameplay` type is unguarded, so it resolves on every build. You only need the guard once your modded body pulls in a type that is actually unavailable on the server -- typically one you wrapped in a guard yourself.
 
 ```c
 // SAFE: No #ifndef SERVER needed because the body uses no client-only types
@@ -506,8 +508,11 @@ modded class MissionGameplay
 ```
 
 ```c
-// NEEDS #ifndef SERVER: The body references MyClientUI (a widget/UI class
-// that only exists on the client). Without the guard, the server cannot
+// NEEDS #ifndef SERVER: MyClientUI is a UI helper class of your own, not a
+// vanilla widget type -- vanilla widgets like `Widget` are declared unguarded
+// (1_core/proto/enwidgets.c:107) and resolve on every build. MyClientUI is
+// unresolvable on the server precisely because you would declare/use it only
+// inside a guard like this one. Without the guard here, the server cannot
 // resolve the MyClientUI type and compilation fails.
 
 #ifndef SERVER
@@ -1071,10 +1076,10 @@ Before publishing a split mod, verify:
 - [ ] Server `config.cpp` lists client package in `requiredAddons[]`
 - [ ] All shared types (RPC data, entity classes, enums) are in the client package
 - [ ] All server logic (spawning, validation, AI brains) is in the server package
-- [ ] `MissionGameplay` modded classes that reference client-only types (widgets, UI classes) are wrapped in `#ifndef SERVER`
+- [ ] `MissionGameplay` modded classes that reference your own client-only helper types (UI logic you compile out of the server build) are wrapped in `#ifndef SERVER`
 - [ ] No `GetGame().GetPlayer()` calls on server without null checks
 - [ ] No UI/widget code in the server package
 - [ ] Optional dependencies use `#ifdef` guards, not direct references
-- [ ] `defines[]` array matches between `mod.cpp` and `config.cpp`
+- [ ] `defines[]` is declared in each package's `config.cpp` `CfgMods` (not in `mod.cpp`), and lists every symbol that package's own code tests
 - [ ] Tested on a **dedicated server**, not just a listen server
 - [ ] Server config files are loaded server-side and synced via RPC, not read by clients

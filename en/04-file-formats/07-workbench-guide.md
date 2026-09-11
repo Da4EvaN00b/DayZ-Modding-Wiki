@@ -17,8 +17,8 @@ Workbench is Bohemia Interactive's integrated development environment for the En
 - [The Workbench Interface](#the-workbench-interface)
 - [Script Editing](#script-editing)
 - [Debugging Scripts](#debugging-scripts)
-- [Script Console -- Live Testing](#script-console----live-testing)
-- [UI / Layout Preview](#ui--layout-preview)
+- [Script Console -- Live Testing](#script-console-live-testing)
+- [UI / Layout Preview](#ui-layout-preview)
 - [Resource Browser](#resource-browser)
 - [Performance Profiling](#performance-profiling)
 - [Integration with File Patching](#integration-with-file-patching)
@@ -40,7 +40,7 @@ Workbench is Bohemia's IDE for Enfusion engine development. It is the only tool 
 | **Performance profiling** | Script profiling, frame time analysis, memory monitoring |
 | **Script console** | Execute Enforce Script commands live against a running game instance |
 
-Workbench uses the same Enfusion script compiler as DayZ itself. When Workbench reports a compile error, that error will also occur in-game -- making it a reliable pre-flight check before launching.
+Workbench uses the same Enfusion script compiler as DayZ itself. Keep its script modules and defines aligned with the game; a different project context can produce different compile results.
 
 ### What Workbench is NOT
 
@@ -88,7 +88,7 @@ Extract these via the DayZ Tools Launcher, or create a symbolic link to the extr
 To allow DayZDiag to load scripts directly from your Project Drive (enabling live editing without PBO rebuilds), create a symbolic link from the DayZ installation folder to `P:\scripts`:
 
 1. Navigate to your DayZ installation folder (typically `Steam\steamapps\common\DayZ`).
-2. Delete any existing `scripts` folder inside it.
+2. Preserve or rename any existing `scripts` folder before creating the link; do not discard a working source tree.
 3. Open a command prompt **as Administrator** and run:
 
 ```batch
@@ -155,7 +155,6 @@ GameProjectClass {
 
             widgetStyles {
                 "gui/looknfeel/dayzwidgets.styles"
-                "gui/looknfeel/widgets.styles"
             }
 
             ScriptModules {
@@ -538,8 +537,8 @@ The fastest development workflow combines Workbench with file patching, eliminat
 |--------|----------|
 | Script logic (`.c`) | No -- restart mission |
 | Layout files (`.layout`) | No -- restart mission |
-| Config.cpp (script-only) | No -- restart mission |
-| Config.cpp (with CfgVehicles) | Yes -- binarized configs require PBO |
+| Config.cpp | Repack the changed config when loaded from a PBO, then restart the game process |
+| model.cfg / model animation data | Binarize the affected model, repack, then restart |
 | Textures (`.paa`) | No -- engine reloads from P: |
 | Models (`.p3d`) | Maybe -- unbinarized MLOD only |
 
@@ -598,7 +597,7 @@ The fastest development workflow combines Workbench with file patching, eliminat
 
 6. **Use bookmarks for navigation.** Blue bookmark dots mark interesting vanilla script locations you reference frequently.
 
-7. **Check compiler output before launching.** If Workbench reports errors, the game will fail too. Fix errors in Workbench first -- faster than waiting for game boot.
+7. **Check compiler output before launching.** Resolve errors in the matching project context, then verify the game build.
 
 8. **Use -mod for simple setups, .gproj for complex.** Single-mod with no dependencies: `-mod=P:\MyMod`. Multi-mod with a framework dependency: custom `.gproj`.
 

@@ -495,7 +495,7 @@ void MapInsertUpdate()
 }
 ```
 
-**Critical distinction:** `Insert()` does **not** update existing keys. `Set()` does. When in doubt, use `Set()`.
+**Critical distinction:** `Set()` is the documented create-or-update call --- "sets value of element with given key; if element with key not exists, it is created" (`1_core/proto/enscript.c:879-883`). `Insert()` is documented only as "insert new element into hash map" (`:900-907`) and returns a `bool`; its behaviour on a key that already exists is not documented. When the key may already be there, use `Set()`.
 
 ### Accessing Values
 
@@ -774,7 +774,7 @@ class LootTable
 ## Best Practices
 
 - Always use `new` to instantiate collections before use -- `array<string> items;` is `null`, not empty.
-- Prefer `map.Set()` over `map.Insert()` for updates -- `Insert` silently ignores existing keys.
+- Prefer `map.Set()` over `map.Insert()` for updates -- `Set()` is the documented create-or-update call; `Insert()` is documented only for new elements.
 - When removing elements during iteration, use a backward `for` loop or build a separate removal list -- never modify a collection inside `foreach`.
 - Use `Reserve()` when you know the expected element count ahead of time to avoid repeated internal re-allocations.
 - Guard every element access with `IsValidIndex()` or a `Count() > 0` check -- out-of-bounds access causes silent crashes.
@@ -867,7 +867,7 @@ map<string, int> CountOccurrences(array<string> items)
 | Concept | Theory | Reality |
 |---------|--------|---------|
 | `Remove(index)` is "fast remove" | Should just delete the element | It swaps with the last element first, silently re-ordering the array |
-| `map.Insert()` adds a key | Expected to update if key exists | Returns `false` and does nothing if the key is already present |
+| `map.Insert()` adds a key | Expected to update if key exists | It is the *insert-new* call and returns a `bool` (`1_core/proto/enscript.c:907`); `Set()` is the one documented to create-or-update (`:883`). What `Insert` does with a key that already exists is not documented -- use `Set()` when the key may already be there |
 | `set<T>` for unique collections | Should behave like a mathematical set | Most modders use `array<T>` with `Find()` instead because `set` has fewer methods |
 
 ---

@@ -246,7 +246,7 @@ flags = flags & ~FLAG_B;          // remove
 
 ## What Does NOT Exist
 
-The ten you hit most. The full list, with the exact CParser errors each one throws, lives in [1.12 Gotchas](01-enforce-script/12-gotchas.md).
+The ten you hit most. The full list lives in [1.12 Gotchas](01-enforce-script/12-gotchas.md), which also corrects two claims that circulate widely but are false: `\\` and `\"` *are* supported escape sequences, and method overloading *does* compile.
 
 | Missing Feature | Workaround |
 |----------------|------------|
@@ -256,7 +256,7 @@ The ten you hit most. The full list, with the exact CParser errors each one thro
 | Multiple inheritance | Single + composition |
 | Lambdas | Named methods |
 | `nullptr` | `null` / `NULL` |
-| `\\` / `\"` in strings | Avoid (CParser breaks) |
+| Variadic params (`params`, `...`) | Do not exist — Bohemia's syntax reference states function parameters are "fixed and typed (cannot be changed during run-time, no variadic parameters)"; use `string.Format` (max 9 args, `enstring.c:526`) or pass an `array<T>` |
 | `#include` | config.cpp `files[]` |
 | Namespaces | Name prefixes (`LNT_`, `YourTag_`) |
 | `#define` values | Use `const` |
@@ -341,9 +341,16 @@ string stack; DumpStackString(stack);             // Get call stack (out param)
 bool exists = FileExist("$profile:MyMod/config.json");
 MakeDirectory("$profile:MyMod");
 
-// JSON
+// JSON (preferred: returns bool + error message)
 MyConfig cfg = new MyConfig();
-JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);  // Returns VOID!
+string jsonErr;
+bool ok = JsonFileLoader<MyConfig>.LoadFile(path, cfg, jsonErr);
+JsonFileLoader<MyConfig>.SaveFile(path, cfg, jsonErr);
+
+// Older API still seen in mods -- deprecated (jsonfileloader.c:99), returns VOID.
+// Silent on a missing file or a failed open; a parse failure only reaches the RPT
+// via ErrorEx (:129) -- either way the caller is never told.
+JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
 JsonFileLoader<MyConfig>.JsonSaveFile(path, cfg);
 
 // Raw file

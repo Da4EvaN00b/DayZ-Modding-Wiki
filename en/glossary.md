@@ -565,7 +565,7 @@ Base class for all inventory items (weapons, tools, food, clothing). Extends `In
 ## J
 
 ### JsonFileLoader
-`JsonFileLoader<T>.JsonLoadFile(path, data)` -- loads a JSON file and deserializes it into an object. Returns `void` (pass a ref object, do not assign return). Also `JsonSaveFile()` for saving.
+`JsonFileLoader<T>.LoadFile(path, out data, out errorMessage)` (`3_game/tools/jsonfileloader.c:7`) -- loads a JSON file and deserializes it into an object, returning `bool` success plus an error message. The older `JsonLoadFile(path, data)`/`JsonSaveFile()` pair returns `void` and so never signals the caller: it does nothing when the file is missing or cannot be opened, and logs a parse failure to the RPT via `ErrorEx` (`:129`). It still works, but is marked `//! DEPRECATED` in the vanilla source (`:99`).
 
 **Chapter:** [6.8 File I/O & JSON](06-engine-api/08-file-io.md) | [7.4 Config Persistence](07-patterns/04-config-persistence.md)
 **See also:** [File I/O](#file-io)
@@ -720,9 +720,9 @@ A `types.xml` attribute: the target number of an item the Central Economy tries 
 **Chapter:** [6.6 Notification System](06-engine-api/06-notifications.md)
 
 ### notnull Parameter
-Function parameter modifier that guarantees the argument is not null at the engine level. Passing null to a `notnull` parameter causes a script error.
+Function parameter modifier declaring that `null` is never a valid argument. Bohemia's Enforce Script syntax page does not list it, so its enforcement -- compile time, runtime, or both -- is undocumented, and community references disagree. Vanilla treats the guarantee as real: `array<T>.InsertAll(notnull array<T> from)` dereferences the parameter with no null check (`1_core/proto/enscript.c:449`). Honour it at the call site and null-check there; a reference valid at the check can still become null afterwards (engine-side entity deletion), and the modifier does not make that safe.
 
-**Chapter:** [1.13 Functions & Methods](01-enforce-script/13-functions-methods.md)
+**Chapter:** [1.13 Functions & Methods](01-enforce-script/13-functions-methods.md) | [1.8 Memory Management](01-enforce-script/08-memory-management.md) | [1.11 Error Handling](01-enforce-script/11-error-handling.md)
 
 ### NULL / null
 Enforce Script's null reference value. Used interchangeably. No `nullptr` keyword exists.

@@ -30,9 +30,22 @@ This chapter covers the standard patterns for config persistence, from basic JSO
 
 `JsonFileLoader` is the engine's built-in serializer. It converts between Enforce Script objects and JSON files using reflection --- it reads the public fields of your class and maps them to JSON keys automatically.
 
-### Critical Gotcha
+### Two APIs: Prefer LoadFile/SaveFile, Not the Legacy JsonLoadFile/JsonSaveFile
 
-**`JsonFileLoader<T>.JsonLoadFile()` and `JsonFileLoader<T>.JsonSaveFile()` return `void`.** You cannot check their return value. You cannot assign them to a `bool`. You cannot use them in an `if` condition. This is one of the most common mistakes in DayZ modding.
+`JsonFileLoader<T>` actually exposes two generations of the same operation, and the vanilla source itself marks the older pair as superseded (`jsonfileloader.c`, comments directly above each: *"use JsonFileLoader::LoadFile instead"* / *"use JsonFileLoader::SaveFile instead"*):
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `static bool LoadFile(string filename, out T data, out string errorMessage)` | `bool` | **Modern, preferred.** Tells you whether the load succeeded and gives you an error string when it did not. |
+| `static bool SaveFile(string filename, T data, out string errorMessage)` | `bool` | **Modern, preferred.** Same success/error reporting for saves. |
+| `static void JsonLoadFile(string filename, out T data)` | `void` | Legacy. No success/failure signal at all -- see the gotcha below. |
+| `static void JsonSaveFile(string filename, T data)` | `void` | Legacy. Same limitation for saves. |
+
+Prefer `LoadFile`/`SaveFile` in new code -- they give you a real `bool` result plus an error message, which sidesteps the entire gotcha this section used to have to work around. The legacy `JsonLoadFile`/`JsonSaveFile` still work and appear throughout older mods and this chapter's examples, so the gotcha below still matters when you touch that code.
+
+### Critical Gotcha (Legacy API Only)
+
+**`JsonFileLoader<T>.JsonLoadFile()` and `JsonFileLoader<T>.JsonSaveFile()` return `void`.** You cannot check their return value. You cannot assign them to a `bool`. You cannot use them in an `if` condition. This is one of the most common mistakes in DayZ modding -- and the reason the modern `LoadFile`/`SaveFile` pair above exists.
 
 ```c
 // WRONG — will not compile
@@ -44,12 +57,19 @@ if (JsonFileLoader<MyConfig>.JsonLoadFile(path, config))
     // ...
 }
 
-// RIGHT — call and then check the object state
+// WORKAROUND with the legacy API — call and then check the object state
 JsonFileLoader<MyConfig>.JsonLoadFile(path, config);
 // Check if the data was actually populated
 if (config.m_ServerName != "")
 {
     // Data loaded successfully
+}
+
+// BETTER — switch to the modern API and get a real result
+string error;
+if (!JsonFileLoader<MyConfig>.LoadFile(path, config, error))
+{
+    Print("Config load failed: " + error);
 }
 ```
 
@@ -295,11 +315,11 @@ void EnsureDirectories()
 
 ### Important: MakeDirectory Is Not Recursive
 
-`MakeDirectory` creates only the final directory in the path. If the parent does not exist, it fails silently. You must create each level:
+`MakeDirectory` creates only the final directory in the path. If the parent does not exist, the create does not happen -- the signature is `proto native bool MakeDirectory(string name)` (`1_core/proto/ensystem.c:525`), returning a `bool` you should check rather than assume; vanilla documents only `//!Makes a directory` (`:524`) and does not state what value comes back for a missing parent, so treat the return value as the contract to test, not a known outcome. Create each level in turn:
 
 ```c
 // WRONG: Parent "MyMod" doesn't exist yet
-MakeDirectory("$profile:MyMod/Data/Players");  // Fails silently
+MakeDirectory("$profile:MyMod/Data/Players");  // Nothing is created; the return value is your only signal
 
 // RIGHT: Create each level
 MakeDirectory("$profile:MyMod");
@@ -531,7 +551,7 @@ void MigrateConfig(MyModConfig config)
 
 ### A Versioned-Migration Checklist
 
-Large, long-lived mods treat config migration as a first-class feature — DayZ Expansion, for instance, has shipped configs through 17+ versions. However you structure it, a robust migration flow follows the same checklist:
+Large, long-lived mods treat config migration as a first-class feature. DayZ Expansion is the clearest public example: each of its settings classes carries a `static const int VERSION` and converts older files forward on load, so server owners never hand-edit a config after an update. In the repository's `experimental` branch at commit `6dacd00`, 48 settings classes declare such a constant and the highest has reached **32** (`DayZExpansion/AI/Scripts/3_Game/DayZExpansion_AI/Settings/Patrols/ExpansionAIPatrolSettings.c:61`), with 23 and 20 elsewhere. `ExpansionAISettings` shows the mechanism directly: a ladder of `if (m_Version < N)` steps from 1 up to 20, then `m_Version = VERSION` (`.../Settings/ExpansionAISettings.c:24,266-373`). Read those numbers as a snapshot of that one commit -- they record how many times each settings schema has been revised, not a release history of the mod. However you structure it, a robust migration flow follows the same checklist:
 
 1. Give each config an integer `ConfigVersion` field from day one.
 2. Write a dedicated migration step for every version bump.
@@ -625,12 +645,12 @@ void BanPlayer(string uid, string reason)
 if (JsonFileLoader<MyConfig>.JsonLoadFile(path, config)) { ... }
 ```
 
-`JsonLoadFile` returns `void`. Call it, then check the object's state.
+`JsonLoadFile` returns `void`. Either call it and then check the object's state, or -- better -- switch to `JsonFileLoader<T>.LoadFile(path, config, error)`, which returns a real `bool` and an error message (see [JsonFileLoader Pattern](#jsonfileloader-pattern)).
 
 ### 2. Not Checking FileExist Before Loading
 
 ```c
-// WRONG — crashes or produces empty object with no diagnostic
+// WRONG — silently does nothing when the file is absent, and says so to no one
 JsonFileLoader<MyConfig>.JsonLoadFile("$profile:MyMod/Config.json", config);
 
 // RIGHT — check first, create defaults if missing
@@ -642,9 +662,11 @@ if (!FileExist("$profile:MyMod/Config.json"))
 JsonFileLoader<MyConfig>.JsonLoadFile("$profile:MyMod/Config.json", config);
 ```
 
+`JsonLoadFile` opens with `if (FileExist(filename))` and simply returns when that check fails (`3_game/tools/jsonfileloader.c:105-108`), so a missing file leaves your object exactly as you passed it in -- no crash, no error, no signal. That is why you check first and write defaults yourself, or use `LoadFile`, which reports `File "%1" does not exist` through its `out` error string.
+
 ### 3. Forgetting to Create Directories
 
-`JsonSaveFile` fails silently if the directory does not exist. Always ensure directories before saving.
+`JsonSaveFile` gives up silently if the file cannot be opened for writing -- it returns as soon as `OpenFile` yields a null handle, with no error (`3_game/tools/jsonfileloader.c:143-147`). A missing parent directory is the usual cause. Always ensure directories before saving, or use `SaveFile`, which returns `false` and fills in an error message.
 
 ### 4. Public Fields You Did Not Intend to Serialize
 
@@ -663,17 +685,19 @@ class MyConfig
 };
 ```
 
-### 5. Backslash and Quote Characters in JSON Values
+### 5. Absolute, Backslashed Paths in Config Values
 
-Enforce Script's CParser has trouble with `\\` and `\"` in string literals. Avoid storing file paths with backslashes in configs. Use forward slashes:
+The `\\` and `\"` escape sequences work fine in Enforce Script string literals -- vanilla writes `"DZ\\plants"` in `3_game/objectspawner.c:4` and `"Cannot open file \"%1\" for reading"` in `3_game/tools/jsonfileloader.c:14`, and the manual-JSON example earlier in this chapter uses `\"` for the same reason. The mistake is not the escaping; it is storing a machine-specific absolute path at all.
 
 ```c
-// BAD — backslashes may break parsing
+// BAD — absolute, machine-specific, and outside the profile sandbox
 string LogPath = "C:\\DayZ\\Logs\\server.log";
 
-// GOOD — forward slashes work everywhere
+// GOOD — profile-relative and portable across every host
 string LogPath = "$profile:MyMod/Logs/server.log";
 ```
+
+Use forward slashes in stored paths as a convention: the filesystem prefixes (`$profile:`, `$saves:`, `$mission:`) are written that way throughout vanilla, and one engine subsystem's fix-up for the wrong delimiter is a **diagnostic-build-only** convenience, not something to rely on -- particle registration rewrites `\` to `/` and logs a warning, but only inside `#ifdef DIAG_DEVELOPER` (`3_game/particles/particlelist.c:390-395`, guarding the `Replace` at `:391` and the `ErrorEx` at `:393`, under a comment that reads "Silently fail on retail" at `:389`). On a **retail** build, a backslash path is not normalised at all (`:397`) -- which is precisely why the forward-slash convention matters. One real escaping caveat remains, and it belongs to JSON rather than to Enforce Script: a backslash inside a JSON *string value* must be escaped in the file itself, so a Windows path written into JSON appears as `"C:\\DayZ"` on disk. Another reason to stay with `$profile:` and forward slashes.
 
 ---
 

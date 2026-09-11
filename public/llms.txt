@@ -1,8 +1,8 @@
 # DayZ Modding Wiki
 
-> Community documentation for DayZ modding: the Enforce Script language, mod structure, GUI system, file formats, engine API, patterns, step-by-step tutorials, and server administration. Grounded in the vanilla DayZ scripts and official Bohemia Interactive samples; all code examples are original and self-contained. English is the canonical language (11 translations available via the site language switcher).
+> Community documentation for DayZ modding: the Enforce Script language, mod structure, GUI system, file formats, engine API, patterns, step-by-step tutorials, and server administration. The wiki draws on vanilla DayZ scripts, official samples, and community mod sources. English is the canonical language (11 translations available via the site language switcher).
 
-Key facts for language models writing Enforce Script: it is NOT C/C++. There is no ternary operator, no `auto`, no `try/catch`, no `do...while`, no `#include`, and multi-line call expressions break the parser. See the "What Does NOT Exist" page below before generating code.
+DayZ uses Enforce Script. Consult [Variables & Types](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/01-variables-types), [Functions & Methods](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/13-functions-methods), and [Language Gotchas](https://stardz-team.github.io/DayZ-Modding-Wiki/en/01-enforce-script/12-gotchas) for supported syntax, examples, and caveats before writing or adapting code.
 
 ## Part 1: Enforce Script
 

@@ -1,6 +1,10 @@
 # Production UI Architecture Patterns
 
-> **Summary:** The architecture patterns behind real DayZ admin tools, market menus, themed menu replacers, notification feeds, and map editors — taught here through original, self-contained implementations you can drop into a minimal mod.
+> **Summary:** The architecture patterns behind real DayZ admin tools, market menus, themed menu replacers, notification feeds, and map editors — taught here through original teaching implementations that you can adapt to your mod.
+
+The `LNT_*` examples are teaching sketches: supply the referenced layouts, complete placeholder actions, and connect input or client/server messages in your mod. Keep cooperating UI classes in `5_Mission` so a lower script module does not reference classes defined above it.
+
+For a concrete public implementation, compare Dabs Framework's [SliderPrefab handler](https://github.com/InclementDab/DayZ-Dabs-Framework/blob/fd859fd891f45a4a9c9089597db0c621ef3a9de5/DabsFramework/Scripts/3_Game/DabsFramework/_Legacy/Prefabs/SliderPrefab.c) with its [SliderPrefab layout](https://github.com/InclementDab/DayZ-Dabs-Framework/blob/fd859fd891f45a4a9c9089597db0c621ef3a9de5/DabsFramework/gui/Layouts/prefabs/SliderPrefab.layout). The layout binds `Value` and `CalculatedValue` through `ViewBinding`, and its `Relay_Command` values route to `OnButtonUp`/`OnButtonDown`; the handler clamps the value and notifies the controller. This is a framework-dependent legacy prefab at the linked revision, not a standalone vanilla API recipe.
 
 ---
 
@@ -46,7 +50,7 @@ A single registry lists every module. Adding a new tool is one module class, one
 ### The Module
 
 ```c
-// 3_Game — a panel descriptor. Metadata only, no widgets.
+// 5_Mission — keep this descriptor with the UI classes it references.
 class LNT_PanelModule
 {
     protected ref LNT_Window m_Window;
@@ -262,7 +266,7 @@ class LNT_SubWindow : ScriptedWidgetEventHandler
         {
             float px;
             float py;
-            m_Root.GetPos(px, py);
+            m_Root.GetScreenPos(px, py);
             m_DragOffsetX = x - px;
             m_DragOffsetY = y - py;
             return true;
@@ -275,7 +279,7 @@ class LNT_SubWindow : ScriptedWidgetEventHandler
     {
         if (w == m_TitleBar)
         {
-            m_Root.SetPos(x - m_DragOffsetX, y - m_DragOffsetY);
+            m_Root.SetScreenPos(x - m_DragOffsetX, y - m_DragOffsetY);
             return true;
         }
         return false;
@@ -440,7 +444,7 @@ class LNT_Branding
 }
 ```
 
-The client is re-skinned non-destructively with `modded class`: load a custom layout that reuses the vanilla widget names, then tint it from the scheme. Because the widget names match vanilla, any vanilla code that still looks them up keeps working.
+This example tints the menu after vanilla initialization. If you replace its layout, you must also preserve the initialization and widget bindings that MainMenu.Init establishes; matching names alone does not initialize cached members.
 
 ```c
 // Re-skin the vanilla main menu without editing vanilla files.
@@ -448,7 +452,7 @@ modded class MainMenu
 {
     override Widget Init()
     {
-        layoutRoot = GetGame().GetWorkspace().CreateWidgets("Lantern_Core/GUI/layouts/main_menu.layout");
+        layoutRoot = super.Init(); // Preserve vanilla widget caching and setup
 
         Widget divider = layoutRoot.FindAnyWidget("MenuDivider");
         if (divider)
@@ -549,7 +553,7 @@ class LNT_Notifications
 }
 ```
 
-Calling it is a one-liner from client or server-triggered code:
+Call this UI helper on the client. A server event needs an RPC or the vanilla SendNotificationToPlayer API to reach that client:
 
 ```c
 LNT_Notifications.Create(LNT_NoticeType.BANNER, "Airdrop Incoming", "Sector B4", 8);
@@ -572,6 +576,7 @@ class LNT_Command
 
     // Reverse the work if the command supports it.
     void Undo() {}
+    bool SupportsUndo() { return false; }
 
     // Whether the command may run right now (drives button enable state).
     bool CanExecute() { return true; }
@@ -586,6 +591,7 @@ class LNT_Command
 ```c
 class LNT_DeleteCommand : LNT_Command
 {
+    override bool SupportsUndo() { return true; }
     override bool Execute()
     {
         // remove the selection; push it onto your restore buffer
@@ -666,7 +672,7 @@ class LNT_CommandManager
             return;
         if (!command.CanExecute())
             return;
-        if (command.Execute())
+        if (command.Execute() && command.SupportsUndo())
             m_UndoStack.Insert(command);
     }
 
@@ -687,6 +693,8 @@ class LNT_CommandManager
     }
 }
 ```
+
+The deletion and restoration bodies are placeholders. Store a distinct restore record for each execution in your restore buffer; a shared command instance alone is not a history of object state. The Undo command is not itself inserted into the undo stack.
 
 Wiring is one setup call. A toolbar button and a keybind can both fire `Run(LNT_DeleteCommand)` without knowing anything about deletion:
 

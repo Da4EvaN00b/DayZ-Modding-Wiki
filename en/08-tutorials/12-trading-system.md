@@ -725,12 +725,12 @@ The right way to bind a key is `inputs.xml` --- it registers a remappable action
 </modded_inputs>
 ```
 
-With a matching `stringtable.csv` so the action reads nicely in the Controls menu:
+With a matching `stringtable.csv` so the action reads nicely in the Controls menu. Keep the full vanilla column set and the trailing comma on every row -- that is the shape `languagecore/stringtable.csv` and Bohemia's `Test_Stringtable` sample use. Vanilla ships rows with empty language cells (13 rows in `languagecore/stringtable.csv`), so leaving columns blank like this is acceptable; note that vanilla more often repeats the English string in an untranslated column than leaves it empty:
 
 ```csv
-"Language","original","english"
-"STR_SHOPDEMO_GROUP","Shop Demo","Shop Demo"
-"STR_SHOPDEMO_TOGGLE","Toggle Shop","Toggle Shop"
+"Language","original","english","czech","german","russian","polish","hungarian","italian","spanish","french","chinese","japanese","portuguese","chinesesimp",
+"STR_SHOPDEMO_GROUP","Shop Demo","Shop Demo","","","","","","","","","","","","",
+"STR_SHOPDEMO_TOGGLE","Toggle Shop","Toggle Shop","","","","","","","","","","","","",
 ```
 
 ### Step 6b: Reference the file in `config.cpp`
@@ -842,21 +842,25 @@ The caveat (also covered in [HUD Overlay](08-hud-overlay.md)): a hardcoded `KeyC
 
 ## Step 7: Currency Item
 
-The default `CurrencyClassName` is `"Rag"` --- a stackable vanilla item, so the demo works with no extra content. You can point it at any existing classname in the JSON (for example `"Nail"` or an ammo box) and that item becomes money. For a purpose-built coin, see [Custom Item](02-custom-item.md).
+The default `CurrencyClassName` is `"Rag"` --- a splittable vanilla item (`canBeSplit = 1`), so the demo works with no extra content. You can point it at any existing classname in the JSON (for example `"Nail"` or an ammo box) and that item becomes money.
+
+One thing to know before you tune prices: vanilla `Rag` caps at `varQuantityMax = 6` per stack and occupies a 1x3 inventory slot, so a price of 250 is 42 stacks and 126 inventory squares. Keep demo prices small, or pick a currency with a larger quantity ceiling. For a purpose-built coin with the stack size you want, see [Custom Item](02-custom-item.md).
 
 ---
 
 ## Step 8: Shop Config JSON
 
-Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edit prices, add categories/items, restart server. Always keep `SellPrice < BuyPrice`.
+The manager writes this file at `$profile:ShopDemo/ShopConfig.json` on first server start if it is missing, then reads it on every later start. Edit prices, add categories and items, restart the server. Keep `SellPrice < BuyPrice` on every entry: an item that sells for more than it costs is an infinite-money loop, and nothing in the engine stops you writing one.
+
+`$profile:` resolves to the folder given by the server's `-profiles=` launch parameter, so the file lives with your server's logs rather than inside the PBO. That is what makes it editable without repacking.
 
 ---
 
 ## Step 9: Build and Test
 
-1. Pack `ShopDemo/` into PBO, add to server+client `@ShopDemo/addons/`, add `-mod=@ShopDemo`
-2. Spawn currency (default `Rag`), press F6, browse, buy/sell
-3. Check server log for `[ShopDemo]` lines
+1. Pack `ShopDemo/` into a PBO and place it in `@ShopDemo/addons/` on **both** server and client, then add `-mod=@ShopDemo` to both launch lines. The UI is client-side and the manager is server-side, so a one-sided install fails in a confusing way -- the menu opens and every transaction silently does nothing.
+2. Spawn currency (default `Rag`), press F6, browse, buy and sell.
+3. Check the server log for `[ShopDemo]` lines. The transaction logging in Step 3 is what tells you whether the server ran your buy at all, as opposed to the client never sending it.
 
 | Test Case | Expected |
 |-----------|----------|
@@ -896,7 +900,7 @@ Auto-generated at `$profile:ShopDemo/ShopConfig.json` on first server start. Edi
 ## Best Practices
 
 - **Server is the single source of truth.** Client is a display terminal.
-- **Use `DeleteSafe()` not `Delete()`.** Handles network sync and locked slots.
+- **Use `DeleteSafe()` not `Delete()`.** Vanilla describes it as deletion "synchronized between server and client": when the item is held by a living player it goes through that player's delete juncture rather than vanishing underneath the client, and it falls back to a plain `Delete()` when there is no live holder. (`DeleteSave()` is the same call under a misspelled legacy name -- vanilla says to use `DeleteSafe()`.)
 - **Data classes in 3_Game.** Visible to both 4_World and 5_Mission.
 - **Always call `super` in overrides.** Breaking the chain breaks other mods.
 - **Clean up dynamic widgets.** Every `CreateWidget` needs `Unlink` on close.

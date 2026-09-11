@@ -27,7 +27,10 @@ This is the standard layout used by professional DayZ mods. Not every folder is 
 ```
 MyMod/                                    <-- Project root (development)
   mod.cpp                                 <-- Launcher metadata
-  stringtable.csv                         <-- Localization (at mod root, NOT in Scripts/)
+  stringtable.csv                         <-- Localization; shown at the dev-tree root for
+                                               convenience, but it must end up at the ROOT OF A
+                                               PACKED PBO beside that PBO's config.cpp
+                                               (see "Anti-Patterns" below)
 
   Scripts/                                <-- Script PBO root
     config.cpp                            <-- CfgPatches + CfgMods + script module defs
@@ -745,22 +748,17 @@ Scripts/
       RPCs.c
 ```
 
-### 4. stringtable.csv Inside Scripts/
+### 4. Placing stringtable.csv Somewhere It Won't Be Packed
 
-```
-Scripts/
-  stringtable.csv           <-- WRONG LOCATION
-  config.cpp
-```
+`stringtable.csv` belongs at the **root of a packed PBO, beside that PBO's `config.cpp`**. Bohemia's own `Test_Stringtable` sample ships exactly that and nothing else -- the addon source folder contains two files, `config.cpp` and `stringtable.csv`, side by side, with no `mod.cpp` anywhere in the sample. The general Real Virtuality documentation says the same thing in older words: the stringtable "must be located in the primary folder of the mission/addon/campaign."
 
-**Fix:** `stringtable.csv` goes at the mod root (next to `mod.cpp`):
+Published mods vary in where they keep the file in their *development* tree -- some at the project root next to `mod.cpp`, some already at `Scripts/stringtable.csv` -- and that is fine, because only the packed result matters. The trap is shipping it at the mod root of the final `@MyMod/` distribution folder: that location sits outside `Addons/` and is never inside a PBO, so nothing reads it. Pick one PBO (commonly Scripts) to own the file, make sure your build step packs it at that PBO's root, and confirm with a test string in-game.
 
 ```
 MyMod/
-  mod.cpp
-  stringtable.csv           <-- Correct
   Scripts/
-    config.cpp
+    config.cpp               <-- PBO root
+    stringtable.csv          <-- Beside it, exactly as Bohemia's Test_Stringtable sample ships
 ```
 
 ### 5. Mixed Assets and Scripts in One PBO
@@ -823,7 +821,7 @@ MyModPanel.c
 Before publishing your mod, verify:
 
 - [ ] `mod.cpp` is at the mod root (next to `Addons/` or `Scripts/`)
-- [ ] `stringtable.csv` is at the mod root (NOT inside `Scripts/`)
+- [ ] `stringtable.csv` is packed at a PBO root beside that PBO's `config.cpp` (not left only in the unpacked dev-tree "mod root" next to `mod.cpp`) -- verify the localized strings show up in-game
 - [ ] `config.cpp` exists in every PBO root
 - [ ] `requiredAddons[]` lists ALL dependencies
 - [ ] Script module `files[]` paths match the actual directory structure
@@ -854,7 +852,7 @@ Before publishing your mod, verify:
 | One class per file | Each `.c` file contains one class | Small helper classes and enums are often co-located with their parent class for convenience |
 | Separate PBOs for Scripts/Data/GUI | Clean separation by concern | Small mods often merge everything into a single PBO to simplify distribution |
 | Mod subfolder prevents collisions | `3_Game/MyMod/` namespaces files | True, but class names still collide globally -- the subfolder only prevents file-level conflicts |
-| `stringtable.csv` at mod root | Engine finds it automatically | Must be at the PBO root that gets loaded; placing it inside `Scripts/` causes it to be silently ignored |
+| `stringtable.csv` at mod root | Engine finds it automatically | The documented layout is the root of a packed PBO, beside that PBO's `config.cpp`, as Bohemia's `Test_Stringtable` sample ships it. The dev-tree "mod root" next to `mod.cpp` is outside `Addons/` and is never packed by itself, so a file left only there is never read |
 | ServerFiles/ ships with the mod | Server admins copy types.xml | Many mod authors forget to include ServerFiles, forcing admins to create types.xml entries manually |
 
 ---
@@ -862,4 +860,4 @@ Before publishing your mod, verify:
 ## Compatibility & Impact
 
 - **Multi-Mod:** File organization itself does not cause conflicts. However, two mods placing files with the same path inside their PBOs (e.g., both using `3_Game/Config.c` without a mod subfolder) will collide at the engine level, causing one to silently override the other.
-- **Performance:** Directory depth and file count have no measurable impact on script compilation time. The engine recursively scans all listed `files[]` directories regardless of nesting.
+- **Performance:** The engine recursively scans all listed `files[]` directories regardless of nesting depth. No published benchmark quantifies compile-time cost by directory depth, so treat "nesting is free" as a reasonable expectation rather than a measured fact; total script volume, not folder depth, is what drives compile time in practice. Organize for readability.

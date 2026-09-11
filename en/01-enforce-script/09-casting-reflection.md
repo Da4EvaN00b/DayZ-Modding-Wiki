@@ -1,9 +1,6 @@
 # Casting & Reflection
 
-
----
-
-> **Goal:** Master safe type casting, runtime type checks, and Enforce Script's reflection API for dynamic property access.
+> **Summary:** Master safe type casting, runtime type checks, and Enforce Script's reflection API for dynamic property access.
 
 ---
 

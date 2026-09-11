@@ -31,7 +31,7 @@
 **A:** This usually means you are referencing a class or variable from a higher script layer. Lower layers (`3_Game`) cannot see types defined in higher layers (`4_World`, `5_Mission`). Move your class definition to the correct layer, or use `typename` reflection for loose coupling. See [Chapter 2.1](02-mod-structure/01-five-layers.md).
 
 ### Q: Why does `JsonFileLoader<T>.JsonLoadFile()` not return my data?
-**A:** `JsonLoadFile()` returns `void`, not the loaded object. You must pre-allocate your object and pass it as a reference parameter: `ref MyConfig cfg = new MyConfig(); JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);`. Assigning the return value silently gives you `null`. See [Chapter 6.8](06-engine-api/08-file-io.md).
+**A:** `JsonLoadFile()` returns `void`, not the loaded object -- and it is deprecated in the vanilla source. You must pre-allocate your object and pass it as a reference parameter: `ref MyConfig cfg = new MyConfig(); JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);`. Assigning the return value gives you `null`. It also cannot tell you it failed: it does nothing when the file is missing or cannot be opened, and a parse failure only reaches the RPT through `ErrorEx` (`3_game/tools/jsonfileloader.c:129`). Prefer the non-deprecated `JsonFileLoader<T>.LoadFile(path, out data, out errorMessage)` (`:7`), which returns `bool` and hands you the error. See [Chapter 6.8](06-engine-api/08-file-io.md) and [Error Handling](01-enforce-script/11-error-handling.md).
 
 ### Q: My RPC is sent but never received on the other side.
 **A:** Check these common causes: (1) The RPC ID does not match between sender and receiver. (2) You are sending from client but listening on client (or server-to-server). (3) You forgot to register the RPC handler in `OnRPC()` or your custom handler. (4) The target entity is `null` or not network-synced. See [Chapter 6.9](06-engine-api/09-networking.md) and [Chapter 7.3](07-patterns/03-rpc-patterns.md).
@@ -45,8 +45,10 @@
 ### Q: My mod causes a crash on server startup.
 **A:** Check for: (1) Calling client-only methods (`GetGame().GetPlayer()`, UI code) on the server. (2) `null` reference in `OnInit` or `OnMissionStart` before the world is ready. (3) Infinite recursion in a `modded class` override that forgot to call `super`. Always add guard clauses since there is no try/catch. See [Chapter 1.11](01-enforce-script/11-error-handling.md).
 
-### Q: Backslash or quote characters in my strings cause parse errors.
-**A:** Enforce Script's parser (CParser) does not support `\\` or `\"` escape sequences in string literals. Avoid backslashes entirely. For file paths, use forward slashes (`"my/path/file.json"`). For quotes in strings, use single-quote characters or string concatenation. See [Chapter 1.12](01-enforce-script/12-gotchas.md).
+### Q: Are `\\` and `\"` usable in Enforce Script string literals?
+**A:** Yes. Bohemia's Enforce Script syntax page lists `\n`, `\r`, `\t`, `\\` and `\"` as the supported escape sequences, and vanilla uses both freely — `"DZ\\plants"` in `3_game/objectspawner.c:4`, `"\\"` as a literal backslash in `3_game/tools/keystouielements.c:89`, and `string.Format("Cannot open file \"%1\" for reading", filename)` in `3_game/tools/jsonfileloader.c:14`. An older version of this FAQ said the parser rejected them; that was wrong.
+
+Forward slashes are still the right choice for **engine resource paths** — a convention, not a parser limit. Vanilla's particle registry even warns about `\` in a registered path under `DIAG_DEVELOPER` (`3_game/particles/particlelist.c:391-393`). If you are hitting a parse error around a string, look for an unterminated literal or a multiline call rather than the escapes. See [Chapter 1.12](01-enforce-script/12-gotchas.md).
 
 ---
 

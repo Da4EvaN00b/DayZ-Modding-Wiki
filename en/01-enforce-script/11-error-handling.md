@@ -1,9 +1,6 @@
 # Error Handling
 
-
----
-
-> **Goal:** Learn how to handle errors in a language with no try/catch. Master guard clauses, defensive coding, and structured logging patterns that keep your mod stable.
+> **Summary:** Learn how to handle errors in a language with no try/catch. Master guard clauses, defensive coding, and structured logging patterns that keep your mod stable.
 
 ---
 
@@ -180,13 +177,12 @@ void PrintHandItemName(PlayerBase player)
 
 ### The notnull Keyword
 
-`notnull` is a parameter modifier that makes the compiler reject `null` arguments at the call site:
+`notnull` is a parameter modifier declaring that `null` is never a valid argument. Bohemia does not document the keyword, so whether it is enforced at compile time, at runtime, or both is unresolved -- write the call site as if nothing will catch a null for you:
 
 ```c
 void ProcessItem(notnull EntityAI item)
 {
-    // Compiler guarantees item is not null
-    // No null check needed inside the function
+    // The caller has promised item is not null
     Print(item.GetType());
 }
 
@@ -194,12 +190,12 @@ void ProcessItem(notnull EntityAI item)
 EntityAI item = GetSomeItem();
 if (item)
 {
-    ProcessItem(item);  // OK — compiler knows item is not null here
+    ProcessItem(item);  // OK -- the contract is satisfied
 }
-ProcessItem(null);      // Compile error!
+// ProcessItem(null);   // Violates the contract -- never write this
 ```
 
-> **Limitation:** `notnull` only catches literal `null` and obviously-null variables at the call site. It does not prevent a variable that was non-null at check time from becoming null due to engine deletion.
+> **Limitation:** whatever `notnull` checks, it cannot prevent a variable that was non-null at check time from becoming null afterwards -- engine-side entity deletion is the classic case. Guard those reads yourself.
 
 ---
 
@@ -247,7 +243,14 @@ void LoadConfig(string path)
     }
 
     MyConfig cfg = new MyConfig();
-    JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
+    string loadError;
+    if (!JsonFileLoader<MyConfig>.LoadFile(path, cfg, loadError))
+    {
+        // ERROR — the file exists but could not be opened or parsed
+        ErrorEx("Config load failed for " + path + ": " + loadError);
+        UseDefaultConfig();
+        return;
+    }
 
     if (cfg.Version < EXPECTED_VERSION)
     {
@@ -560,18 +563,21 @@ static MyConfig LoadConfigSafe(string path)
     {
         Print("[Config] File not found: " + path + " — creating defaults");
         MyConfig defaults = new MyConfig();
-        JsonFileLoader<MyConfig>.JsonSaveFile(path, defaults);
+        string saveError;
+        if (!JsonFileLoader<MyConfig>.SaveFile(path, defaults, saveError))
+            Print("[Config] ERROR: Could not write defaults: " + saveError);
         return defaults;
     }
 
-    // Attempt load (no try/catch, so we validate after)
+    // Attempt load. The deprecated JsonLoadFile()/JsonSaveFile() (still seen in older
+    // mods) return void: they do nothing at all when the file is missing or cannot be
+    // opened, and log a parse failure to the RPT via ErrorEx without telling the caller.
+    // LoadFile()/SaveFile() return a bool and fill an out error message -- use these.
     MyConfig cfg = new MyConfig();
-    JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
-
-    // Guard: loaded object is valid
-    if (!cfg)
+    string loadError;
+    if (!JsonFileLoader<MyConfig>.LoadFile(path, cfg, loadError))
     {
-        Print("[Config] ERROR: Failed to parse " + path + " — using defaults");
+        Print("[Config] ERROR: Failed to parse " + path + " — using defaults (" + loadError + ")");
         return new MyConfig();
     }
 
@@ -705,7 +711,7 @@ bool TransferItem(PlayerBase fromPlayer, PlayerBase toPlayer, EntityAI item)
 - Always log a message inside guard clauses -- silent `return` makes failures invisible and extremely hard to debug.
 - Use `ErrorEx` with appropriate severity levels (`INFO`, `WARNING`, `ERROR`) for messages that should appear in `.RPT` logs; use `Print` for script-log output.
 - Wrap heavy debug logging in `#ifdef DIAG_DEVELOPER` or a custom define so it compiles out of release builds and does not hurt performance.
-- Validate config data after loading with `JsonFileLoader` -- it returns `void` and silently leaves default values on parse failure.
+- Check `JsonFileLoader<T>.LoadFile`'s `bool` return, then validate the data. The deprecated `JsonLoadFile` returns `void`, so it cannot tell you it failed at all.
 
 ---
 
@@ -727,7 +733,7 @@ Every pattern in this chapter is grounded in code you can read yourself in the v
 | Concept | Theory | Reality |
 |---------|--------|---------|
 | `try`/`catch` | Standard in most languages | Does not exist in Enforce Script -- every failure point must be guarded manually |
-| `JsonFileLoader.JsonLoadFile` | Expected to return success/failure | Returns `void`; on bad JSON the object keeps its default values with no error |
+| `JsonFileLoader.JsonLoadFile` | Expected to return success/failure | Returns `void`, so it never signals the caller. It does nothing when the file is missing or cannot be opened, and on a deserialization failure it calls `ErrorEx(...)` -- an RPT line, not a return value (`jsonfileloader.c:129`). It is also deprecated (`//! DEPRECATED` at `jsonfileloader.c:99`). Use `JsonFileLoader<T>.LoadFile(path, out data, out errorMessage)` (`:7`), which returns `bool` and reports the error |
 | `ErrorEx` | Sounds like it throws an error | It only writes to the `.RPT` log -- execution continues normally |
 
 ---
@@ -737,16 +743,16 @@ Every pattern in this chapter is grounded in code you can read yourself in the v
 ### 1. Assuming a function ran successfully
 
 ```c
-// WRONG — JsonLoadFile returns void, not a success indicator
+// WRONG — the deprecated JsonLoadFile returns void; it cannot report failure to you
 MyConfig cfg = new MyConfig();
 JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
 // If the file has bad JSON, cfg still has default values — no error
 
-// CORRECT — validate after loading
-JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
-if (cfg.SomeCriticalField == 0)
+// BETTER — the non-deprecated LoadFile returns bool and an error message
+string error;
+if (!JsonFileLoader<MyConfig>.LoadFile(path, cfg, error))
 {
-    Print("[Config] Warning: SomeCriticalField is zero — was the file loaded correctly?");
+    Print("[Config] Warning: failed to load " + path + " — " + error);
 }
 ```
 
@@ -829,6 +835,6 @@ override void OnUpdate(float timeslice)
 | Print | Write to script log | `Print("message");` |
 | string.Format | Formatted logging | `string.Format("P %1 at %2", a, b)` |
 | #ifdef guard | Compile-time debug switch | `#ifdef DIAG_DEVELOPER` |
-| notnull | Compiler null check | `void Fn(notnull Class obj)` |
+| notnull | Declares null is never valid (enforcement undocumented) | `void Fn(notnull Class obj)` |
 
 **The golden rule:** In Enforce Script, assume everything can be null and every operation can fail. Check first, act second, log always.

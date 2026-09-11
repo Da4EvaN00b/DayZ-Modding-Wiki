@@ -5,9 +5,9 @@
 
 ## Introduction
 
-Zombies (officially called "Infected") are the primary hostile AI entity in DayZ. They patrol, detect players through sight, sound, and proximity, transition through behavioral states, attack, vault, crawl, and die --- all driven by a C++ AI engine with script-level hooks for customization. Understanding how the infected system works is essential for any mod that spawns, modifies, or interacts with zombies.
+Zombies (officially called "Infected") are the primary hostile AI entity in DayZ. They patrol, detect players through sight and sound, transition through behavioral states, attack, vault, crawl, and die --- all driven by a C++ AI engine with script-level hooks for customization. Understanding how the infected system works is essential for any mod that spawns, modifies, or interacts with zombies.
 
-This chapter covers the full class hierarchy, the mind state machine, movement and attack commands, the perception/targeting system, spawning patterns, and modding hooks. All method signatures and constants are taken directly from the vanilla script source. Where behavior is driven by the C++ engine with no script-visible API, that is noted explicitly.
+This chapter covers the full class hierarchy, the mind state machine, movement and attack commands, the perception/targeting system, spawning patterns, and modding hooks. The declarations and implementation below are checked against the supplied vanilla extraction (release identity unconfirmed); examples are illustrative fragments, not compiled mods. Where behavior is driven by the C++ engine with no script-visible API, that is noted explicitly.
 
 ---
 
@@ -101,7 +101,7 @@ classDiagram
 
 Defined in `3_Game/entities/dayzinfected.c`:
 
-```csharp
+```c
 enum DayZInfectedConstants
 {
     // Animation command IDs
@@ -124,7 +124,7 @@ enum DayZInfectedConstants
 
 ### DayZInfectedConstantsMovement
 
-```csharp
+```c
 enum DayZInfectedConstantsMovement
 {
     MOVEMENTSTATE_IDLE   = 0,
@@ -136,7 +136,7 @@ enum DayZInfectedConstantsMovement
 
 ### DayZInfectedDeathAnims
 
-```csharp
+```c
 enum DayZInfectedDeathAnims
 {
     ANIM_DEATH_DEFAULT   = 0,
@@ -154,7 +154,7 @@ From `3_Game/constants.c`:
 |----------|-------|---------|
 | `AI_ATTACKSPEED` | `1.5` | Multiplier for attack cooldown reduction rate |
 | `AI_MAX_BLOCKABLE_ANGLE` | `60` | Max angle (degrees) where player block stance works against infected |
-| `AI_CONTAMINATION_DMG_PER_SEC` | `3` | Damage per tick in contaminated zones |
+| `AI_CONTAMINATION_DMG_PER_SEC` | `3` | AI creature rate. `ContaminatedTrigger.OnStayServerEvent` multiplies it by the accumulated stay time and **divides by the creature's `m_EffectTriggerCount`**, so overlapping zones share one damage budget rather than stacking (`contaminatedtrigger.c:78-81`) |
 | `NL_DAMAGE_CLOSECOMBAT_CONVERSION_INFECTED` | `0.20` | Shock-to-health conversion for melee hits on infected |
 | `NL_DAMAGE_FIREARM_CONVERSION_INFECTED` | `0.44` | Shock-to-health conversion for firearm hits on infected (= `PROJECTILE_CONVERSION_INFECTED`) |
 
@@ -162,7 +162,7 @@ From `3_Game/constants.c`:
 
 ## Mind States
 
-The infected AI uses five mind states, managed entirely by the C++ AI engine. Script reads the current state via `DayZInfectedInputController.GetMindState()` but cannot directly set it.
+The infected AI uses five mind states, managed entirely by the C++ AI engine. Script reads the current state via `DayZInfectedInputController.GetMindState()` with no direct mind-state setter declared in the inspected controller. Input overrides can still influence AI behavior.
 
 ### State Descriptions
 
@@ -178,9 +178,10 @@ The infected AI uses five mind states, managed entirely by the C++ AI engine. Sc
 
 The `HandleMindStateChange` method in `ZombieBase` reads the mind state from the input controller each frame and triggers idle animation transitions:
 
-```csharp
+```c
 bool HandleMindStateChange(int pCurrentCommandID, DayZInfectedInputController pInputController, float pDt)
 {
+    DayZInfectedCommandMove moveCommand = GetCommand_Move();
     m_MindState = pInputController.GetMindState();
     if (m_LastMindState != m_MindState)
     {
@@ -207,17 +208,17 @@ bool HandleMindStateChange(int pCurrentCommandID, DayZInfectedInputController pI
 }
 ```
 
-> **Important:** The actual state transitions (CALM to DISTURBED, DISTURBED to CHASE, etc.) are driven by the C++ perception system. Script cannot force a mind state change --- it only reacts to what the engine decides.
+> **Important:** The actual state transitions (CALM to DISTURBED, DISTURBED to CHASE, etc.) are driven by the C++ perception system. The inspected interface exposes state queries and input overrides, not a direct mind-state setter; native transition rules are not established by this script audit.
 
 ### Network Synchronization
 
 `m_MindState` is registered as a synced variable:
 
-```csharp
+```c
 RegisterNetSyncVariableInt("m_MindState", -1, 4);
 ```
 
-On clients, `OnVariablesSynchronized()` triggers sound event updates based on the current mind state.
+On clients, `OnVariablesSynchronized()` triggers sound event updates based on the current mind state. The inspected source registers the range `-1..4` despite the enum declarations above following command IDs; use named constants and do not infer native network encoding from that mismatch.
 
 ---
 
@@ -236,7 +237,7 @@ The primary movement command, started with `StartCommand_Move()`. Methods:
 
 Movement speed is read from the input controller and synced:
 
-```csharp
+```c
 RegisterNetSyncVariableFloat("m_MovementSpeed", -1, 3);
 ```
 
@@ -281,7 +282,7 @@ After landing (`WasLand()` returns true), a 2-second `m_KnuckleOutTimer` runs be
 
 ### Crawling
 
-Crawling is triggered by leg damage. When either leg's health reaches 0 (damage >= `LEG_CRIPPLE_THRESHOLD` of 74.0), `HandleSpecialZoneDamage` sets the leg health to zero, and `EvaluateCrawlTransitionAnimation` determines the crawl transition type:
+`EEHitBy` checks a destroyed hit leg and chooses a crawl transition. Separately, for ammo with `DamageApplied transferShockToDamage = 1`, `HandleSpecialZoneDamage` forces a hit leg to zero when shock damage reaches `LEG_CRIPPLE_THRESHOLD = 74.0`; this is not a universal threshold for every leg hit. `EvaluateCrawlTransitionAnimation` selects:
 
 | Condition | Anim Type |
 |-----------|-----------|
@@ -292,7 +293,7 @@ Crawling is triggered by leg damage. When either leg's health reaches 0 (damage 
 
 After the crawl transition command finishes, the zombie remains in `COMMANDID_MOVE` with `m_IsCrawling = true`. The `IsCrawling()` method returns this flag.
 
-```csharp
+```c
 RegisterNetSyncVariableBool("m_IsCrawling");
 ```
 
@@ -304,13 +305,13 @@ RegisterNetSyncVariableBool("m_IsCrawling");
 
 `DayZInfectedType.RegisterAttacks()` defines two attack groups with parameters read from config:
 
-```csharp
+```c
 RegisterAttack(groupType, distance, pitch, type, subtype, ammoType, isHeavy, cooldown, probability);
 ```
 
 ### DayZInfectedAttackType
 
-```csharp
+```c
 class DayZInfectedAttackType
 {
     float m_Distance;      // attack reach in meters
@@ -328,7 +329,7 @@ class DayZInfectedAttackType
 
 **Chase Group** (`DayZInfectedAttackGroupType.CHASE`): Running attacks at 2.4m range, no cooldown reduction, always pitch -1. Two variants: left and right.
 
-**Fight Group** (`DayZInfectedAttackGroupType.FIGHT`): Standing attacks at 1.4-1.7m range. Ten variants covering up/center/down pitch and left/right/heavy combinations. Cooldowns from 0.1 to 0.6 seconds.
+**Fight Group** (`DayZInfectedAttackGroupType.FIGHT`): Standing attacks at 1.4-1.7m range. Ten variants covering up/center/down pitch and left/right/heavy animations. Cooldowns range from 0.1 to 0.6 seconds. In this extraction even the heavy-animation entries pass `0/*1*/` as the heavy flag; the label alone does not mean `m_IsHeavy = 1`.
 
 ### Attack Selection (Utility System)
 
@@ -336,8 +337,9 @@ class DayZInfectedAttackType
 
 1. Filter by matching pitch
 2. Reject attacks where target is beyond attack distance
-3. Compute utility = distance_score (0-100) + probability_score (0-10)
-4. Select the highest utility attack
+3. Reject an attack if the random sample exceeds its `m_Probability`
+4. Compute distance utility `(1 - (reach - distance) / 10) * 100` plus probability utility `(1 - (probability - sample)) * 10`
+5. Select the highest positive utility
 
 ### Fight Logic Flow
 
@@ -364,7 +366,7 @@ Ammo types are read from config paths:
 
 ### Attack Cooldown
 
-Fight attacks use a cooldown timer decremented by `pDt * GameConstants.AI_ATTACKSPEED` (1.5x speed). Chase attacks have no cooldown gating in script --- they fire as soon as target alignment is valid.
+Fight attacks use a cooldown timer decremented by `pDt * GameConstants.AI_ATTACKSPEED` (1.5x speed). Chase attacks have no cooldown gating in script --- selection also requires a valid target, reach, pitch/probability acceptance, `CanAttackToPosition`, and the targeting cone; players in vehicle commands are excluded.
 
 ### Target Cone Validation
 
@@ -437,7 +439,7 @@ Weather also reduces noise via `Weather.GetNoiseReductionByWeather()` (rain redu
 
 ### Smell / Proximity
 
-There is no script-visible "smell" API. Proximity detection appears to be handled entirely in the C++ engine. Modders should treat the engine perception as a black box that outputs mind state and target entity.
+No smell-specific declaration was identified in the inspected AI interfaces. This does not establish whether the native engine implements a proximity or smell mechanism. Modders should treat the engine perception as a black box that outputs mind state and target entity.
 
 ---
 
@@ -478,7 +480,7 @@ Three insertion points let mods override or extend behavior:
 |------|------|-------|
 | `ModCommandHandlerBefore` | Before any vanilla logic | Return `true` to skip all default behavior |
 | `ModCommandHandlerInside` | After death/move handling, before combat | Return `true` to skip combat logic |
-| `ModCommandHandlerAfter` | After all vanilla logic | Return `true` (no practical effect, runs last) |
+| `ModCommandHandlerAfter` | If no earlier handler returned | Return `true` (no practical effect, runs last) |
 
 All three are meant to be overridden via `modded class ZombieBase`.
 
@@ -494,7 +496,7 @@ When a zombie takes damage, `EEHitBy` in `ZombieBase`:
 2. If dead: evaluates death animation via `EvaluateDeathAnimationEx()`
 3. If alive: checks for crawl transition (leg destroyed), then evaluates hit reaction animation
 
-Hit reactions are throttled by `HIT_INTERVAL_MIN = 0.3` seconds. The stun chance is:
+Repeated HIT-to-HIT command transitions are throttled by `HIT_INTERVAL_MIN = 0.3` seconds. The stun chance is:
 
 ```
 stunChance = SHOCK_TO_STUN_MULTIPLIER * shockDamage  // 2.82 * damage
@@ -520,7 +522,7 @@ A random roll (0-100) must be <= `stunChance` for the hit animation to play, unl
 
 `HandleDeath()` triggers when `!IsAlive()` or `m_FinisherInProgress`:
 
-```csharp
+```c
 StartCommand_Death(m_DeathType, m_DamageHitDirection);
 m_MovementSpeed = -1;
 m_MindState = -1;
@@ -535,7 +537,7 @@ Death types are selected by `EvaluateDeathAnimation()` based on ammo config (`do
 
 If the finisher fails, `OnRecoverFromDeath()` re-enables AI:
 
-```csharp
+```c
 GetAIAgent().SetKeepInIdle(false);
 m_FinisherInProgress = false;
 ```
@@ -546,7 +548,7 @@ m_FinisherInProgress = false;
 
 ### Script Spawning with CreateObjectEx
 
-```csharp
+```c
 // Server-side only
 DayZInfected zombie = DayZInfected.Cast(
     g_Game.CreateObjectEx(
@@ -569,10 +571,10 @@ DayZInfected zombie = DayZInfected.Cast(
 
 ### Manual AI Initialization
 
-```csharp
+```c
 // Create without AI
 DayZInfected zombie = DayZInfected.Cast(
-    g_Game.CreateObjectEx("ZmbM_Soldier_Normal", pos, ECE_PLACE_ON_SURFACE)
+    g_Game.CreateObjectEx("ZmbM_SoldierNormal", pos, ECE_PLACE_ON_SURFACE)
 );
 
 // Later, initialize AI with a group
@@ -609,8 +611,8 @@ The Central Economy spawns zombies via `events.xml` using zombie class names and
     <limit>child</limit>
     <active>1</active>
     <children>
-        <child lootmax="0" lootmin="0" max="5" min="3" type="ZmbF_CitizenANormal"/>
-        <child lootmax="0" lootmin="0" max="5" min="3" type="ZmbM_CitizenASkinny"/>
+        <child lootmax="0" lootmin="0" max="5" min="3" type="ZmbF_CitizenANormal_Beige"/>
+        <child lootmax="0" lootmin="0" max="5" min="3" type="ZmbM_CitizenASkinny_Blue"/>
     </children>
 </event>
 ```
@@ -625,7 +627,7 @@ The `type` values must match class names in `cfgVehicles`. The CE handles spawn 
 
 `AIWorld` provides navmesh pathfinding and group management. It is obtained from the `World` object via `g_Game.GetWorld().GetAIWorld()`:
 
-```csharp
+```c
 AIWorld aiWorld = g_Game.GetWorld().GetAIWorld();
 
 // Pathfinding
@@ -641,9 +643,9 @@ bool onNavmesh = aiWorld.SampleNavmeshPosition(pos, 5.0, filter, sampledPos);
 
 ### AIGroup and BehaviourGroupInfectedPack
 
-Groups can have patrol waypoints:
+Groups can have patrol waypoints. Configuring an empty group does not assign an infected to it: initialize a newly created uninitialized creature with `InitAIAgent(group)`, or move an existing agent with `RemoveAgent` / `AddAgent`. `AIGroup` documents that empty groups are deleted on the next frame, so complete setup in the same initialization step:
 
-```csharp
+```c
 AIGroup group = aiWorld.CreateGroup("BehaviourGroupInfectedPack");
 BehaviourGroupInfectedPack behaviour = BehaviourGroupInfectedPack.Cast(group.GetBehaviour());
 
@@ -672,7 +674,7 @@ behaviour.SetWaypoints(waypoints, 0, true, true);   // start at 0, forward, loop
 
 ### Hit Components
 
-`DayZInfectedType.RegisterHitComponentsForAI()` defines which body parts zombies target and with what probability:
+`DayZInfectedType.RegisterHitComponentsForAI()` defines body-part weights for attacks **against an infected target**. It does not define the distribution of hits on players:
 
 | Component | Weight | Notes |
 |-----------|--------|-------|
@@ -693,7 +695,7 @@ Specific zombie types override behavior flags:
 
 | Override | Types | Effect |
 |----------|-------|--------|
-| `IsZombieMilitary()` | ZmbM_PatrolNormal, ZmbM_Soldier, ZmbM_SoldierNormal, ZmbM_usSoldier_normal, ZmbM_NBC_Grey, ZmbM_NBC_White | Used for loot table selection |
+| `IsZombieMilitary()` | `ZmbM_PatrolNormal_Base`, `ZmbM_Soldier_Base`, `ZmbM_SoldierNormal_Base`, `ZmbM_usSoldier_normal_Base`, `ZmbM_NBC_Grey`, `ZmbM_NBC_White` (`zombiemalebase.c:130,166,174,186,215,228`); `ZmbF_usSoldier_normal_Base` (`zombiefemalebase.c:133`) | Military classification (also queried by achievement/UI code); not a loot table definition |
 | `ResistContaminatedEffect()` | ZmbM_NBC_Yellow, ZmbM_NBC_Grey, ZmbM_NBC_White, ZmbM_Mummy | Immune to contaminated zone damage |
 | `IsMale()` | All `ZombieFemaleBase` return `false` | Sound set selection |
 
@@ -703,7 +705,7 @@ Specific zombie types override behavior flags:
 
 ### Reading Zombie State
 
-```csharp
+```c
 ZombieBase zombie = ZombieBase.Cast(someEntity);
 if (zombie)
 {
@@ -730,7 +732,7 @@ if (zombie)
 
 ### Reading via Input Controller (Server Only)
 
-```csharp
+```c
 DayZInfectedInputController ic = zombie.GetInputController();
 if (ic)
 {
@@ -742,7 +744,7 @@ if (ic)
 
 ### Overriding AI Behavior (Server Only)
 
-```csharp
+```c
 DayZInfectedInputController ic = zombie.GetInputController();
 
 // Force movement speed
@@ -750,10 +752,10 @@ ic.OverrideMovementSpeed(true, 2.0);   // force run speed
 ic.OverrideMovementSpeed(false, 0);     // release override
 
 // Force heading
-ic.OverrideHeading(true, 90.0);         // face east
+ic.OverrideHeading(true, Math.PI_HALF); // heading override in radians
 ic.OverrideHeading(false, 0);           // release
 
-// Suspend AI entirely
+// Keep the agent idle for manual control
 zombie.GetAIAgent().SetKeepInIdle(true);
 
 // Resume AI
@@ -766,12 +768,12 @@ zombie.GetAIAgent().SetKeepInIdle(false);
 
 ### Extending ZombieBase
 
-```csharp
+```c
 class MyCustomZombie extends ZombieMaleBase
 {
     override bool IsZombieMilitary()
     {
-        return true;    // drops military loot
+        return true;    // reports military classification; loot still needs configuration
     }
 
     override bool ResistContaminatedEffect()
@@ -797,7 +799,7 @@ This also requires a `config.cpp` entry in `CfgVehicles` inheriting from an exis
 
 `DayZInfectedCommandScript` allows fully scriptable animation commands:
 
-```csharp
+```c
 class MyZombieCommand extends DayZInfectedCommandScript
 {
     void MyZombieCommand(DayZInfected pInfected)
@@ -805,7 +807,7 @@ class MyZombieCommand extends DayZInfectedCommandScript
         // Constructor - first param MUST be DayZInfected
     }
 
-    bool PostPhysUpdate(float pDt)
+    override bool PostPhysUpdate(float pDt)
     {
         // Called each frame after physics
         // Return true to keep running, false to finish
@@ -823,26 +825,26 @@ zombie.StartCommand_ScriptInst(MyZombieCommand);
 
 The recommended approach for modifying all zombies is `modded class ZombieBase`:
 
-```csharp
+```c
 modded class ZombieBase
 {
     override bool ModCommandHandlerBefore(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
     {
         // Custom pre-processing
-        // Return true to skip all default command handling
-        return false;
+        // Preserve earlier mods; return true only to intentionally take over
+        return super.ModCommandHandlerBefore(pDt, pCurrentCommandID, pCurrentCommandFinished);
     }
 
     override bool ModCommandHandlerInside(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
     {
-        // Runs after death/move handling, before combat
-        return false;
+        // Runs if earlier handling did not return
+        return super.ModCommandHandlerInside(pDt, pCurrentCommandID, pCurrentCommandFinished);
     }
 
     override bool ModCommandHandlerAfter(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
     {
-        // Runs after all vanilla logic
-        return false;
+        // Reached only if earlier handlers did not return
+        return super.ModCommandHandlerAfter(pDt, pCurrentCommandID, pCurrentCommandFinished);
     }
 }
 ```
@@ -851,7 +853,7 @@ modded class ZombieBase
 
 ## Sound System
 
-Infected sound is managed by `InfectedSoundEventHandler` (client only), which maps mind states to sound event IDs:
+Infected sound is managed by `InfectedSoundEventHandler` (client only), with `ZombieBase.HandleSoundEvents()` mapping mind states to sound event IDs:
 
 | Mind State | Sound Event |
 |-----------|-------------|
@@ -870,10 +872,10 @@ Animation-driven voice events (`OnSoundVoiceEvent`) interrupt state-based sounds
 
 ## Best Practices
 
-1. **Always use `ECE_INITAI` when spawning** --- without it, the zombie has no AI brain and will be motionless.
+1. **Use `ECE_INITAI` for normal scripted infected spawning.** Manual `InitAIAgent` is an alternative; the flag alone does not guarantee a successful spawn or functioning AI configuration.
 2. **Server-side spawning only** --- `CreateObjectEx` for zombies should only run on the server; the network handles client replication.
-3. **Check `IsAlive()` before any AI manipulation** --- calling `GetAIAgent()` on a dead zombie can produce unexpected results.
-4. **Use `SetKeepInIdle(true)` sparingly** --- it suspends the entire AI, including perception. Remember to restore it.
+3. **Check entity, controller, and agent references before manipulation.** For live-AI operations, also check `IsAlive()`.
+4. **Restore `SetKeepInIdle(false)` after manual control.** The declaration does not specify which internal perception processes continue while idle.
 5. **Respect the command handler flow** --- use `ModCommandHandlerBefore/Inside/After` instead of overriding `CommandHandler` directly.
 6. **Avoid deleting active `DayZInfectedCommandScript`** --- the engine owns it once started. Let it finish or call `SetFlagFinished(true)`.
 
@@ -883,7 +885,7 @@ Animation-driven voice events (`OnSoundVoiceEvent`) interrupt state-based sounds
 
 ### Common Modding Approaches
 
-Custom humanoid-AI mods typically extend `DayZPlayer` (which itself extends `Human`) rather than `DayZInfected` or `ZombieBase`, so they reuse the full player animation graph, movement, and command stack instead of the leaner infected one. For infected-focused work --- quest and objective mods that need to count kills, for example --- the common approach is a `modded class ZombieBase` that overrides `EEKilled(Object killer)` to react when an infected dies. This confirms the `modded class` pattern is the standard entry point for infected customization.
+Expansion provides a concrete humanoid-AI example: `DayZExpansion/AI/Scripts/4_World/DayZExpansion_AI/Entities/AI/eAIBase.c:20` declares `eAIBase: PlayerBase` in [commit 6dacd00](https://github.com/salutesh/DayZ-Expansion-Scripts/blob/6dacd00f6d943ebbd99e0cf1baad93f470d96419/DayZExpansion/AI/Scripts/4_World/DayZExpansion_AI/Entities/AI/eAIBase.c#L20) (accessed 2026-09-11). This is a third-party implementation example, not evidence that every AI mod uses that architecture. For infected customization, the vanilla `ZombieBase` command hooks above are the direct source reference.
 
 ### Vanilla Debug Plugin
 
@@ -905,7 +907,7 @@ This plugin is an excellent reference for testing any infected-related mod.
 | Mind states can be set from script | The C++ engine controls transitions; script can only read state and override input controller values |
 | Zombies use pathfinding for navigation | Yes, via `AIWorld.FindPath()` and navmesh, but the path planning is internal to the engine |
 | Attack selection is random | It uses a utility function combining distance, pitch, and weighted probability |
-| All zombie types behave differently | Most share identical behavior; only NBC (contamination resistance) and Military (loot flags) differ in script |
+| All zombie types behave differently | Most share identical behavior; examples include NBC resistance, military classification, and special types such as Mummy; inspect each subclass |
 | `DayZInfectedCommandCrawl` controls crawling | It only handles the transition animation; actual crawling uses `DayZInfectedCommandMove` with `m_IsCrawling = true` |
 | `GetMindState()` works on clients | The raw controller method is server-only; clients use the synced `m_MindState` variable via `GetMindStateSynced()` |
 
@@ -918,9 +920,9 @@ This plugin is an excellent reference for testing any infected-related mod.
 3. **Overriding `CommandHandler` directly** --- This breaks compatibility with other mods. Use the three `ModCommandHandler*` hooks instead.
 4. **Assuming `COMMANDID_CRAWL` means the zombie is crawling** --- `COMMANDID_CRAWL` is only the transition. Check `IsCrawling()` for the persistent state.
 5. **Reading `m_MindState` on clients without sync** --- Use `GetMindStateSynced()` which reads the network-synced variable.
-6. **Not checking `!IsAlive()` before AI operations** --- Dead zombies still exist as entities but their AI state is undefined.
-7. **Deleting zombie entities without `DestroyAIAgent()` first** --- Can cause orphaned AI agents. The engine usually handles this, but explicit cleanup is safer for mod-spawned zombies.
-8. **Setting leg health to 0 without triggering `m_CrawlTransition`** --- Direct `SetHealth("LeftLeg", "Health", 0)` does not trigger the crawl transition; the logic flows through `EEHitBy` -> `HandleSpecialZoneDamage` -> `EvaluateCrawlTransitionAnimation`.
+6. **Not checking `!IsAlive()` before AI operations** --- Use only the lifecycle states your operation supports, and null-check the agent/controller.
+7. **Assuming manual agent destruction is required before entity deletion.** This audit found no primary evidence that manually destroying the agent before entity deletion is required or safer. Use the entity lifecycle appropriate to your mod; `DestroyAIAgent` is a separately declared operation.
+8. **Setting leg health to 0 without triggering `m_CrawlTransition`** --- Direct `SetHealth("LeftLeg", "Health", 0)` does not trigger the crawl transition. The transition is decided inside `ZombieBase.EEHitBy` (`zombiebase.c:969-990`), which calls `super` (`DayZInfected.EEHitBy`, `dayzinfected.c:137-147`, where `HandleSpecialZoneDamage` runs **only** for ammo whose `DamageApplied transferShockToDamage` is `1`) and then calls `EvaluateCrawlTransitionAnimation` directly. That evaluator (`zombiebase.c:814-839`) fires for **any** hit on a leg component already at zero health, regardless of how the leg reached zero --- so the zombie must still be hit on that leg after you zero it.
 
 ---
 
@@ -928,20 +930,20 @@ This plugin is an excellent reference for testing any infected-related mod.
 
 | Aspect | Impact |
 |--------|--------|
-| **Performance** | Each zombie runs its `CommandHandler` every frame on the server. Large zombie populations (50+) can cause server lag. |
+| **Performance** | Each zombie runs its `CommandHandler` every frame on the server. Profile the target workload; this audit establishes no safe population threshold. |
 | **Network** | Four synced variables per zombie (`m_MindState`, `m_OrientationSynced`, `m_MovementSpeed`, `m_IsCrawling`). Changes trigger `SetSynchDirty()`. |
-| **Mod conflicts** | Multiple mods using `ModCommandHandlerBefore` returning `true` will conflict --- only the last-loaded mod's override runs. |
+| **Mod conflicts** | Multiple mods using `ModCommandHandlerBefore` returning `true` will conflict --- later overrides must call `super` to reach earlier implementations; a `true` result intentionally stops the remaining vanilla handler. |
 | **Client/Server** | Command handler, fight logic, and damage run server-side only. Sound events and animation playback are client-side. |
-| **AI engine dependency** | Mind state transitions, pathfinding decisions, and target selection are C++ engine features. Script cannot fully replace or bypass the built-in AI. |
+| **AI engine dependency** | Mind state transitions, pathfinding decisions, and target selection are C++ engine features. The script exposes input overrides and custom commands; these declarations do not document every native AI constraint. |
 
 ---
 
 ## Quick Reference
 
-```csharp
+```c
 // Spawn a zombie (server only)
 DayZInfected z = DayZInfected.Cast(
-    g_Game.CreateObjectEx("ZmbM_Soldier_Normal", pos,
+    g_Game.CreateObjectEx("ZmbM_SoldierNormal", pos,
         ECE_PLACE_ON_SURFACE | ECE_INITAI | ECE_EQUIP_ATTACHMENTS));
 
 // Check state
@@ -970,3 +972,18 @@ bool isZombie   = zb.IsZombie();       // always true for ZombieBase
 ---
 
 *Source files referenced: `3_Game/entities/dayzinfected.c`, `3_Game/entities/dayzinfectedtype.c`, `3_Game/entities/dayzinfectedinputcontroller.c`, `3_Game/entities/dayzcreatureaiinputcontroller.c`, `3_Game/entities/dayzanimal.c`, `3_Game/entities/dayzcreatureaitype.c`, `3_Game/ai/aiworld.c`, `3_Game/ai/aiagent.c`, `3_Game/ai/aigroup.c`, `3_Game/ai/aigroupbehaviour.c`, `3_Game/systems/ai/aitarget_callbacks.c`, `3_Game/constants.c`, `3_Game/playerconstants.c`, `3_Game/ce/centraleconomy.c`, `4_World/entities/creatures/infected/zombiebase.c`, `4_World/entities/creatures/infected/zombiemalebase.c`, `4_World/entities/creatures/infected/zombiefemalebase.c`, `4_World/entities/dayzinfectedimplement.c`, `4_World/entities/manbase/playerbase/aitargetcallbacksplayer.c`, `4_World/static/sensesaievaluate.c`, `4_World/plugins/pluginbase/plugindayzinfecteddebug.c`, `4_World/classes/soundevents/infectedsoundevents/`*
+
+---
+
+## Audit Sources and Limits
+
+Checked 2026-09-11 against the supplied `D:/DayZ Projects/scripts/` extraction; its directory/extraction identifier does not identify a DayZ release. Source paths below are relative to that root.
+
+- `3_game/entities/dayzinfected.c`: enums, command declarations, `EEHitBy`, `HandleSpecialZoneDamage`.
+- `3_game/entities/dayzinfectedtype.c`: `RegisterAttacks`, `RegisterHitComponentsForAI`, `ComputeAttackUtility`.
+- `4_world/entities/creatures/infected/zombiebase.c`: command flow, combat, crawl/hit/death handling and sound synchronization.
+- `3_game/entities/dayzanimal.c`: creature APIs, manual AI initialization and radians conversion for heading overrides; `3_game/ai/aiworld.c` and `aigroupbehaviour.c`: navigation/group declarations.
+- `4_world/entities/manbase/playerbase/aitargetcallbacksplayer.c`, `4_world/static/sensesaievaluate.c`, `3_game/playerconstants.c`: visibility/noise calculations and coefficients.
+- [Official CE infected entries, pinned commit](https://github.com/BohemiaInteractive/DayZ-Central-Economy/blob/9a21bb9f5fb9c62a7ce2761402196091588133e6/dayzOffline.chernarusplus/db/events.xml): concrete class names; the event values in this chapter are illustrative.
+
+Static evidence does not establish native perception internals, network enum encoding, performance limits, or runtime success of the fragments. Check cast, controller, agent and group results before use. Standalone identifiers such as `pos`, `spawnPosition`, `someEntity`, `fromPos`, and `toPos` must be supplied by your surrounding script.

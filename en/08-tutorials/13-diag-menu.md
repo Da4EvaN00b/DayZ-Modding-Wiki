@@ -53,7 +53,7 @@ An alternative shortcut is **Ctrl + Win**, but this conflicts with a Windows 11 
 
 Some Diag Menu options require you to interact with the screen using your mouse. The mouse cursor can be toggled by pressing:
 
-**LCtrl + Numpad 9**
+**Ctrl + Numpad 9**
 
 This key binding is registered through script (`PluginKeyBinding`).
 
@@ -80,11 +80,11 @@ These shortcuts work at any time while running DayZDiag, without needing to open
 
 | Shortcut | Function |
 |----------|----------|
-| **LCtrl + Numpad 1** | Toggle FPS counter |
-| **LCtrl + Numpad 9** | Toggle mouse cursor on screen |
-| **RCtrl + RAlt + W** | Cycle render debug mode |
-| **LCtrl + LAlt + P** | Toggle postprocess effects |
-| **LAlt + Numpad 6** | Toggle physics body visualization |
+| **Ctrl + Numpad 1** | Toggle FPS counter |
+| **Ctrl + Numpad 9** | Toggle mouse cursor on screen |
+| **RCtrl + AltGr + W** | Cycle render debug mode |
+| **Ctrl + Alt + P** | Toggle postprocess effects |
+| **Alt + Numpad 6** | Toggle physics body visualization |
 | **Page Up** | Free Camera: toggle player movement |
 | **Page Down** | Free Camera: freeze/unfreeze camera |
 | **Insert** | Teleport player to cursor position (while in free camera) |
@@ -93,6 +93,8 @@ These shortcuts work at any time while running DayZDiag, without needing to open
 | **End** | Disable free camera (return to player camera) |
 
 > **Note:** Any mention of "Cheat Inputs" in the official documentation refers to inputs hardcoded on the C++ side, not accessible through script.
+
+> **On modifiers:** the official list writes plain **Ctrl** and **Alt** except where it names a side explicitly, as it does for `RCtrl + AltGr + W`. `AltGr` is the right Alt key on a US layout but a distinct modifier on layouts that have one (it behaves as Ctrl+Alt), so on a non-US keyboard try right Alt first and `Ctrl + Alt + W` if that does nothing. Where the source says plain Ctrl or Alt, either side should work; this chapter does not claim otherwise.
 
 ---
 
@@ -116,7 +118,7 @@ The Diag Menu contains seven top-level categories:
 
 ```
 Statistics
-  FPS                              [LCtrl + Numpad 1]
+  FPS                              [Ctrl + Numpad 1]
   Script profiler UI
   > Script profiler settings
       Always enabled
@@ -263,7 +265,7 @@ Enfusion Renderer
       Emission lighting
   Shadows
   Terrain shadows
-  Render debug mode                [RCtrl + RAlt + W]
+  Render debug mode                [RCtrl + AltGr + W]
   Occluders
   Occlude entities
   Occlude proxies
@@ -271,7 +273,7 @@ Enfusion Renderer
   Show active occluders
   Show occluded
   Widgets
-  Postprocess                      [LCtrl + LAlt + P]
+  Postprocess                      [Ctrl + Alt + P]
   Terrain
   > Materials
       Common, TreeTrunk, TreeCrown, Grass, Basic, Normal,
@@ -386,7 +388,7 @@ Enfusion World
       Draw Bullet contacts
       Force sleep Bullet
       Show stats
-  Show bodies                      [LAlt + Numpad 6]
+  Show bodies                      [Alt + Numpad 6]
 ```
 
 > **Note:** "Bullet" here refers to the Bullet physics engine, not ammunition.
@@ -780,7 +782,7 @@ Draws debug shapes to visualize the navigation mesh. Shows an on-screen debug wi
 | **Numpad 1** | Regenerate tile at camera position |
 | **Numpad 2** | Regenerate tiles around camera position |
 | **Numpad 3** | Iterate forwards through visualization types |
-| **LAlt + Numpad 3** | Iterate backwards through visualization types |
+| **Alt + Numpad 3** | Iterate backwards through visualization types |
 | **Numpad 4** | Register "Test end" at camera position. Draws spheres and a line between start and end. Green = path found, Red = no path |
 | **Numpad 5** | NavMesh nearest position test (SamplePosition). Blue sphere = query, pink sphere = result |
 | **Numpad 6** | NavMesh raycast test. Blue sphere = query, pink sphere = result |
@@ -832,14 +834,14 @@ While every option has its use, these are the ones modders reach for most freque
 
 ### Performance Analysis
 
-1. **FPS counter** (LCtrl + Numpad 1) -- Quick check that your mod is not destroying frame rate
+1. **FPS counter** (Ctrl + Numpad 1) -- Quick check that your mod is not destroying frame rate
 2. **Script Profiler** -- Find which of your classes or functions consume the most CPU time. Set module to WORLD or MISSION to focus on your mod's script layer
 
 ### Visual Debugging
 
 1. **Free Camera** -- Fly around to inspect spawned objects, verify positions, check AI behavior from a distance
 2. **Geometry Diagnostic** -- Verify your custom model's fire geometry, view geometry, roadway LOD, and memory points without leaving the game
-3. **Render Debug Mode** (RCtrl + RAlt + W) -- See wireframe overlays to check mesh density and material assignments
+3. **Render Debug Mode** (RCtrl + AltGr + W) -- See wireframe overlays to check mesh density and material assignments
 
 ### Gameplay Testing
 

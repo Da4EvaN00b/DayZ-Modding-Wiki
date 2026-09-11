@@ -3,7 +3,7 @@
 
 ---
 
-DayZ uses **PAA** as its runtime texture format. During development you work with source formats (TGA, PNG, EDDS) that are converted to PAA during the build process. This chapter covers the formats, naming conventions, resolution rules, and conversion workflow.
+DayZ uses **PAA** for model/material textures and **EDDS** for GUI resources such as imageset atlases. TGA and PNG are source artwork formats; the output format depends on the asset pipeline. This chapter covers the formats, naming conventions, resolution rules, and conversion workflow.
 
 ---
 
@@ -14,7 +14,7 @@ DayZ uses four texture formats at different stages of the development pipeline:
 | Format | Extension | Role | Alpha Support | Used At |
 |--------|-----------|------|---------------|---------|
 | **PAA** | `.paa` | Runtime game format (compressed) | Yes | Final build, shipped in PBOs |
-| **EDDS** | `.edds` | Editor/intermediate DDS variant | Yes | Object Builder preview, auto-converts |
+| **EDDS** | `.edds` | Engine texture resource used by GUI | Yes | Workbench and shipped GUI atlases |
 | **TGA** | `.tga` | Uncompressed source artwork | Yes | Artist workspace, Photoshop/GIMP export |
 | **PNG** | `.png` | Portable source format | Yes | UI textures, external tools |
 
@@ -24,7 +24,7 @@ The general workflow is: **Source (TGA/PNG) --> DayZ Tools conversion --> PAA (g
 
 ## PAA Format
 
-**PAA** (PAcked Arma) is the native compressed texture format used by the Enfusion engine at runtime. Every texture that ships in a PBO must be in PAA format (or will be converted to it during binarization).
+**PAA** (PAcked Arma) is the native compressed texture format used by the Enfusion engine at runtime. GUI resources can instead reference EDDS textures; do not convert every resource to PAA indiscriminately.
 
 ### Characteristics
 
@@ -54,25 +54,9 @@ The general workflow is: **Source (TGA/PNG) --> DayZ Tools conversion --> PAA (g
 
 ## EDDS Format
 
-**EDDS** is an intermediate texture format used primarily by DayZ's **Object Builder** and the editor tools. It is essentially a variant of the standard DirectDraw Surface (DDS) format with engine-specific metadata.
+**EDDS** is an engine texture format used by the GUI resource pipeline. Shipped imagesets reference `.edds` atlases, for example `gui/imagesets/dayz_gui.imageset`. Keep these references and their resources together when packaging a GUI mod.
 
-### Characteristics
-
-- **Preview format:** Object Builder can display EDDS textures directly, making them useful during model creation.
-- **Auto-converts to PAA:** When you run Binarize or AddonBuilder (without `-packonly`), EDDS files in your source tree are automatically converted to PAA.
-- **Larger than PAA:** EDDS files are not optimized for distribution -- they exist for editor convenience.
-- **DayZ-Samples format:** The official DayZ-Samples provided by Bohemia use EDDS textures extensively.
-
-### Workflow with EDDS
-
-```
-Artist creates TGA/PNG source
-    --> Photoshop DDS plugin exports EDDS for preview
-        --> Object Builder displays EDDS on model
-            --> Binarize converts EDDS to PAA for PBO
-```
-
-> **Tip:** You can skip EDDS entirely if you prefer. Convert your source textures directly to PAA using TexView2 and reference the PAA paths in your materials. EDDS is a convenience, not a requirement.
+Use Workbench to manage GUI texture resources. Use TexView 2 or ImageToPAA for TGA/PNG-to-PAA conversion when authoring model materials. A generic DDS export is not automatically an EDDS resource, and the PAA build workflow below does not imply an automatic EDDS-to-PAA conversion.
 
 ---
 
@@ -121,7 +105,7 @@ When exporting TGA for DayZ conversion:
 - **Simple retextures:** When you only need a color/diffuse map with no complex alpha.
 - **Cross-tool workflows:** PNG is universally supported across image editors, web tools, and scripts.
 
-> **Note:** PNG is not an official Bohemia source format -- they prefer TGA. However, the conversion tools handle PNG without issues.
+Bohemia documents PNG and uncompressed 24/32-bit TGA as source formats in [Arma: Texture Naming Rules](https://community.bistudio.com/wiki/Arma:_Texture_Naming_Rules). The filename suffix selects conversion rules in `TexConvert.cfg`.
 
 ---
 
@@ -129,20 +113,29 @@ When exporting TGA for DayZ conversion:
 
 DayZ uses a strict suffix system to identify the role of each texture. The engine and materials reference textures by filename, and the suffix tells both the engine and other modders what type of data the texture contains.
 
-### Required Suffixes
+### Common Suffixes
 
 | Suffix | Full Name | Purpose | Typical Format |
 |--------|-----------|---------|----------------|
 | `_co` | **Color / Diffuse** | The base color (albedo) of a surface | RGB, optional alpha |
 | `_nohq` | **Normal Map (High Quality)** | Surface detail normals, defines bumps and grooves | RGB (tangent-space normal) |
-| `_smdi` | **Specular / Metallic / Detail Index** | Controls shininess and metallic properties | RGB channels encode separate data |
+| `_smdi` | **Specular / Diffuse-Inverse** | Stores specular intensity and power; diffuse is derived from the specular inverse | RGB channels encode separate data |
 | `_ca` | **Color with Alpha** | Color texture where the alpha channel carries meaningful data (transparency, mask) | RGBA |
 | `_as` | **Ambient Shadow** | Ambient occlusion / shadow bake | Grayscale |
 | `_mc` | **Macro** | Large-scale color variation visible at distance | RGB |
-| `_li` | **Light / Emissive** | Self-illumination map (glowing parts) | RGB |
 | `_no` | **Normal Map (Standard)** | Lower quality normal map variant | RGB |
-| `_mca` | **Macro with Alpha** | Macro texture with alpha channel | RGBA |
-| `_de` | **Detail** | Tiling detail texture for close-up surface variation | RGB |
+| `_mca` | **Vegetation macro resource** | Used by vanilla TreeAdv materials; interpret channels through the shader, not as a generic cutout mask | Shader-dependent |
+| `_dt` | **Detail** | Tiling detail texture for close-up surface variation; average color should sit near 0.5 and mipmaps fade the texture out with distance | RGB |
+| `_lco` | **Layer Color** | Terrain satellite/layer color | RGB |
+| `_lca` | **Layer Color Alpha** | Layer-color alpha variant (`layer_color_alpha` in TexConvert.cfg) | RGBA |
+| `_mask` | **Material Mask** | RGB mask for multimaterial blending | RGB |
+| `_dtsmdi` | **Detail / Specular / Diffuse-Inverse** | SMDI variant retaining detail in red | RGB |
+| `_ads` | **Ambient / Diffuse Shadow** | Green stores ambient shadow; blue stores diffuse shadow | RGB |
+
+
+[Texture Map Types](https://community.bistudio.com/wiki/Texture_Map_Types) describes channel meanings by shader. For trees, macro alpha can carry lighting information; it is not necessarily transparency. For example, the vanilla `b_rosa_canina_1s` asset uses an `_mca` resource in a TreeAdv material and also has a separate `_ca` texture. Use the matching material to interpret the resource.
+
+Self-illumination is configured through material properties such as `emmisive[]`; do not invent an `_li` stage in the Super shader.
 
 ### Naming Convention in Practice
 
@@ -159,24 +152,26 @@ data/
 
 ### The _smdi Channels
 
-The specular/metallic/detail texture packs three data streams into one RGB image:
+The SMDI texture stores specular data with diffuse derived from its inverse. The [HQ Normal Maps documentation](https://community.bistudio.com/wiki/HQ_Normal_Maps#Optimized_specular_map_onto_bit_depth) and installed `TexConvert.cfg` define the channels:
 
 | Channel | Data | Range | Effect |
 |---------|------|-------|--------|
-| **R** | Metallic | 0-255 | 0 = non-metal, 255 = full metal |
-| **G** | Roughness (inverted specular) | 0-255 | 0 = rough/matte, 255 = smooth/glossy |
-| **B** | Detail index / AO | 0-255 | Detail tiling or ambient occlusion |
+| **R** | Constant | 255 | Set to white; the converter writes 1 here |
+| **G** | Specular intensity | 0-255 | Controls the specular contribution |
+| **B** | Specular power multiplier | 0-255 | Modulates the material specular power; white preserves the configured power |
 
 ### The _nohq Channels
 
-Normal maps in DayZ use tangent-space encoding:
+Author normal maps with tangent-space RGB normals. This table describes source data, not the packed PAA bytes:
 
 | Channel | Data |
 |---------|------|
 | **R** | X-axis normal (left-right) |
 | **G** | Y-axis normal (up-down) |
 | **B** | Z-axis normal (toward viewer) |
-| **A** | Specular power (optional, depends on material) |
+| **A** | Source opacity where the shader uses it; not specular power |
+
+The installed `normalmap_hq` conversion rule writes `1-R` into output alpha and `1-A` into output red, while preserving green and blue. Do not paint a specular-power mask into `_nohq` alpha.
 
 ---
 
@@ -230,9 +225,9 @@ The alpha channel in a texture carries additional data beyond color. How it is i
 |--------|---------------------|
 | `_co` | Usually unused; if present, may define transparency for simple materials |
 | `_ca` | Transparency mask (0 = fully transparent, 255 = fully opaque) |
-| `_nohq` | Specular power map (higher = sharper specular highlight) |
+| `_nohq` | Source opacity where the shader uses it; not specular power (see [The _nohq Channels](#the-nohq-channels)) |
 | `_smdi` | Usually unused |
-| `_li` | Emissive intensity mask |
+| `_mca` | Shader-dependent macro data; tree macro alpha can carry lighting, not a generic cutout mask |
 
 ### Creating Textures with Alpha
 
@@ -261,8 +256,8 @@ Open the PAA in TexView2 and use the channel display buttons:
 **TexView2** is included with DayZ Tools and is the standard texture conversion utility.
 
 **Opening a file:**
-1. Launch TexView2 from DayZ Tools or directly from `DayZ Tools\Bin\TexView2\TexView2.exe`.
-2. Open your source file (TGA, PNG, or EDDS).
+1. Launch TexView2 from DayZ Tools or directly from `DayZ Tools\Bin\ImageToPAA\TexView.exe`.
+2. Open your source file (TGA or PNG).
 3. Verify the image looks correct and check dimensions.
 
 **Converting to PAA:**
@@ -277,16 +272,14 @@ Open the PAA in TexView2 and use the channel display buttons:
 
 **Batch conversion via command line:**
 
-```bash
-# Convert a single TGA to PAA
-"P:\DayZ Tools\Bin\TexView2\TexView2.exe" -i "source.tga" -o "output.paa"
-
-# TexView2 will auto-select compression based on alpha channel presence
+```batch
+REM ImageToPAA uses positional source and destination arguments.
+"P:\DayZ Tools\Bin\ImageToPAA\ImageToPAA.exe" "source_co.tga" "output_co.paa"
 ```
 
 ### Binarize (Automated)
 
-When Binarize processes your mod's source directory, it automatically converts all recognized texture formats (TGA, PNG, EDDS) to PAA. This happens as part of the AddonBuilder pipeline.
+When Binarize processes your mod's source directory, it converts referenced source textures to PAA. AddonBuilder also offers `-binarizeAllTextures` to process TGA/PNG textures that are not referenced by a model or listed in `textures.lst`. Keep EDDS GUI resources in their own pipeline.
 
 **Binarize conversion flow:**
 ```
@@ -300,12 +293,10 @@ source/mod_name/data/texture_co.tga
 
 | From | To | Tool | Notes |
 |------|----|------|-------|
-| TGA --> PAA | TexView2 | Standard workflow |
-| PNG --> PAA | TexView2 | Works identically to TGA |
-| EDDS --> PAA | TexView2 or Binarize | Automatic during build |
-| PAA --> TGA | TexView2 (Save As TGA) | For editing existing textures |
-| PAA --> PNG | TexView2 (Save As PNG) | For extracting to portable format |
-| PSD --> TGA/PNG | Photoshop/GIMP | Export from editor, then convert |
+| TGA / PNG | PAA | TexView 2 / ImageToPAA | Model/material workflow; retain the suffix |
+| PAA | TGA / PNG | TexView 2 | Export for inspection; prefer original artwork for editing |
+| PSD | TGA / PNG | Image editor | Export artwork before texture conversion |
+
 
 ---
 
@@ -317,20 +308,20 @@ source/mod_name/data/texture_co.tga
 |----------|------------------------|--------|
 | Opaque diffuse (`_co`) | DXT1 | Best ratio, no alpha needed |
 | Transparent diffuse (`_ca`) | DXT5 | Full alpha support |
-| Normal maps (`_nohq`) | DXT5 | Alpha channel carries specular power |
+| Normal maps (`_nohq`) | DXT5 | Uses the normal-map channel packing in TexConvert.cfg |
 | Specular maps (`_smdi`) | DXT1 | Usually opaque, RGB channels only |
 | UI textures | ARGB4444 or DXT5 | Small size, clean edges |
-| Emissive maps (`_li`) | DXT1 or DXT5 | DXT5 if alpha carries intensity |
+| Vegetation macro (`_mca`) | Match the source resource | Shader-dependent data; not a generic cutout mask |
 
 ### Quality vs. File Size
 
 ```
 Format        2048x2048 approx. size
 -----------------------------------------
-ARGB8888      16.0 MB    (uncompressed)
-DXT5           5.3 MB    (4:1 compression)
-DXT1           2.7 MB    (6:1 compression)
-ARGB4444       8.0 MB    (2:1 compression)
+ARGB8888      21.3 MiB   (uncompressed, including mipmaps)
+DXT5           5.3 MiB   (including mipmaps)
+DXT1           2.7 MiB   (including mipmaps)
+ARGB4444      10.7 MiB   (including mipmaps)
 ```
 
 ### In-Game Quality Settings
@@ -349,7 +340,7 @@ A typical weapon mod contains these texture files:
 MyMod_Weapons/data/weapons/m4a1/
   my_weapon_co.paa           <-- 2048x2048, DXT1, base color
   my_weapon_nohq.paa         <-- 2048x2048, DXT5, normal map
-  my_weapon_smdi.paa          <-- 2048x2048, DXT1, specular/metallic
+  my_weapon_smdi.paa          <-- 2048x2048, DXT1, specular / diffuse-inverse
   my_weapon_as.paa            <-- 1024x1024, DXT1, ambient shadow
 ```
 
@@ -359,10 +350,10 @@ The material file (`.rvmat`) references these textures and assigns them to shade
 
 ```
 MyFramework/data/gui/icons/
-  my_icons_co.paa           <-- 512x512, ARGB4444, sprite atlas
+  my_icons.edds             <-- GUI sprite atlas resource
 ```
 
-UI textures are often packed into a single atlas (imageset) and referenced by name in layout files. ARGB4444 compression is common for UI because it preserves clean edges while keeping file sizes small.
+UI textures are often packed into a single atlas (imageset) and referenced by name in layout files. Use a matching vanilla imageset as a template for texture resources and image rectangles.
 
 ### Terrain Textures
 
@@ -372,7 +363,7 @@ terrain/
   grass_green_nohq.paa       <-- 1024x1024, DXT5, tiling normal
   grass_green_smdi.paa        <-- 1024x1024, DXT1, tiling specular
   grass_green_mc.paa          <-- 512x512, DXT1, macro variation
-  grass_green_de.paa          <-- 512x512, DXT1, detail tiling
+  grass_green_dt.paa          <-- 512x512, DXT1, detail tiling
 ```
 
 Terrain textures tile across the landscape. The `_mc` macro texture adds large-scale color variation to prevent repetition.
@@ -419,8 +410,8 @@ Terrain textures tile across the landscape. The `_mc` macro texture adds large-s
 2. **Match resolution to importance.** A rifle the player holds deserves 2048x2048. A can on a shelf can use 512x512.
 3. **Always provide a normal map.** Even a flat normal map (128, 128, 255 solid fill) is better than none -- missing normal maps cause material errors.
 4. **Name consistently.** One base name, multiple suffixes: `myitem_co.paa`, `myitem_nohq.paa`, `myitem_smdi.paa`.
-5. **Use DXT1 by default, DXT5 only when alpha is needed.** DXT1 is half the file size and looks identical for opaque textures.
-6. **Use atlas textures for UI icons.** Pack multiple icons into a single 512x512 `_co.paa` referenced by imagesets. Use ARGB4444 for small HUD elements.
+5. **Follow the suffix-specific conversion rule.** DXT1 uses half the storage of DXT5, but normal maps and alpha textures need the appropriate channel packing and quality.
+6. **Use atlas textures for UI icons.** Pack related icons into an atlas and reference named rectangles from an imageset.
 7. **Create color variants via `hiddenSelectionsTextures[]`** instead of duplicating P3D models. Swap only the `_co.paa`.
 8. **Watch VRAM usage.** A single 4096x4096 DXT5 texture uses ~21 MB of GPU memory with mipmaps. Prefer 1024 or 2048 for most items.
 9. Two mods retexturing the same vanilla item via `hiddenSelectionsTextures[]` will conflict -- last loaded wins.

@@ -311,6 +311,15 @@ class MyAwesomeMod
 
 Other mods can then use `#ifdef MYAWESOMEMOD` to conditionally compile code that integrates with yours. See [Chapter 7.6: The Event Bus Pattern](../07-patterns/06-events.md) for how mods discover and talk to one another at runtime.
 
+**Server-mod caveat (observed behaviour, not documented by Bohemia).** A `defines[]` symbol declared by a package loaded via `-mod=` reaches `#ifdef` checks in other `-mod=` packages. It has been observed *not* to reach packages loaded as `-servermod=` (`type = "servermod"`): in a production multi-package mod, the same `#ifdef` guard compiled in a `type = "mod"` package and was silently compiled out in a `type = "servermod"` package, with the runtime registration log as the discriminator and an unguarded third package as the control. Bohemia does not document `defines[]` propagation either way, so treat this as a field observation rather than a specified rule -- but do design around it, because a silently-false `#ifdef` is indistinguishable from a clean build.
+
+Two ways to stay safe:
+
+- **Declare the symbol in each package's own `defines[]`.** A package always sees its own defines.
+- **Or register unconditionally** and make the dependency hard, via `requiredAddons[]`.
+
+There is a trap in the first option worth knowing before you pick it. Once a server-only package self-declares a symbol, every `#ifdef` on that symbol inside it is unconditionally true and has stopped detecting anything. That is safe only while `requiredAddons[]` already mandates whatever the guard was protecting. The two mechanisms are not interchangeable: `requiredAddons[]` is what makes a type *exist*; `defines[]` and `#ifdef` only decide whether code is *emitted*. For a hard dependency, list the addon and call it unguarded. Keep `#ifdef` for genuinely optional integration between `-mod=` packages, gated on a define the other package publishes and that you do not redeclare.
+
 ---
 
 ## Step 6: Update mod.cpp

@@ -530,21 +530,22 @@ void FindItemInGrid(array<array<string>> grid, string target)
 Enforce Script has a `thread` keyword for asynchronous execution:
 
 ```c
-// Declare a threaded function
-thread void LongOperation()
+// Declare the function normally -- there is no `thread` on the declaration
+void LongOperation()
 {
-    // This runs asynchronously
-    Sleep(5000);  // Wait 5 seconds without blocking
+    Sleep(5000);  // Wait 5 seconds without blocking the caller
     Print("Done!");
 }
 
-// Call it
+// The keyword goes on the CALL
 thread LongOperation();  // Starts without blocking the caller
 ```
 
-**Important:** `thread` in Enforce Script is NOT the same as OS threads. It is more like a coroutine --- it runs on the same thread but can yield/sleep without blocking the game. Use `CallLater` instead of `thread` for most mod use cases --- it is simpler and more predictable.
+**`thread` goes on the call, not the declaration.** Bohemia's keyword table describes it as "declared before the function call", and every real use follows that form: Community Framework's `CF_XML.ReadAsync` calls `thread Process(...)` at `CF_XML.c:37` against the plain `static void Process(...)` declared at `:40`, and VPP Admin Tools does the same (`VPPUIManager.c:177`, `EspToolsMenu.c:131`). There are no declaration-site uses anywhere in the extraction or in the community frameworks checked. [Functions & Methods](13-functions-methods.md#thread-methods-coroutines) states the same rule.
 
-> **Note on `Sleep()`:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is commonly used by large mods in their threaded routines.
+**How parallel is it?** Bohemia's own wording is that `thread` "runs the function on a new thread", and the engine's `ScriptModule.Call` doc block notes that the call "creates new thread, so it's legal to use sleep/wait" while `CallFunction` "do not create new thread" (`1_core/proto/enscript.c:137,144`). In practice script code is scheduled cooperatively and yields through `Sleep()`, which is why threaded routines read like coroutines — but that practical model is community understanding, not documented behaviour. The safe rule either way: **never assume two pieces of script run in parallel, and never rely on it for correctness.** For most mod work, prefer `CallLater`; it is simpler and more predictable.
+
+> **Note on `Sleep()`:** `Sleep()` is an engine built-in (intrinsic) --- there is no `proto` declaration for it anywhere in the script files, and it takes an `int` in milliseconds. No vanilla code calls the intrinsic (the only `Sleep` in the extraction is an unrelated, locally declared `float Sleep(float timeS)` test helper in `3_game/systems/tftests/enprofilertests.c:707`, called at `:237`); community frameworks call the intrinsic only from inside functions started with `thread` (for example `_Sleep` in Community Online Tools' `JMESPModule.c:720`). Use it only in a threaded context. What happens if you call it outside one is not documented, and is not established here.
 
 ### Thread vs CallLater
 
@@ -552,8 +553,10 @@ thread LongOperation();  // Starts without blocking the caller
 |---------|----------|-------------|
 | Syntax | `thread MyFunc();` | `GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(this.MyFunc, delayMs, repeat);` |
 | Can sleep/yield | Yes (`Sleep()`) | No (fires once or repeats at interval) |
-| Cancellable | No built-in cancel | Yes (`CallQueue.Remove()`) |
+| Cancellable | Yes -- `KillThread(owner, "FnName")` (`proto native int KillThread(Class owner, string name);` in `1_core/proto/enscript.c`), but it kills by owner+name, not by a handle to the specific call | Yes (`CallQueue.Remove()`), by function reference |
 | Use case | Sequential async logic with waits | Delayed or repeated callbacks |
+
+Full coverage of `thread`, `Sleep()`, and `KillThread()` lives in [Functions & Methods](13-functions-methods.md#thread-methods-coroutines).
 
 For most DayZ modding scenarios, `CallLater` with a timer is the preferred approach. Reserve `thread` for cases where you genuinely need sequential logic with intermediate waits (e.g., a multi-step animation sequence).
 
@@ -600,7 +603,7 @@ foreach (KeyType key, ValueType val : someMap) { }
 // switch/case (falls through without break, like C/C++)
 switch (value) { case X: /* ... */ break; default: break; }
 
-// thread (coroutine-style async)
-thread void MyFunc() { Sleep(1000); }
+// thread (async start -- keyword on the CALL, not the declaration)
+void MyFunc() { Sleep(1000); }
 thread MyFunc();  // non-blocking call
 ```

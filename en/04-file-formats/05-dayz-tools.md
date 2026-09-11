@@ -28,7 +28,7 @@ This chapter provides an overview of each tool in the suite, explains the P: dri
 - [Common Mistakes](#common-mistakes)
 - [Best Practices](#best-practices)
 - [Common Toolchain Practices](#common-toolchain-practices)
-- [Compatibility & Impact](#compatibility--impact)
+- [Compatibility & Impact](#compatibility-impact)
 
 ---
 
@@ -144,8 +144,8 @@ Many mod projects include a `SetupWorkdrive.bat` script that automates P: drive 
 REM Create P: drive pointing to the workspace
 subst P: "D:\DayZModding"
 
-REM Create junctions for vanilla game data
-mklink /J "P:\DZ" "C:\Program Files (x86)\Steam\steamapps\common\DayZ\dta"
+REM Link an existing EXTRACTED vanilla DZ tree, not the packed dta folder
+mklink /J "P:\DZ" "D:\DayZExtracted\DZ"
 
 REM Create junction for tools
 mklink /J "P:\DayZ Tools" "C:\Program Files (x86)\Steam\steamapps\common\DayZ Tools"
@@ -475,4 +475,4 @@ Patterns you will see across well-run mod projects:
 
 - **Multi-Mod:** All DayZ tools share the P: drive. Multiple mod projects coexist under `P:\` without conflict as long as folder names differ. Junction collisions happen if two mods use the same P: path.
 - **Performance:** Binarization is CPU-intensive. Large mods with many P3D models and textures can take several minutes to build. Splitting content into multiple PBOs and using `-packonly` for script-only PBOs reduces build time significantly.
-- **Version:** DayZ Tools are updated alongside major DayZ patches. Object Builder and Binarize occasionally receive fixes, but the overall workflow has been stable since DayZ 1.0. Always keep DayZ Tools updated via Steam.
+- **Installed tools:** Keep DayZ Tools current through Steam and check each installed executable's help before relying on command-line behavior.

@@ -1,6 +1,6 @@
 # Functions & Methods
 
-> **Summary:** How functions work in Enforce Script — declaration syntax, the parameter passing modes (`out`, `inout`, `notnull`), return values, default parameters, the 16-parameter limit, `proto native` engine bindings, method overriding, the missing overloading feature and its workarounds, `event` methods, `thread` coroutines, and deferred calls with `CallLater`.
+> **Summary:** How functions work in Enforce Script — declaration syntax, the parameter passing modes (`out`, `inout`, `notnull`), return values, default parameters, the 16-parameter limit, `proto native` engine bindings, method overriding, method overloading and the naming conventions vanilla prefers instead, `event` methods, `thread` coroutines, and deferred calls with `CallLater`.
 
 ---
 
@@ -29,7 +29,7 @@ This chapter covers function mechanics in depth: declaration syntax, parameter p
 - [Proto Native Methods (Engine Bindings)](#proto-native-methods-engine-bindings)
 - [Static vs Instance Methods](#static-vs-instance-methods)
 - [Method Overriding](#method-overriding)
-- [Method Overloading (Not Supported)](#method-overloading-not-supported)
+- [Method Overloading (Supported, Rarely Used)](#method-overloading-supported-rarely-used)
 - [The event Keyword](#the-event-keyword)
 - [Thread Methods (Coroutines)](#thread-methods-coroutines)
 - [Deferred Calls with CallLater](#deferred-calls-with-calllater)
@@ -268,27 +268,36 @@ event void GetTransform(inout vector transform[4])
 
 ### notnull Parameters
 
-The `notnull` keyword declares that a parameter must never receive `null`. It is a **compile-time check, not a runtime guard**:
+The `notnull` keyword declares that a parameter must never receive `null`. It is widely used in vanilla — 139 script files contain it — and it appears on both engine bindings and ordinary script functions.
 
-- Passing the literal `null` (or a variable the compiler can prove is null) to a `notnull` parameter is a **compile error**.
-- At runtime, no extra check is inserted. A reference that happens to be null at the moment of the call — for example, an entity the engine deleted after your last null check — passes straight through. The crash, if any, happens later, when the function dereferences the null reference, exactly as it would with an unmarked parameter.
+**What its enforcement actually is, is not documented.** `notnull` is absent from Bohemia's Enforce Script syntax page: it appears in neither the function-modifier table nor the variable-modifier table, so there is no primary description of whether it is checked at compile time, at runtime, or both. Community references disagree on the point. This chapter does not resolve it.
 
-Treat `notnull` as enforceable documentation: it tells callers "null is a programming error here" and lets the compiler catch the obvious violations at the call site.
+What vanilla's own usage shows is that the engine treats the guarantee as real and does not re-check it. `array<T>.InsertAll` is plain script, not a native binding, and dereferences its parameter immediately:
+
+```c
+// 1_core/proto/enscript.c:449
+void InsertAll(notnull array<T> from)
+{
+    int nFrom = from.Count();   // no null check — the modifier is the contract
+    ...
+}
+```
+
+**What to do, either way:** treat `notnull` as a contract you must honour at the call site, not as a safety net you can lean on.
 
 ```c
 void ProcessEntity(notnull EntityAI entity)
 {
-    // The compiler rejects call sites that pass a literal null,
-    // so a defensive null check here is normally unnecessary
     string name = entity.GetType();
     Print(name);
 }
 
-// Usage:
-// ProcessEntity(null);   // COMPILE ERROR — cannot pass null to a notnull parameter
+// Honour the contract at the call site:
+if (entity)
+    ProcessEntity(entity);
 ```
 
-> **Verdict — compile-time, not runtime:** `notnull` catches literal `null` at the call site during compilation. It does **not** protect against references that become null at runtime — engine-side entity deletion is the classic case (see [Error Handling](11-error-handling.md#the-notnull-keyword) and [Memory Management](08-memory-management.md#notnull-parameter-modifier)). If a value can legitimately be null at runtime, check it yourself before calling.
+This matters most for references that can go null *between* your check and the call — engine-side entity deletion is the classic case. Marking a parameter `notnull` does not make that scenario safe under any of the candidate semantics, so guard it yourself. See [Error Handling](11-error-handling.md#the-notnull-keyword) and [Memory Management](08-memory-management.md#notnull-parameter-modifier).
 
 Vanilla uses `notnull` heavily in engine-facing functions:
 
@@ -455,7 +464,11 @@ void DoWork(EntityAI target = null, string name = "")
 
 ## Parameter Limit: 16 Maximum
 
-Enforce Script methods cannot have more than 16 parameters. Since DayZ 1.28, exceeding this limit produces a **hard compile error** (previously it caused silent buffer overflows and random crashes):
+Enforce Script methods cannot have more than 16 parameters; a 17th parameter is a compile error.
+
+Bohemia's 1.28 release notes list this under **MODDING → ADDED**: *"Enforce Script: Compiler error when script methods exceed the maximum amount of parameters: 16, this has always been a limitation, previously the game would continue with buffer overflows and random crashes"* ([Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/) — *PC Stable 1.28 Update 1, Version 1.28.159992*, posted 2 June 2025 by merropa93 (DayZ Community Support); accessed 2026-09-11).
+
+Two different dates live in that sentence. **The 16-parameter limit itself is longstanding** — Bohemia's words are "this has always been a limitation." **The compiler error is what 1.28 added.** Bohemia describes the pre-diagnostic behavior as the game continuing "with buffer overflows and random crashes"; that is their account of it, not a runtime observation by this audit, and no claim is made here about the native implementation:
 
 ```c
 // COMPILE ERROR in 1.28+ — 17 parameters exceeds the limit
@@ -750,20 +763,34 @@ class Dog extends Animal
 
 ---
 
-## Method Overloading (Not Supported)
+## Method Overloading (Supported, Rarely Used)
 
-**Enforce Script does not support method overloading.** You cannot have two methods with the same name but different parameter lists. Attempting this will cause a compile error.
+**The compiler does resolve overloads.** An earlier version of this chapter said otherwise; shipped vanilla code disproves it.
+
+`class InputUtils` in `3_game/tools/inpututils.c` declares the same method twice inside one class body, differing only in the type of the first parameter:
 
 ```c
-class Calculator
+// 3_game/tools/inpututils.c:118
+static void GetImagesetAndIconFromInputAction(notnull UAInput pInput, int pInputDeviceType,
+    out array<string> pImageSet, out array<string> pIconName)
+{ /* ... */ }
+
+// 3_game/tools/inpututils.c:160 — same name, same arity, different first parameter type
+static void GetImagesetAndIconFromInputAction(string pInputAction, int pInputDeviceType,
+    out array<string> pImageSet, out array<string> pIconName)
 {
-    // COMPILE ERROR — duplicate method name
-    int Add(int a, int b) { return a + b; }
-    float Add(float a, float b) { return a + b; }  // NOT ALLOWED
+    UAInput inp = GetUApi().GetInputByName(pInputAction);
+    InputUtils.GetImagesetAndIconFromInputAction(inp, pInputDeviceType, pImageSet, pIconName);  // :164
 }
 ```
 
-### Workaround 1: Different Method Names
+`GetRichtextButtonIconFromInputAction` is overloaded the same way at `:167` and `:198`. Overloading by **arity** also works in shipping community code — Community Online Tools declares `_Sleep(int, out int)` at `JMESPModule.c:720` and `_Sleep(int, out int, inout int)` at `:726`, and calls both.
+
+**Why the workarounds below still matter.** Vanilla almost never overloads. The three patterns that follow are the dominant idiom across the 2,800-file script tree, and code written that way reads the way the rest of the API reads. Prefer them for style, not because the alternative fails to compile.
+
+> **Not established here:** these examples prove overload resolution works for a distinct-type first parameter and for differing arity. They do not establish how the compiler resolves an ambiguous case — two overloads whose parameter types are mutually convertible, for instance. If you overload, keep the signatures obviously distinct.
+
+### Pattern 1: Different Method Names
 
 The most common approach is to use descriptive names:
 
@@ -775,7 +802,7 @@ class Calculator
 }
 ```
 
-### Workaround 2: The Ex() Convention
+### Pattern 2: The Ex() Convention
 
 DayZ vanilla and mods follow a naming convention where an extended version of a method appends `Ex` to the name:
 
@@ -796,7 +823,7 @@ void SplitIntoStackMax(EntityAI destination_entity, int slot_id, PlayerBase play
 void SplitIntoStackMaxEx(EntityAI destination_entity, int slot_id);
 ```
 
-### Workaround 3: Default Parameters
+### Pattern 3: Default Parameters
 
 If the difference is just optional parameters, use defaults instead:
 
@@ -860,7 +887,9 @@ The key takeaway: `event` is a declaration modifier, not something you invoke. T
 
 ## Thread Methods (Coroutines)
 
-The `thread` keyword creates a **coroutine** --- a function that can yield execution and resume later. Despite the name, Enforce Script is **single-threaded**. Thread methods are cooperative coroutines, not OS-level threads.
+The `thread` keyword starts a function asynchronously: it runs, can pause itself with `Sleep()`, and resumes later without blocking the caller.
+
+**How parallel is it?** Bohemia's keyword table says `thread` "runs the function on a new thread", and the engine doc block on `ScriptModule.Call` notes that the call "creates new thread, so it's legal to use sleep/wait" while `CallFunction` "do not create new thread" (`1_core/proto/enscript.c:137,144`). In practice these routines behave like cooperative coroutines that yield at `Sleep()`, which is the common community reading and matches how mods use them --- but the underlying scheduling is not documented, and this chapter does not establish it. Whichever model is correct, the rule for your code is the same: **never rely on two pieces of script running in parallel, and never use `thread` in place of proper synchronisation.**
 
 ### Declaring and Starting a Thread
 
@@ -891,7 +920,7 @@ The `thread` keyword goes on the **call**, not the function declaration. The fun
 
 Inside a thread function, `Sleep(milliseconds)` pauses execution and yields to other code. When the sleep time elapses, the thread resumes from where it left off.
 
-> **Note:** `Sleep()` is an engine built-in (intrinsic) function --- there is no `proto` declaration for it in the script files. It takes an `int` parameter in milliseconds and **must** be called within a threaded context (i.e., a function invoked with the `thread` keyword). Calling `Sleep()` outside a threaded context will crash. It is used extensively by large mods in their threaded routines.
+> **Note:** `Sleep()` is an engine built-in (intrinsic) --- there is no `proto` declaration for it anywhere in the script files, and it takes an `int` in milliseconds. Vanilla never calls it; community frameworks call it only from inside functions started with `thread` (for example `_Sleep` in Community Online Tools' `JMESPModule.c:720`). Use it only in a threaded context. What happens when it is called outside one is not documented, and is not established here.
 
 ### Killing Threads
 
@@ -1026,8 +1055,8 @@ These conventions appear throughout the vanilla scripts and across the community
 
 | Concept | Theory | Reality |
 |---------|--------|---------|
-| Method overloading | Standard OOP feature | Not supported; use `Ex()` suffix or default parameters instead |
-| `thread` creates OS threads | Keyword suggests parallelism | Single-threaded coroutines with cooperative yielding via `Sleep()` |
+| Method overloading | Standard OOP feature | Supported (vanilla `InputUtils` overloads by parameter type), but vanilla style is distinct names, the `Ex()` suffix or default parameters |
+| `thread` creates OS threads | Bohemia's keyword table does say it "runs the function on a new thread" | In practice threaded routines behave as cooperative coroutines yielding at `Sleep()`. The scheduling model is undocumented either way --- write code that never depends on parallel execution |
 | `out` parameters are write-only | Should not read initial value | Some vanilla code reads the `out` param before writing; safer to always treat as `inout` defensively |
 | `override` is optional | Could be inferred | Omitting it silently creates a new method instead of overriding; always include it |
 | Default parameter expressions | Should support function calls | Only literal values (`42`, `true`, `null`, `""`) are allowed; no expressions |
@@ -1074,16 +1103,16 @@ void GetData(out int value)
 }
 ```
 
-### 3. Trying to Overload Methods
+### 3. Overloading Where a Name Would Read Better
 
-Enforce Script does not support overloading. Two methods with the same name cause a compile error.
+Overloading compiles (see [Method Overloading](#method-overloading-supported-rarely-used)), but it is not how vanilla is written, and a reader scanning for `Process` has to check every declaration to know which one runs.
 
 ```c
-// COMPILE ERROR
+// Compiles, but unusual in DayZ script
 void Process(int id) {}
 void Process(string name) {}
 
-// CORRECT — use different names
+// Vanilla idiom — self-describing at the call site
 void ProcessById(int id) {}
 void ProcessByName(string name) {}
 ```
@@ -1152,7 +1181,7 @@ class MyMission extends MissionServer
 | By-value param | `void Fn(int x)` | Copy for primitives; ref copy for objects |
 | `out` param | `void Fn(out int x)` | Write-only; caller receives value |
 | `inout` param | `void Fn(inout float x)` | Read + write; caller sees changes |
-| `notnull` param | `void Fn(notnull EntityAI e)` | Compile error on literal `null`; no runtime guard |
+| `notnull` param | `void Fn(notnull EntityAI e)` | Declares "null is a programming error here". Enforcement is undocumented — null-check at the call site regardless |
 | Default value | `void Fn(int x = 5)` | Literals only, no expressions |
 | Override | `override void Fn()` | Must match parent signature |
 | Call parent | `super.Fn()` | Inside override body |
@@ -1165,4 +1194,4 @@ class MyMission extends MissionServer
 | Kill thread | `KillThread(owner, "FnName")` | Stops a running coroutine |
 | Deferred call | `CallLater(Fn, delay, repeat)` | Preferred over threads |
 | `Ex()` convention | `void FnEx(...)` | Extended version of `Fn` |
-| Parameter limit | 16 parameters max | Hard compile error in 1.28+; use a class for more |
+| Parameter limit | 16 parameters max | Compile error past that (diagnostic added in 1.28; the limit itself is longstanding); use a class for more |

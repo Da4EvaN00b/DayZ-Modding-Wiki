@@ -4,7 +4,7 @@ layout: home
 hero:
   name: DayZ Modding Wiki
   text: The Complete Guide
-  tagline: 104 chapters covering everything from Enforce Script to server administration — in 12 languages.
+  tagline: 98 chapters and 5 reference pages covering everything from Enforce Script to server administration — in 12 languages.
   image:
     src: /images/wiki-logo.png
     alt: DayZ Modding Wiki
@@ -26,7 +26,7 @@ features:
     link: /en/01-enforce-script/01-variables-types
   - icon: 🎨
     title: GUI & Layout System
-    details: 10 chapters on widgets, .layout files, sizing, events, dialogs, and production UI architecture patterns.
+    details: 10 chapters on widgets, .layout files, sizing, events, dialogs, and how to structure a non-trivial mod UI.
     link: /en/03-gui-system/01-widget-types
   - icon: ⚙️
     title: Engine API Reference
@@ -60,9 +60,9 @@ features:
 
 ## Built by Reverse Engineering
 
-This wiki was created by studying **10+ professional DayZ mods**, **2,800+ vanilla script files**, and **15 official Bohemia samples**.
+This wiki was written against the **2,800+ vanilla DayZ script files**, the **12 official Bohemia sample mods**, and Bohemia's official tools and documentation.
 
-Every code example is verified. Every gotcha is real. Every pattern comes from production mods.
+Example code is written for this wiki rather than lifted from a published mod, though no audit trail establishes the provenance of every snippet. Examples illustrate APIs and patterns and are often partial — adapt them and test against your own DayZ build; nothing here is compiled or run as part of authoring. **English is the source of truth**, and the accuracy review covers the English pages only.
 
 [Glossary](/en/glossary) · [FAQ](/en/faq) · [Troubleshooting](/en/troubleshooting) · [Cheatsheet](/en/cheatsheet)
 

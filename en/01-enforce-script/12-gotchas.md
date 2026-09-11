@@ -12,7 +12,7 @@
 - [Missing Language Features](#missing-language-features)
 - [Parser (CParser) Traps](#parser-cparser-traps)
 - [Engine & Runtime Quirks](#engine--runtime-quirks)
-- [Version Changes (1.28+)](#version-changes-128)
+- [Sealed Classes, Parameter Limits, and the Obsolete Attribute](#sealed-classes-parameter-limits-and-the-obsolete-attribute)
 - [Build & Log Diagnostics](#build--log-diagnostics)
 - [Coming From C++](#coming-from-c)
 - [Coming From C#](#coming-from-c-1)
@@ -24,7 +24,7 @@
 
 ## Missing Language Features
 
-Constructs that simply do not exist in the language. Trying any of them produces a compile error.
+Constructs that simply do not exist in the language. Trying any of them produces a compile error. One entry below — method overloading — is a correction rather than an absence; it is kept in place because the "it does not exist" version still circulates.
 
 ### No Ternary Operator
 
@@ -50,11 +50,13 @@ Full patterns: [Error Handling](11-error-handling.md).
 
 Full coverage: [Classes & Inheritance](03-classes-inheritance.md).
 
-### No Method Overloading
+### Method Overloading — Supported, but Against the House Style
 
-Two methods with the same name but different parameter lists do not compile — the second declaration is a duplicate-name error. Use distinct names (`AddInt`/`AddFloat`), the vanilla `Ex()` suffix convention, or default parameter values.
+This chapter previously listed overloading as a compile error. The extraction disproves it. `class InputUtils` (`3_game/tools/inpututils.c`) declares `GetImagesetAndIconFromInputAction` twice — line 118 taking `notnull UAInput`, line 160 taking `string`, same arity — inside one class body, and the `string` overload calls the `UAInput` one at line 164. `GetRichtextButtonIconFromInputAction` is overloaded the same way at lines 167 and 198. Community code also overloads by arity: `_Sleep` in Community Online Tools (`JMESPModule.c:720` and `:726`) has two- and three-parameter forms, both called.
 
-Full coverage and workarounds: [Functions & Methods](13-functions-methods.md).
+So the compiler does resolve overloads by parameter type and by arity. What is true is that vanilla almost never uses it: distinct names (`AddInt`/`AddFloat`), the `Ex()` suffix convention and default parameter values are the dominant idiom, and matching that idiom keeps your code readable to anyone who learned the API from vanilla. Treat overloading as available but unusual, not as forbidden.
+
+Full coverage: [Functions & Methods](13-functions-methods.md).
 
 ### No Operator Overloading (Except Index)
 
@@ -326,9 +328,11 @@ if (!obj)            // idiomatic null check (preferred)
 }
 ```
 
-### No Scope-Based Resource Management (RAII)
+### No RAII for Engine Handles
 
-Nothing closes resources when a variable leaves scope — a `FileHandle` stays open until you call `CloseFile()` yourself:
+Objects *are* cleaned up at end of scope: Bohemia documents `autoptr` as destroying its target "upon end of variable lifetime (end of scope or deletion of class which contains it)", and automatic reference counting destroys an object when its last strong reference goes away — local variables and function arguments being strong by default. [Memory Management](08-memory-management.md) covers both.
+
+What gets no such treatment is an opaque engine handle. A `FileHandle` is an integer, not a managed object, so it stays open until you call `CloseFile()` yourself:
 
 ```c
 FileHandle fh = OpenFile("$profile:Lantern/data.txt", FileMode.WRITE);
@@ -373,26 +377,39 @@ string msg = string.Format("Player %1 at %2", name, pos);
 
 Keep function calls on a single line. If the line is too long, break the work into intermediate variables.
 
-### No String Escape for Backslash/Quote
+### Not a Trap: `\\` and `\"` in String Literals
 
-**What you would write:**
+Earlier revisions of this chapter listed escaped backslashes and escaped double quotes as a parser defect. That was wrong, and it is corrected here because the claim circulates widely.
+
+Bohemia's Enforce Script syntax page states that strings "can contain standardised escape sequences; these are supported: `\n` `\r` `\t` `\\` `\"`". Vanilla relies on both:
+
 ```c
-string path = "C:\\Users\\folder";
-string quote = "He said \"hello\"";
+// 3_game/objectspawner.c:4 - escaped backslashes inside an ordinary string literal
+protected static const ref TStringArray VALID_PATHS = {
+    "DZ\\plants", "DZ\\plants_bliss", "DZ\\plants_sakhal",
+    ...
+};
+
+// 3_game/tools/jsonfileloader.c:14 - escaped double quotes inside a format string
+errorMessage = string.Format("Cannot open file \"%1\" for reading", filename);
+
+// 3_game/tools/keystouielements.c:89 - a single escaped backslash as a literal character
+RegisterKeyToUIElement(KeyCode.KC_BACKSLASH, "\\", false);
 ```
 
-**What happens:** CParser crashes or produces garbled output. The `\\` and `\"` escape sequences break the string parser.
+Both forms compile in shipped game code, so neither breaks CParser.
 
-**Correct solution:** Avoid backslash and quote characters in string literals entirely:
+What remains true is a **convention**, not a parser limit: prefer forward slashes for in-game resource paths. Vanilla itself accepts both delimiters for object spawner paths (`objectspawner.c:4-7` lists `DZ\\plants` and `DZ/plants` side by side), and the particle registry warns when a registered path uses `\` instead of `/`:
+
 ```c
-// Use forward slashes for paths
-string path = "C:/Users/folder";
-
-// Use single quotes or rephrase to avoid embedded double quotes
-string quote = "He said 'hello'";
+// 3_game/particles/particlelist.c:391-393 (DIAG_DEVELOPER build only)
+if (fullPath.Replace("\\", "/") > 0)
+{
+    ErrorEx(string.Format("Using wrong path delimiter for particle registering! Use '/' instead of '\\'. fullPath=%1", fullPath), ErrorExSeverity.WARNING);
+}
 ```
 
-> **Note:** `\n`, `\r`, and `\t` escape sequences DO work. Only `\\` and `\"` are broken.
+Follow the convention for resource paths. Do not avoid the escape sequences themselves.
 
 ### No Variable Redeclaration in else-if Blocks
 
@@ -496,9 +513,9 @@ Behavior that compiles fine but does something different from what you expect.
 
 Full coverage: [Control Flow](05-control-flow.md).
 
-### JsonFileLoader.JsonLoadFile Returns void
+### JsonFileLoader.JsonLoadFile Returns void (and Is Deprecated)
 
-`JsonFileLoader<T>.JsonLoadFile()` is declared `static void JsonLoadFile(string filename, out T data)` (`3_game/tools/jsonfileloader.c:105`) — it fills an object you pass in. Assigning its return value does not compile:
+`JsonFileLoader<T>.JsonLoadFile()` is declared `static void JsonLoadFile(string filename, out T data)` (`3_game/tools/jsonfileloader.c:105`, marked `//! DEPRECATED` in the vanilla source) — it fills an object you pass in. Assigning its return value does not compile:
 
 ```c
 class LNT_ServerSettings
@@ -656,25 +673,35 @@ Follow vanilla's lead: use `int.MIN` only with `==` / `!=` as a sentinel, never 
 
 ---
 
-## Version Changes (1.28+)
+## Sealed Classes, Parameter Limits, and the Obsolete Attribute
 
-Compiler behavior that changed in DayZ 1.28.
+Three constructs that exist in vanilla. Bohemia's own 1.28 release notes list all three under **MODDING → ADDED**, and that post is the source for the release framing below: [Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/) — *PC Stable 1.28 Update 1, Version 1.28.159992 (Release on 03.06.2025)*, posted 2 June 2025 by merropa93 (DayZ Community Support); accessed 2026-09-11.
 
-### sealed Is Enforced
+Read the release notes as Bohemia's report of its own change, which is what they are. Where they describe behavior — such as what happened before the parameter limit was diagnosed — that is Bohemia's description, not a runtime measurement by this audit, and nothing here infers how any of it is implemented natively.
 
-Since 1.28 the compiler enforces the `sealed` keyword: a sealed class cannot be extended and a sealed method cannot be overridden. Vanilla already ships sealed classes — `Contact` and `PhysicsWorld` in `1_core/physics/`. If you need to change sealed behavior, wrap the class (composition) instead of inheriting.
+### sealed Prevents Inheritance
+
+The `sealed` keyword marks a class that cannot be extended or a method that cannot be overridden. The 1.28 release notes list `Enforce Script: 'sealed' keyword` under **MODDING → ADDED** ([Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/), accessed 2026-09-11). Vanilla ships sealed classes — `Contact` and `PhysicsWorld` in `1_core/physics/` (`contact.c:9`, `physicsworld.c:9`). If you need different behavior, wrap the class (composition) instead of inheriting.
 
 Full coverage: [Classes & Inheritance](03-classes-inheritance.md).
 
 ### Method Parameter Limit: 16 Maximum
 
-The 16-parameter limit always existed, but before 1.28 exceeding it was a silent buffer overflow causing random crashes. Since 1.28 the 17th parameter is a **hard compile error**. Refactor long parameter lists into a class or an array.
+Enforce Script methods cannot have more than 16 parameters; a 17th parameter is a compile error. The 1.28 release notes list, under **MODDING → ADDED**:
+
+> Enforce Script: Compiler error when script methods exceed the maximum amount of parameters: 16, this has always been a limitation, previously the game would continue with buffer overflows and random crashes
+
+— [Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/), accessed 2026-09-11.
+
+Read that sentence precisely, because the two halves have different dates. **The 16-parameter limit is longstanding** — Bohemia says it "has always been a limitation." **What 1.28 added is the compiler error that reports it.** Before that diagnostic existed, Bohemia describes the game as continuing past the limit "with buffer overflows and random crashes"; that is Bohemia's account of the old behavior, not something this audit reproduced, and it says nothing about how the limit is enforced natively. Refactor long parameter lists into a class or an array.
 
 Full coverage: [Functions & Methods](13-functions-methods.md).
 
 ### Obsolete Attribute Warnings
 
-1.28 introduced the `Obsolete` attribute. APIs marked `[Obsolete]` still work but generate compiler warnings and are scheduled for removal. Check your build output for these warnings and migrate to the recommended replacement.
+The 1.28 release notes list `Enforce Script: 'Obsolete' attribute for functions and classes` under **MODDING → ADDED** ([Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/), accessed 2026-09-11). The engine's own doc block (`1_core/proto/enscript.c:344-365`) describes what it does: marking a method `[Obsolete("...")]` makes the compiler throw a compile-time warning while the method is still called normally. It appears 53 times in the extraction.
+
+**The message is a free-form string.** The engine declares the attribute as `class Obsolete: Managed { string m_Msg; void Obsolete(string msg = "") { m_Msg = msg; } }` — one string, stored verbatim, with no version parsing of any kind. Some annotations happen to begin with a version token (`entityai.c:74` carries `"1.30: No replacement"`, `:4727` carries `"1.30: Use NotifyPlayerInventoryLoadChanged instead"`), but nothing in the engine gives that token a defined meaning, so **no release floor or ceiling for the build you are reading can be inferred from an `[Obsolete]` string.** Treat it as the warning text it is. Check your build output for these warnings and migrate to the recommended replacement.
 
 ---
 
@@ -702,7 +729,7 @@ If you are a C++ developer, here are the biggest adjustments:
 | `operator+` | Named methods (`Add()`) |
 | `namespace` | Name prefixes (`LNT_`, `NP_`) |
 | `#include` | config.cpp `files[]` |
-| RAII | Manual cleanup in lifecycle methods |
+| RAII | `ref`/`autoptr` for objects; manual cleanup for engine handles |
 | Multiple inheritance | Single inheritance + composition |
 | `nullptr` | `null` / `NULL` |
 | Templates with constraints | Templates without constraints + runtime checks |
@@ -726,7 +753,7 @@ If you are a C++ developer, here are the biggest adjustments:
 | LINQ | Manual loops |
 | `nameof()` | Hardcoded strings |
 | `async/await` | CallLater / timers |
-| Method overloading | Distinct names / `Ex()` convention |
+| Method overloading | Supported, but vanilla prefers distinct names / `Ex()` convention |
 
 ---
 
@@ -775,11 +802,11 @@ If you are a C++ developer, here are the biggest adjustments:
 | `do...while` | No | while + break |
 | `try/catch` | No | Guard clauses |
 | Multiple inheritance | No | Composition |
-| Method overloading | No | Distinct names / `Ex()` convention / default params |
+| Method overloading | Yes (by type and arity) | Vanilla style is distinct names / `Ex()` / default params |
 | Operator overloading | Index only | Named methods |
 | Lambdas | No | Named methods |
 | Delegates | No | `ScriptInvoker` / `ScriptCaller` |
-| `\\` / `\"` in strings | Broken | Avoid them |
+| `\\` / `\"` in strings | Yes | Supported escapes; forward slashes for resource paths are a convention, not a parser limit |
 | Variable redeclaration | Broken in else-if | Unique names or declare before if |
 | Multiline function calls | Unreliable parsing | Keep calls on one line |
 | `nullptr` | No | `null` / `NULL` |
@@ -794,11 +821,11 @@ If you are a C++ developer, here are the biggest adjustments:
 | Variable-size static arrays | No | `array<T>` |
 | `#include` | No | config.cpp `files[]` |
 | Namespaces | No | Name prefixes |
-| RAII | No | Manual cleanup |
+| RAII for engine handles (`FileHandle`) | No | Close explicitly (`CloseFile`) |
 | `GetGame().GetPlayer()` on server | Returns null | Iterate `GetPlayers()` |
-| `sealed` class inheritance (1.28+) | Compile error | Use composition instead |
-| 17+ method parameters (1.28+) | Compile error | Pass a class or array |
-| `[Obsolete]` APIs (1.28+) | Compiler warning | Migrate to replacement API |
+| `sealed` class inheritance (keyword added in 1.28) | Compile error | Use composition instead |
+| 17+ method parameters (limit longstanding; compiler error added in 1.28) | Compile error | Pass a class or array |
+| `[Obsolete]` APIs (attribute added in 1.28) | Compiler warning | Migrate to replacement API |
 | `int.MIN` ordering comparisons | Incorrect results | Equality-sentinel only |
 | `!array[i]` negation | Compile error | Use `array[i] == 0` |
 | Complex expr in array assign | Crash reported | Use intermediate variable |

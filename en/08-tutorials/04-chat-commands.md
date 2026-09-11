@@ -106,6 +106,8 @@ We intercept chat input at the exact point where vanilla decides to broadcast it
 
 By modding `OnChange()`, we can inspect the text first. If it starts with `/`, we forward it to the server as a command and return early -- **without** calling `super.OnChange()`, so the vanilla broadcast never happens.
 
+One point worth getting right, because it is easy to assume the opposite: a `modded class` **can** access `private` members of the class it mods. Bohemia's Enforce Script syntax reference states it directly -- *"Even though modded class behaves similar to an inherited one, it can still access private members of the vanilla class"* -- so `m_edit_box`, which vanilla declares `private`, is readable from your modded `ChatInputMenu`. The code below still reads the text from the `Widget w` argument instead. That is a robustness choice, not a language limitation: `w` is the widget that actually raised the event, and a private field name carries no compatibility promise across patches.
+
 ### Create `Scripts/5_Mission/ChatCommands/CCmdChatHook.c`
 
 ```c
@@ -120,11 +122,13 @@ modded class ChatInputMenu
     {
         if (finished)
         {
-            // Read the text from the widget that fired the change (w),
-            // NOT from the vanilla m_edit_box field. That field is declared
-            // `private` on ChatInputMenu, and Enforce `private` is class-body
-            // only -- a modded class is a subclass under the hood, so it
-            // cannot see its base class's private members.
+            // Read the text from the widget that fired the change (w)
+            // rather than from the vanilla m_edit_box field. A modded class
+            // *can* read a vanilla private member -- that is documented
+            // Enforce behaviour -- but m_edit_box is an internal name with no
+            // compatibility promise, while w is the widget that actually
+            // fired the event. Using w keeps the hook working if the field
+            // is ever renamed.
             EditBoxWidget eb = EditBoxWidget.Cast(w);
             if (!eb)
                 return super.OnChange(w, x, y, finished);
@@ -1023,7 +1027,7 @@ CCmdRegistry.Register(new CCmdTime());
 
 | Concept | Theory | Reality |
 |---------|--------|---------|
-| Chat hook via `ChatInputMenu.OnChange` | Intercept the message before it is broadcast | Works reliably because it runs *before* `g_Game.ChatPlayer()`. You cannot read the vanilla `m_edit_box` field -- it is `private`, and a `modded class` compiles as a subclass, which Enforce `private` does not expose. Read the text from the `Widget w` argument instead (`EditBoxWidget.Cast(w)`). |
+| Chat hook via `ChatInputMenu.OnChange` | Intercept the message before it is broadcast | Works reliably because it runs *before* `g_Game.ChatPlayer()`. `m_edit_box` is `private` in vanilla, but a `modded class` is still allowed to read it -- Bohemia documents that explicitly. Prefer `EditBoxWidget.Cast(w)` anyway: `w` is the widget that fired the event, and a private field name is an internal detail that can change between patches. |
 | `GetGame().Chat()` | Displays a message in the player's chat window | Only works when the chat UI is active. On the loading screen or in certain menu states, the message is silently dropped. |
 | Command registry pattern | Clean architecture with one class per command | Each command class must go in the correct script layer. `CCmdBase` in `3_Game`, commands referencing `PlayerBase` in `4_World`, `modded MissionServer` in `5_Mission`. Wrong layer placement causes "Undefined type" at load time. |
 | Player lookup by name | `FindPlayerByName` matches partial names | Partial matching can target the wrong player on a server with similar names. In production, prefer Steam64 ID targeting or add a confirmation step. |

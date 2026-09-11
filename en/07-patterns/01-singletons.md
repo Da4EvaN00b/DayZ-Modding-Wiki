@@ -90,7 +90,7 @@ class LootManager
 | `static` | Shared across all code --- no instance needed to access it |
 | `ref` | Strong reference --- keeps the object alive as long as `s_Instance` is non-null |
 
-Without `ref`, the instance would be a weak reference and could be garbage-collected while still in use.
+Enforce Script uses automatic reference counting, not a tracing garbage collector, and class members are weak references unless marked `ref`. Without `ref`, `s_Instance` would not keep the object alive: as soon as the last strong reference went away the object would be destroyed, and `s_Instance` would be set to `NULL` underneath you.
 
 ---
 
@@ -150,7 +150,13 @@ static void Create()
 
 ## Lifecycle Management
 
-The most common source of singleton bugs in DayZ is failing to clean up on mission end. DayZ servers can restart missions without restarting the process, which means static fields survive across mission restarts. If you do not null out `s_Instance` in `OnMissionFinish`, you carry stale references, dead objects, and orphaned callbacks into the next mission.
+The most common source of singleton bugs in DayZ is failing to clean up on mission end, and the mission lifecycle genuinely does cycle inside a single running process.
+
+The engine exposes `PlayMission`, `CreateMission` and `AbortMission` as `proto native` methods on `CGame` (`3_game/global/game.c:1102-1110`), and `DayZGame` drives them -- `PlayMission` at `dayzgame.c:2335`, `2353` and `2562`, `AbortMission` at `1693` and `2763` -- while tracking `MISSION_STATE_MAINMENU` / `MISSION_STATE_GAME` / `MISSION_STATE_FINNISH` on the game object that outlives every mission (`dayzgame.c:912-914`). Both vanilla missions tear themselves down in `OnMissionFinish()`: `MissionGameplay` destroys its menus, chat and HUD root (`5_mission/mission/missiongameplay.c:257`) and `MissionMainMenu` cleans up its menu (`missionmainmenu.c:93`). A client therefore moves between the main-menu mission and a gameplay mission without relaunching, and static fields -- which live as long as the process -- survive that transition. That is exactly the situation that strands a stale `s_Instance`, dead objects and orphaned callbacks.
+
+What stays open is the narrower question of dedicated servers: many hosts schedule a full process restart between sessions, and when the process dies, static state is wiped for you. Wiring `DestroyInstance()` into `OnMissionFinish` is correct either way -- it is the only thing that saves you when the process *does* keep running, and it costs nothing when it does not.
+
+> **What you are actually overriding.** Vanilla `MissionServer` has no `OnMissionFinish` of its own. The only overrides in the vanilla mission module are `MissionGameplay`'s and `MissionMainMenu`'s, and neither of those chains `super`; the base `Mission.OnMissionFinish()` is an empty body (`3_game/gameplay.c:702`). So a `modded class MissionServer` override is extending an inherited empty method, not wrapping vanilla server teardown -- which means nothing vanilla depends on your call to `super`, but every *other* mod that modded the same class does. Call it anyway.
 
 ### The Lifecycle Contract
 
@@ -593,4 +599,4 @@ Before shipping a singleton, verify:
 - On listen servers, static fields are shared between client and server contexts. A server-only singleton must guard construction with `GetGame().IsServer()`.
 - Enforce Script has no dependency injection. Singletons are the standard approach.
 - RPC handlers must be registered before any client connects, so eager init in `OnInit()` is often necessary.
-- DayZ missions restart without restarting the server process. Singletons **must** be destroyed and recreated on each mission cycle.
+- Missions cycle within one process -- the client alone moves between the main-menu mission and a gameplay mission -- so singletons **must** be destroyed and recreated on each mission cycle. A server host that schedules a full process restart wipes static state anyway; `DestroyInstance()` in `OnMissionFinish` is what covers the case where it does not. See [Lifecycle Management](#lifecycle-management).

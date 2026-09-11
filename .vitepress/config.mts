@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import { buildMemoryPlugin } from './build-memory.mts'
 
 function sidebar(lang: string = 'en') {
   const l = `/${lang}`
@@ -185,6 +186,11 @@ export default withMermaid(
 
     base: '/DayZ-Modding-Wiki/',
     srcExclude: ['AGENTS.md', 'CONTRIBUTING.md', 'CLAUDE.md'],
+    // VitePress uses this for local-search indexing and for the page-rendering
+    // pass; at 1260 pages the default of 64 keeps dozens of fully rendered pages
+    // resident at once. It does NOT bound Rollup's bundling memory -- see
+    // .vitepress/build-memory.mts and .audit/en-2026-09-11/build-REPORT.md.
+    buildConcurrency: 8,
     cleanUrls: true,
     lastUpdated: true,
     ignoreDeadLinks: [
@@ -272,6 +278,7 @@ export default withMermaid(
     },
 
     vite: {
+      plugins: [buildMemoryPlugin()],
       build: {
         chunkSizeWarningLimit: 3000,
       },

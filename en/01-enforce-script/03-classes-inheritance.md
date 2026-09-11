@@ -439,9 +439,9 @@ class B extends A { }     // OK: single parent
 class D extends B { }     // OK: B extends A, D extends B (inheritance chain)
 ```
 
-### The `sealed` Keyword (1.28+)
+### The `sealed` Keyword
 
-A class marked `sealed` cannot be inherited from. A method marked `sealed` cannot be overridden. DayZ 1.28 enforces this at compile time.
+A class marked `sealed` cannot be inherited from. A method marked `sealed` cannot be overridden. Bohemia's 1.28 release notes list `Enforce Script: 'sealed' keyword` under **MODDING → ADDED** ([Stable Update 1.28](https://forums.dayz.com/topic/266370-stable-update-128/) — *PC Stable 1.28 Update 1, Version 1.28.159992*, posted 2 June 2025 by merropa93 (DayZ Community Support); accessed 2026-09-11). Vanilla ships sealed classes — `Contact` and `PhysicsWorld` in `1_core/physics/` (`contact.c:9`, `physicsworld.c:9`).
 
 ```c
 sealed class FinalClass
@@ -474,7 +474,7 @@ class PartiallySealedBase
 }
 ```
 
-> **Migration note:** If you update to DayZ 1.28 and get a compile error about inheriting a sealed class, you must refactor. Use composition (wrap the class as a member) instead of inheritance.
+> **Migration note:** If you update to DayZ 1.28 or later and get a compile error about inheriting a sealed class, you must refactor. Use composition (wrap the class as a member) instead of inheritance.
 
 `sealed` is rarely used in DayZ modding since extensibility is the primary goal.
 
@@ -629,10 +629,10 @@ void ModifyArray(inout array<int> arr)
     arr.Insert(99);  // modifies the caller's array
 }
 
-// notnull — compile-time guarantee parameter is not null
+// notnull — declares that null is never a valid argument here
 void Process(notnull EntityAI entity)
 {
-    // entity guaranteed non-null by compiler
+    // The caller is responsible for not passing null (see 1.13)
 }
 ```
 
@@ -640,7 +640,7 @@ void Process(notnull EntityAI entity)
 |----------|---------|
 | `out` | Callee writes the value; caller reads it after the call |
 | `inout` | Caller passes a value in; callee may modify it |
-| `notnull` | Compiler enforces that the argument is never `null` |
+| `notnull` | Declares the argument is never `null`; enforcement is undocumented (see [1.13](13-functions-methods.md#notnull-parameters)) |
 
 These modifiers appear frequently in vanilla DayZ methods and engine API signatures.
 
@@ -900,7 +900,7 @@ Every pattern in this chapter appears in the vanilla game code — worth reading
 |---------|--------|---------|
 | Omitting `override` keyword | Should create a new method | Often creates a subtle bug where the parent method runs instead of the child's |
 | Multiple constructors (overloading) | Standard OOP feature | Do not rely on it -- mismatched constructor signatures across a hierarchy fail with `Overloaded function '<Class>' not compatible`; use one parameterless constructor plus an `Init()` method |
-| `sealed` classes/methods | Prevents inheritance or override (enforced at compile time since 1.28) | Almost never used in DayZ modding because extensibility is the whole point |
+| `sealed` classes/methods | Prevents inheritance or override (compile-time error); keyword listed under MODDING → ADDED in the 1.28 release notes | Almost never used in DayZ modding because extensibility is the whole point |
 
 ---
 
@@ -1150,9 +1150,9 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | Static field | `static int s_Count;` | Shared across all instances |
 | Static method | `static void DoThing()` | Called via `ClassName.DoThing()` |
 | `ref` | `ref MyClass m_Obj;` | Strong reference (owns the object) |
-| Sealed class | `sealed class Name { }` | Cannot be inherited (1.28+ compile error) |
+| Sealed class | `sealed class Name { }` | Cannot be inherited (compile error); keyword added in 1.28 |
 | Sealed method | `sealed void Method()` | Cannot be overridden in child classes |
 | Proto native | `proto native void Func();` | Engine-implemented method |
 | `out` param | `void Func(out int val)` | Output-only parameter |
 | `inout` param | `void Func(inout array<int> a)` | Input + output parameter |
-| `notnull` param | `void Func(notnull EntityAI e)` | Compiler-enforced non-null |
+| `notnull` param | `void Func(notnull EntityAI e)` | Contract: never pass null; check at the call site |

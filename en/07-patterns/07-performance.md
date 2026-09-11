@@ -5,7 +5,7 @@
 
 ## Introduction
 
-DayZ runs at 10--60 server FPS depending on player count, entity load, and mod complexity. Every script cycle that takes too long eats into that frame budget. A single poorly-written `OnUpdate` that scans every vehicle on the map or rebuilds a UI list from scratch can drop server performance noticeably. Professional mods earn their reputation by running fast --- not by having more features, but by implementing the same features with less waste.
+A DayZ server's frame rate falls as player count, entity load and mod complexity rise; loaded community servers are commonly reported running well below 60 FPS. Whatever your server actually sustains, every script cycle that takes too long eats into that frame budget. A single poorly-written `OnUpdate` that scans every vehicle on the map or rebuilds a UI list from scratch can drop server performance noticeably. Professional mods earn their reputation by running fast --- not by having more features, but by implementing the same features with less waste.
 
 This chapter covers battle-tested optimization patterns drawn from large production mods. These are not premature optimizations --- they are standard engineering practices that every DayZ modder should know from the start.
 
@@ -43,7 +43,7 @@ class ItemDatabase
     // BAD: Load everything at startup
     void OnInit()
     {
-        LoadAllItems();  // 5000 items, 200ms stall on startup
+        LoadAllItems();  // 5000 items -- a startup stall you pay before anyone can play
     }
 
     // GOOD: Load on first access
@@ -635,7 +635,7 @@ void OnPlayerScoreChanged()
 
 ### 1. `GetObjectsAtPosition3D` with Huge Radius
 
-This scans every physical object in the world within the given radius. At `50000` meters (the entire map), it iterates every tree, rock, building, item, zombie, and player. One call can take 50ms+.
+This scans every physical object in the world within the given radius. At `50000` meters (the entire map), it iterates every tree, rock, building, item, zombie, and player -- tens of thousands of objects on a full terrain. A single call is easily an order of magnitude more expensive than a whole frame's budget, and it is the kind of cost you should measure on your own server rather than assume a figure for.
 
 ```c
 // NEVER DO THIS
@@ -796,10 +796,10 @@ Before shipping performance-sensitive code, verify:
 
 ## Compatibility & Impact
 
-- **Multi-Mod:** Performance costs are cumulative. Each mod's `OnUpdate` runs every frame. Five mods each taking 2ms means 10ms per frame from scripts alone. Coordinate with other mod authors to stagger timers and avoid duplicate world scans.
+- **Multi-Mod:** Performance costs are cumulative. Each mod's `OnUpdate` runs every frame, and the costs add up: five mods each spending a small, unmeasured slice of the frame on scripts easily adds up to a meaningful fraction of the budget below. Coordinate with other mod authors to stagger timers and avoid duplicate world scans.
 - **Load Order:** Load order does not affect performance directly. However, if multiple mods `modded class` the same entity (e.g., `CarScript.EEInit`), each override adds to the call chain cost. Keep modded overrides minimal.
 - **Listen Server:** Listen servers run both client and server scripts in the same process. Widget pooling, UI updates, and rendering costs compound with server-side ticks. Performance budgets are tighter on listen servers than dedicated servers.
-- **Performance:** The DayZ server frame budget at 60 FPS is ~16ms. At 20 FPS (common on loaded servers), it is ~50ms. A single mod should aim to stay under 2ms per frame. Profile with `GetGame().GetTickTime()` to verify.
+- **Performance:** The DayZ server frame budget at 60 FPS is ~16ms. At 20 FPS (common on loaded servers), it is ~50ms. There is no published per-mod budget within that -- how much of it your mod can spend depends on how many other mods share the server and what they cost, so treat any specific millisecond figure as a rule of thumb, not a measured limit, and profile with `GetGame().GetTickTime()` to find your own mod's real share.
 - **Migration:** Performance patterns are engine-agnostic and survive DayZ version updates. Specific API costs (e.g., `GetObjectsAtPosition3D`) may change between engine versions, so re-profile after major DayZ updates.
 
 ---
@@ -809,10 +809,10 @@ Before shipping performance-sensitive code, verify:
 | Mistake | Impact | Fix |
 |---------|--------|-----|
 | Premature optimization (micro-optimizing code that runs once at startup) | Wasted development time; no measurable improvement; harder-to-read code | Profile first. Only optimize code that runs per-frame or processes large collections. Startup cost is paid once. |
-| Using `GetObjectsAtPosition3D` with map-wide radius in `OnUpdate` | 50--200ms stall per call, scanning every physical object on the map; server FPS drops to single digits | Use a registration-based registry (register in `EEInit`, unregister in `EEDelete`). Never world-scan per frame. |
+| Using `GetObjectsAtPosition3D` with map-wide radius in `OnUpdate` | Scans every physical object on the map, every frame; expect the server frame budget to be blown outright | Use a registration-based registry (register in `EEInit`, unregister in `EEDelete`). Never world-scan per frame. |
 | Rebuilding UI widget trees on every data change | Frame spikes from widget creation/destruction; visible stutter for the player | Use widget pooling: hide/show existing widgets instead of destroying and recreating them |
 | Sorting large arrays every frame | O(n log n) per frame for data that rarely changes; unnecessary CPU waste | Sort once when data changes (dirty flag), cache the sorted result, re-sort only on mutation |
-| Running expensive file I/O (JsonSaveFile) every `OnUpdate` tick | Disk writes block the main thread; 5--20ms per save depending on file size | Use an auto-save timer with a dirty flag (define the interval as a named const, e.g. `const float AUTOSAVE_INTERVAL = 300.0;`). Only write when data has actually changed. |
+| Running expensive file I/O (JsonSaveFile) every `OnUpdate` tick | Enforce Script has no async file I/O, so the write blocks the main thread for as long as it takes -- scaling with file size | Use an auto-save timer with a dirty flag (define the interval as a named const, e.g. `const float AUTOSAVE_INTERVAL = 300.0;`). Only write when data has actually changed. |
 
 ---
 
