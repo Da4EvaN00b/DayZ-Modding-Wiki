@@ -1,6 +1,5 @@
 # Chapter 2.3: mod.cpp & Workshop
 
-[Domů](../README.md) | [<< Předchozí: config.cpp do hloubky](02-config-cpp.md) | **mod.cpp a Workshop** | [Další: Minimální funkční mod >>](04-minimum-viable-mod.md)
 
 ---
 
@@ -251,9 +250,10 @@ This keeps server-side logic private (never sent to clients) and reduces client 
 Když publish to Steam Workshop, the DayZ přílišls auto-generate a `meta.cpp` file:
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // Steam Workshop item ID
-timestamp = 1711000000;       // Unix timestamp of last update
+protocol = 1;
+publishedid = 2900000000;            // ID položky Steam Workshop
+name = "My Mod";                     // Název položky ve Workshopu
+timestamp = 5249975085759540888;     // Interní 64bitová hodnota, NENÍ to Unix timestamp
 ```
 
 Do not edit `meta.cpp` ručně. It je spravován the publishing přílišls.

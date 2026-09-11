@@ -1,6 +1,5 @@
 # 第 8.7 章：发布到 Steam 创意工坊
 
-[首页](../README.md) | [<< 上一章：调试与测试](06-debugging-testing.md) | **发布到 Steam 创意工坊** | [下一章：构建 HUD 覆盖层 >>](08-hud-overlay.md)
 
 ---
 
@@ -109,7 +108,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### 字段参考
@@ -127,7 +125,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | 否 | 在 mod 概览面板中显示的大图 |
 | `action` | 否 | 玩家点击"网站"时打开的 URL（通常是你的创意工坊页面或 GitHub） |
 | `version` | 是 | 当前版本字符串（例如 `"1.0.0"`） |
-| `versionPath` | 否 | 包含版本号的文本文件路径（用于自动化构建） |
 
 ### 常见错误
 
@@ -454,7 +451,7 @@ v1.0.0 (2025-04-01)
 
 Enforce Script 中的迁移检查示例：
 
-```csharp
+```c
 // 在你的配置加载函数中
 if (config.configVersion < 2)
 {

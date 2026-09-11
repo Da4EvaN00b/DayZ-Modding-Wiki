@@ -1,6 +1,5 @@
 # 第 8.9 章：专业模组模板
 
-[首页](../README.md) | [<< 上一章：构建 HUD 覆盖层](08-hud-overlay.md) | **专业模组模板** | [下一章：创建自定义载具 >>](10-vehicle-mod.md)
 
 ---
 
@@ -853,36 +852,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // 玩家连接 - 服务器 RPC 分发
-    // 当客户端向服务器发送 RPC 时由引擎调用。
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // 仅处理我们的 RPC ID。所有其他 RPC 通过。
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // 读取路由名称（发送者写入的第一个字符串）。
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // 根据路由名称分发到正确的处理器。
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // 随着模组增长，在这里添加更多路由：
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // 关闭
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -905,6 +874,46 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// 服务器 RPC 分发。
+// 重要：OnRPC 是 DayZGame 的方法，不是 MissionServer 的方法。Mission
+// 类链没有 OnRPC，所以你必须修改 DayZGame 才能接收 RPC。此钩子
+// 在客户端和服务器上都会触发，所以用 GetGame().IsServer() 进行守卫。
+// ==========================================================================
+modded class DayZGame
+{
+    // 当 RPC 到达时由引擎调用。在服务器上，这里是我们
+    // 分发客户端发送的 RPC 的地方。
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // 仅服务器端分发。
+        if (!IsServer()) return;
+
+        // 仅处理我们的 RPC ID。所有其他 RPC 通过。
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // 读取路由名称（发送者写入的第一个字符串）。
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // 根据路由名称分发到正确的处理器。
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // 随着模组增长，在这里添加更多路由：
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -922,8 +931,9 @@ modded class MissionServer
 //
 // 为什么使用 MissionGameplay：
 //   在客户端，MissionGameplay 是游戏过程中活跃的任务类。
-//   它每帧接收 OnUpdate()（用于输入轮询）
-//   和 OnRPC() 用于接收服务器消息。
+//   它每帧接收 OnUpdate()（用于输入轮询）。
+//   然而 RPC 是通过 DayZGame.OnRPC 到达（不在任务上），所以
+//   下面修改的 DayZGame 将接收到的消息转发给此类。
 //
 // 关于监听服务器的注意事项：
 //   在监听服务器（主机 + 游玩）上，MissionServer 和
@@ -973,15 +983,14 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // RPC 接收器：处理来自服务器的消息
+    // RPC 接收器：处理来自服务器的消息。
+    // 这不是引擎覆写——实际的引擎回调位于
+    // DayZGame 上（见下面修改的 DayZGame）。DayZGame.OnRPC 通过
+    // GetGame().GetMission() 到达活跃的任务，并将客户端 RPC 转发到这里
+    // 以便此方法可以访问像 m_MyModPanel 这样的实例成员。
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // 仅处理我们的 RPC ID。
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // 读取路由名称。
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1057,6 +1066,36 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// 客户端 RPC 分发。
+// 重要：OnRPC 是 DayZGame 的方法，不是 MissionGameplay 的方法。Mission
+// 类链没有 OnRPC，所以 RPC 是通过修改 DayZGame 来接收的。此钩子
+// 在客户端和服务器上都会触发，所以用 GetGame().IsClient() 进行守卫。
+// 我们通过 GetGame().GetMission() 到达活跃的 MissionGameplay，并
+// 转发到它的 OnMyModRPC，以便 UI 面板成员保持可访问。
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // 仅客户端分发。
+        if (!IsClient()) return;
+
+        // 仅处理我们的 RPC ID。
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // 转发到活跃的任务，以便实例成员（UI 面板）
+        // 可以访问。转换为我们修改的 MissionGameplay 类型。
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1263,7 +1302,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1279,7 +1318,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1306,7 +1345,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1323,7 +1362,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1677,7 +1716,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }
@@ -1788,7 +1827,3 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 4. **添加 HUD 覆盖层** -- 按照[第 8.8 章：构建 HUD 覆盖层](08-hud-overlay.md)实现始终可见的 UI 元素。
 5. **发布到创意工坊** -- 当你的模组准备就绪时，按照[第 8.7 章：发布到创意工坊](07-publishing-workshop.md)操作。
 6. **学习调试** -- 阅读[第 8.6 章：调试和测试](06-debugging-testing.md)了解日志分析和故障排除。
-
----
-
-**上一章：** [第 8.8 章：构建 HUD 覆盖层](08-hud-overlay.md) | [首页](../README.md)

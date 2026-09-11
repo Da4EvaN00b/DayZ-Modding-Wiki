@@ -1,6 +1,5 @@
-# Chapter 9.5: Vehicle & Dynamic Event Spawning
+# Vehicle & Dynamic Event Spawning
 
-[Home](../README.md) | [<< Previous: Loot Economy](04-loot-economy.md) | [Next: Player Spawning >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@ Vehicles are **not** defined in `types.xml`. If you add a vehicle class to `type
 
 The CE reads `events.xml`, picks an event that needs spawning, looks up matching positions in `cfgeventspawns.xml`, selects one at random that satisfies the `saferadius` and `distanceradius` constraints, then spawns a randomly selected child entity at that position.
 
-All three files live in `mpmissions/<your_mission>/db/`.
+`events.xml` lives in `mpmissions/<your_mission>/db/`, while `cfgeventspawns.xml` and `cfgeventgroups.xml` live at the mission root (`mpmissions/<your_mission>/`).
 
 ---
 
@@ -167,17 +166,17 @@ Helicopter crashes are dynamic events that spawn a wreck with military loot and 
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ Military convoys are static wrecked vehicle groups that spawn with military loot
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Convoys work identically to heli crashes: the `<secondary>` tag spawns `InfectedArmy` around the site, and loot items with `deloot="1"` appear on the wrecks. With `nominal=5`, up to 5 convoy sites exist on the map simultaneously. Each lasts 1800 seconds (30 minutes) before cycling to a new location.
+Convoys work like heli crashes: the `<secondary>` tag spawns `InfectedArmy` around the site, and loot items with `deloot="1"` appear on the wrecks. Unlike the heli crash, the convoy event has an empty `<children/>` element -- its wrecked vehicles are defined as a group in `cfgeventgroups.xml` and placed via group references in `cfgeventspawns.xml`. With `nominal=5`, up to 5 convoy sites exist on the map simultaneously. Each lasts 1800 seconds (30 minutes) before cycling to a new location.
 
 ---
 
@@ -231,20 +228,21 @@ Police car events spawn wrecked police vehicles with police-type infected nearby
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ Police car events spawn wrecked police vehicles with police-type infected nearby
 This file defines events where multiple objects spawn together with relative positional offsets. The most common use is abandoned trains.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-The first child is placed at the position from `cfgeventspawns.xml`. Subsequent children are offset by their `x`, `z`, `a` values relative to that origin. In this example, train cars are spaced 15 meters apart along the z-axis.
+Each group is declared with a `<group name="...">` element inside the file's root `<eventgroupdef>`, and its `<child>` entries are direct children of `<group>` (there is no `<children>` wrapper here). The first child is placed at the position from `cfgeventspawns.xml`. Subsequent children are offset by their `x`, `z`, `y`, `a` values relative to that origin.
 
 Each `<child>` in a group has:
 
@@ -277,7 +273,11 @@ Each `<child>` in a group has:
 | `type` | Class name of the object to spawn. |
 | `x` | X offset in meters from the group origin. |
 | `z` | Z offset in meters from the group origin. |
+| `y` | Y (vertical) offset in meters from the group origin. |
 | `a` | Angle offset in degrees from the group origin. |
+| `deloot` | Whether dynamic event loot can spawn in this child (0 or 1). |
+| `lootmin` | Minimum number of loot items spawned in this child. |
+| `lootmax` | Maximum number of loot items spawned in this child. |
 
 The group event itself still needs a matching entry in `events.xml` to control nominal counts, lifetime, and active state.
 
@@ -343,7 +343,3 @@ These are the most frequent vehicle spawning issues encountered by server admins
 **Problem:** A vehicle spawns clipped into a building or buried in terrain.
 
 **Fix:** Review the `<pos>` coordinates in `cfgeventspawns.xml`. Test positions in-game using admin teleport before adding them to the file. Positions should be on flat roads or open ground, and the angle (`a`) should align with the road direction.
-
----
-
-[Home](../README.md) | [<< Previous: Loot Economy](04-loot-economy.md) | [Next: Player Spawning >>](06-player-spawning.md)

@@ -1,6 +1,5 @@
-# Capítulo 6.19: Consultas de Terreno e Mundo
+# Consultas de Terreno e Mundo
 
-[Início](../README.md) | [<< Anterior: Sistema de Animação](18-animation-system.md) | **Consultas de Terreno e Mundo** | [Próximo: Sistema de Partículas e Efeitos >>](20-particle-effects.md)
 
 ---
 
@@ -269,8 +268,8 @@ Retorna a profundidade da água em uma posição no espaço mundo. Retorna 0 ou 
 ### Altura da Superfície da Água
 
 ```c
-proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS); // Sem deslocamento visual de onda
-proto native float GetWaterSurfaceHeight(vector posWS);           // Com deslocamento visual de onda
+proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS);   // Sem deslocamento visual de onda
+proto native float GetWaterSurfaceHeightWithFakeWave(vector posWS); // Com deslocamento visual de onda
 ```
 
 ---
@@ -864,7 +863,7 @@ A classe `WorldData` contém a configuração ambiental para o mapa atual: curva
 
 ```c
 // Acessar WorldData atual (disponível apenas em 4_World e acima)
-WorldData worldData = g_Game.GetWorldData(); // se disponível
+WorldData worldData = g_Game.GetMission().GetWorldData(); // se disponível
 ```
 
 Propriedades-chave incluem temperaturas mínimas/máximas mensais, horários de nascer/pôr do sol e configurações de probabilidade de clima. Estas são definidas no método `Init()` por mapa:
@@ -1096,12 +1095,8 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 | `SurfaceGetNormal` + `VectorToAngles` para posicionamento alinhado ao terreno | Vanilla | `4_World/classes/hologram.c` |
 | `RaycastRV` com `ObjIntersectIFire` para medição de rangefinder | Vanilla | `4_World/entities/itembase/rangefinder.c` |
 | `RaycastRVProxy` com `ALLOBJECTS` para direcionamento de cursor de ação | Vanilla | `4_World/classes/useractionscomponent/actiontargets.c` |
-| `RayCastBullet` com `PhxInteractionLayers` combinadas para teleporte | Vanilla | `4_World/plugins/plugindeveloper/developerteleport.c` |
-| `SphereCastBullet` com raio pequeno para detecção precisa de acerto | Vanilla | `4_World/plugins/plugindeveloper/developerteleport.c` |
+| `RayCastBullet` com `PhxInteractionLayers` combinadas para teleporte | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
+| `SphereCastBullet` com raio pequeno para detecção precisa de acerto | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
 | `GetObjectsAtPosition` com `null` proxyCargo para zonas de morte por área | Vanilla | `4_World/classes/contaminatedarea/geyserarea.c` |
 | `IsObjectObstructedCache` para agrupar chamadas de raycast por frame | Vanilla | `4_World/static/miscgameplayfunctions.c` |
 | Bitmask combinada de `PhxInteractionLayers` para obstrução de corpo-a-corpo | Vanilla | `4_World/classes/meleetargeting.c` |
-
----
-
-[Início](../README.md) | [<< Anterior: Sistema de Animação](18-animation-system.md) | **Consultas de Terreno e Mundo** | [Próximo: Sistema de Partículas e Efeitos >>](20-particle-effects.md)

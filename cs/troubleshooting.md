@@ -1,6 +1,5 @@
 # Pruvodce resenim problemu
 
-[Domu](./README.md) | **Pruvodce resenim problemu**
 
 ---
 
@@ -87,7 +86,7 @@ Problemy s GUI layouty, widgety, menu a vstupem.
 
 | Symptom | Pricina | Oprava |
 |---------|---------|--------|
-| Layout se nacte, ale nic neni viditelne | Velikost widgetu je nula | Zkontrolujte hodnoty `hexactsize` a `vexactsize`. Obe musi byt vetsi nez nula. Nepouzivejte zaporne velikosti. Viz [Kapitola 3.3](03-gui-system/03-sizing-positioning.md). |
+| Layout se nacte, ale nic neni viditelne | Velikost widgetu je nula | Zkontrolujte atribut `size` widgetu (hodnoty `w h` musi byt vetsi nez nula). Nepouzivejte zaporne velikosti. (`hexactsize`/`vexactsize` jsou priznaky `0`/`1`, ktere vybiraji proporcionalni (`0`) vs. pixelovou (`1`) velikost, ne velikost samotnou.) Viz [Kapitola 3.3](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` vraci null | Cesta k layout souboru je spatna nebo soubor chybi | Overte cestu k `.layout` souboru (lomitka, zadne preklepy). Engine tise vraci `null` pri spatnych cestach, zadna chyba se nezaloguje. |
 | Widgety existuji, ale nelze na ne kliknout | Jiny widget zakryva tlacitko | Zkontrolujte `priority` widgetu (z-porad). Widgety s vyssi prioritou se vykresluji navrch a zachytavaji vstup jako prvni. |
 | Herní vstup je zaseknuty / nelze se pohybovat po zavreni UI | Volani `ChangeGameFocus()` jsou nevyvazena | Kazde `GetGame().GetInput().ChangeGameFocus(1)` musi byt sparovano s `ChangeGameFocus(-1)`. Sledujte zmeny fokusu a zajistete, ze cleanup probehne i pri vynucenem zavreni. |

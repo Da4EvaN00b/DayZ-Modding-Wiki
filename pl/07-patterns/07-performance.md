@@ -1,6 +1,5 @@
 # Chapter 7.7: Performance Optimization
 
-[Home](../README.md) | [<< Previous: Event-Driven Architecture](06-events.md) | **Performance Optimization**
 
 ---
 
@@ -442,7 +441,8 @@ A common need is to track all vehicles (or all entities of a specific type) on t
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +613,7 @@ This scans every physical object in the world within the given radius. At `50000
 
 ```c
 // NEVER DO THIS
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 Use a registration-based registry instead (see [Vehicle Registry Pattern](#vehicle-registry-pattern)).
@@ -765,7 +765,3 @@ Before shipping performance-sensitive code, verify:
 - [ ] Sort operations run on data change, not per frame
 - [ ] Multiple periodic systems have staggered timers
 - [ ] Entity tracking uses registration, not world scanning
-
----
-
-[<< Previous: Event-Driven Architecture](06-events.md) | [Home](../README.md)

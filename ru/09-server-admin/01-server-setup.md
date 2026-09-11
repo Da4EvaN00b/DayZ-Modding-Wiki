@@ -1,6 +1,5 @@
 # Глава 9.1: Установка и первый запуск сервера
 
-[Главная](../README.md) | **Установка сервера** | [Далее: Структура каталогов >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Включить логирование сервера |
 | `-adminlog` | Логировать действия администратора |
 | `-netlog` | Логировать сетевые события |
-| `-freezecheck` | Автоматический перезапуск при обнаружении зависания |
+| `-freezecheck` | Останавливает сервер и записывает дамп аварийного завершения при зависании более чем на 5 минут |
 
 ### Шаг 3: Ожидание инициализации
 
@@ -226,7 +225,7 @@ BattlEye Server: Initialized
 
 ### Способ 4: Запрос порта
 
-Используйте внешний инструмент, например https://www.battlemetrics.com/ или npm-пакет `gamedig`, чтобы опросить порт 27016 (Steam query port = игровой порт + 24714).
+Используйте внешний инструмент, например https://www.battlemetrics.com/ или npm-пакет `gamedig`, чтобы опросить Steam query port. По умолчанию это **2305 UDP** (настраивается через `steamQueryPort` в `serverDZ.cfg`), а не игровой порт.
 
 ---
 
@@ -300,7 +299,3 @@ BattlEye Server: Initialized
 ```cpp
 template = "dayzOffline.chernarusplus";  // Должно совпадать с именем папки в mpmissions/
 ```
-
----
-
-**[Главная](../README.md)** | **Далее:** [Структура каталогов >>](02-directory-structure.md)

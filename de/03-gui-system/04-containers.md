@@ -1,6 +1,5 @@
 # Kapitel 3.4: Container-Widgets
 
-[Startseite](../README.md) | [<< Zurück: Größe & Positionierung](03-sizing-positioning.md) | **Container-Widgets** | [Weiter: Programmatische Widgets >>](05-programmatic-widgets.md)
 
 ---
 

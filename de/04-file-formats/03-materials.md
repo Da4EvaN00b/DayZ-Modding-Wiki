@@ -1,6 +1,5 @@
 # Chapter 4.3: Materials (.rvmat)
 
-[Home](../README.md) | [<< Previous: 3D Models](02-models.md) | **Materials** | [Next: Audio >>](04-audio.md)
 
 ---
 
@@ -83,9 +82,9 @@ class Stage1                               // Texture stage: Normal map
     };
 };
 
-class Stage2                               // Texture stage: Diffuse/Color map
+class Stage2                               // Texture stage: Detail map (the base _co color comes from the model texture / hiddenSelectionsTextures[], not a Stage)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -138,14 +137,13 @@ The `PixelShaderID` and `VertexShaderID` values determine which rendering pipeli
 | **Super** | Standard opaque surfaces (weapons, clothing, items) | Normal, Diffuse, Specular/Metallic |
 | **Multi** | Multi-layered terrain and complex surfaces | Multiple diffuse/normal pairs |
 | **Glass** | Transparent and semi-transparent surfaces | Diffuse with alpha |
-| **Water** | Water surfaces with reflection and refraction | Special water textures |
-| **Terrain** | Terrain ground surfaces | Satellite, mask, material layers |
+| **CalmWater** | Water surfaces with reflection and refraction | Special water textures |
+| **TerrainX** | Terrain ground surfaces (pixel shader; the vertex shader is `Terrain`) | Satellite, mask, material layers |
 | **NormalMap** | Simplified normal-mapped surface | Normal, Diffuse |
-| **NormalMapSpecular** | Normal-mapped with specular | Normal, Diffuse, Specular |
-| **Hair** | Character hair rendering | Diffuse with alpha, special translucency |
+| **NormalMapSpecularMap** | Normal-mapped with specular | Normal, Diffuse, Specular |
+| **SuperHair** | Character hair rendering | Diffuse with alpha, special translucency |
 | **Skin** | Character skin with subsurface scattering | Diffuse, Normal, Specular |
-| **AlphaTest** | Hard-edge transparency (foliage, fences) | Diffuse with alpha |
-| **AlphaBlend** | Smooth transparency (glass, smoke) | Diffuse with alpha |
+| **AlphaShadow / AlphaNoShadow** | Alpha-keyed transparency (foliage, fences) with or without shadow casting | Diffuse with alpha |
 
 ### Super Shader (Most Common)
 
@@ -153,9 +151,11 @@ The **Super** shader is the standard physically-based rendering shader used for 
 
 ```
 Stage1 = Normal map (_nohq)
-Stage2 = Diffuse/Color map (_co)
+Stage2 = Detail map (_dt)
 Stage3 = Specular/Metallic map (_smdi)
 ```
+
+Die Grundfarbe (`_co`) wird beim Super-Shader nicht über eine Stage zugewiesen -- sie stammt aus der Basistextur des Modells oder aus `hiddenSelectionsTextures[]`.
 
 If you are creating a mod item (weapon, clothing, tool, container), you will almost always use the Super shader.
 
@@ -193,7 +193,7 @@ Each `Stage` class in the RVMAT assigns a texture to a specific shader input. Th
 | Stage | Texture Role | Typical Suffix | Description |
 |-------|-------------|----------------|-------------|
 | **Stage1** | Normal map | `_nohq` | Surface detail, bumps, grooves |
-| **Stage2** | Diffuse / Color map | `_co` or `_ca` | Base color of the surface |
+| **Stage2** | Detail map | `_dt` | Fine surface detail (the base `_co` color is supplied by the model's base texture / `hiddenSelectionsTextures[]`, not by a Stage) |
 | **Stage3** | Specular / Metallic map | `_smdi` | Shininess, metallic properties, detail |
 | **Stage4** | Ambient Shadow | `_as` | Pre-baked ambient occlusion (optional) |
 | **Stage5** | Macro map | `_mc` | Large-scale color variation (optional) |
@@ -267,10 +267,10 @@ The emissive color is added to the final pixel color regardless of lighting. An 
 For thin surfaces that should be visible from both sides (flags, foliage, cloth):
 
 ```cpp
-renderFlags[] = {"noZWrite", "noAlpha", "twoSided"};
+renderFlags[] = {"NoZWrite"};
 ```
 
-This is not a top-level RVMAT property but is configured in config.cpp or through the material's shader settings depending on the use case.
+`renderFlags[]` ist eine Top-Level-RVMAT-Eigenschaft (ein Geschwisterelement von `ambient[]` und `PixelShaderID`). Vanilla-Werte sind in PascalCase, etwa `"NoZWrite"`, `"NoAlphaWrite"`, `"NoColorWrite"` und `"AddBlend"`. Es gibt kein `"twoSided"`-Flag -- beidseitiges Rendering wird an anderer Stelle gesteuert (zum Beispiel in den Face-Eigenschaften des Object Builder), nicht über `renderFlags[]`.
 
 ---
 
@@ -285,15 +285,25 @@ class MyItem: Inventory_Base
 {
     // ... other config ...
 
-    healthLevels[] =
+    class DamageSystem
     {
-        // {health_threshold, {"material_set"}},
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    // {health_threshold, {"material_set"}},
 
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+                };
+            };
+        };
     };
 };
 ```
@@ -341,16 +351,16 @@ data/
 
 ### Using Vanilla Damage Materials
 
-DayZ provides a set of generic damage overlay materials that can be used if you do not want to create custom damage textures:
+Vanilla-Items verwenden keinen Satz benannter generischer Overlays pro Stufe. Stattdessen verweist jede Gesundheitsstufe auf ein item-spezifisches RVMAT (typischerweise `<item>.rvmat`, `<item>_damage.rvmat` und `<item>_destruct.rvmat`), wobei dieselbe Datei über benachbarte Stufen hinweg wiederverwendet wird. Das einzige generische Material in `DZ\data\data\` ist `default_destruct.rvmat` (neben `default.rvmat`):
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -575,7 +585,7 @@ VertexShaderID = "Super";
 ### 1. Wrong Stage Order
 
 **Symptom:** Texture appears scrambled, normal map shows as color, color shows as bumps.
-**Fix:** Ensure Stage1 = normal, Stage2 = diffuse, Stage3 = specular (for the Super shader).
+**Fix:** Ensure Stage1 = normal, Stage2 = detail, Stage3 = specular (for the Super shader). The base `_co` color comes from the model texture / `hiddenSelectionsTextures[]`, not from a Stage.
 
 ### 2. Misspelling `emmisive`
 
@@ -595,7 +605,7 @@ VertexShaderID = "Super";
 ### 5. Using Wrong Shader for Transparent Items
 
 **Symptom:** Transparent texture appears opaque, or entire surface vanishes.
-**Fix:** Use `Glass`, `AlphaTest`, or `AlphaBlend` shader instead of `Super` for transparent surfaces. Use `_ca` suffix textures with proper alpha channels.
+**Fix:** Use `Glass`, `AlphaShadow`, or `AlphaNoShadow` shader instead of `Super` for transparent surfaces. Use `_ca` suffix textures with proper alpha channels.
 
 ---
 

@@ -1,6 +1,4 @@
-# Chapter 2.2: config.cpp Deep Dive
-
-[Home](../README.md) | [<< Previous: The 5-Layer Script Hierarchy](01-five-layers.md) | **config.cpp Deep Dive** | [Next: mod.cpp & Workshop >>](03-mod-cpp.md)
+# config.cpp Deep Dive
 
 ---
 
@@ -12,15 +10,16 @@
 
 - [Overview](#overview)
 - [Where config.cpp Lives](#where-configcpp-lives)
+- [Path Conventions](#path-conventions)
 - [CfgPatches Block](#cfgpatches-block)
 - [CfgMods Block](#cfgmods-block)
 - [class defs: Script Module Paths](#class-defs-script-module-paths)
 - [class defs: imageSets and widgetStyles](#class-defs-imagesets-and-widgetstyles)
 - [defines Array](#defines-array)
-- [CfgVehicles: Item and Entity Definitions](#cfgvehicles-item-and-entity-definitions)
-- [CfgSoundSets and CfgSoundShaders](#cfgsoundsets-and-cfgsoundshaders)
+- [CfgVehicles: An Entity Primer](#cfgvehicles-an-entity-primer)
+- [CfgSoundSets and CfgSoundShaders: A Primer](#cfgsoundsets-and-cfgsoundshaders-a-primer)
 - [CfgAddons: Preload Declarations](#cfgaddons-preload-declarations)
-- [Real Examples from Professional Mods](#real-examples-from-professional-mods)
+- [Complete Annotated Examples](#complete-annotated-examples)
 - [Common Mistakes](#common-mistakes)
 - [Complete Template](#complete-template)
 
@@ -30,7 +29,7 @@
 
 A DayZ mod typically has one or more PBO files, each containing a `config.cpp` at its root. The engine reads these configs during startup to determine:
 
-1. **What your mod depends on** (CfgPatches)
+1. **What your mod depends on** (CfgPatches) — this chapter is the canonical reference for `requiredAddons` and mod load order
 2. **Where your scripts are** (CfgMods class defs)
 3. **What items/entities it adds** (CfgVehicles, CfgWeapons, etc.)
 4. **What sounds it adds** (CfgSoundSets, CfgSoundShaders)
@@ -54,6 +53,21 @@ A mod usually has separate PBOs for different concerns:
 ```
 
 Each PBO has its own `config.cpp`. The engine reads them all. Multiple PBOs from the same mod are common -- this is standard practice, not an exception.
+
+---
+
+## Path Conventions
+
+Two path styles appear inside `config.cpp`, and mixing them arbitrarily is a common source of confusion. The engine accepts both separators in config files, but the community conventions are:
+
+| Path kind | Convention | Example |
+|-----------|-----------|---------|
+| Script module directories (`files[]` in `class defs`) | Forward slashes, no leading separator | `"MyMod/Scripts/3_Game"` |
+| Asset references (`model`, textures, sound `samples[]`) | Backslashes, model paths with a leading `\` | `"\MyMod\Data\Models\item.p3d"` |
+
+Pick these conventions and keep them consistent across your mod.
+
+A related convention applies outside `config.cpp`, in **Enforce Script string literals** (`.c` files). The `\\` and `\"` escape sequences are supported there, and vanilla uses both: `3_game/objectspawner.c:4` declares `"DZ\\plants"` in a path array (alongside the forward-slash form `"DZ/plants"`), and `3_game/tools/jsonfileloader.c:14` formats `"Cannot open file \"%1\" for reading"`. What favours forward slashes is that engine subsystems expect them in resource paths -- `3_game/particles/particlelist.c:391-393` rewrites `\` to `/` and warns that the wrong delimiter was used, but only in a diagnostic build: both the rewrite and the warning sit inside `#ifdef DIAG_DEVELOPER` (`:390`-`:395`), under a comment that reads "Silently fail on retail" (`:389`). On a **retail** build neither happens -- the backslash path falls straight through unmodified (`:397`). Prefer `/` in in-game resource paths for that reason: on the build your players actually run, nothing fixes a wrong delimiter for you.
 
 ---
 
@@ -81,14 +95,14 @@ class CfgPatches
 
 ### requiredAddons: The Dependency Chain
 
-This is the most critical field in the entire config. `requiredAddons` tells the engine:
+This is the most critical field in the entire config, and this section is the wiki's canonical reference for it -- the [5-Layer Script Hierarchy](01-five-layers.md) chapter (layer order *inside* one mod) and the server-side [Mod Management](../09-server-admin/10-mod-management.md) chapter (the `-mod=` launch line) both build on it.
 
-1. **Load order:** Your PBO's scripts compile AFTER all listed addons
-2. **Hard dependency:** If a listed addon is missing, your mod fails to load
+`requiredAddons` tells the engine:
 
-`requiredAddons` chains are transitive. If Mod_A depends on Mod_B, and Mod_B depends on `DZ_Data`, then Mod_A does not need to list `DZ_Data`. However, listing explicit dependencies is still good practice for clarity and resilience against upstream changes.
+1. **Load order:** Your PBO's config is merged and its scripts compile AFTER all listed addons
+2. **Hard dependency:** If a listed addon is missing, your mod fails to load with an error
 
-Each entry must match a `CfgPatches` class name from another mod:
+Each entry must match a `CfgPatches` class name from another PBO:
 
 | Dependency | requiredAddons Entry | When to Use |
 |-----------|---------------------|-------------|
@@ -96,9 +110,8 @@ Each entry must match a `CfgPatches` class name from another mod:
 | Vanilla DayZ scripts | `"DZ_Scripts"` | When extending vanilla script classes |
 | Vanilla weapons | `"DZ_Weapons_Firearms"` | When adding weapons/attachments |
 | Vanilla magazines | `"DZ_Weapons_Magazines"` | When adding magazines/ammo |
-| Community Framework | `"JM_CF_Scripts"` | When using CF module system |
-| DabsFramework | `"DF_Scripts"` | When using Dabs MVC/framework |
-| MyMod Core | `"MyMod_Core_Scripts"` | When building a MyMod mod |
+| A framework mod | The `CfgPatches` name the framework documents | When building on top of another mod |
+| Lantern Core (this wiki's teaching framework) | `"Lantern_Core_Scripts"` | Running example used throughout this wiki |
 
 **Example: Multiple dependencies**
 
@@ -110,9 +123,16 @@ requiredAddons[] =
     "DZ_Weapons_Firearms",
     "DZ_Weapons_Ammunition",
     "DZ_Weapons_Magazines",
-    "MyMod_Core_Scripts"
+    "Lantern_Core_Scripts"
 };
 ```
+
+### How the Engine Resolves Load Order
+
+- The engine builds a dependency graph from the `requiredAddons` of every loaded PBO, then merges configs and compiles scripts in dependency order.
+- If PBO A lists PBO B, then A's config classes can inherit from B's, and A's `modded` classes stack on top of B's.
+- Chains are **transitive**. If Mod_A depends on Mod_B, and Mod_B depends on `DZ_Data`, then Mod_A does not need to list `DZ_Data`. Listing explicit dependencies is still good practice for clarity and resilience against upstream changes.
+- The order of entries on the server's `-mod=` launch line is **not** a substitute for `requiredAddons`. If your mod needs another mod loaded first, declare it here -- never rely on launcher ordering.
 
 ### units[] and weapons[]
 
@@ -126,7 +146,7 @@ units[] = { "MyMod_SomeBuilding", "MyMod_SomeVehicle" };
 weapons[] = { "MyMod_CustomRifle", "MyMod_CustomPistol" };
 ```
 
-For script-only PBOs, leave both empty.
+For script-only PBOs, leave both empty -- or omit them entirely. The arrays are optional and default to empty when not declared.
 
 ---
 
@@ -145,15 +165,11 @@ class CfgMods
         name = "My Mod Name";     // Human-readable name
         author = "AuthorName";    // Author string
         credits = "AuthorName";   // Credits string
-        creditsJson = "MyMod/Scripts/Data/Credits.json";  // Path to credits file
-        versionPath = "MyMod/Scripts/Data/Version.hpp";   // Path to version file
         overview = "Description"; // Mod description
         picture = "";             // Logo image path
         action = "";              // URL (website/Discord)
-        type = "mod";             // "mod" for client, "servermod" for server-only
+        type = "mod";             // Declares the mod's intended side
         extra = 0;                // Reserved, always 0
-        hideName = 0;             // Hide mod name in launcher (0 = show, 1 = hide)
-        hidePicture = 0;          // Hide mod picture in launcher
 
         // Keybind definitions (optional)
         inputs = "MyMod/Scripts/Data/Inputs.xml";
@@ -173,11 +189,24 @@ class CfgMods
 };
 ```
 
+### Which Keys the Engine Actually Reads
+
+`CfgMods` accumulates keys from three different sources, and telling them apart saves you from copying a key that does nothing on a plain server:
+
+| Key | Read by | Notes |
+|-----|---------|-------|
+| `type`, `inputs`, `skeletonDefinitions`, `dependencies[]`, `class defs` | Engine (native) | The set Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents. `type = "mod";` is annotated *required* there. |
+| `name`, `picture`, `logo`, `logoSmall`, `logoOver`, `tooltip`, `overview` | Vanilla script | `ModStructure.LoadData()` reads exactly these seven for the in-game mod list (`3_game/client/mods/modstructure.c:24-30`). |
+| `author`, `credits`, `creditsJson`, `versionPath`, `version` | Community Framework | CF's `modded class ModStructure` adds the readers (`JM/CF/Scripts/3_Game/CommunityFramework/Mods/ModStructure.c:74-77,130,143,176-190`). Nothing in vanilla script reads them. |
+| `dir`, `extra`, `defines[]` | Not read by any script | Widely used by convention; no vanilla script reader and no entry on the Modding Structure page. |
+
+`creditsJson` in particular is a **Community Framework integration point**, not a vanilla key: CF loads the referenced JSON and merges it into the in-game credits screen (`.../Credits/CreditsLoader.c:24-47`). Include it only when your mod already depends on CF; on a server without CF it is inert.
+
 ### Key Fields Explained
 
-**`dir`** -- The root path prefix for all file paths in this config. When the engine sees `files[] = { "MyMod/Scripts/3_Game" }`, it uses `dir` as the base.
+**`dir`** -- The root path prefix commonly written for the mod's own bookkeeping. Script-side `files[]` entries in `class defs` are full paths from the PBO prefix, so they work whether or not `dir` is present.
 
-**`type`** -- Either `"mod"` (loaded via `-mod=`) or `"servermod"` (loaded via `-servermod=`). Server mods run only on the dedicated server. This is how you separate server-only logic from client code.
+**`type`** -- Declares the side the package is meant for: `"mod"` or `"servermod"`. Bohemia documents `type = "mod";` as required and lists no other value; what actually routes a package to clients or keeps it server-side is the launch flag that loads it (`-mod=` versus `-servermod=`). Keep the declaration consistent with how you ship the package -- see [Server vs Client Architecture](06-server-client-split.md#the-configcpp-type-field).
 
 **`dependencies`** -- Which vanilla script modules your mod extends. Almost always `{ "Game", "World", "Mission" }`. Possible values: `"Core"`, `"GameLib"`, `"Game"`, `"World"`, `"Mission"`.
 
@@ -224,15 +253,15 @@ class defs
 
 ### The `value` Field
 
-The `value` field specifies a custom entry function name for that script module. When empty (`""`), the engine uses the default entry point. When set (e.g., `value = "CreateGameMod"`), the engine calls that global function when initializing the module.
+The `value` field specifies a custom entry function name for that script module. When empty (`""`), the engine uses the default entry point. When set, the engine calls that global function when initializing the module.
 
-Community Framework uses this:
+Some frameworks override the entry point to bootstrap themselves before any other code in the module runs:
 
 ```cpp
 class gameScriptModule
 {
-    value = "CF_CreateGame";    // Custom entry point
-    files[] = { "JM/CF/Scripts/3_Game" };
+    value = "LNT_CreateGame";    // Custom entry point -- a global function the framework defines in 3_Game
+    files[] = { "Lantern_Core/Scripts/3_Game" };
 };
 ```
 
@@ -336,42 +365,15 @@ class defs
 };
 ```
 
-Widget styles define reusable visual properties (colors, fonts, padding) for GUI widgets.
-
-### Real Example: Framework Mod
-
-```cpp
-class defs
-{
-    class imageSets
-    {
-        files[] =
-        {
-            "MyFramework/GUI/imagesets/prefabs.imageset",
-            "MyFramework/GUI/imagesets/CUI.imageset",
-            "MyFramework/GUI/icons/thin.imageset",
-            "MyFramework/GUI/icons/light.imageset",
-            "MyFramework/GUI/icons/regular.imageset",
-            "MyFramework/GUI/icons/solid.imageset",
-            "MyFramework/GUI/icons/brands.imageset"
-        };
-    };
-    class widgetStyles
-    {
-        files[] =
-        {
-            "MyFramework/GUI/looknfeel/prefabs.styles"
-        };
-    };
-    // ... script modules ...
-};
-```
+Widget styles define reusable visual properties (colors, fonts, padding) for GUI widgets. A UI-heavy framework typically declares several imagesets and one shared style sheet -- the [Lantern_Core annotated example](#complete-annotated-examples) below shows the full shape.
 
 ---
 
 ## defines Array
 
-The `defines[]` array in `CfgMods` creates preprocessor symbols that other mods can check with `#ifdef`. Since DayZ 1.21, the engine also automatically registers the `CfgMods` class name itself as a `#define`, so `#ifdef MyMod` works without an explicit `defines[]` entry.
+The `defines[]` array in `CfgMods` creates preprocessor symbols that other mods can check with `#ifdef`.
+
+> **Do not rely on implicit mod-presence defines.** Some modders report that a mod's `CfgMods` class name becomes usable with `#ifdef` even without an explicit `defines[]` entry. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents `type`, `inputs`, `skeletonDefinitions`, `dependencies[]` and `class defs` under `CfgMods` and does not mention `defines[]` at all, so neither the array nor an implicit class-name symbol has a documented contract you can lean on. Declare an explicit `defines[]` presence flag (as shown below) whenever you want other mods to detect yours with `#ifdef`, and declare it in every package whose own code tests it. The same caution applies in reverse when you integrate with someone else's mod: do not assume `#ifdef <TheirModName>` is available, because mods publish their detection symbols by different means. Use whatever symbol that mod's own documentation tells you to test.
 
 ```cpp
 defines[] =
@@ -383,65 +385,46 @@ defines[] =
 
 ### Use Cases
 
-**Feature detection across mods:**
+**Feature detection across mods.** A content mod can light up optional integration when a framework is present:
 
 ```c
-// In another mod's code:
-#ifdef MYMOD_CORE
-    MyLog.Info("MyMod", "MyMod Core detected, enabling integration");
+// In another mod's code (here: the NightPatrol content mod checking for Lantern Core):
+#ifdef LANTERN_CORE
+    Print("[NightPatrol] Lantern Core detected, enabling integration");
 #else
-    Print("[MyMod] Running without MyMod Core");
+    Print("[NightPatrol] Running without Lantern Core");
 #endif
 ```
 
-**Debug/release builds:**
+**Presence flag plus debug switch.** The minimal pattern most mods need:
 
 ```cpp
 defines[] =
 {
-    "MYMOD_LOADED",
-    // "MYMOD_DEBUG",        // Uncomment for debug logging
-    // "MYMOD_VERBOSE"       // Uncomment for verbose output
+    "LANTERN_CORE",         // Presence flag -- downstream mods check #ifdef LANTERN_CORE
+    // "LANTERN_DEBUG"      // Uncomment for debug builds; ship releases with it commented out
 };
 ```
 
-### Real Examples
-
-**COT** uses defines extensively for feature flags:
+**Per-subsystem toggles.** Larger frameworks declare one define per optional subsystem, so downstream mods can guard each integration point independently:
 
 ```cpp
 defines[] =
 {
-    "JM_COT",
-    "JM_COT_VEHICLE_ONSPAWNVEHICLE",
-    "COT_BUGFIX_REF",
-    "COT_BUGFIX_REF_UIACTIONS",
-    "COT_UIACTIONS_SETWIDTH",
-    "COT_REFRESHSTATS_NEW",
-    "JM_COT_VEHICLEMANAGER",
-    "JM_COT_INVISIBILITY"
-};
-```
-
-**CF** uses defines for enabling/disabling subsystems:
-
-```cpp
-defines[] =
-{
-    "CF_MODULE_CONFIG",
-    "CF_EXPRESSION",
-    "CF_GHOSTICONS",
-    "CF_MODSTORAGE",
-    "CF_SURFACES",
-    "CF_MODULES"
+    "LANTERN_MODULE_CONFIG",       // Config persistence subsystem compiled in
+    "LANTERN_MODULE_RPC",          // RPC helper layer
+    "LANTERN_MODULE_EVENTS",       // Event bus
+    "LANTERN_MODULE_PERMISSIONS"   // Permission checks
 };
 ```
 
 ---
 
-## CfgVehicles: Item and Entity Definitions
+## CfgVehicles: An Entity Primer
 
 `CfgVehicles` is the primary config class for defining in-game items, buildings, vehicles, and other entities. Despite the name "vehicles", it covers ALL entity types.
+
+This section is a primer on the config mechanics. For the full item-creation walkthrough (textures, types.xml, stringtable), see [Creating a Custom Item](../08-tutorials/02-custom-item.md); for the script-side entity classes behind these configs, see [Entity System](../06-engine-api/01-entity-system.md).
 
 ### Basic Item Definition
 
@@ -454,7 +437,7 @@ class CfgVehicles
         scope = 2;                           // 0=hidden, 1=static/map objects, 2=public
         displayName = "Custom Item";
         descriptionShort = "A custom item.";
-        model = "MyMod/Data/Models/item.p3d";
+        model = "\MyMod\Data\Models\item.p3d";
         weight = 500;                        // Grams
         itemSize[] = { 2, 3 };               // Inventory slots (width, height)
         rotationFlags = 17;                   // Allowed rotation in inventory
@@ -479,9 +462,80 @@ class CfgVehicles
 };
 ```
 
+### scope Values
+
+| Value | Meaning | Usage |
+|-------|---------|-------|
+| `0` | Hidden | Hidden from everything -- not spawnable, not in editor, not in script console. Used for base classes and abstract parents. |
+| `1` | Static/map objects | For objects placed on the map: houses, wrecks, rocks, trees. These are NOT general "editor-only" items -- they are static world objects that exist as part of the terrain. They cannot be spawned through the Central Economy or admin tools. |
+| `2` | Public | Fully spawnable -- appears in the script console, admin tools, and can be used in `types.xml` or `events.xml`. This is the scope for any item, vehicle, or entity that players interact with. |
+
+### Matching the Script Hierarchy
+
+The class hierarchy in script must mirror the `config.cpp` inheritance. A common pattern is an abstract config parent with `scope = 0` and concrete, spawnable children with `scope = 2`:
+
+```cpp
+class CfgVehicles
+{
+    class ItemBase;                              // Forward declaration
+
+    class MyMod_MedicalBase : ItemBase           // Abstract parent -- never spawned
+    {
+        scope = 0;
+        displayName = "";
+    };
+
+    class MyMod_FieldBandage : MyMod_MedicalBase
+    {
+        scope = 2;                               // Public -- spawnable
+        displayName = "Field Bandage";
+        descriptionShort = "A sterile bandage for wound treatment.";
+        model = "\MyMod\Data\Models\bandage.p3d";
+        weight = 50;
+    };
+};
+```
+
+The matching script classes (in `4_World`) use the same names and the same parent chain:
+
+```c
+class MyMod_MedicalBase : ItemBase
+{
+}
+
+class MyMod_FieldBandage : MyMod_MedicalBase
+{
+}
+```
+
+The engine binds a config class to the script class with the same name. If a config class has no matching script class, the engine walks up the config hierarchy and uses the nearest parent that has one.
+
+### Abstract Base for Static Objects
+
+The same abstract-base pattern applies to `scope = 1` map objects. Here a set of static signal lamps shares one hidden base class:
+
+```cpp
+class CfgVehicles
+{
+    class HouseNoDestruct;                       // Vanilla static-object parent
+    class LNT_SignalLampBase : HouseNoDestruct
+    {
+        scope = 0;                               // Abstract -- shared properties only
+    };
+    class LNT_SignalLampRed : LNT_SignalLampBase
+    {
+        scope = 1;                               // Static map object
+    };
+    class LNT_SignalLampGreen : LNT_SignalLampBase
+    {
+        scope = 1;
+    };
+};
+```
+
 ### The += Operator for Config Arrays
 
-Since DayZ 1.17, you can use `+=` to append to arrays without overwriting entries from other mods:
+You can use `+=` to append to an array inherited from a parent class instead of overwriting it. This is not a DayZ-specific addition -- it is long-standing Real Virtuality config syntax ([Array+=](https://community.bistudio.com/wiki/Array%2B%3D) on the Bohemia community wiki, introduced in Arma 3), inherited by DayZ's config parser along with the rest of the engine's config system. Shipped DayZ mods rely on it: DayZ Expansion appends to vanilla arrays this way in `DayZExpansion/NamalskAdventure/Dta/Weapons/Ammunition/config.cpp:18-21`, which re-declares vanilla's `Ammunition_Base` with `Magazine_Base` as its **direct** parent and then appends `repairableWithKits[]+={100};` at that same level -- the direct-parent relationship the limitation below requires, not a class "extending" `Ammunition_Base` from further down -- and in sixteen configs across that repository:
 
 ```cpp
 class CfgVehicles
@@ -495,96 +549,28 @@ class CfgVehicles
 
 Without `+=`, using `=` replaces the entire array, potentially removing attachments added by other mods or vanilla.
 
-### scope Values
+> **`+=` appends across exactly one inheritance step.** It adds to an array inherited from the **direct** parent, and only when that parent states the array explicitly. Inherit through an intermediate class that does not restate the array and the `+=` degrades into a plain `=`, so you replace the array instead of extending it -- the outcome you were trying to avoid, with no error to tell you. When appending to a vanilla array, inherit directly from the class that declares it, or restate the array at each level.
 
-| Value | Meaning | Usage |
-|-------|---------|-------|
-| `0` | Hidden | Hidden from everything -- not spawnable, not in editor, not in script console. Used for base classes and abstract parents. |
-| `1` | Static/map objects | For objects placed on the map: houses, wrecks, rocks, trees. These are NOT general "editor-only" items -- they are static world objects that exist as part of the terrain. They cannot be spawned through the Central Economy or admin tools. |
-| `2` | Public | Fully spawnable -- appears in the script console, admin tools, and can be used in `types.xml` or `events.xml`. This is the scope for any item, vehicle, or entity that players interact with. |
-
-### Building/Structure Definition
-
-```cpp
-class CfgVehicles
-{
-    class HouseNoDestruct;
-    class MyMod_Bunker : HouseNoDestruct
-    {
-        scope = 2;
-        displayName = "Military Bunker";
-        model = "MyMod/Data/Models/bunker.p3d";
-    };
-};
-```
-
-### Vehicle Definition (Simplified)
-
-```cpp
-class CfgVehicles
-{
-    class CarScript;
-    class MyMod_Truck : CarScript
-    {
-        scope = 2;
-        displayName = "Custom Truck";
-        model = "MyMod/Data/Models/truck.p3d";
-
-        class Cargo
-        {
-            itemsCargoSize[] = { 10, 50 };   // Cargo dimensions
-        };
-    };
-};
-```
-
-### DabsFramework Entity Example
-
-```cpp
-class CfgVehicles
-{
-    class HouseNoDestruct;
-    class NetworkLightBase : HouseNoDestruct
-    {
-        scope = 1;
-    };
-    class NetworkPointLight : NetworkLightBase
-    {
-        scope = 1;
-    };
-    class NetworkSpotLight : NetworkLightBase
-    {
-        scope = 1;
-    };
-};
-```
+Buildings, vehicles, weapons, and complete item definitions go well beyond this primer -- the [Creating a Custom Item](../08-tutorials/02-custom-item.md) tutorial and the [Entity System](../06-engine-api/01-entity-system.md) chapter own that ground.
 
 ---
 
-## CfgSoundSets and CfgSoundShaders
+## CfgSoundSets and CfgSoundShaders: A Primer
 
 Custom audio requires two config classes working together: a SoundShader (the audio file reference) and a SoundSet (the playback configuration).
-
-### CfgSoundShaders
 
 ```cpp
 class CfgSoundShaders
 {
     class MyMod_Alert_SoundShader
     {
-        samples[] = {{ "MyMod/Sounds/alert", 1 }};  // Path to .ogg file, probability
+        samples[] = {{ "MyMod\Sounds\alert", 1 }};  // Path without extension, probability
         volume = 0.8;                                 // Base volume (0.0 to 1.0)
         range = 50;                                   // Audible range in meters (3D only)
         limitation = 0;                               // 0 = no limit on concurrent plays
     };
 };
-```
 
-The `samples` array uses double braces. Each entry is `{ "path_without_extension", probability }`. If you list multiple samples, the engine picks randomly based on probability weights.
-
-### CfgSoundSets
-
-```cpp
 class CfgSoundSets
 {
     class MyMod_Alert_SoundSet
@@ -597,41 +583,20 @@ class CfgSoundSets
 };
 ```
 
-### Playing Sounds in Script
+The `samples` array uses double braces. Each entry is `{ "path_without_extension", probability }`. If you list multiple samples, the engine picks randomly based on probability weights.
+
+Playing the set from script:
 
 ```c
-// 2D UI sound (spatial = 0)
+// 2D UI sound (spatial = 0) -- position is ignored
 SEffectManager.PlaySound("MyMod_Alert_SoundSet", vector.Zero);
 
-// 3D world sound (spatial = 1)
-SEffectManager.PlaySound("MyMod_Alert_SoundSet", GetPosition());
+// 3D world sound (spatial = 1) -- pass a world position
+vector pos = "7500 300 7500";
+SEffectManager.PlaySound("MyMod_Alert_SoundSet", pos);
 ```
 
-### Real Example: Radio Beep Sound
-
-```cpp
-class CfgSoundShaders
-{
-    class MyMod_Beep_SoundShader
-    {
-        samples[] = {{ "MyMod_Missions/Sounds\bip", 1 }};
-        volume = 0.6;
-        range = 5;
-        limitation = 0;
-    };
-};
-
-class CfgSoundSets
-{
-    class MyMod_Beep_SoundSet
-    {
-        soundShaders[] = { "MyMod_Beep_SoundShader" };
-        volumeFactor = 1.0;
-        frequencyFactor = 1.0;
-        spatial = 0;      // 2D -- plays as UI sound
-    };
-};
-```
+That is the whole config surface. Sound categories, attenuation curves, looping, format choices, and production tooling are owned by the [Audio](../04-file-formats/04-audio.md) chapter.
 
 ---
 
@@ -656,34 +621,37 @@ In practice, most mods declare this with an empty `list[]`. It ensures the engin
 
 ---
 
-## Real Examples from Professional Mods
+## Complete Annotated Examples
 
-### Framework Mod (Script-only)
+> **Note:** Lantern (by the fictional team Northlight) and NightPatrol are this wiki's constructed teaching mods, not published projects. The Lantern subsystems referenced below are built step by step in [Part 7: Architecture Patterns](../07-patterns/01-singletons.md).
+
+### Framework Mod (Script-Only): Lantern_Core
+
+The base library every other Lantern package depends on. Script-only: empty `units[]`/`weapons[]`, GUI resources, and all five concerns in one `CfgMods` entry.
 
 ```cpp
 class CfgPatches
 {
-    class MyMod_Core_Scripts
+    class Lantern_Core_Scripts
     {
         units[] = {};
         weapons[] = {};
         requiredVersion = 0.1;
-        requiredAddons[] = { "DZ_Scripts" };
+        requiredAddons[] = { "DZ_Scripts" };   // Extends vanilla script classes
     };
 };
 
 class CfgMods
 {
-    class MyMod
+    class Lantern_Core
     {
-        name = "My Framework";
-        dir = "MyFramework";
-        author = "Documentation Team";
-        overview = "My Framework - Central Admin Panel and Shared Library";
-        inputs = "MyFramework/Scripts/Inputs.xml";
-        creditsJson = "MyFramework/Scripts/Credits.json";
+        name = "Lantern Core";
+        dir = "Lantern_Core";
+        author = "Northlight";
+        overview = "Lantern Core - shared library and admin framework";
+        inputs = "Lantern_Core/Scripts/Data/Inputs.xml";
         type = "mod";
-        defines[] = { "MYMOD_CORE" };
+        defines[] = { "LANTERN_CORE" };        // Presence flag for downstream mods
         dependencies[] = { "Core", "Game", "World", "Mission" };
 
         class defs
@@ -692,90 +660,74 @@ class CfgMods
             {
                 files[] =
                 {
-                    "MyFramework/GUI/imagesets/prefabs.imageset",
-                    "MyFramework/GUI/imagesets/CUI.imageset",
-                    "MyFramework/GUI/icons/thin.imageset",
-                    "MyFramework/GUI/icons/light.imageset",
-                    "MyFramework/GUI/icons/regular.imageset",
-                    "MyFramework/GUI/icons/solid.imageset",
-                    "MyFramework/GUI/icons/brands.imageset"
+                    "Lantern_Core/GUI/imagesets/lnt_prefabs.imageset",
+                    "Lantern_Core/GUI/imagesets/lnt_hud.imageset",
+                    "Lantern_Core/GUI/imagesets/lnt_icons.imageset"
                 };
             };
             class widgetStyles
             {
                 files[] =
                 {
-                    "MyFramework/GUI/looknfeel/prefabs.styles"
+                    "Lantern_Core/GUI/looknfeel/lnt_prefabs.styles"
                 };
             };
             class engineScriptModule
             {
-                files[] = { "MyFramework/Scripts/1_Core" };
+                files[] = { "Lantern_Core/Scripts/1_Core" };
             };
             class gameScriptModule
             {
-                files[] = { "MyFramework/Scripts/3_Game" };
+                files[] = { "Lantern_Core/Scripts/3_Game" };
             };
             class worldScriptModule
             {
-                files[] = { "MyFramework/Scripts/4_World" };
+                files[] = { "Lantern_Core/Scripts/4_World" };
             };
             class missionScriptModule
             {
-                files[] = { "MyFramework/Scripts/5_Mission" };
+                files[] = { "Lantern_Core/Scripts/5_Mission" };
             };
         };
     };
 };
 ```
 
-### COT (Depends on CF, Uses Common Folder)
+### Dependent Mod with a Common Folder: Lantern_Admin
+
+An admin-tools package that builds on Lantern_Core. Two things to study here: the `requiredAddons` entry that guarantees Lantern_Core compiles first, and the Common-folder `files[]` pattern that compiles shared code into every script module.
 
 ```cpp
 class CfgPatches
 {
-    class JM_COT_Scripts
+    class Lantern_Admin_Scripts
     {
-        units[] = {};
-        weapons[] = {};
         requiredVersion = 0.1;
-        requiredAddons[] = { "JM_CF_Scripts", "JM_COT_GUI", "DZ_Data" };
+        requiredAddons[] = { "Lantern_Core_Scripts", "DZ_Data" };
+        // units[] and weapons[] omitted on purpose -- see note below
     };
 };
 
 class CfgMods
 {
-    class JM_CommunityOnlineTools
+    class Lantern_Admin
     {
-        dir = "JM";
-        name = "Community Online Tools";
-        credits = "Jacob_Mango, DannyDog, Arkensor";
-        creditsJson = "JM/COT/Scripts/Data/Credits.json";
-        author = "Jacob_Mango";
-        versionPath = "JM/COT/Scripts/Data/Version.hpp";
-        inputs = "JM/COT/Scripts/Data/Inputs.xml";
+        name = "Lantern Admin Tools";
+        dir = "Lantern_Admin";
+        author = "Northlight";
         type = "mod";
-        defines[] = { "JM_COT", "JM_COT_VEHICLEMANAGER", "JM_COT_INVISIBILITY" };
+        defines[] = { "LANTERN_ADMIN" };
         dependencies[] = { "Game", "World", "Mission" };
 
         class defs
         {
-            class engineScriptModule
-            {
-                value = "";
-                files[] =
-                {
-                    "JM/COT/Scripts/Common",     // Shared code
-                    "JM/COT/Scripts/1_Core"
-                };
-            };
             class gameScriptModule
             {
                 value = "";
                 files[] =
                 {
-                    "JM/COT/Scripts/Common",
-                    "JM/COT/Scripts/3_Game"
+                    "Lantern_Admin/Scripts/Common",    // Shared helpers, visible in every module
+                    "Lantern_Admin/Scripts/3_Game"
                 };
             };
             class worldScriptModule
@@ -783,8 +735,8 @@ class CfgMods
                 value = "";
                 files[] =
                 {
-                    "JM/COT/Scripts/Common",
-                    "JM/COT/Scripts/4_World"
+                    "Lantern_Admin/Scripts/Common",
+                    "Lantern_Admin/Scripts/4_World"
                 };
             };
             class missionScriptModule
@@ -792,8 +744,8 @@ class CfgMods
                 value = "";
                 files[] =
                 {
-                    "JM/COT/Scripts/Common",
-                    "JM/COT/Scripts/5_Mission"
+                    "Lantern_Admin/Scripts/Common",
+                    "Lantern_Admin/Scripts/5_Mission"
                 };
             };
         };
@@ -801,73 +753,75 @@ class CfgMods
 };
 ```
 
-> **Note:** The real COT `config.cpp` omits `units[]` and `weapons[]` from its `CfgPatches` block entirely. These arrays are optional -- they default to empty when not declared. Script-only PBOs that add no spawnable entities or weapons can safely leave them out.
+> **Note:** This `CfgPatches` block omits `units[]` and `weapons[]` entirely. These arrays are optional -- they default to empty when not declared. Script-only PBOs that add no spawnable entities or weapons can safely leave them out.
 
-### Server-Only Feature Mod
+### Server-Only Feature Mod: Lantern_MissionsServer
+
+Loaded via `-servermod=`, so none of this code ever reaches clients. It depends on both the client-side missions package and the core library.
 
 ```cpp
 class CfgPatches
 {
-    class MyModServer_Scripts
+    class Lantern_MissionsServer_Scripts
     {
         units[] = {};
         weapons[] = {};
         requiredVersion = 0.1;
-        requiredAddons[] = { "DZ_Scripts", "MyMod_Scripts", "MyMod_Core_Scripts" };
+        requiredAddons[] = { "DZ_Scripts", "Lantern_Missions_Scripts", "Lantern_Core_Scripts" };
     };
 };
 
 class CfgMods
 {
-    class MyMod_MissionsServer
+    class Lantern_MissionsServer
     {
-        name = "My Missions Server";
-        dir = "MyMod_MissionsServer";
-        author = "YourName";
+        name = "Lantern Missions Server";
+        dir = "Lantern_MissionsServer";
+        author = "Northlight";
         type = "servermod";              // <-- Server-only mod
-        defines[] = { "MYMOD_MISSIONS" };
+        defines[] = { "LANTERN_MISSIONSSERVER" };
         dependencies[] = { "Core", "Game", "World", "Mission" };
 
         class defs
         {
             class gameScriptModule
             {
-                files[] = { "MyMod_MissionsServer/Scripts/3_Game" };
+                files[] = { "Lantern_MissionsServer/Scripts/3_Game" };
             };
             class worldScriptModule
             {
-                files[] = { "MyMod_MissionsServer/Scripts/4_World" };
+                files[] = { "Lantern_MissionsServer/Scripts/4_World" };
             };
             class missionScriptModule
             {
-                files[] = { "MyMod_MissionsServer/Scripts/5_Mission" };
+                files[] = { "Lantern_MissionsServer/Scripts/5_Mission" };
             };
         };
     };
 };
 ```
 
-### DabsFramework (Uses gameLibScriptModule + CfgVehicles)
+### UI Kit with gameLibScriptModule and CfgVehicles: Lantern_UI
+
+A GUI-focused package showing two rarer features in one config: the layer-2 `gameLibScriptModule`, and entity definitions living side by side with script declarations.
 
 ```cpp
 class CfgPatches
 {
-    class DF_Scripts
+    class Lantern_UI_Scripts
     {
-        requiredAddons[] = { "DZ_Scripts", "DF_GUI" };
+        requiredVersion = 0.1;
+        requiredAddons[] = { "DZ_Scripts", "Lantern_Core_Scripts" };
     };
 };
 
 class CfgMods
 {
-    class DabsFramework
+    class Lantern_UI
     {
-        name = "Dabs Framework";
-        dir = "DabsFramework";
-        credits = "InclementDab";
-        author = "InclementDab";
-        creditsJson = "DabsFramework/Scripts/Credits.json";
-        versionPath = "DabsFramework/Scripts/Version.hpp";
+        name = "Lantern UI Kit";
+        dir = "Lantern_UI";
+        author = "Northlight";
         type = "mod";
         dependencies[] = { "Game", "World", "Mission" };
 
@@ -877,45 +831,40 @@ class CfgMods
             {
                 files[] =
                 {
-                    "DabsFramework/gui/imagesets/prefabs.imageset",
-                    "DabsFramework/gui/icons/brands.imageset",
-                    "DabsFramework/gui/icons/light.imageset",
-                    "DabsFramework/gui/icons/regular.imageset",
-                    "DabsFramework/gui/icons/solid.imageset",
-                    "DabsFramework/gui/icons/thin.imageset"
+                    "Lantern_UI/GUI/imagesets/lnt_icons.imageset"
                 };
             };
             class widgetStyles
             {
                 files[] =
                 {
-                    "DabsFramework/gui/looknfeel/prefabs.styles"
+                    "Lantern_UI/GUI/looknfeel/lnt_widgets.styles"
                 };
             };
             class engineScriptModule
             {
                 value = "";
-                files[] = { "DabsFramework/scripts/1_core" };
+                files[] = { "Lantern_UI/Scripts/1_Core" };
             };
-            class gameLibScriptModule      // Rare: Dabs uses layer 2
+            class gameLibScriptModule      // Rare: layer 2, for GameLib-dependent code
             {
                 value = "";
-                files[] = { "DabsFramework/scripts/2_GameLib" };
+                files[] = { "Lantern_UI/Scripts/2_GameLib" };
             };
             class gameScriptModule
             {
                 value = "";
-                files[] = { "DabsFramework/scripts/3_Game" };
+                files[] = { "Lantern_UI/Scripts/3_Game" };
             };
             class worldScriptModule
             {
                 value = "";
-                files[] = { "DabsFramework/scripts/4_World" };
+                files[] = { "Lantern_UI/Scripts/4_World" };
             };
             class missionScriptModule
             {
                 value = "";
-                files[] = { "DabsFramework/scripts/5_Mission" };
+                files[] = { "Lantern_UI/Scripts/5_Mission" };
             };
         };
     };
@@ -923,16 +872,16 @@ class CfgMods
 
 class CfgVehicles
 {
-    class HouseNoDestruct;
-    class NetworkLightBase : HouseNoDestruct
+    class HouseNoDestruct;                       // Vanilla static-object parent
+    class LNT_SignalLampBase : HouseNoDestruct
     {
-        scope = 1;
+        scope = 0;                               // Abstract base -- shared properties
     };
-    class NetworkPointLight : NetworkLightBase
+    class LNT_SignalLampRed : LNT_SignalLampBase
     {
-        scope = 1;
+        scope = 1;                               // Static map object
     };
-    class NetworkSpotLight : NetworkLightBase
+    class LNT_SignalLampGreen : LNT_SignalLampBase
     {
         scope = 1;
     };
@@ -946,12 +895,13 @@ class CfgVehicles
 ### 1. Wrong requiredAddons -- Mod Loads Before Its Dependency
 
 ```cpp
-// WRONG: Missing dependency on CF, so your mod may load before CF
+// WRONG: Your mod builds on Lantern Core but does not declare it,
+// so it may load before Lantern Core
 class CfgPatches
 {
     class MyMod_Scripts
     {
-        requiredAddons[] = { "DZ_Data" };  // CF not listed!
+        requiredAddons[] = { "DZ_Data" };  // Lantern_Core_Scripts not listed!
     };
 };
 
@@ -960,7 +910,7 @@ class CfgPatches
 {
     class MyMod_Scripts
     {
-        requiredAddons[] = { "DZ_Data", "JM_CF_Scripts" };
+        requiredAddons[] = { "DZ_Data", "Lantern_Core_Scripts" };
     };
 };
 ```
@@ -1066,6 +1016,56 @@ This does not cause an error, but it is misleading. Only list dependencies you a
 
 It works, but is poor practice. Keep item/entity definitions in a separate PBO (`Data/config.cpp`) and script definitions in `Scripts/config.cpp`.
 
+### 8. An Empty String in units[]/weapons[]/magazines[]/ammo[]
+
+```cpp
+// WRONG -- a lone empty-string entry
+class CfgPatches
+{
+    class MyMod_SomeGun_CFG
+    {
+        units[] = {};
+        weapons[] = {};
+        magazines[] = { "MyMod_SomeGun_Mag" };
+        ammo[] = { "" };          // <-- looks harmless, is not
+        requiredAddons[] = { "DZ_Data", "DZ_Weapons_Firearms" };
+    };
+};
+
+// RIGHT -- an empty array, not an array containing an empty string
+ammo[] = {};
+```
+
+These four arrays inside `CfgPatches` are **ownership claims**, resolved by the engine's addon-graph merger against every other loaded addon. A literal `""` asks the merger to resolve a class named the empty string, which is not a meaningful classname. No published source documents a specific crash signature for it, so treat any particular failure mode as anecdotal; the reliable point is the practical risk, because this typo is easy to introduce in a large or generated config and easy to miss visually. If you inherited or generated a large config (a merge of many vendor-supplied per-addon files is the most common source), grep every `units[]`/`weapons[]`/`magazines[]`/`ammo[]` array inside `CfgPatches` for a bare `""` -- a naive "extract quoted strings" regex (`"([^"]+)"`, one-or-more characters) will not find it, because it requires at least one character inside the quotes. Use a zero-or-more pattern (`"([^"]*)"`) or check for it explicitly, and test any suspect config on a non-production server before deploying it.
+
+### 9. A Class Missing Its Terminating Semicolon
+
+```cpp
+// WRONG -- a missing ";" after a class body is a config syntax error
+class MyMod_SomeItem_CFG
+{
+    requiredAddons[] = {};
+    units[] = {};
+    weapons[] = {};
+}
+class MyMod_NextItem_CFG
+{
+    ...
+};
+
+// RIGHT -- every class body ends with "};"
+class MyMod_SomeItem_CFG
+{
+    requiredAddons[] = {};
+    units[] = {};
+    weapons[] = {};
+};
+```
+
+This is easy to introduce with any script or merge tool that splits a config file on `;` to find class boundaries and then forgets to write that same `;` back out for each piece it re-emits.
+
+Binarizing is the usual place a defect like this surfaces. The community wiki's [Config.cpp/bin File Format](https://community.bistudio.com/wiki/Config.cpp/bin_File_Format) page states that shipping a binarised config "guarantees the config.cpp it came from was syntactically correct (no missing semicolons, duplicate or missing classes, etc.)". That page carries Bohemia's "contains unofficial information" banner, so read it as a community description of the toolchain rather than a vendor guarantee, and do not assume binarization is the only stage that can reject a config. The guidance holds regardless of which stage catches it: check that every class body, not just the outermost containers, ends in `};`, especially in merged or auto-generated configs, and ship a binarised `config.bin` so the check happens at build time instead of at boot.
+
 ---
 
 ## Complete Template
@@ -1088,9 +1088,7 @@ class CfgPatches
         {
             "DZ_Data",
             "DZ_Scripts"
-            // Add framework dependencies here:
-            // "JM_CF_Scripts",         // Community Framework
-            // "MyMod_Core_Scripts",      // MyMod Core
+            // Add your framework dependency patch names here
         };
     };
 };
@@ -1103,7 +1101,6 @@ class CfgMods
         name = "My Mod";
         author = "YourName";
         credits = "YourName";
-        creditsJson = "MyMod/Scripts/Data/Credits.json";
         overview = "A brief description of what this mod does.";
         type = "mod";
 
@@ -1148,8 +1145,3 @@ class CfgMods
     };
 };
 ```
-
----
-
-**Previous:** [Chapter 2.1: The 5-Layer Script Hierarchy](01-five-layers.md)
-**Next:** [Chapter 2.3: mod.cpp & Workshop](03-mod-cpp.md)

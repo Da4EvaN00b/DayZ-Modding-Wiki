@@ -1,6 +1,5 @@
 # 第1.7章: 数学とベクトル演算
 
-[ホーム](../README.md) | [<< 前へ: 文字列操作](06-strings.md) | **数学とベクトル演算** | [次へ: メモリ管理 >>](08-memory-management.md)
 
 ---
 
@@ -751,7 +750,3 @@ v.Length()  v.LengthSq()  v.Normalized()  v.Normalize()
 // ベクトル定数
 vector.Zero  vector.Up  vector.Aside  vector.Forward
 ```
-
----
-
-[<< 1.6: 文字列操作](06-strings.md) | [ホーム](../README.md) | [1.8: メモリ管理 >>](08-memory-management.md)

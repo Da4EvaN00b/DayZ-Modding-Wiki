@@ -1,6 +1,5 @@
-# Capítulo 6.22: Administração e Gerenciamento de Servidor
+# Administração e Gerenciamento de Servidor
 
-[Início](../README.md) | [<< Anterior: Sistema de Zumbis e IA](21-zombie-ai-system.md) | **Administração e Gerenciamento de Servidor** | [Próximo: Sistemas de Mundo >>](23-world-systems.md)
 
 ---
 
@@ -147,14 +146,26 @@ enum EClientKicked
     KICK_ALL_ADMIN,     // Admin expulsou todos (RCON)
     KICK_ALL_SERVER,    // Servidor expulsou todos
     TIMEOUT,            // Timeout de rede
+    LOGOUT,             // Jogador fez logout
     KICK,               // Kick genérico
     BAN,                // Jogador foi banido
     PING,               // Limite de ping excedido
     MODIFIED_DATA,      // Arquivos de jogo modificados
+    UNSTABLE_NETWORK,   // Conexão muito instável
+    SERVER_SHUTDOWN,    // Servidor desligando
     NOT_WHITELISTED,    // Não está na whitelist
+    NO_IDENTITY,        // Nenhuma identidade recebida
+    NO_INPUT_INTERFACE, // Nenhuma interface de input para o jogador
+    INVALID_UID,        // UID incorreto ao criar identidade
+    BANK_COUNT,         // Contagem de bancos alterada
     ADMIN_KICK,         // Expulso por admin
+    INVALID_ID,         // ID de jogador inválido
+    INPUT_HACK,         // Enviando mais inputs do que o possível
+    QUIT,               // Jogador fechou o jogo
+    LEAVE,              // Jogador pressionou o botão Leave
+    // ... saltos grandes a seguir para erros de máquina de login (LOGIN_MACHINE_ERROR = 48),
+    // erros de BD, respawn, verificação, autenticação e códigos de incompatibilidade de PBO
     BATTLEYE = 240,     // Kick do BattlEye
-    // ... códigos adicionais para erros de máquina de login, erros de BD, etc.
 }
 ```
 
@@ -297,7 +308,7 @@ GetGame().GetWorld().SetTimeMultiplier(2.0);
 Também disponível de `CGame`:
 
 ```c
-proto native float GetDayTime(); // Segundos desde meia-noite (0-86400 aprox.)
+proto native float GetDayTime(); // Horário atual do dia em horas (0-24)
 ```
 
 ### Controle de Clima

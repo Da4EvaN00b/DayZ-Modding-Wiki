@@ -1,6 +1,5 @@
 # Capitolo 3.3: Dimensionamento e Posizionamento
 
-[Home](../README.md) | [<< Precedente: Formato File Layout](02-layout-files.md) | **Dimensionamento e Posizionamento** | [Successivo: Widget Contenitore >>](04-containers.md)
 
 ---
 

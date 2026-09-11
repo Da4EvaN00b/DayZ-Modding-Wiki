@@ -1,6 +1,5 @@
 # Глава 9.5: Спавн транспорта и динамические события
 
-[Главная](../README.md) | [<< Назад: Лут-экономика](04-loot-economy.md) | [Далее: Спавн игроков >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@
 
 CE читает `events.xml`, выбирает событие, требующее спавна, ищет подходящие позиции в `cfgeventspawns.xml`, выбирает случайную позицию, удовлетворяющую ограничениям `saferadius` и `distanceradius`, затем спавнит случайно выбранную дочернюю сущность в этой позиции.
 
-Все три файла находятся в `mpmissions/<ваша_миссия>/db/`.
+`events.xml` находится в `mpmissions/<ваша_миссия>/db/`, тогда как `cfgeventspawns.xml` и `cfgeventgroups.xml` находятся в корне миссии (`mpmissions/<ваша_миссия>/`).
 
 ---
 
@@ -167,17 +166,17 @@ CE читает `events.xml`, выбирает событие, требующе�
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ CE читает `events.xml`, выбирает событие, требующе�
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Конвои работают идентично крушениям вертолётов: тег `<secondary>` спавнит `InfectedArmy` вокруг места, а предметы лута с `deloot="1"` появляются на обломках. С `nominal=5` до 5 мест конвоев существуют на карте одновременно. Каждый сохраняется 1800 секунд (30 минут) перед перемещением в новое место.
+Конвои работают подобно крушениям вертолётов: тег `<secondary>` спавнит `InfectedArmy` вокруг места, а предметы лута с `deloot="1"` появляются на обломках. В отличие от крушения вертолёта, у события конвоя элемент `<children/>` пустой -- его разбитые машины определены как группа в `cfgeventgroups.xml` и размещаются через групповые ссылки в `cfgeventspawns.xml`. С `nominal=5` до 5 мест конвоев существуют на карте одновременно. Каждый сохраняется 1800 секунд (30 минут) перед перемещением в новое место.
 
 ---
 
@@ -231,20 +228,21 @@ CE читает `events.xml`, выбирает событие, требующе�
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ CE читает `events.xml`, выбирает событие, требующе�
 Этот файл определяет события, где несколько объектов появляются вместе с относительными смещениями позиций. Самое распространённое применение -- заброшенные поезда.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Первый дочерний элемент размещается в позиции из `cfgeventspawns.xml`. Последующие элементы смещаются на значения `x`, `z`, `a` относительно этой точки. В этом примере вагоны расположены с интервалом 15 метров вдоль оси z.
+Каждая группа объявляется элементом `<group name="...">` внутри корневого `<eventgroupdef>` файла, а её записи `<child>` являются прямыми дочерними элементами `<group>` (здесь нет обёртки `<children>`). Первый дочерний элемент размещается в позиции из `cfgeventspawns.xml`. Последующие элементы смещаются на значения `x`, `z`, `y`, `a` относительно этой точки.
 
 У каждого `<child>` в группе есть:
 
@@ -277,7 +273,11 @@ CE читает `events.xml`, выбирает событие, требующе�
 | `type` | Имя класса объекта для спавна. |
 | `x` | Смещение по X в метрах от начала группы. |
 | `z` | Смещение по Z в метрах от начала группы. |
+| `y` | Смещение по Y (вертикали) в метрах от начала группы. |
 | `a` | Смещение угла в градусах от начала группы. |
+| `deloot` | Может ли в этом дочернем элементе спавниться лут динамических событий (0 или 1). |
+| `lootmin` | Минимальное количество предметов лута, спавнящихся в этом дочернем элементе. |
+| `lootmax` | Максимальное количество предметов лута, спавнящихся в этом дочернем элементе. |
 
 Групповое событие всё ещё нуждается в соответствующей записи в `events.xml` для управления номинальными количествами, lifetime и состоянием активности.
 
@@ -343,7 +343,3 @@ CE читает `events.xml`, выбирает событие, требующе�
 **Проблема:** Транспорт появляется вклиненным в здание или закопанным в рельеф.
 
 **Решение:** Проверьте координаты `<pos>` в `cfgeventspawns.xml`. Протестируйте позиции в игре с помощью админ-телепортации перед добавлением их в файл. Позиции должны быть на ровных дорогах или открытой местности, а угол (`a`) должен совпадать с направлением дороги.
-
----
-
-[Главная](../README.md) | [<< Назад: Лут-экономика](04-loot-economy.md) | [Далее: Спавн игроков >>](06-player-spawning.md)

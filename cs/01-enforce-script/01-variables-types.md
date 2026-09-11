@@ -1,6 +1,5 @@
 # Kapitola 1.1: Proměnné a typy
 
-[Domů](../README.md) | **Proměnné a typy** | [Další: Pole, mapy a množiny >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -305,8 +304,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Konverze z jiných typů
-    string fromInt = "Score: " + 42;     // NEFUNGUJE -- je nutné explicitně převést
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // funguje -- operátor + převede 42 na "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicitně, stejný výsledek)
 
     // Použití Format je preferovaný přístup
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +463,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Získat typename z řetězce
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Porovnat typy
     if (t == PlayerBase)
@@ -873,7 +872,3 @@ Napište funkci `vector SnapToGround(vector pos)`, která přijme libovolnou poz
 | Rozsah | Proměnné omezeny na bloky `{}`; žádná opětovná deklarace ve vnořených/sourozených blocích |
 | Konverze | `float` na `int` ořezává; pro parsování řetězců použijte `.ToInt()`, `.ToFloat()`, `.ToVector()` |
 | Formátování | Vždy používejte `string.Format()` pro sestavování řetězců ze smíšených typů |
-
----
-
-[Domů](../README.md) | **Proměnné a typy** | [Další: Pole, mapy a množiny >>](02-arrays-maps-sets.md)

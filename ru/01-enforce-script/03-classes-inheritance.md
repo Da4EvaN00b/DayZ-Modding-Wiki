@@ -1,6 +1,5 @@
 # Глава 1.3: Классы и наследование
 
-[Главная](../README.md) | [<< Предыдущая: Массивы, Map и Set](02-arrays-maps-sets.md) | **Классы и наследование** | [Следующая: Modded-классы >>](04-modded-classes.md)
 
 ---
 ---
@@ -540,7 +539,7 @@ proto native vector GetPosition();
 proto native float GetHealth(string zoneName, string healthType);
 
 // proto native owned --- вызывающий владеет возвращённым объектом
-proto native owned string ClassName();
+proto native owned external string ClassName();
 
 // proto volatile --- функция может приостанавливаться (используется внутренностями движка)
 proto volatile int Call(Class inst, string func, void param);
@@ -919,7 +918,7 @@ classDiagram
 
     class PlayerBase {
         +GetIdentity() PlayerIdentity
-        +GetBleeding() bool
+        +IsBleeding() bool
         +IsRestrained() bool
     }
 
@@ -941,7 +940,7 @@ classDiagram
     EntityAI <|-- DayZInfected
     ManBase <|-- PlayerBase
     ItemBase <|-- Weapon_Base
-    ItemBase <|-- ClothingBase
+    ItemBase <|-- Clothing_Base
     EntityAI <|-- CarScript
 ```
 
@@ -1137,7 +1136,3 @@ class FlyingCar extends Car
 | Параметр `out` | `void Func(out int val)` | Параметр только для записи |
 | Параметр `inout` | `void Func(inout array<int> a)` | Параметр для ввода и вывода |
 | Параметр `notnull` | `void Func(notnull EntityAI e)` | Компилятор гарантирует non-null |
-
----
-
-[Главная](../README.md) | [<< Предыдущая: Массивы, Map и Set](02-arrays-maps-sets.md) | **Классы и наследование** | [Следующая: Modded-классы >>](04-modded-classes.md)

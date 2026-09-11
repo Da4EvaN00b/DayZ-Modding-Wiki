@@ -1,6 +1,5 @@
 # Глава 3.1: Типы виджетов
 
-[Главная](../README.md) | **Типы виджетов** | [Далее: Файлы Layout >>](02-layout-files.md)
 
 ---
 
@@ -39,11 +38,13 @@
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Поточная компоновка. Располагает дочерние элементы последовательно с переносом, отступами и полями. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Сеточная компоновка. Располагает дочерние элементы в сетке, определяемой `Columns` и `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Прокручиваемая область. Включает вертикальную/горизонтальную прокрутку дочернего контента. |
-| `SpacerBaseWidget` | -- | Абстрактный базовый класс для `WrapSpacerWidget` и `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Абстрактный базовый класс для `SpacerWidget` и `ScrollWidget`. `WrapSpacerWidget` и `GridSpacerWidget` оба расширяют `SpacerWidget`. |
 
 ### FrameWidget
 
-Рабочая лошадка UI DayZ. Используйте `FrameWidget` как контейнер по умолчанию, когда нужно сгруппировать виджеты. Он не имеет визуального представления — он чисто структурный.
+Рабочая лошадка UI DayZ. Используйте frame как контейнер по умолчанию, когда нужно сгруппировать виджеты. Он не имеет визуального представления — он чисто структурный.
+
+> **Примечание:** `FrameWidgetClass` можно использовать в файлах `.layout`, а `FrameWidgetTypeID` существует для `CreateWidget()`, но скриптового класса `FrameWidget` не существует. Как и в случае с `PanelWidget`, работайте с frame как с базовым `Widget` — не приводите к `FrameWidget`.
 
 **Ключевые методы:**
 - Все базовые методы `Widget` (позиция, размер, цвет, дочерние элементы, флаги)
@@ -52,7 +53,7 @@
 
 ```c
 // Найти frame-виджет по имени
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -149,6 +150,8 @@ tw.GetOutlineSize();                    // Возвращает int
 tw.GetOutlineColor();                   // Возвращает int (ARGB)
 tw.SetColor(int argb);                  // Цвет текста
 ```
+
+> **Примечание:** У `TextWidget` НЕТ метода `GetText()`. `GetText()` существует только у `EditBoxWidget` (и его подкласса `PasswordEditBoxWidget`), `MultilineEditBoxWidget` и `ButtonWidget`. Если нужно прочитать текст обратно, сохраняйте его в переменную при вызове `SetText()`.
 
 **Ключевые атрибуты layout:** `text`, `font`, `"text halign"`, `"text valign"`, `"exact text"`, `"exact text size"`, `"bold text"`, `"size to text h"`, `"size to text v"`, `wrap`.
 
@@ -314,7 +317,8 @@ eb.SetText("default");      // Установить текст
 **Ключевые методы:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Возвращает float (0-1)
+sw.SetMinMax(0, 100);       // Настроить диапазон значений (иначе используется диапазон по умолчанию)
+sw.GetCurrent();            // Возвращает float в пределах настроенного диапазона min/max
 sw.SetCurrent(float val);   // Установить позицию
 ```
 

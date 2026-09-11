@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -595,27 +594,27 @@ class EntityContainer<Class T>
 
 **Ce que vous ecririez :**
 ```c
-EDamageState state = (EDamageState)999;  // Expect error or exception
+DamageType type = (DamageType)999;  // Expect error or exception
 ```
 
 **Ce qui se passe :** No error. Any `int` value can be assigned to an enum variable, even values outside the defined range.
 
 **Solution correcte :** Validate manually:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // fallback
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // fallback
 }
 ```
 
@@ -1209,11 +1208,3 @@ If you are a C++ developer, here are the biggest adjustments:
 | `IsClient()` pendant le chargement | Retourne false | Utiliser `IsDedicatedServer()` |
 | Erreur compil. mauvais fichier | Emplacement trompeur | Verifier le fichier parse apres celui signale |
 | Fichiers `crash_*.log` | Pas de vrais crashs | Ce sont des exceptions script d'execution |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.11 Gestion des erreurs](11-error-handling.md) | [Part 1: Enforce Script](../README.md) | [Part 2: Mod Structure](../02-mod-structure/01-five-layers.md) |

@@ -1,6 +1,5 @@
-# Chapter 8.4: Adding Chat Commands
+# Adding Chat Commands
 
-[Home](../README.md) | [<< Previous: Building an Admin Panel](03-admin-panel.md) | **Adding Chat Commands** | [Next: Using the DayZ Mod Template >>](05-mod-template.md)
 
 ---
 
@@ -79,7 +78,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -122,11 +121,12 @@ modded class MissionGameplay
 
 ### Como Funciona a Interceptação de Chat
 
-O método `OnEvent` em `MissionGameplay` é chamado para vários eventos do jogo. Quando `eventTypeId` é `ChatMessageEventTypeID`, significa que o jogador acabou de enviar uma mensagem no chat. O `Param3` contém:
+O método `OnEvent` em `MissionGameplay` é chamado para vários eventos do jogo. Quando `eventTypeId` é `ChatMessageEventTypeID`, significa que o jogador acabou de enviar uma mensagem no chat. Os params são um `ChatMessageEventParams` (um `Param4<int, string, string, string>`) e contêm:
 
 - `param1` -- Canal (int): o canal de chat
 - `param2` -- Nome do sender (string)
 - `param3` -- Texto da mensagem (string)
+- `param4` -- Classe de config de cor (string)
 
 Verificamos se a mensagem começa com `/`. Se sim, encaminhamos a string inteira para o servidor via RPC.
 

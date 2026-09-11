@@ -1,6 +1,5 @@
 # Kapitola 8.8: Tvorba HUD překryvu
 
-[Domů](../README.md) | [<< Předchozí: Publikování na Steam Workshop](07-publishing-workshop.md) | **Tvorba HUD překryvu** | [Další: Profesionální šablona modu >>](09-professional-template.md)
 
 ---
 
@@ -84,101 +83,95 @@ Vrstva `3_Game` definuje konstanty (naše RPC ID). Vrstva `4_World` zpracovává
 
 ## Krok 1: Vytvoření souboru rozvržení
 
-Soubory rozvržení (`.layout`) definují hierarchii widgetů v XML. GUI systém DayZ používá souřadnicový model, kde každý widget má pozici a velikost vyjádřenou jako proporcionální hodnoty (0.0 až 1.0 z rodiče) plus pixelové offsety.
+Soubory rozvržení (`.layout`) definují hierarchii widgetů ve formátu založeném na složených závorkách. Každý widget je deklarován jako `WidgetClass WidgetName { ... }`, atributy jsou holé řádky `name value` (uvozené pouze tehdy, když název obsahuje mezery) a podřízené widgety jsou vnořeny uvnitř vnitřního bloku `{ }`. GUI systém DayZ používá souřadnicový model, kde každý widget má pozici a velikost vyjádřenou jako proporcionální hodnoty (0.0 až 1.0 z rodiče) plus pixelové offsety.
 
 ### `GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <!-- Kořenový rámec: pokrývá celou obrazovku, nespotřebovává vstup -->
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <!-- Panel pozadí: pravý horní roh -->
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <!-- Text názvu serveru -->
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Text počtu hráčů -->
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Text herního času -->
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  // Panel pozadí: pravý horní roh
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    // Text názvu serveru
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+     "text halign" left
+     "text valign" top
+    }
+    // Text počtu hráčů
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+    // Text herního času
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+   }
+  }
+ }
+}
 ```
 
 ### Klíčové koncepty rozvržení
 
 | Atribut | Význam |
 |---------|--------|
-| `halign="2"` | Horizontální zarovnání: **doprava**. Widget se kotví k pravému okraji rodiče. |
-| `valign="0"` | Vertikální zarovnání: **nahoru**. |
-| `hexactpos="0"` + `vexactpos="1"` | Horizontální pozice je proporcionální (1.0 = pravý okraj), vertikální pozice je v pixelech. |
-| `hexactsize="1"` + `vexactsize="1"` | Šířka a výška jsou v pixelech (220 x 70). |
-| `color="0 0 0 0.55"` | RGBA jako desetinná čísla. Černá na 55% průhlednosti pro panel pozadí. |
+| `halign right` | Horizontální zarovnání: **doprava**. Widget se kotví k pravému okraji rodiče. |
+| `valign top` | Vertikální zarovnání: **nahoru**. |
+| `hexactpos 0` + `vexactpos 1` | Horizontální pozice je proporcionální (1.0 = pravý okraj), vertikální pozice je v pixelech. |
+| `hexactsize 1` + `vexactsize 1` | Šířka a výška jsou v pixelech (220 x 70). |
+| `color 0 0 0 0.55` | RGBA jako desetinná čísla. Černá na 55% průhlednosti pro panel pozadí. |
 
-`ServerInfoPanel` je umístěn na proporcionální X=1.0 (pravý okraj) s `halign="2"` (zarovnání doprava), takže pravý okraj panelu se dotýká pravé strany obrazovky. Pozice Y je 0 pixelů od vrchu. Tím se náš HUD umístí do pravého horního rohu.
+`ServerInfoPanel` je umístěn na proporcionální X=1.0 (pravý okraj) s `halign right` (zarovnání doprava), takže pravý okraj panelu se dotýká pravé strany obrazovky. Pozice Y je 0 pixelů od vrchu. Tím se náš HUD umístí do pravého horního rohu.
 
 **Proč pixelové velikosti pro panel?** Proporcionální dimenzování by panel škálovalo s rozlišením, ale pro malé informační widgety chcete pevnou pixelovou stopu, aby text zůstal čitelný při všech rozlišeních.
 
@@ -485,6 +478,11 @@ RPC ID musí být unikátní napříč všemi mody. Definujeme naše ve vrstvě 
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Maximální počet slotů hráčů. Neexistuje nativní GetGame().GetMaxPlayers(),
+// takže toto nastavte tak, aby odpovídalo konfiguraci serveru (hodnota ve
+// vašich spouštěcích parametrech).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 **Proč `3_Game`?** Konstanty a enumy patří do nejnižší vrstvy, ke které mají přístup jak klient, tak server. Vrstva `3_Game` se načítá před `4_World` a `5_Mission`, takže obě strany vidí tyto hodnoty.
@@ -532,8 +530,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // Maximum hráčů z konfigurace serveru
-        maxPlayers = GetGame().GetMaxPlayers();
+        // Neexistuje GetGame().GetMaxPlayers(). Nakonfigurovaný počet
+        // slotů se nachází v konfiguraci serveru, ne ve skriptem
+        // dosažitelné nativní funkci CGame, takže zde použijeme známou konstantu.
+        maxPlayers = SIH_MAX_PLAYERS;
 
         // Odeslání odpovědi zpět žádajícímu klientovi
         ScriptRPC rpc = new ScriptRPC();
@@ -935,6 +935,11 @@ class CfgMods
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Maximální počet slotů hráčů. Neexistuje nativní GetGame().GetMaxPlayers(),
+// takže toto nastavte tak, aby odpovídalo konfiguraci serveru (hodnota ve
+// vašich spouštěcích parametrech).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 ### Soubor 5: `ServerInfoHUD/Scripts/4_World/ServerInfoHUD/ServerInfoServer.c`
@@ -974,8 +979,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         int playerCount = players.Count();
 
-        // Získání maximálního počtu slotů hráčů
-        int maxPlayers = GetGame().GetMaxPlayers();
+        // Neexistuje GetGame().GetMaxPlayers(). Nakonfigurovaný počet slotů
+        // se nachází v konfiguraci serveru, ne ve skriptem dosažitelné nativní
+        // funkci CGame, takže zde použijeme známou konstantu.
+        int maxPlayers = SIH_MAX_PLAYERS;
 
         // Odeslání dat zpět žádajícímu klientovi
         ScriptRPC rpc = new ScriptRPC();
@@ -1284,73 +1291,68 @@ modded class MissionGameplay
 
 ### Soubor 8: `ServerInfoHUD/GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-            </Widget>
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+    }
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+    }
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+    }
+   }
+  }
+ }
+}
 ```
 
 ---
@@ -1371,31 +1373,22 @@ protected void RefreshFPS()
     if (!m_FPSText)
         return;
 
-    float fps = 1.0 / GetGame().GetDeltaT();
+    float fps = GetGame().GetLastFPS();
     m_FPSText.SetText("FPS: " + Math.Round(fps).ToString());
 }
 ```
 
-Volejte `RefreshFPS()` spolu s `RefreshTime()` v aktualizační metodě. Poznámka: `GetDeltaT()` vrací čas aktuálního snímku, takže hodnota FPS bude kolísat. Pro hladší zobrazení průměrujte přes několik snímků:
+Volejte `RefreshFPS()` spolu s `RefreshTime()` v aktualizační metodě. Poznámka: `GetLastFPS()` vrací snímkovou frekvenci posledního snímku, takže hodnota bude kolísat. Pro hladší zobrazení použijte vestavěný klouzavý průměr enginu:
 
 ```c
-protected float m_FPSAccum;
-protected int m_FPSFrames;
-
 protected void RefreshFPS()
 {
     if (!m_FPSText)
         return;
 
-    m_FPSAccum += GetGame().GetDeltaT();
-    m_FPSFrames++;
-
-    float avgFPS = m_FPSFrames / m_FPSAccum;
+    // GetAvgFPS průměruje přes zadaný počet posledních snímků.
+    float avgFPS = GetGame().GetAvgFPS(64);
     m_FPSText.SetText("FPS: " + Math.Round(avgFPS).ToString());
-
-    // Reset každou sekundu (když se spustí hlavní časovač)
-    m_FPSAccum = 0;
-    m_FPSFrames = 0;
 }
 ```
 
@@ -1483,7 +1476,7 @@ class DraggableHUD : ScriptedWidgetEventHandler
         return false;
     }
 
-    override bool OnUpdate(Widget w, int x, int y, int oldX, int oldY)
+    override bool OnDrag(Widget w, int x, int y)
     {
         if (m_Dragging && m_DragWidget)
         {
@@ -1600,7 +1593,7 @@ Nyní, když máte funkční HUD překryv, zvažte tato pokročení:
 |---------|--------|---------|
 | `OnUpdate(float timeslice)` | Voláno jednou za snímek s delta časem snímku | Na klientu se 144 FPS se toto spustí 144krát za sekundu. Odeslání RPC při každém volání vytváří 144 síťových paketů/sekundu na hráče. Vždy akumulujte `timeslice` a jednejte pouze tehdy, když součet překročí váš interval. |
 | Cesta rozvržení `CreateWidgets()` | Načte rozvržení z cesty, kterou poskytnete | Cesta je relativní k PBO prefixu, nikoliv k souborovému systému. Pokud PBO prefix neodpovídá řetězci cesty, `CreateWidgets` tiše vrátí NULL bez chyby v logu. |
-| `WidgetFadeTimer` | Plynule animuje průhlednost widgetu | `FadeOut` skryje widget po dokončení animace, ale `FadeIn` NEVOLÁ `Show(true)` jako první. Musíte widget ručně zobrazit před voláním `FadeIn`, jinak se nic neobjeví. |
+| `WidgetFadeTimer` | Plynule animuje průhlednost widgetu | `FadeOut` skryje widget, jakmile alfa dosáhne hodnoty blízké nule, a `FadeIn` volá `Show(true)` na samotném widgetu před animací alfy z 0 na 1. Volání `m_Root.Show(true)` navíc před `FadeIn` je proto nadbytečné (neškodné, není vyžadováno). |
 | `GetUApi().GetInputByName()` | Vrací vstupní akci pro vaši vlastní klávesovou zkratku | Pokud `inputs.xml` není odkázán v `config.cpp` pod `class inputs`, název akce je neznámý a `GetInputByName` vrátí null, což způsobí pád při volání `.LocalPress()`. |
 
 ---

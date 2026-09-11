@@ -1,6 +1,5 @@
 # Chapter 9.6 : Apparition des joueurs
 
-[Accueil](../README.md) | [<< Précédent : Apparition des véhicules](05-vehicle-spawning.md) | [Suivant : Persistance >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## Aperçu de cfgplayerspawnpoints.xml
 
-Ce fichier se trouve dans votre dossier de mission (par ex. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Il comporte deux sections, chacune avec ses propres paramètres et bulles de position :
+Ce fichier se trouve dans votre dossier de mission (par ex. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Il comporte trois sections, chacune avec ses propres paramètres et bulles de position :
 
 - **`<fresh>`** -- personnages tout neufs (première vie ou après la mort)
 - **`<hop>`** -- joueurs qui changent de serveur (le joueur avait un personnage sur un autre serveur)
+- **`<travel>`** -- apparitions de voyage/téléportation sur la carte en jeu
 
 ---
 
@@ -77,12 +77,12 @@ Le générateur crée une grille de positions candidates autour de chaque bulle 
 
 | Paramètre | Valeur | Signification |
 |-----------|--------|---------------|
-| `grid_density` | 4 | Espacement entre les points de grille en mètres -- plus bas = plus de candidats, coût CPU plus élevé |
-| `grid_width` | 200 | La grille s'étend sur 200 m sur l'axe X autour de chaque centre de bulle |
-| `grid_height` | 200 | La grille s'étend sur 200 m sur l'axe Z autour de chaque centre de bulle |
+| `grid_density` | 4 | Fréquence d'échantillonnage (nombre de subdivisions) de la grille -- plus élevé = plus de candidats, coût CPU plus élevé. Espacement entre les points = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Largeur totale de la grille de candidats en mètres (centrée sur la bulle) -- s'étend sur ~100 m de chaque côté sur l'axe X |
+| `grid_height` | 200 | Hauteur totale de la grille de candidats en mètres (centrée sur la bulle) -- s'étend sur ~100 m de chaque côté sur l'axe Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Plage de pente du terrain en degrés -- rejette les falaises et collines escarpées |
 
-Chaque bulle obtient une grille de 200x200 m avec un point tous les 4 m (~2 500 candidats). Le moteur filtre par pente et distance statique, puis applique les `spawn_params` au moment de l'apparition.
+Chaque bulle obtient une grille de 200x200 m avec des points candidats espacés de `grid_width` / `grid_density` = 200/4 = 50 m (de l'ordre de ~16-25 candidats). Le moteur filtre par pente et distance statique, puis applique les `spawn_params` au moment de l'apparition.
 
 #### Paramètre `allow_in_water` (1.28+)
 
@@ -111,8 +111,8 @@ Par défaut, le moteur rejette toute position candidate qui tombe dans l'eau (é
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@ Par défaut, le moteur rejette toute position candidate qui tombe dans l'eau (é
 |-----------|--------|---------------|
 | `enablegroups` | true | Les bulles de position sont organisées en groupes nommés |
 | `groups_as_regular` | true | Les groupes sont traités comme des points d'apparition normaux (n'importe quel groupe peut être sélectionné) |
-| `lifetime` | 240 | Secondes avant qu'un point d'apparition utilisé redevienne disponible |
-| `counter` | -1 | Nombre de fois qu'un point d'apparition peut être utilisé. -1 = illimité |
+| `lifetime` | 120 | Secondes pendant lesquelles un groupe d'apparition reste actif avant que le système ne bascule sur un autre groupe. -1 = désactivé |
+| `counter` | 2 | Nombre de connexions pendant lesquelles un groupe reste actif avant d'être basculé (par groupe). -1 = désactivé |
 
-Un point utilisé est verrouillé pendant 240 secondes, empêchant deux joueurs d'apparaître l'un sur l'autre.
+`lifetime` contrôle la durée pendant laquelle un groupe d'apparition reste le groupe actif avant que le système ne bascule sur un autre groupe ; ce n'est pas un verrouillage par position. L'espacement entre les apparitions simultanées est imposé par `min_dist_player`.
 
 ---
 
@@ -192,7 +192,7 @@ Les apparitions hop sont plus souples sur la distance joueur et utilisent des gr
 
 <!-- Différences des group_params hop -->
 <enablegroups>false</enablegroups>        <!-- initial : true -->
-<lifetime>360</lifetime>                  <!-- initial : 240 -->
+<lifetime>360</lifetime>                  <!-- initial : 120 -->
 ```
 
 Les groupes hop sont répartis **à l'intérieur des terres** : Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Avec `enablegroups=false`, le moteur traite les 50 positions comme un pool unique.
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Ce que cela donne à chaque joueur : **BandageDressing** (barre rapide 3), **Chemlight** aléatoire (barre rapide 2), fruit aléatoire -- 35% Apple, 30% Plum, 35% Pear (barre rapide 1). `SetRandomHealth` définit l'état à 45-65% sur tous les objets.
+Ce que cela donne à chaque joueur : **BandageDressing** (barre rapide 2), **Chemlight** aléatoire (barre rapide 1), fruit aléatoire -- 35% Apple, 30% Plum, 35% Pear (barre rapide 3). `SetRandomHealth` définit l'état à 45-65% sur tous les objets.
 
 ### Ajouter un équipement de départ personnalisé
 
@@ -279,7 +279,7 @@ Pour ajouter un groupe d'apparition personnalisé, modifiez la section `<fresh>`
 4. Utilisez `x` pour est-ouest et `z` pour nord-sud -- le moteur calcule Y (altitude) à partir du terrain
 5. Redémarrez le serveur -- aucun wipe de persistance nécessaire
 
-Pour un spawn équilibré, gardez au moins 4 positions par groupe afin que le verrouillage de 240 secondes ne bloque pas toutes les positions quand plusieurs joueurs meurent en même temps.
+Pour un spawn équilibré, gardez au moins 4 positions par groupe afin qu'un seul groupe ait assez d'étendue pour respecter `min_dist_player` quand plusieurs joueurs meurent en même temps.
 
 ---
 
@@ -291,7 +291,7 @@ Vous avez interverti `z` (nord-sud) avec Y (altitude), ou utilisé des coordonn�
 
 ### Pas assez de points d'apparition
 
-Avec seulement 2-3 positions, le verrouillage de 240 secondes cause du regroupement. Le vanilla utilise 49 positions initiales réparties en 11 groupes. Visez au moins 20 positions dans 4+ groupes.
+Avec seulement 2-3 positions, le groupe actif ne peut pas répartir les joueurs et un regroupement en résulte. Le vanilla utilise 49 positions initiales réparties en 11 groupes. Visez au moins 20 positions dans 4+ groupes.
 
 ### Oublier la section hop
 
@@ -303,8 +303,4 @@ Le générateur rejette les pentes au-delà de 45 degrés. Si toutes les positio
 
 ### Les joueurs apparaissent toujours au même endroit
 
-Les groupes avec 1-2 positions se retrouvent verrouillés par le délai de 240 secondes. Ajoutez plus de positions par groupe.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Apparition des véhicules](05-vehicle-spawning.md) | [Suivant : Persistance >>](07-persistence.md)
+Les groupes avec 1-2 positions ont trop peu de candidats pour que le moteur puisse varier la position choisie. Ajoutez plus de positions par groupe.

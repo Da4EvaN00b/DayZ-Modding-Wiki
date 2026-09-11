@@ -1,6 +1,5 @@
 # Глава 1.5: Управление потоком выполнения
 
-[Главная](../README.md) | [<< Назад: Modded-классы](04-modded-classes.md) | **Управление потоком выполнения** | [Далее: Строковые операции >>](06-strings.md)
 
 ---
 
@@ -642,7 +641,3 @@ switch (value) { case X: /* ... */ break; default: break; }
 thread void MyFunc() { Sleep(1000); }
 thread MyFunc();  // неблокирующий вызов
 ```
-
----
-
-[<< 1.4: Modded-классы](04-modded-classes.md) | [Главная](../README.md) | [1.6: Строковые операции >>](06-strings.md)

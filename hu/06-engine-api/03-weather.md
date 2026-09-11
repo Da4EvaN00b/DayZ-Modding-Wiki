@@ -1,6 +1,5 @@
 # 6.3. fejezet: Időjárásrendszer
 
-[Kezdőlap](../README.md) | [<< Előző: Járművek](02-vehicles.md) | **Időjárás** | [Következő: Kamerák >>](04-cameras.md)
 
 ---
 
@@ -45,7 +44,7 @@ class WeatherPhenomenon
     // Aktuális állapot
     proto native float GetActual();          // Aktuális interpolált érték (legtöbbnél 0.0 - 1.0)
     proto native float GetForecast();        // Célérték, amire interpolál
-    proto native float GetDuration();        // Mennyi ideig tart az aktuális előrejelzés (másodperc)
+    proto native float GetNextChange();      // Másodpercek a következő előrejelzés kiszámításáig
 
     // Előrejelzés beállítása (csak szerver)
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +52,17 @@ class WeatherPhenomenon
     // time:     másodperc az interpolációhoz (0 = azonnali)
     // minDuration: minimális idő, amíg az érték megmarad automatikus változás előtt
 
-    // Korlátok
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // Korlátok (az aktuális érték mindig a [fnMin, fnMax] tartományban marad)
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // Változási sebesség korlátok (milyen gyorsan változhat a jelenség)
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // Előrejelzési idő korlátok (másodperc tartomány, amelyben a következő előrejelzés kiszámításra kerül; alapértelmezett 300-3600)
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // Változási mérték korlátok
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // Előrejelzési változás korlátok (mennyit változhat az előrejelzési érték újraszámításonként; alapértelmezett 0-1)
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +173,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 Az időjárás kézi vezérléséhez (az automatikus időjárás állapotgép letiltásához) hívd meg:
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 Amikor a `MissionWeather(true)` meghívásra kerül, a motor leállítja az automatikus időjárás-átmeneteket, és csak a szkript-vezérelt `Set()` hívásaid vezérlik az időjárást.
@@ -229,7 +229,7 @@ serverTimeAcceleration = 12;      // 12-szeres valós idő
 serverNightTimeAcceleration = 4;  // 4-szeres gyorsítás éjszaka
 ```
 
-Szkriptben olvashatod az aktuális időszorzót, de általában nem változtathatod meg futásidőben.
+Szkriptben futásidőben (főként hibakeresési célból) megváltoztathatod az időgyorsítást a `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)` hívással, ahol a `timeMultiplier` egy 0-64 közötti gyorsítási érték (vagy `-1` a konfigurációs értékre való visszaállításhoz). Az aktuális szorzó lekérésére nincs szkript getter.
 
 ---
 
@@ -240,7 +240,7 @@ A vanilla DayZ szkriptelt időjárás állapotgépet használ a `WorldData` oszt
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +250,19 @@ class WorldData
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // Adj vissza true értéket, ha a szkript módosítja a jelenség állapotát;
+    // adj vissza false értéket, hogy a motor alkalmazza a kiszámított változást.
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // Eső megakadályozása 0.5 fölött
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

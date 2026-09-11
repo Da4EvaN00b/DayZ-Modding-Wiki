@@ -1,6 +1,5 @@
 # Capitolo 5.4: Formato ImageSet
 
-[Home](../README.md) | [<< Precedente: Credits.json](03-credits-json.md) | **Formato ImageSet** | [Successivo: File di Configurazione del Server >>](05-server-configs.md)
 
 ---
 

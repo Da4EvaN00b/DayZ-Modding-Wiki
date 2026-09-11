@@ -1,6 +1,5 @@
 # 7.1. fejezet: Singleton minta
 
-[Kezdőlap](../README.md) | **Singleton minta** | [Következő: Modulrendszerek >>](02-module-systems.md)
 
 ---
 
@@ -544,7 +543,3 @@ Szállítás előtt ellenőrizd a singletonnál:
 | A singletonok anti-minták; használj függőséginjektálást | Az Enforce Scriptnek nincs DI konténere. A singletonok a szabványos megközelítés globális kezelőkhöz az összes nagyobb modban. |
 | A lusta inicializálás mindig elegendő | Az RPC kezelőket regisztrálni kell, mielőtt bármely kliens csatlakozna, ezért a mohó init az `OnInit()`-ben gyakran szükséges. |
 | A singletonokat soha nem szabad megsemmisíteni | A DayZ missziók a szerver folyamat újraindítása nélkül indulnak újra; a singletonokat *meg kell semmisíteni* és újra létre kell hozni minden missziós ciklusban. |
-
----
-
-[Kezdőlap](../README.md) | **Singleton minta** | [Következő: Modulrendszerek >>](02-module-systems.md)

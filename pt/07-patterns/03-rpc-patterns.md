@@ -1,4 +1,4 @@
-# Chapter 7.3: RPC Communication Patterns
+# RPC Communication Patterns
 
 ```mermaid
 graph TB
@@ -26,7 +26,6 @@ graph TB
     style S3 fill:#D97A4A,color:#fff
 ```
 
-[Home](../README.md) | [<< Previous: Module Systems](02-module-systems.md) | **RPC Communication Patterns** | [Next: Config Persistence >>](04-config-persistence.md)
 
 ---
 
@@ -284,7 +283,3 @@ rpc.Send(null, MY_RPC_ID, true, targetIdentity);
 | Use protocol buffers ou serialização baseada em schema | Enforce Script não tem suporte a protobuf; você manualmente faz `Write`/`Read` de primitivos em ordem combinada |
 | Valide todos os inputs com aplicação de schema | Nenhuma validação de schema existe; todo valor de retorno de `ctx.Read()` deve ser verificado individualmente |
 | RPCs devem ser idempotentes | Prático no DayZ apenas para RPCs de consulta; RPCs de mutação (spawn, delete, teleport) são inerentemente não-idempotentes --- proteja com verificações de permissão ao invés |
-
----
-
-[<< Anterior: Sistemas de Módulos](02-module-systems.md) | [Início](../README.md) | [Próximo: Persistência de Config >>](04-config-persistence.md)

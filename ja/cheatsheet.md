@@ -1,6 +1,5 @@
 # Enforce Script チートシート
 
-[ホーム](./README.md) | **チートシート**
 
 ---
 
@@ -30,7 +29,7 @@
 | メソッド | 戻り値 | 備考 |
 |--------|---------|-------|
 | `Insert(item)` | `int` (インデックス) | 末尾に追加 |
-| `InsertAt(item, idx)` | `void` | 指定位置に挿入 |
+| `InsertAt(item, idx)` | `int` (要素数) | 指定位置に挿入 |
 | `Get(idx)` / `arr[idx]` | `T` | インデックスでアクセス |
 | `Set(idx, item)` | `void` | インデックスで置換 |
 | `Find(item)` | `int` | インデックスまたは -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | 逆順にする |
 | `GetRandomElement()` | `T` | ランダムに選択 |
 | `InsertAll(other)` | `void` | 他の配列からすべて追加 |
-| `Copy(other)` | `void` | コピーで置換 |
+| `Copy(other)` | `int` (要素数) | コピーで置換 |
 | `Resize(n)` | `void` | リサイズ（デフォルト値で埋める） |
 | `Reserve(n)` | `void` | 容量を事前確保 |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | その場で変更、置換回数を返す |
 | `s.ToLower()` | `void` | **その場で変更！** |
 | `s.ToUpper()` | `void` | **その場で変更！** |
-| `s.TrimInPlace()` | `void` | **その場で変更！** |
+| `s.TrimInPlace()` | `int` (長さ) | **その場で変更！** |
 | `s.Split(delim, out arr)` | `void` | TStringArray に分割 |
 | `s.Get(idx)` | `string` | 1文字取得 |
 | `s.Set(idx, ch)` | `void` | 文字を置換 |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### IsAlive チェック（EntityAI が必要）
+### IsAlive チェック
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() はベースクラス Object に定義されている（!IsDamageDestroyed() を返す）
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach マップイテレーション

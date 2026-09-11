@@ -1,6 +1,5 @@
 # Chapter 9.7 : État du monde et persistance
 
-[Accueil](../README.md) | [<< Précédent : Apparition des joueurs](06-player-spawning.md) | [Suivant : Optimisation des performances >>](08-performance.md)
 
 La persistance de DayZ maintient le monde en vie entre les redémarrages. Comprendre son fonctionnement vous permet de gérer les bases, planifier les wipes et éviter la corruption des données.
 
@@ -188,7 +187,3 @@ Ces problèmes reviennent régulièrement dans les communautés d'administrateur
 | Confondre réinitialisation météo et wipe complet | Supprimer `events.xy` réinitialise uniquement les positions des événements dynamiques. Cela ne réinitialise pas le loot, les bases ou les joueurs. | Savoir quels fichiers contrôlent quoi (voir le tableau du répertoire ci-dessus). |
 | Drapeau non rafraîchi à temps | Après 40 jours (FlagRefreshMaxDuration), le drapeau expire et toutes les pièces de base attachées deviennent éligibles au nettoyage. Les joueurs perdent toute leur base. | Rappeler aux joueurs l'intervalle de rafraîchissement. Réduire FlagRefreshMaxDuration sur les serveurs à faible population. |
 | Modifier globals.xml pendant que le serveur tourne | Les changements ne sont pas pris en compte jusqu'au redémarrage. Pire, le serveur peut écraser vos modifications à l'arrêt. | Modifier les fichiers de configuration uniquement quand le serveur est arrêté. |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Apparition des joueurs](06-player-spawning.md) | [Suivant : Optimisation des performances >>](08-performance.md)

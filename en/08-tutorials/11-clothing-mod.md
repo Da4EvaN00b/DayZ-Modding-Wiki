@@ -1,6 +1,5 @@
-# Chapter 8.11: Creating Custom Clothing
+# Creating Custom Clothing
 
-[Home](../README.md) | [<< Previous: Creating a Custom Vehicle](10-vehicle-mod.md) | **Creating Custom Clothing** | [Next: Building a Trading System >>](12-trading-system.md)
 
 ---
 
@@ -43,7 +42,7 @@ We will create a **Tactical Camo Jacket** -- a military-style jacket with woodla
 
 ## Step 1: Choose a Base Class
 
-Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that directly. DayZ provides intermediate base classes for each body slot:
+Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that directly. DayZ provides intermediate base classes for each body slot -- but these live in the **script** (`.c`) side of the engine, not in `config.cpp`:
 
 | Base Class | Body Slot | Examples |
 |------------|-----------|----------|
@@ -57,7 +56,7 @@ Clothing in DayZ inherits from `Clothing_Base`, but you almost never extend that
 | `Glasses_Base` | Eyewear | Sunglasses |
 | `Backpack_Base` | Back | Backpacks, bags |
 
-The full inheritance chain is: `Clothing_Base -> Clothing -> Top_Base -> GorkaEJacket_ColorBase -> YourJacket`
+**Two separate inheritance chains, matched by name:** `config.cpp` (`CfgVehicles`) and Enforce Script (`4_World/entities/itembase/`) are compiled independently, and each has its own class hierarchy for clothing. In vanilla `DZ\characters\tops\config.cpp`, the actual `CfgVehicles` chain is `Clothing_Base -> Clothing -> GorkaEJacket_ColorBase -> GorkaEJacket_Summer` -- `Top_Base` never appears there. `Top_Base` (`class Top_Base : Clothing {};`) exists only in `4_World/entities/itembase/clothing_base.c`, where the *script* chain is `Clothing -> Top_Base -> GorkaEJacket_ColorBase`. The engine links the two by class name at runtime, not by inheritance, so when you write `class MCM_TacticalJacket_ColorBase : GorkaEJacket_ColorBase` in `config.cpp`, you never write `Top_Base` there -- you only see it if you also write a script class with a matching name (as in [Step 6](#step-6-script-behavior-optional)).
 
 ### Why Extend an Existing Vanilla Item
 
@@ -198,9 +197,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Player visibility to AI (lower = harder to detect). |
 | `absorbency` | `0.3` | Water absorption (0 = waterproof, 1 = sponge). Lower is better for rain resistance. |
 
-**Vanilla heatIsolation reference:** T-shirt 0.2, Hoodie 0.5, Gorka Jacket 0.7, Field Jacket 0.8, Wool Coat 0.9.
+**Vanilla heatIsolation reference:** T-shirt 0.1, Hoodie 0.6, Gorka Jacket 0.4, Hiking Jacket 0.8, Wool Coat 0.9.
 
-**Repair:** `repairableWithKits[] = { 5, 2 }` lists kit types (5=Sewing Kit, 2=Leather Sewing Kit). `repairCosts[]` gives material consumed per repair, in matching order.
+**Repair:** `repairableWithKits[] = { 5, 2 }` lists kit types (5=Duct Tape, 2=Sewing Kit). `repairCosts[]` gives material consumed per repair, in matching order.
 
 **Armor:** A `damage` value of 0.8 means the player receives 80% of incoming damage (20% absorbed). Lower values = more protection.
 
@@ -242,7 +241,7 @@ For full material control, create `.rvmat` files and reference them in `hiddenSe
 
 ## Step 4: Add Cargo Space
 
-When extending `GorkaEJacket_ColorBase`, you inherit its cargo grid (4x3) and inventory slot (`"Body"`) automatically. The `itemSize[] = { 3, 4 }` property defines how large the jacket is when stored as loot -- NOT its cargo capacity.
+When extending `GorkaEJacket_ColorBase`, you inherit its cargo grid (`itemsCargoSize[] = { 6, 4 }`) and inventory slot (`"Body"`) automatically. The `itemSize[] = { 3, 4 }` property defines how large the jacket is when stored as loot -- NOT its cargo capacity.
 
 Common clothing slots: `"Body"` (jackets), `"Legs"` (pants), `"Feet"` (boots), `"Headgear"` (hats), `"Vest"` (chest rigs), `"Gloves"`, `"Mask"`, `"Back"` (backpacks).
 
@@ -257,10 +256,12 @@ Some clothing accepts attachments (like Plate Carrier pouches). Add them with `a
 Create `MyClothingMod/Data/Stringtable.csv`:
 
 ```csv
-"Language","English","Czech","German","Russian","Polish","Hungarian","Italian","Spanish","French","Chinese","Japanese","Portuguese","ChineseSimp","Korean"
-"STR_MCM_TacticalJacket_Woodland","Tactical Jacket (Woodland)","","","","","","","","","","","","",""
-"STR_MCM_TacticalJacket_Woodland_Desc","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","","","","","","","","","","","","",""
+"Language","original","english","czech","german","russian","polish","hungarian","italian","spanish","french","chinese","japanese","portuguese","chinesesimp",
+"STR_MCM_TacticalJacket_Woodland","Tactical Jacket (Woodland)","Tactical Jacket (Woodland)","","","","","","","","","","","","",
+"STR_MCM_TacticalJacket_Woodland_Desc","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","A rugged tactical jacket with woodland camouflage. Provides good insulation and has multiple pockets.","","","","","","","","","","","","",
 ```
+
+This header matches the real column set and order used by DayZ's own `languagecore/stringtable.csv` -- 14 lowercase language columns after the key (`original, english, czech, german, russian, polish, hungarian, italian, spanish, french, chinese, japanese, portuguese, chinesesimp`, no `korean` column), with a trailing comma after the last value on every row.
 
 ### Spawning (types.xml)
 

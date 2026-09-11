@@ -1,6 +1,5 @@
-# Chapter 9.4: Economia de Loot em Profundidade
+# Economia de Loot em Profundidade
 
-[Inicio](../README.md) | [<< Anterior: Referencia do serverDZ.cfg](03-server-cfg.md) | **Economia de Loot em Profundidade**
 
 ---
 
@@ -194,7 +193,7 @@ Bandagens sao muito comuns (40 nominal). Elas spawnam em construcoes Medic (hosp
 | `restock` | int | segundos | Cooldown minimo antes do CE poder spawnar um substituto. 0 = imediato. |
 | `quantmin` | int | -1 a 100 | Porcentagem minima de quantidade ao spawnar (% de municao, % de liquido). -1 = nao aplicavel. |
 | `quantmax` | int | -1 a 100 | Porcentagem maxima de quantidade ao spawnar. -1 = nao aplicavel. |
-| `cost` | int | 0+ | Peso de prioridade para selecao de spawn. Atualmente todos os itens vanilla usam 100. |
+| `cost` | int | 0+ | Peso de prioridade usado durante respawn/limpeza. Quase todos os itens vanilla usam 100, mas alguns usam valores maiores (ex.: `Mag_SVD_10Rnd` usa 1000). |
 
 ### Flags
 
@@ -721,7 +720,3 @@ Apos editar arquivos de economia, faca um destes:
 - Delete `storage_1/` para um wipe completo e inicio fresco de economia
 - Defina `RestartSpawn` como `1` no `globals.xml` para um reinicio para re-aleatorizar loot, depois defina de volta para `0`
 - Espere os lifetimes dos itens expirarem naturalmente (pode levar horas)
-
----
-
-**Anterior:** [Referencia do serverDZ.cfg](03-server-cfg.md) | [Inicio](../README.md) | **Proximo:** [Spawn de Veiculos e Eventos Dinamicos](05-vehicle-spawning.md)

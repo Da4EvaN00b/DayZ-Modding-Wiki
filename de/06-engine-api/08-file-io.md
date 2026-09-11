@@ -1,6 +1,5 @@
 # Kapitel 6.8: Datei-E/A und JSON
 
-[Startseite](../README.md) | [<< Zurück: Timer und CallQueue](07-timers.md) | **Datei-E/A und JSON** | [Weiter: Netzwerk und RPC >>](09-networking.md)
 
 ---
 

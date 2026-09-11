@@ -1,6 +1,5 @@
 # Capítulo 4.8: Building Modeling -- Doors & Ladders
 
-[Inicio](../README.md) | [<< Anterior: Workbench Guide](07-workbench-guide.md) | **Building Modeling**
 
 ---
 

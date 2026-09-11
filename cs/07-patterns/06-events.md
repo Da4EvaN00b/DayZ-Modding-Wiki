@@ -1,6 +1,5 @@
 # Chapter 7.6: Event-Driven Architecture
 
-[Domů](../README.md) | [<< Předchozí: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Další: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -107,16 +106,18 @@ graph TB
 
 ### How Insert/Odstraňte Work
 
-`Insert` adds a function reference to an interní list. `Remove` searches the list and removes the matching entry. Pokud call `Insert` twice with the stejný function, it will be called twice on každý `Invoke`. Pokud call `Remove` once, it removes one entry.
+`Insert` adds a function reference to an interní list. `Remove` searches the list and removes matching entries. Pokud call `Insert` twice with the stejný function, it will be called twice on každý `Invoke`. Ve výchozím nastavení `Remove(fn)` používá `EScriptInvokerRemoveFlags.ALL`, takže odstraní každou odpovídající položku. Chcete-li odstranit pouze poslední jednu položku, zavolejte `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Subscribing the same handler twice is a bug:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Now called 2x per Invoke
 
-// One Remove only removes one entry:
+// The default ALL flag removes every matching entry:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Still called 1x per Invoke — the second Insert is still there
+// Called 0x per Invoke — both Inserts are gone.
+// To leave one entry, pass NONE:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Typed Signatures
@@ -135,13 +136,11 @@ Pokud subscriber has the wrong signature, the behavior is undefined za běhu ---
 Many vanilla DayZ classes expose `ScriptInvoker` dokoncets:
 
 ```c
-// UIScriptedMenu has OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer exposes a ScriptInvoker via GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Subscribe
 
-// MissionBase has event hooks
+// MissionBase has event hooks (virtual methods, not ScriptInvokers)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,10 +545,6 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | Subscribing with `Insert()` but nikdy calling `Remove()` | Memory leak: the invoker holds a reference to the dead object; on `Invoke()`, calls into freed memory (crash) or no-ops with wasted iteration | Pair každý `Insert()` with a `Remove()` in `OnMissionFinish` or the destructor |
 | Calling `Remove()` on a null EventBus invoker during shutdown | `MyEventBus.Cleanup()` may have již nulled the invoker; calling `.Remove()` on null crashes | Vždy null-check the invoker before `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Double `Insert()` of the stejný handler | Handler is called twice per `Invoke()`; one `Remove()` pouze removes one entry, leaving a stale subscription | Zkontrolujte before inserting, or ensure `Insert()` is pouze called once (e.g., in `OnInit` with a guard flag) |
+| Double `Insert()` of the stejný handler | Handler is called twice per `Invoke()`; a default `Remove()` (flag `ALL`) clears every entry at once, removing all subscriptions | Zkontrolujte before inserting, or ensure `Insert()` is pouze called once (e.g., in `OnInit` with a guard flag) |
 | Using anonymous/lambda functions as handlers | Cannot be removed protože there is no reference to pass to `Remove()` | Vždy use named methods as dokoncet handlers |
 | Firing dokoncets with mismatched argument signatures | Subscribers receive garbage data or crash za běhu; no compile-time check | Document the expected signature výše každý `ScriptInvoker` declaration and match it exactly in all handlers |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Další: Performance Optimization >>](07-performance.md)

@@ -1,6 +1,5 @@
 # Kapitola 6.3: Systém počasí
 
-[Domů](../README.md) | [<< Předchozí: Vozidla](02-vehicles.md) | **Počasí** | [Další: Kamery >>](04-cameras.md)
 
 ---
 
@@ -45,7 +44,7 @@ class WeatherPhenomenon
     // Aktuální stav
     proto native float GetActual();          // Aktuální interpolovaná hodnota (0.0 - 1.0 pro většinu)
     proto native float GetForecast();        // Cílová hodnota k interpolaci
-    proto native float GetDuration();        // Jak dlouho aktuální předpověď trvá (sekundy)
+    proto native float GetNextChange();      // Sekundy do výpočtu další předpovědi
 
     // Nastavit předpověď (pouze server)
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +52,17 @@ class WeatherPhenomenon
     // time:     sekundy pro interpolaci k této hodnotě (0 = okamžitě)
     // minDuration: minimální doba, po kterou hodnota drží před automatickou změnou
 
-    // Limity
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // Limity (aktuální hodnota je vždy držena v [fnMin, fnMax])
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // Limity rychlosti změny (jak rychle se jev může měnit)
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // Limity času předpovědi (rozsah sekund, ve kterém se počítá další předpověď; výchozí 300-3600)
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // Limity rozsahu změny
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // Limity změny předpovědi (o kolik se hodnota předpovědi může změnit při každém přepočtu; výchozí 0-1)
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +173,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 Pro převzetí manuální kontroly nad počasím (vypnutí automatického stavového automatu počasí) volejte:
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 Při zavolání `MissionWeather(true)` engine zastaví automatické přechody počasí a pouze vaše skriptové volání `Set()` řídí počasí.
@@ -229,7 +229,7 @@ serverTimeAcceleration = 12;      // 12x reálný čas
 serverNightTimeAcceleration = 4;  // 4x zrychlení během noci
 ```
 
-Ve skriptu můžete číst aktuální multiplikátor času, ale obvykle ho nelze změnit za běhu.
+Ve skriptu můžete změnit zrychlení času za běhu (většinou pro ladění) pomocí `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)`, kde `timeMultiplier` je hodnota zrychlení 0-64 (nebo `-1` pro reset zpět na hodnotu z konfigurace). Pro aktuální multiplikátor neexistuje skriptový getter.
 
 ---
 
@@ -240,7 +240,7 @@ Vanilla DayZ používá skriptovaný stavový automat počasí ve třídách `Wo
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +250,19 @@ Přepište tuto metodu ve třídě `modded` WorldData pro zachycení a úpravu p
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // Vraťte true, když skript upraví stav jevu;
+    // vraťte false, aby engine použil svou vypočtenou změnu.
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // Zabránit dešti v překročení 0.5
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

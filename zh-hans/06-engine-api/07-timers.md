@@ -1,6 +1,5 @@
 # 第 6.7 章：定时器与 CallQueue
 
-[首页](../README.md) | [<< 上一章：通知系统](06-notifications.md) | **定时器与 CallQueue** | [下一章：文件 I/O 与 JSON >>](08-file-io.md)
 
 ---
 
@@ -33,7 +32,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**文件：** `3_Game/tools/utilityclasses.c`
+**文件：** `2_GameLib/tools.c`
 
 延迟函数调用的主要机制。支持一次性延迟、重复调用和立即下一帧执行。
 
@@ -99,16 +98,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-通过字符串名称调用方法。在方法引用不可直接获取时很有用。
+在下一帧通过字符串名称调用方法。在方法引用不可直接获取时很有用。如需延迟或重复的按名称调用，请改用 `CallLaterByName`：
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **示例：**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +151,7 @@ void Tick(float timeslice);
 
 ## Timer
 
-**文件：** `3_Game/tools/utilityclasses.c`
+**文件：** `3_Game/tools/tools.c`
 
 基于类的定时器，具有显式的启动/停止生命周期。对于需要暂停或重启的长期定时器更清晰。
 
@@ -161,7 +164,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | 参数 | 描述 |
@@ -239,15 +242,9 @@ void Continue();
 
 从中断处恢复暂停的定时器。
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-如果定时器当前处于暂停状态则返回 `true`。
-
 **示例 --- 暂停和恢复：**
+
+`Timer` 没有 `IsPaused()` 方法。由于 `IsRunning()` 仅在定时器处于活动状态时返回 `true`（一旦暂停或停止则返回 `false`），可用它来判断应该暂停还是继续：
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +257,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +284,25 @@ float GetDuration();
 
 ## ScriptInvoker
 
-**文件：** `3_Game/tools/utilityclasses.c`
+**文件：** `2_GameLib/tools.c`
 
 事件/委托系统。`ScriptInvoker` 持有一组回调函数，当调用 `Invoke()` 时触发所有回调。这是 DayZ 中等同于 C# 事件或观察者模式的实现。
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-注册一个回调函数。
+注册一个回调函数。可选的 `flags` 参数接受 `EScriptInvokerInsertFlags.IMMEDIATE`（默认）或 `EScriptInvokerInsertFlags.UNIQUE`。成功时返回 `true`。
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-取消注册一个回调函数。
+取消注册一个回调函数。可选的 `flags` 参数默认为 `EScriptInvokerRemoveFlags.ALL`。成功时返回 `true`。
 
 ### Invoke
 
@@ -319,10 +316,10 @@ void Invoke(void param1 = NULL, void param2 = NULL,
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-已注册回调的数量。
+返回给定函数 `fn` 当前在 invoker 中注册的次数（不是所有回调的总数）。
 
 ### Clear
 
@@ -387,17 +384,16 @@ updater.Remove(this.OnFrame);
 
 ## WidgetFadeTimer
 
-**文件：** `3_Game/tools/utilityclasses.c`
+**文件：** `3_Game/tools/tools.c`
 
-专门用于控件淡入淡出的定时器。
+专门用于控件淡入淡出的定时器。`WidgetFadeTimer` 继承自 `TimerBase`，因此继承了 `Stop()` 和 `IsRunning()`。
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop() 和 IsRunning() 继承自 TimerBase
 }
 ```
 
@@ -405,7 +401,9 @@ class WidgetFadeTimer
 |------|------|
 | `w` | 要淡化的控件 |
 | `time` | 淡化持续时间（秒） |
-| `continue_from_current` | 如果为 `true`，从当前透明度开始；否则从 0（淡入）或 1（淡出）开始 |
+| `continue_` | 如果为 `true`，从当前透明度开始；否则从 0（淡入）或 1（淡出）开始 |
+
+使用继承的 `IsRunning()` 来检查淡化当前是否正在进行。
 
 **示例：**
 
@@ -433,17 +431,18 @@ void HideNotification()
 
 ## GetRemainingTime（CallQueue）
 
-`ScriptCallQueue` 还提供了查询已调度 `CallLater` 剩余时间的方法：
+`ScriptCallQueue` 还提供了查询已调度调用剩余时间（以毫秒为单位）的方法。有两个变体 --- 一个按函数引用作键，另一个按名称作键：
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **示例：**
 
 ```c
-// 获取 CallLater 的剩余时间
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// 获取按名称调度的调用的剩余时间
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("Callback fires in %1 ms", remaining));
 ```

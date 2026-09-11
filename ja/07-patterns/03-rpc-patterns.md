@@ -1,6 +1,5 @@
 # 第7.3章: RPC通信パターン
 
-[ホーム](../README.md) | [<< 前へ: モジュールシステム](02-module-systems.md) | **RPC通信パターン** | [次へ: 設定の永続化 >>](04-config-persistence.md)
 
 ---
 
@@ -654,7 +653,3 @@ override void OnMissionFinish()
 | プロトコルバッファまたはスキーマベースのシリアル化を使用 | Enforce Scriptにはprotobufサポートがない。プリミティブを一致する順序で手動で `Write`/`Read` する |
 | スキーマ強制ですべての入力を検証 | スキーマ検証は存在しない。すべての `ctx.Read()` の戻り値を個別にチェックする必要がある |
 | RPCはべき等であるべき | DayZでは問い合わせRPCに対してのみ実用的。変更RPC（スポーン、削除、テレポート）は本質的にべき等ではない --- 代わりに権限チェックでガード |
-
----
-
-[ホーム](../README.md) | [<< 前へ: モジュールシステム](02-module-systems.md) | **RPC通信パターン** | [次へ: 設定の永続化 >>](04-config-persistence.md)

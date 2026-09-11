@@ -1,6 +1,5 @@
 # 第 6.10 章：中央经济系统
 
-[首页](../README.md) | [<< 上一章：网络与 RPC](09-networking.md) | **中央经济系统** | [下一章：任务钩子 >>](11-mission-hooks.md)
 
 ---
 
@@ -312,10 +311,14 @@ flowchart TD
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +327,13 @@ flowchart TD
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-`<ce folder="db"/>` 标签告诉 CE 在哪里找到 `types.xml`、`events.xml` 和 `globals.xml`。
+核心 CE 文件（`types.xml`、`events.xml`、`globals.xml`）依据内置约定存放在 `db/` 文件夹中——原版 `cfgeconomycore.xml` 并不包含用于指向它们的 `<ce>` 元素。`<ce>` 元素实际上用于注册**额外的**自定义 CE 文件（在 1.08 更新中引入）：`folder` 属性指定存放自定义 XML 的文件夹，每个嵌套的 `<file name="..." type="..."/>` 条目会追加到或覆盖对应的原版文件（`type` 可以是 `types`、`spawnabletypes`、`globals`、`economy`、`events` 或 `messages`）。
 
 ---
 
@@ -545,7 +550,3 @@ GetGame().SurfaceGetType(x, z, surfaceType);
 - **多模组：** 多个模组可以向 `types.xml` 添加条目。如果两个模组定义了相同的 `<type name="">`，最后加载的文件获胜。使用唯一的类名以避免冲突。在社区服务器上仔细合并 types.xml 条目。
 - **性能：** 许多物品类型的高 `nominal` 值（200+）会给 CE 的生成循环带来压力。CE 运行的定期扫描与跟踪的实体总数成正比。保持 nominal 在合理范围 -- 武器 5-20，普通物品 20-100。
 - **服务器/客户端：** CE 完全在服务器上运行。客户端无法看到 CE 状态。所有 XML 文件都是服务器端的，不会分发给客户端。
-
----
-
-[首页](../README.md) | [<< 上一章：网络与 RPC](09-networking.md) | **中央经济系统** | [下一章：任务钩子 >>](11-mission-hooks.md)

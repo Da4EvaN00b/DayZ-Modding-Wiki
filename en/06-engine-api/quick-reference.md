@@ -1,10 +1,9 @@
 # Engine API Quick Reference
 
-[Home](../README.md) | **Engine API Quick Reference**
 
 ---
 
-> Condensed single-page reference for the most commonly used DayZ engine methods. For detailed explanations and examples, see the full chapters linked in each section header.
+> Condensed single-page reference for the most commonly used DayZ engine methods. For detailed explanations and examples, see the full chapters linked in each section header. Signatures below omit declaration modifiers such as `proto native`; ellipses explicitly mark abbreviated parameter lists. Checked against the supplied extraction on 2026-09-11; release identity is unconfirmed and examples were not compiled.
 
 ---
 
@@ -65,8 +64,8 @@
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | Attach child to bone |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | Detach child |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Attach child to bone |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Detach child |
 | `GetParent` | `IEntity GetParent()` | Parent entity or null |
 | `GetChildren` | `IEntity GetChildren()` | First child entity |
 | `GetSibling` | `IEntity GetSibling()` | Next sibling entity |
@@ -109,13 +108,13 @@
 | `GetHealth` | `float GetHealth(string zone, string type)` | Get health value |
 | `GetMaxHealth` | `float GetMaxHealth(string zone, string type)` | Get max health |
 | `SetHealth` | `void SetHealth(string zone, string type, float value)` | Set health |
-| `SetHealthMax` | `void SetHealthMax(string zone, string type)` | Set to max |
+| `SetHealthMax` | `void SetHealthMax(string zone = "", string type = "")` | Set to max |
 | `AddHealth` | `void AddHealth(string zone, string type, float value)` | Add health |
-| `DecreaseHealth` | `void DecreaseHealth(string zone, string type, float value, bool auto_delete = false)` | Reduce health |
+| `DecreaseHealth` | `void DecreaseHealth(string zone, string type, float value, bool auto_delete)` | Reduce health; native three-argument overload also exists |
 | `SetAllowDamage` | `void SetAllowDamage(bool val)` | Enable/disable damage |
 | `GetAllowDamage` | `bool GetAllowDamage()` | Check if damage allowed |
 | `IsAlive` | `bool IsAlive()` | Alive check (defined on Object, works on any Object subclass) |
-| `ProcessDirectDamage` | `void ProcessDirectDamage(int dmgType, EntityAI source, string component, string ammoType, vector modelPos, float coef = 1.0, int flags = 0)` | Apply damage (EntityAI) |
+| `ProcessDirectDamage` | `void ProcessDirectDamage(int dmgType, EntityAI source, string component, string ammoType, vector modelPos, float coef = 1.0, int flags = 0)` | Apply damage (defined on Object) |
 
 **Common zone/type pairs:** `("", "Health")` global, `("", "Blood")` player blood, `("", "Shock")` player shock, `("Engine", "Health")` vehicle engine.
 
@@ -130,11 +129,11 @@
 | `IsTransport()` | Object | Is this a vehicle? |
 | `IsDayZCreature()` | Object | Is this a creature (zombie/animal)? |
 | `IsKindOf(string)` | Object | Config inheritance check |
-| `IsItemBase()` | EntityAI | Is this an inventory item? |
-| `IsWeapon()` | EntityAI | Is this a weapon? |
-| `IsMagazine()` | EntityAI | Is this a magazine? |
-| `IsClothing()` | EntityAI | Is this clothing? |
-| `IsFood()` | EntityAI | Is this food? |
+| `IsItemBase()` | Object | Is this an inventory item? |
+| `IsWeapon()` | Object | Is this a weapon? |
+| `IsMagazine()` | Object | Is this a magazine? |
+| `IsClothing()` | Object | Is this clothing? |
+| `IsFood()` | Object | Is this food? |
 | `Class.CastTo(out, obj)` | Class | Safe downcast (returns bool) |
 | `ClassName.Cast(obj)` | Class | Inline cast (returns null on failure) |
 
@@ -147,15 +146,15 @@
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `GetInventory` | `GameInventory GetInventory()` | Get inventory component (EntityAI) |
-| `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Create item in cargo |
+| `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Create in attachment or cargo slot |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | Create item in cargo |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | Create item as attachment |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | List all items |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | List all items |
 | `CountInventory` | `int CountInventory()` | Count items |
-| `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | Check for item |
+| `HasEntityInInventory` | `bool HasEntityInInventory(notnull EntityAI item)` | Check for item |
 | `AttachmentCount` | `int AttachmentCount()` | Number of attachments |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | Get attachment by index |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | Get attachment by slot |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | EntityAI method (not GameInventory) |
 
 ---
 
@@ -167,9 +166,9 @@
 |--------|-----------|-------------|
 | `CreateObject` | `Object GetGame().CreateObject(string type, vector pos, bool local = false, bool ai = false, bool physics = true)` | Create entity |
 | `CreateObjectEx` | `Object GetGame().CreateObjectEx(string type, vector pos, int flags, int rotation = RF_DEFAULT)` | Create with ECE flags |
-| `ObjectDelete` | `void GetGame().ObjectDelete(Object obj)` | Immediate server deletion |
+| `ObjectDelete` | `void GetGame().ObjectDelete(Object obj)` | Native object deletion request |
 | `ObjectDeleteOnClient` | `void GetGame().ObjectDeleteOnClient(Object obj)` | Client-only deletion |
-| `Delete` | `void obj.Delete()` | Deferred deletion (next frame) |
+| `Delete` | `void obj.Delete()` | Deferred deletion; EntityAI can delay while inventory operations are pending |
 
 ### Common ECE Flags
 
@@ -179,22 +178,22 @@
 | `ECE_CREATEPHYSICS` | `1024` | Create collision |
 | `ECE_INITAI` | `2048` | Initialize AI |
 | `ECE_EQUIP` | `24576` | Spawn with attachments + cargo |
-| `ECE_PLACE_ON_SURFACE` | combined | Physics + path + trace |
-| `ECE_LOCAL` | `1073741824` | Client-only (not replicated) |
-| `ECE_NOLIFETIME` | `4194304` | Will not despawn |
+| `ECE_PLACE_ON_SURFACE` | `1060` | Physics + path + trace |
+| `ECE_LOCAL` | `1073741824` | Local creation (not replicated) |
+| `ECE_NOLIFETIME` | `4194304` | Do not set lifetime at creation; not an absolute no-deletion guarantee |
 | `ECE_KEEPHEIGHT` | `524288` | Keep Y position |
 
 ---
 
 ## Player Methods
 
-*Full reference: [Chapter 6.1: Entity System](01-entity-system.md)*
+*Full reference: [Chapter 6.14: Player System](14-player-system.md)*
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `GetIdentity` | `PlayerIdentity GetIdentity()` | Player identity object |
 | `GetIdentity().GetName()` | `string GetName()` | Steam/platform display name |
-| `GetIdentity().GetId()` | `string GetId()` | BI unique ID |
+| `GetIdentity().GetId()` | `string GetId()` | Hashed/platform unique ID; not necessarily BattlEye GUID |
 | `GetIdentity().GetPlainId()` | `string GetPlainId()` | Steam64 ID |
 | `GetIdentity().GetPlayerId()` | `int GetPlayerId()` | Session player ID |
 | `GetHumanInventory().GetEntityInHands()` | `EntityAI GetEntityInHands()` | Item in hands |
@@ -218,8 +217,8 @@
 | `CrewSize` | `int CrewSize()` | Total seat count |
 | `CrewMember` | `Human CrewMember(int idx)` | Get human at seat |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | Get seat of human |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | Force eject from seat |
-| `CrewDeath` | `void CrewDeath(int idx)` | Kill crew member |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | Force eject from seat |
+| `CrewDeath` | `void CrewDeath(int idx)` | Handle crew death; do not treat as a documented damage API |
 
 ### Engine (Car)
 
@@ -243,16 +242,16 @@
 | `Leak` | `void Leak(CarFluid fluid, float amount)` | Remove fluid |
 | `LeakAll` | `void LeakAll(CarFluid fluid)` | Drain all fluid |
 
-**CarFluid enum:** `FUEL`, `OIL`, `BRAKE`, `COOLANT`
+**Common CarFluid values:** `FUEL`, `OIL`, `BRAKE`, `COOLANT`; the declaration also reserves `USER1`–`USER4` for modding.
 
 ### Controls (Car)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0, -1 = all |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | Steering input |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 throttle |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | Steering input |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 throttle (replaces obsolete `SetThrust`) |
 
 ---
 
@@ -286,11 +285,11 @@
 |--------|-----------|-------------|
 | `GetActual` | `float GetActual()` | Current interpolated value |
 | `GetForecast` | `float GetForecast()` | Target value |
-| `GetDuration` | `float GetDuration()` | Remaining duration (seconds) |
+| `GetNextChange` | `float GetNextChange()` | Time when next forecast is computed (seconds) |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | Set target (server only) |
 | `SetLimits` | `void SetLimits(float min, float max)` | Value range limits |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | Change speed limits |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | Magnitude change limits |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | Change speed limits |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | Magnitude change limits |
 
 ---
 
@@ -305,7 +304,7 @@
 | `$profile:` | Server/client profile directory | Yes |
 | `$saves:` | Save directory | Yes |
 | `$mission:` | Current mission folder | Read typically |
-| `$CurrentDir:` | Working directory | Depends |
+| `$CurrentDir:` | Not established by the inspected DayZ file API | Verify before use |
 
 ### File Operations
 
@@ -315,10 +314,10 @@
 | `MakeDirectory` | `bool MakeDirectory(string path)` | Create directory |
 | `OpenFile` | `FileHandle OpenFile(string path, FileMode mode)` | Open file (0 = fail) |
 | `CloseFile` | `void CloseFile(FileHandle fh)` | Close file |
-| `FPrint` | `void FPrint(FileHandle fh, string text)` | Write text (no newline) |
-| `FPrintln` | `void FPrintln(FileHandle fh, string text)` | Write text + newline |
+| `FPrint` | `void FPrint(FileHandle fh, void value)` | Write text (no newline) |
+| `FPrintln` | `void FPrintln(FileHandle fh, void value)` | Write text + newline |
 | `FGets` | `int FGets(FileHandle fh, string line)` | Read one line |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | Read entire file |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | Read into int array or string (returns byte count) |
 | `DeleteFile` | `bool DeleteFile(string path)` | Delete file |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | Copy file |
 
@@ -326,8 +325,10 @@
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `JsonLoadFile` | `void JsonFileLoader<T>.JsonLoadFile(string path, T obj)` | Load JSON into object (**returns void**) |
-| `JsonSaveFile` | `void JsonFileLoader<T>.JsonSaveFile(string path, T obj)` | Save object as JSON |
+| `JsonLoadFile` | `void JsonFileLoader<T>.JsonLoadFile(string path, out T obj)` | Legacy/deprecated; returns void and can log parse errors |
+| `JsonSaveFile` | `void JsonFileLoader<T>.JsonSaveFile(string path, T obj)` | Legacy/deprecated save |
+
+Prefer `static bool JsonFileLoader<T>.LoadFile(string path, out T obj, out string error)` and `static bool JsonFileLoader<T>.SaveFile(string path, T obj, out string error)` when callers need a success result.
 
 ### FileMode Enum
 
@@ -356,34 +357,35 @@
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | Schedule delayed/repeating call |
-| `Call` | `void Call(func fn, param1..4)` | Execute next frame |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | Call method by string name |
+| `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, void param1 = NULL, ... void param9 = NULL)` | Schedule delayed/repeating call |
+| `Call` | `void Call(func fn, void param1 = NULL, ... void param9 = NULL)` | Execute next frame |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | Call method by string name |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | Delayed/repeating call by string name |
 | `Remove` | `void Remove(func fn)` | Cancel scheduled call |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | Cancel by string name |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | Get remaining time on CallLater |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | Get remaining time on CallLater (ms) |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | Remaining time by string name (ms) |
 
 ### Timer Class
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `Timer()` | `void Timer(int category = CALL_CATEGORY_SYSTEM)` | Constructor |
-| `Run` | `void Run(float duration, Class obj, string fnName, Param params = null, bool loop = false)` | Start timer |
+| `Run` | `void Run(float duration, Managed obj, string fnName, Param params = null, bool loop = false)` | Start timer |
 | `Stop` | `void Stop()` | Stop timer |
 | `Pause` | `void Pause()` | Pause timer |
 | `Continue` | `void Continue()` | Resume timer |
-| `IsPaused` | `bool IsPaused()` | Timer paused? |
-| `IsRunning` | `bool IsRunning()` | Timer active? |
-| `GetRemaining` | `float GetRemaining()` | Seconds remaining |
+| `IsRunning` | `bool IsRunning()` | Timer active? (false while paused) |
+| `GetRemaining` | `float GetRemaining()` | Duration minus elapsed time; stopped timers may report full duration |
 
 ### ScriptInvoker
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Insert` | `void Insert(func fn)` | Register callback |
-| `Remove` | `void Remove(func fn)` | Unregister callback |
-| `Invoke` | `void Invoke(params...)` | Fire all callbacks |
-| `Count` | `int Count()` | Number of registered callbacks |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | Register callback |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | Unregister callback |
+| `Invoke` | `void Invoke(void param1 = NULL, ... void param9 = NULL)` | Fire all callbacks |
+| `Count` | `int Count(func fn)` | How many times this fn is registered |
 | `Clear` | `void Clear()` | Remove all callbacks |
 
 ---
@@ -395,17 +397,17 @@
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | Get UI workspace |
-| `CreateWidgets` | `Widget CreateWidgets(string layout, Widget parent = null)` | Load .layout file |
+| `CreateWidgets` | `Widget CreateWidgets(string layout, Widget parent = null, bool immedUpdate = true)` | Load .layout file |
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | Find child by name (recursive) |
-| `Show` | `void Show(bool show)` | Show/hide widget |
-| `SetText` | `void TextWidget.SetText(string text)` | Set text content |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | Set image index |
+| `Show` | `void Show(bool show, bool immedUpdate = true)` | Show/hide widget |
+| `SetText` | `void TextWidget.SetText(string text, bool immedUpdate = true)` | Set text content |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | Set image index |
 | `SetColor` | `void SetColor(int color)` | Set widget color (ARGB) |
 | `SetAlpha` | `void SetAlpha(float alpha)` | Set transparency 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Set widget size |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Set widget position |
-| `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Screen resolution |
-| `Destroy` | `void Widget.Destroy()` | Remove and destroy widget |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Set widget size |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Set widget position |
+| `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Widget dimensions in screen pixels; global resolution helper uses int outputs |
+| `Unlink` | `void Widget.Unlink()` | Remove and destroy widget (and children) |
 
 ### ARGB Color Helper
 
@@ -448,14 +450,14 @@
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Read` | `bool Read(out void value)` | Deserialize a value (same types as Write) |
+| `Read` | `bool Read(void value)` | Deserialize a value (same types as Write) |
 
 ### Legacy RPC (CGame)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `RPCSingleParam` | `void GetGame().RPCSingleParam(Object target, int rpc, Param param, bool guaranteed, PlayerIdentity recipient = null)` | Send single Param object |
-| `RPC` | `void GetGame().RPC(Object target, int rpc, array<Param> params, bool guaranteed, PlayerIdentity recipient = null)` | Send multiple Params |
+| `RPC` | `void GetGame().RPC(Object target, int rpc, notnull array<ref Param> params, bool guaranteed, PlayerIdentity recipient = null)` | Send multiple Params |
 
 ### ScriptInputUserData (Input-Verified)
 
@@ -579,21 +581,21 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `GetGame()` | `CGame GetGame()` | Game instance |
-| `GetGame().GetPlayer()` | `Man GetPlayer()` | Local player (CLIENT only) |
+| `GetGame()` | `DayZGame GetGame()` | Game instance; declared `3_game/gameplay.c:636` as `{ return g_Game; }`. `DayZGame extends CGame` (`3_game/dayzgame.c:908`); `GetDayZGame()` (`:3973`) is an equivalent accessor |
+| `GetGame().GetPlayer()` | `DayZPlayer GetPlayer()` | Local player (CLIENT only) |
 | `GetGame().GetPlayers(out arr)` | `void GetPlayers(out array<Man> arr)` | All players (server) |
 | `GetGame().GetWorld()` | `World GetWorld()` | World instance |
-| `GetGame().GetTickTime()` | `float GetTickTime()` | Server time (seconds) |
+| `GetGame().GetTickTime()` | `float GetTickTime()` | Elapsed time since game start (seconds), on the current instance |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | UI workspace |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | Terrain height at position |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | Surface material type |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | Surface material type (in `out` param) |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | Find objects near position |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | Get screen resolution |
 | `GetGame().IsServer()` | `bool IsServer()` | Server check |
 | `GetGame().IsClient()` | `bool IsClient()` | Client check |
 | `GetGame().IsMultiplayer()` | `bool IsMultiplayer()` | Multiplayer check |
-| `Print(string)` | `void Print(string msg)` | Write to script log |
-| `ErrorEx(string)` | `void ErrorEx(string msg, ErrorExSeverity sev = ERROR)` | Log error with severity |
+| `Print(string)` | `void Print(void value)` | Write to script log |
+| `ErrorEx(string)` | `void ErrorEx(string msg, ErrorExSeverity sev = ErrorExSeverity.ERROR)` | Log error with severity |
 | `DumpStackString()` | `void DumpStackString(out string stack)` | Get call stack as string (fills out param) |
 | `string.Format(fmt, ...)` | `string Format(string fmt, ...)` | Format string (`%1`..`%9`) |
 
@@ -608,14 +610,14 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | Method | Description |
 |--------|-------------|
 | `override void OnInit()` | Initialize managers, register RPCs |
-| `override void OnMissionStart()` | After all mods loaded |
+| `override void OnMissionStart()` | Mission start callback |
 | `override void OnUpdate(float timeslice)` | Per-frame (use accumulator!) |
 | `override void OnMissionFinish()` | Cleanup singletons, unsubscribe events |
 | `override void OnEvent(EventType eventTypeId, Param params)` | Chat, voice events |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | Player joined |
 | `override void InvokeOnDisconnect(PlayerBase player)` | Player left |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | Client ready for data |
-| `override void PlayerRegistered(int peerId)` | Identity registered |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | Client ready for data |
+| `override void OnClientPrepareEvent(PlayerIdentity identity, out bool useDB, out vector pos, out float yaw, out int preloadTimeout)` | Identity available before character creation (`missionserver.c:436`) |
 
 ### Client-side (modded MissionGameplay)
 
@@ -644,7 +646,9 @@ override void SetActions()
 }
 ```
 
-### ActionBase Key Methods
+### Action Callback Methods
+
+`OnExecuteServer` / `OnExecuteClient` are declared on `AnimatedActionBase`, not directly on every `ActionBase` subclass. Choose the base class that provides the callback.
 
 | Method | Description |
 |--------|-------------|
@@ -657,3 +661,20 @@ override void SetActions()
 ---
 
 *Full documentation: [Home](../README.md) | [Cheat Sheet](../cheatsheet.md) | [Entity System](01-entity-system.md) | [Vehicles](02-vehicles.md) | [Weather](03-weather.md) | [Timers](07-timers.md) | [File I/O](08-file-io.md) | [Networking](09-networking.md) | [Mission Hooks](11-mission-hooks.md) | [Action System](12-action-system.md)*
+
+---
+
+## Audit Sources and Limits
+
+Independently checked 2026-09-11 against `D:/DayZ Projects/scripts/`, whose release identity is unconfirmed. Source families below are relative to that root.
+
+| Reference sections | Primary source |
+|---|---|
+| Entity, damage, type, inventory | `1_core/proto/enentity.c`; `3_game/entities/object.c`, `entityai.c`; `3_game/systems/inventory/inventory.c` |
+| Player and vehicles | `3_game/entities/man.c`, `gameplay.c`, `vehicles/car.c`, `vehicles/transport.c`; `4_world/entities/manbase/playerbase.c` |
+| Weather and creation flags | `3_game/weather.c`; `3_game/ce/centraleconomy.c`; `3_game/global/game.c` |
+| Files, JSON, timers and queues | `1_core/proto/ensystem.c`; `3_game/tools/jsonfileloader.c`, `tools.c`; `2_gamelib/tools.c` |
+| Widgets, RPC and math | `1_core/proto/enwidgets.c`, `serializer.c`, `enmath.c`, `enconvert.c`, `enmath3d.c`; `3_game/gameplay.c` |
+| Mission and action hooks | `3_game/gameplay.c`; `5_mission/mission/missionserver.c`; `4_world/classes/useractionscomponent/actionbase.c`, `animatedactionbase.c`; `4_world/entities/itembase.c` |
+
+Declarations establish signatures, not runtime guarantees or availability in every build/context. Native behavior not described in the source remains unverified. `3_game/dayzgame.c:3971` declares `DayZGame g_Game`, and `3_game/gameplay.c:636` declares the script accessor `DayZGame GetGame() { return g_Game; }`, so the `GetGame().X` form used throughout this page is the vanilla-declared path. (A separate `Game GetGame()` at `2_gamelib/gamelib.c:4` sits inside `#ifdef GAME_TEMPLATE` and is not the DayZ path.) `MyAction` is an illustrative class you must implement; the action and smoothing snippets belong inside suitable surrounding code.

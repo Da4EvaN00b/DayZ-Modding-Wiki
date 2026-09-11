@@ -1,6 +1,5 @@
-# Chapter 9.1: Server Setup & First Launch
+# Server Setup & First Launch
 
-[Home](../README.md) | **Server Setup** | [Next: Directory Structure >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Enable server logging |
 | `-adminlog` | Log admin actions |
 | `-netlog` | Log network events |
-| `-freezecheck` | Auto-restart on freeze detection |
+| `-freezecheck` | Stops the server and writes a crash dump when frozen for more than 5 minutes |
 
 ### Step 3: Wait for Initialization
 
@@ -226,7 +225,7 @@ Open Steam, go to **View > Game Servers > Favorites**, click **Add a Server**, e
 
 ### Method 4: Query Port
 
-Use an external tool like https://www.battlemetrics.com/ or the `gamedig` npm package to query port 27016 (Steam query port = game port + 24714).
+Use an external tool like https://www.battlemetrics.com/ or the `gamedig` npm package to query the Steam query port. By default this is **2305 UDP** (configurable via `steamQueryPort` in `serverDZ.cfg`), not the game port.
 
 ---
 
@@ -300,7 +299,3 @@ This is normal. DayZ Server is single-threaded. Do not run multiple server insta
 ```cpp
 template = "dayzOffline.chernarusplus";  // Must match mpmissions/ folder name
 ```
-
----
-
-**[Home](../README.md)** | **Next:** [Directory Structure >>](02-directory-structure.md)

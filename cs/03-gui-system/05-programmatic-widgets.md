@@ -1,6 +1,5 @@
 # Kapitola 3.5: Programatické vytváření widgetů
 
-[Domů](../README.md) | [<< Předchozí: Kontejnerové widgety](04-containers.md) | **Programatické vytváření widgetů** | [Další: Zpracování událostí >>](06-event-handling.md)
 
 ---
 

@@ -1,6 +1,5 @@
 # Chapitre 8.8 : Construire une surcouche HUD
 
-[Accueil](../README.md) | [<< Précédent : Publier sur le Steam Workshop](07-publishing-workshop.md) | **Construire une surcouche HUD** | [Suivant : Modèle de mod professionnel >>](09-professional-template.md)
 
 ---
 
@@ -84,101 +83,95 @@ La couche `3_Game` définit les constantes (notre identifiant RPC). La couche `4
 
 ## Étape 1 : Créer le fichier de disposition
 
-Les fichiers de disposition (`.layout`) définissent la hiérarchie des widgets en XML. Le système GUI de DayZ utilise un modèle de coordonnées où chaque widget a une position et une taille exprimées en valeurs proportionnelles (0.0 à 1.0 du parent) plus des décalages en pixels.
+Les fichiers de disposition (`.layout`) définissent la hiérarchie des widgets dans un format à base d'accolades. Chaque widget est déclaré sous la forme `WidgetClass WidgetName { ... }`, les attributs sont des lignes brutes `name value` (entre guillemets uniquement quand le nom contient des espaces), et les widgets enfants sont imbriqués dans un bloc interne `{ }`. Le système GUI de DayZ utilise un modèle de coordonnées où chaque widget a une position et une taille exprimées en valeurs proportionnelles (0.0 à 1.0 du parent) plus des décalages en pixels.
 
 ### `GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <!-- Cadre racine : couvre tout l'écran, ne consomme pas les entrées -->
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <!-- Panneau de fond : coin supérieur droit -->
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <!-- Texte du nom du serveur -->
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Texte du nombre de joueurs -->
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- Texte de l'heure en jeu -->
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  // Panneau de fond : coin supérieur droit
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    // Texte du nom du serveur
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+     "text halign" left
+     "text valign" top
+    }
+    // Texte du nombre de joueurs
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+    // Texte de l'heure en jeu
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+   }
+  }
+ }
+}
 ```
 
 ### Concepts clés de la disposition
 
 | Attribut | Signification |
 |----------|---------------|
-| `halign="2"` | Alignement horizontal : **droite**. Le widget s'ancre au bord droit de son parent. |
-| `valign="0"` | Alignement vertical : **haut**. |
-| `hexactpos="0"` + `vexactpos="1"` | La position horizontale est proportionnelle (1.0 = bord droit), la position verticale est en pixels. |
-| `hexactsize="1"` + `vexactsize="1"` | La largeur et la hauteur sont en pixels (220 x 70). |
-| `color="0 0 0 0.55"` | RGBA en flottants. Noir à 55% d'opacité pour le panneau de fond. |
+| `halign right` | Alignement horizontal : **droite**. Le widget s'ancre au bord droit de son parent. |
+| `valign top` | Alignement vertical : **haut**. |
+| `hexactpos 0` + `vexactpos 1` | La position horizontale est proportionnelle (1.0 = bord droit), la position verticale est en pixels. |
+| `hexactsize 1` + `vexactsize 1` | La largeur et la hauteur sont en pixels (220 x 70). |
+| `color 0 0 0 0.55` | RGBA en flottants. Noir à 55% d'opacité pour le panneau de fond. |
 
-Le `ServerInfoPanel` est positionné à X proportionnel=1.0 (bord droit) avec `halign="2"` (aligné à droite), donc le bord droit du panneau touche le côté droit de l'écran. La position Y est à 0 pixels du haut. Cela place notre HUD dans le coin supérieur droit.
+Le `ServerInfoPanel` est positionné à X proportionnel=1.0 (bord droit) avec `halign right` (aligné à droite), donc le bord droit du panneau touche le côté droit de l'écran. La position Y est à 0 pixels du haut. Cela place notre HUD dans le coin supérieur droit.
 
 **Pourquoi des tailles en pixels pour le panneau ?** Le dimensionnement proportionnel ferait que le panneau s'adapte avec la résolution, mais pour les petits widgets d'information vous voulez une empreinte fixe en pixels pour que le texte reste lisible à toutes les résolutions.
 
@@ -485,6 +478,11 @@ Les identifiants RPC doivent être uniques parmi tous les mods. Nous définisson
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Nombre maximum d'emplacements joueur. Il n'existe pas de natif
+// GetGame().GetMaxPlayers(), donc définissez ceci pour correspondre à la
+// configuration de votre serveur (la valeur dans vos paramètres de démarrage).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 **Pourquoi `3_Game` ?** Les constantes et énumérations appartiennent à la couche la plus basse accessible par le client et le serveur. La couche `3_Game` se charge avant `4_World` et `5_Mission`, donc les deux côtés peuvent voir ces valeurs.
@@ -532,8 +530,11 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // Nombre maximum de joueurs depuis la configuration serveur
-        maxPlayers = GetGame().GetMaxPlayers();
+        // Il n'existe pas de GetGame().GetMaxPlayers(). Le nombre
+        // d'emplacements configuré se trouve dans la configuration serveur,
+        // pas dans un natif CGame accessible par script, donc nous utilisons
+        // une constante connue ici.
+        maxPlayers = SIH_MAX_PLAYERS;
 
         // Renvoyer les données au client demandeur
         ScriptRPC rpc = new ScriptRPC();
@@ -935,6 +936,11 @@ class CfgMods
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// Nombre maximum d'emplacements joueur. Il n'existe pas de natif
+// GetGame().GetMaxPlayers(), donc définissez ceci pour correspondre à la
+// configuration de votre serveur (la valeur dans vos paramètres de démarrage).
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 ### Fichier 5 : `ServerInfoHUD/Scripts/4_World/ServerInfoHUD/ServerInfoServer.c`
@@ -974,8 +980,10 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         int playerCount = players.Count();
 
-        // Obtenir le nombre maximum d'emplacements joueur
-        int maxPlayers = GetGame().GetMaxPlayers();
+        // Il n'existe pas de GetGame().GetMaxPlayers(). Le nombre d'emplacements
+        // configuré se trouve dans la configuration serveur, pas dans un natif
+        // CGame accessible par script, donc nous utilisons une constante connue ici.
+        int maxPlayers = SIH_MAX_PLAYERS;
 
         // Renvoyer les données au client demandeur
         ScriptRPC rpc = new ScriptRPC();
@@ -1284,73 +1292,68 @@ modded class MissionGameplay
 
 ### Fichier 8 : `ServerInfoHUD/GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-            </Widget>
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+    }
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+    }
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+    }
+   }
+  }
+ }
+}
 ```
 
 ---
@@ -1371,31 +1374,22 @@ protected void RefreshFPS()
     if (!m_FPSText)
         return;
 
-    float fps = 1.0 / GetGame().GetDeltaT();
+    float fps = GetGame().GetLastFPS();
     m_FPSText.SetText("FPS: " + Math.Round(fps).ToString());
 }
 ```
 
-Appelez `RefreshFPS()` aux côtés de `RefreshTime()` dans la méthode de mise à jour. Notez que `GetDeltaT()` renvoie le temps de la frame courante, donc la valeur du FPS fluctuera. Pour un affichage plus fluide, faites une moyenne sur plusieurs frames :
+Appelez `RefreshFPS()` aux côtés de `RefreshTime()` dans la méthode de mise à jour. Notez que `GetLastFPS()` renvoie le taux de rafraîchissement de la dernière frame, donc la valeur fluctuera. Pour un affichage plus fluide, utilisez la moyenne glissante intégrée au moteur :
 
 ```c
-protected float m_FPSAccum;
-protected int m_FPSFrames;
-
 protected void RefreshFPS()
 {
     if (!m_FPSText)
         return;
 
-    m_FPSAccum += GetGame().GetDeltaT();
-    m_FPSFrames++;
-
-    float avgFPS = m_FPSFrames / m_FPSAccum;
+    // GetAvgFPS fait la moyenne sur le nombre de frames récentes donné.
+    float avgFPS = GetGame().GetAvgFPS(64);
     m_FPSText.SetText("FPS: " + Math.Round(avgFPS).ToString());
-
-    // Réinitialiser chaque seconde (quand le minuteur principal se déclenche)
-    m_FPSAccum = 0;
-    m_FPSFrames = 0;
 }
 ```
 
@@ -1483,7 +1477,7 @@ class DraggableHUD : ScriptedWidgetEventHandler
         return false;
     }
 
-    override bool OnUpdate(Widget w, int x, int y, int oldX, int oldY)
+    override bool OnDrag(Widget w, int x, int y)
     {
         if (m_Dragging && m_DragWidget)
         {
@@ -1600,7 +1594,7 @@ Maintenant que vous avez une surcouche HUD fonctionnelle, considérez ces progre
 |---------|---------|---------|
 | `OnUpdate(float timeslice)` | Appelé une fois par frame avec le delta time de la frame | Sur un client à 144 FPS, cela se déclenche 144 fois par seconde. Envoyer un RPC à chaque appel crée 144 paquets réseau/seconde par joueur. Accumulez toujours `timeslice` et n'agissez que quand la somme dépasse votre intervalle. |
 | Chemin de disposition de `CreateWidgets()` | Charge la disposition depuis le chemin que vous fournissez | Le chemin est relatif au préfixe du PBO, pas au système de fichiers. Si le préfixe de votre PBO ne correspond pas à la chaîne de chemin, `CreateWidgets` renvoie silencieusement NULL sans erreur dans le journal. |
-| `WidgetFadeTimer` | Anime fluidement l'opacité du widget | `FadeOut` masque le widget après la fin de l'animation, mais `FadeIn` n'appelle PAS `Show(true)` en premier. Vous devez manuellement afficher le widget avant d'appeler `FadeIn`, sinon rien n'apparaît. |
+| `WidgetFadeTimer` | Anime fluidement l'opacité du widget | `FadeOut` masque le widget une fois que l'alpha atteint une valeur proche de zéro, et `FadeIn` appelle `Show(true)` sur le widget lui-même avant d'animer l'alpha de 0 à 1. L'appel supplémentaire `m_Root.Show(true)` avant `FadeIn` est donc redondant (inoffensif, mais pas nécessaire). |
 | `GetUApi().GetInputByName()` | Renvoie l'action d'entrée pour votre raccourci personnalisé | Si `inputs.xml` n'est pas référencé dans `config.cpp` sous `class inputs`, le nom de l'action est inconnu et `GetInputByName` renvoie null, causant un crash sur `.LocalPress()`. |
 
 ---

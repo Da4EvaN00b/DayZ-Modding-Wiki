@@ -1,6 +1,5 @@
 # 第 1.1 章：变量与类型
 
-[首页](../README.md) | **变量与类型** | [下一章：数组、映射与集合 >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -305,8 +304,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // 从其他类型转换
-    string fromInt = "Score: " + 42;     // 不起作用 -- 必须显式转换
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // 起作用 -- + 运算符会将 42 强制转换为 "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42"（显式转换，结果相同）
 
     // 使用 Format 是推荐的方法
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +463,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // 从字符串获取 typename
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // 比较类型
     if (t == PlayerBase)
@@ -873,7 +872,3 @@ posB[1] = 99;             // 只有 posB 改变
 | 作用域 | 变量作用域限于 `{}` 块内；嵌套/兄弟块中不可重新声明 |
 | 转换 | `float` 到 `int` 截断；字符串解析使用 `.ToInt()`、`.ToFloat()`、`.ToVector()` |
 | 格式化 | 始终使用 `string.Format()` 构建混合类型的字符串 |
-
----
-
-[首页](../README.md) | **变量与类型** | [下一章：数组、映射与集合 >>](02-arrays-maps-sets.md)

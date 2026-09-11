@@ -1,6 +1,5 @@
 # 8.3. fejezet: Admin panel modul építése
 
-[Kezdőlap](../README.md) | [<< Előző: Egyedi tárgy készítése](02-custom-item.md) | **Admin panel építése** | [Következő: Chat parancsok hozzáadása >>](04-chat-commands.md)
 
 ---
 
@@ -381,7 +380,7 @@ class AdminDemoPanel extends ScriptedWidgetEventHandler
     }
 
     // -------------------------------------------------------
-    // Meghívódik, amikor megérkezik a szerver válasz (a mission OnRPC-ből)
+    // Meghívódik, amikor megérkezik a szerver válasz (a DayZGame OnRPC kezelőből)
     // -------------------------------------------------------
     void OnPlayerInfoReceived(int playerCount, string playerNames)
     {
@@ -565,24 +564,11 @@ modded class PlayerBase
         // --- Válasz visszaküldése a kérelmező kliensnek ---
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // RPCSingleParam a kérelmező játékos objektumával azt a specifikus kliensnek küldi
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
+        // target = null, így a kliens DayZGame.OnRPC futtatja a saját switch-ét;
+        // a címzett (requestor) a kézbesítést arra az egy kliensre korlátozza.
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
 
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -603,7 +589,7 @@ modded class PlayerBase
 
 ```c
 GetGame().RPCSingleParam(
-    requestorPlayer,                        // Cél objektum (a játékos)
+    null,                                   // Cél objektum (null -> a kliens DayZGame.OnRPC kezeli)
     AdminDemoRPC.RESPONSE_PLAYER_INFO,      // RPC ID
     responseData,                           // Adat payload
     true,                                   // Garantált kézbesítés
@@ -611,7 +597,7 @@ GetGame().RPCSingleParam(
 );
 ```
 
-Az ötödik paraméter `requestor` (egy `PlayerIdentity`) az, ami célzott választ csinál ebből. Enélkül az RPC minden klienshez menne.
+Az ötödik paraméter `requestor` (egy `PlayerIdentity`) az, ami célzott választ csinál ebből. Enélkül az RPC minden klienshez menne. Az első paraméter `null`, mert a választ a kliens `DayZGame.OnRPC` switch-e kezeli -- ha helyette egy cél objektumot adsz át, a motor az adott objektum `OnRPC`-jéhez (a 3 paraméteres formához) továbbítja az RPC-t, és a `DayZGame` switch soha nem fut le.
 
 ---
 
@@ -620,6 +606,8 @@ Az ötödik paraméter `requestor` (egy `PlayerIdentity`) az, ami célzott vála
 Visszatérve a kliens oldalra, el kell fogadnunk a szerver válasz RPC-jét és a panelhez kell irányítanunk.
 
 ### `Scripts/5_Mission/AdminDemo/AdminDemoMission.c` létrehozása
+
+A panel és a billentyűzetes váltása a missionön él, de az RPC választ a `DayZGame` fogadja -- a motor tényleges, mindent elkapó RPC kezelője. Ennek megfelelően két `modded` osztályra bontjuk a fájlt.
 
 ```c
 modded class MissionGameplay
@@ -668,8 +656,19 @@ modded class MissionGameplay
         }
     }
 
+    // A panel közzététele, hogy a DayZGame RPC kezelő elérhesse
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     // -------------------------------------------------------
-    // Szerver RPC-k fogadása a kliens oldalon
+    // Szerver RPC-k fogadása a kliens oldalon.
+    // A DayZGame.OnRPC a motor mindent elkapó kezelője; ezt
+    // a switch-et csak cél nélküli RPC-knél futtatja (target = null).
     // -------------------------------------------------------
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
@@ -700,15 +699,16 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
 
 ### Hogyan működik a kliens oldali RPC fogadás
 
-1. A **`MissionGameplay.OnRPC()`** egy átfogó kezelő a kliens oldalon fogadott RPC-khez. Minden bejövő RPC-re aktiválódik.
+1. A **`DayZGame.OnRPC()`** a motor mindent elkapó kezelője a kliens oldalon fogadott RPC-khez. Minden bejövő RPC-re aktiválódik. A mission osztálynak (`MissionGameplay`) nincs `OnRPC` metódusa, ezért a fogadónak a `DayZGame`-et kell moddolnia. Vedd figyelembe, hogy a `DayZGame.OnRPC` csak akkor futtatja a saját switch-ét, ha az RPC-nek nincs cél objektuma; ha be van állítva cél, a motor helyette a `target.OnRPC(sender, rpc_type, ctx)`-hez továbbítja az RPC-t.
 
 2. A **`ParamsReadContext ctx`** tartalmazza a szerver által küldött szerializált adatokat. A `ctx.Read()` használatával kell deszerializálnod, egyező `Param` típussal.
 
@@ -897,22 +897,8 @@ modded class PlayerBase
 
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -1091,6 +1077,14 @@ modded class MissionGameplay
         }
     }
 
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
@@ -1117,8 +1111,9 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
@@ -1152,7 +1147,7 @@ modded class MissionGameplay
 
 5. [HÁLÓZAT] RPC utazik a szervertől a klienshez
 
-6. [KLIENS] MissionGameplay.OnRPC() aktiválódik
+6. [KLIENS] DayZGame.OnRPC() aktiválódik (a cél null, így a switch-e lefut)
    --> rpc_type egyezik RESPONSE_PLAYER_INFO-val
    --> HandlePlayerInfoResponse(ctx) meghívva
    --> Adatok deszerializálva a ParamsReadContext-ből
@@ -1188,7 +1183,7 @@ Teljes idő: jellemzően 100ms alatt helyi hálózaton.
 
 - **Ellenőrizd a címzett paramétert:** Az `RPCSingleParam` ötödik paraméterének a célkliens `PlayerIdentity`-jének kell lennie.
 - **Ellenőrizd a Param típus egyezést:** A szerver `Param2<int, string>`-et küld, a kliens `Param2<int, string>`-gel olvas. Típus eltérés esetén a `ctx.Read()` sikertelen.
-- **Ellenőrizd a MissionGameplay.OnRPC felülírást:** Győződj meg róla, hogy meghívod a `super.OnRPC()`-t és a metódus aláírás helyes.
+- **Ellenőrizd a DayZGame.OnRPC felülírást:** Győződj meg róla, hogy meghívod a `super.OnRPC()`-t, a metódus aláírás helyes, és a szerver `null` céllal küldte a választ (különben a motor a cél `OnRPC`-jéhez irányítja, és a `DayZGame` switch-e soha nem fut le).
 
 ### A UI megjelenik, de az adatok nem frissülnek
 
@@ -1239,5 +1234,3 @@ Ebben az oktatóanyagban megtanultad:
 - Hogyan regisztráld a panelt a `MissionGameplay`-ben megfelelő életciklus kezeléssel
 
 **Következő:** [8.4. fejezet: Chat parancsok hozzáadása](04-chat-commands.md)
-
----

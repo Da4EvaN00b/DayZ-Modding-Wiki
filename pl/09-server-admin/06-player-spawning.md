@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawn graczy
 
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn pojazdow](05-vehicle-spawning.md) | [Dalej: Trwalosc danych >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## Przeglad cfgplayerspawnpoints.xml
 
-Ten plik znajduje sie w folderze misji (np. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ma dwie sekcje, kazda z wlasnymi parametrami i bablami pozycji:
+Ten plik znajduje sie w folderze misji (np. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ma trzy sekcje, kazda z wlasnymi parametrami i bablami pozycji:
 
 - **`<fresh>`** -- zupelnie nowe postacie (pierwsze zycie lub po smierci)
 - **`<hop>`** -- server hoperzy (gracz mial postac na innym serwerze)
+- **`<travel>`** -- spawny przy podrozy/teleportacji po mapie w grze
 
 ---
 
@@ -77,12 +77,12 @@ Generator tworzy siatke pozycji kandydackich wokol kazdego babla:
 
 | Parametr | Wartosc | Znaczenie |
 |----------|---------|-----------|
-| `grid_density` | 4 | Odstep miedzy punktami siatki w metrach -- nizsza wartosc = wiecej kandydatow, wyzszy koszt CPU |
-| `grid_width` | 200 | Siatka rozciaga sie na 200m na osi X wokol srodka babla |
-| `grid_height` | 200 | Siatka rozciaga sie na 200m na osi Z wokol srodka babla |
+| `grid_density` | 4 | Czestotliwosc probkowania (liczba podzialow) siatki -- wyzsza wartosc = wiecej kandydatow, wyzszy koszt CPU. Odstep miedzy punktami = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Calkowita szerokosc siatki kandydackiej w metrach (wycentrowana na bablu) -- rozciaga sie ~100m na kazda strone na osi X |
+| `grid_height` | 200 | Calkowita wysokosc siatki kandydackiej w metrach (wycentrowana na bablu) -- rozciaga sie ~100m na kazda strone na osi Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Zakres nachylenia terenu w stopniach -- odrzuca klify i strome wzgorza |
 
-Kazdy babel otrzymuje siatke 200x200m z punktem co 4m (~2500 kandydatow). Silnik filtruje po nachyleniu i odleglosci od obiektow statycznych, a nastepnie stosuje `spawn_params` w momencie spawnu.
+Kazdy babel otrzymuje siatke 200x200m z punktami kandydackimi rozlozonymi w odstepach `grid_width` / `grid_density` = 200/4 = 50m (rzedu ~16-25 kandydatow). Silnik filtruje po nachyleniu i odleglosci od obiektow statycznych, a nastepnie stosuje `spawn_params` w momencie spawnu.
 
 #### Parametr `allow_in_water` (1.28+)
 
@@ -111,8 +111,8 @@ Domyślnie silnik odrzuca każdą pozycję kandydacką, która wypada w wodzie (
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@ Domyślnie silnik odrzuca każdą pozycję kandydacką, która wypada w wodzie (
 |----------|---------|-----------|
 | `enablegroups` | true | Bable pozycji sa organizowane w nazwane grupy |
 | `groups_as_regular` | true | Grupy sa traktowane jako zwykle punkty spawnu (kazda grupa moze byc wybrana) |
-| `lifetime` | 240 | Sekundy zanim uzyta pozycja spawnu stanie sie ponownie dostepna |
-| `counter` | -1 | Ile razy punkt spawnu moze byc uzyty. -1 = bez limitu |
+| `lifetime` | 120 | Sekundy, przez ktore grupa spawnu pozostaje aktywna, zanim system przelaczy sie na inna grupe. -1 = wylaczone |
+| `counter` | 2 | Liczba logowan, przez ktore grupa pozostaje aktywna, zanim zostanie zamieniona (na grupe). -1 = wylaczone |
 
-Uzyta pozycja jest zablokowana na 240 sekund, zapobiegajac pojawieniu sie dwoch graczy na sobie.
+`lifetime` kontroluje, jak dlugo grupa spawnu pozostaje aktywna grupa, zanim system przelaczy sie na inna grupe; nie jest to blokada per-pozycja. Odstep miedzy jednoczesnymi spawnami jest wymuszany przez `min_dist_player`.
 
 ---
 
@@ -192,7 +192,7 @@ Spawny hopowe sa bardziej liberalne pod wzgledem odleglosci od graczy i uzywaja 
 
 <!-- Roznice group_params hopowych -->
 <enablegroups>false</enablegroups>        <!-- swieze: true -->
-<lifetime>360</lifetime>                  <!-- swieze: 240 -->
+<lifetime>360</lifetime>                  <!-- swieze: 120 -->
 ```
 
 Grupy hopowe sa rozlozone **w glab ladu**: Balota (6), Cherno (5), Pusta (5), Kamyszowo (4), Solnieczny (5), Nizhnoe (6), Berezino (5), Olsha (4), Swietlojarsk (5), Dobroye (5). Przy `enablegroups=false` silnik traktuje wszystkie 50 pozycji jako plaska pule.
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Co to daje kazdemu graczowi: **BandageDressing** (pasek 3), losowy **Chemlight** (pasek 2), losowy owoc -- 35% Apple, 30% Plum, 35% Pear (pasek 1). `SetRandomHealth` ustawia 45-65% stanu na wszystkich przedmiotach.
+Co to daje kazdemu graczowi: **BandageDressing** (pasek 2), losowy **Chemlight** (pasek 1), losowy owoc -- 35% Apple, 30% Plum, 35% Pear (pasek 3). `SetRandomHealth` ustawia 45-65% stanu na wszystkich przedmiotach.
 
 ### Dodawanie niestandardowego ekwipunku startowego
 
@@ -279,7 +279,7 @@ Kroki:
 4. Uzyj `x` dla wschod-zachod i `z` dla polnoc-poludnie -- silnik oblicza Y (wysokosc) z terenu
 5. Zrestartuj serwer -- czyszczenie trwalosci nie jest wymagane
 
-Dla zrownowazonych spawnow zachowaj co najmniej 4 pozycje na grupe, aby 240-sekundowa blokada nie zablokowala wszystkich pozycji, gdy wielu graczy zginie jednoczesnie.
+Dla zrownowazonych spawnow zachowaj co najmniej 4 pozycje na grupe, aby pojedyncza grupa miala wystarczajacy rozrzut, by spelnic `min_dist_player`, gdy wielu graczy zginie jednoczesnie.
 
 ---
 
@@ -291,7 +291,7 @@ Pomyliles `z` (polnoc-poludnie) z Y (wysokosc) lub uzyles wspolrzednych spoza za
 
 ### Zbyt malo punktow spawnu
 
-Przy zaledwie 2-3 pozycjach 240-sekundowa blokada powoduje skupianie sie. Vanilla uzywa 49 swiezych pozycji w 11 grupach. Cel to co najmniej 20 pozycji w 4+ grupach.
+Przy zaledwie 2-3 pozycjach aktywna grupa nie moze rozproszyc graczy i dochodzi do skupiania sie. Vanilla uzywa 49 swiezych pozycji w 11 grupach. Cel to co najmniej 20 pozycji w 4+ grupach.
 
 ### Zapomnienie o sekcji hop
 
@@ -303,8 +303,4 @@ Generator odrzuca nachylenia powyzej 45 stopni. Jesli wszystkie niestandardowe p
 
 ### Gracze zawsze pojawiaja sie w tym samym miejscu
 
-Grupy z 1-2 pozycjami sa blokowane przez 240-sekundowy czas odnowienia. Dodaj wiecej pozycji na grupe.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Spawn pojazdow](05-vehicle-spawning.md) | [Dalej: Trwalosc danych >>](07-persistence.md)
+Grupy z 1-2 pozycjami maja zbyt malo kandydatow, aby silnik mogl zroznicowac wybrana pozycje. Dodaj wiecej pozycji na grupe.

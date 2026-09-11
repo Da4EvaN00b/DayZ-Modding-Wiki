@@ -1,6 +1,5 @@
 # Chapter 1.4: Modded Classes (The Key to DayZ Modding)
 
-[Home](../README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)
 
 ---
 
@@ -533,25 +532,27 @@ modded class CarScript
 
 ## `#ifdef` Guards for Opzionale Dependencies
 
-When your mod optionally supports another mod, use preprocessor guards. If the other mod defines a symbol in its `config.cpp` (via `CfgPatches`), you can check for it at compile time.
+When your mod optionally supports another mod, use preprocessor guards. If the other mod declares a symbol in its `config.cpp` (via the `defines[]` array in `CfgMods`), you can check for it at compile time.
 
 ### How It Works
 
-Every mod's `CfgPatches` class name becomes a preprocessor symbol. Per esempio, if a mod has:
+A mod declares its preprocessor symbols explicitly through the `defines[]` array inside its `CfgMods` entry. Per esempio, if a mod has:
 
 ```cpp
-class CfgPatches
+class CfgMods
 {
-    class MyAI_Scripts
+    class MyMod_AI
     {
+        type = "mod";
+        defines[] = { "MYMOD_AI" };
         // ...
     };
 };
 ```
 
-Then `#ifdef MyAI_Scripts` will be `true` when that mod is loaded.
+Then `#ifdef MYMOD_AI` will be `true` when that mod is loaded.
 
-Many mods also define explicit symbols. The convention varies --- check the mod's documentation or `config.cpp`.
+Note that `CfgPatches` class names register a mod's addon content but do **not** create `#ifdef` symbols --- only `defines[]` does. The symbol names are chosen by the mod author and need not match any class name, so the convention varies --- check the mod's documentation or `config.cpp`.
 
 ### Basic Pattern
 
@@ -1118,7 +1119,3 @@ Create a `modded class PlayerBase` that adds a reputation system. When a player 
 1. **Sempre call `super`** --- unless you have a documented reason not to
 2. **Guard opzionale dependencies with `#ifdef`** --- your mod should work standalone
 3. **Prefix your fields and methods** --- evita name collisions with other mods
-
----
-
-[Home](../../it/README.md) | [<< Previous: Classes & Inheritance](03-classes-inheritance.md) | **Modded Classes** | [Next: Control Flow >>](05-control-flow.md)

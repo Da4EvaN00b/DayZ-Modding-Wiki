@@ -1,6 +1,5 @@
 # Chapter 6.19: Terrain & World Queries
 
-[Home](../README.md) | [<< Previous: Animation System](18-animation-system.md) | **Terrain & World Queries** | [Next: Particle & Effect System >>](20-particle-effects.md)
 
 ---
 
@@ -269,8 +268,8 @@ Zwraca the water depth at a world-space position. Zwraca 0 or negative if the po
 ### Water Surface Height
 
 ```c
-proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS); // Without visual wave offset
-proto native float GetWaterSurfaceHeight(vector posWS);           // With visual wave offset
+proto native float GetWaterSurfaceHeightNoFakeWave(vector posWS);   // Without visual wave offset
+proto native float GetWaterSurfaceHeightWithFakeWave(vector posWS); // With visual wave offset
 ```
 
 ---
@@ -864,7 +863,7 @@ The `WorldData` class holds environment configuration for the current map: tempe
 
 ```c
 // Access current WorldData (only available in 4_World and above)
-WorldData worldData = g_Game.GetWorldData(); // if available
+WorldData worldData = g_Game.GetMission().GetWorldData(); // if available
 ```
 
 Key properties include monthly min/max temperatures, sunrise/sunset hours, and weather probability settings. These are set in the `Init()` method per map:
@@ -1096,12 +1095,8 @@ const static PhxInteractionLayers MELEE_TARGET_OBSTRUCTION_LAYERS =
 | `SurfaceGetNormal` + `VectorToAngles` for terrain-aligned placement | Vanilla | `4_World/classes/hologram.c` |
 | `RaycastRV` with `ObjIntersectIFire` for rangefinder measurement | Vanilla | `4_World/entities/itembase/rangefinder.c` |
 | `RaycastRVProxy` with `ALLOBJECTS` for action cursor targeting | Vanilla | `4_World/classes/useractionscomponent/actiontargets.c` |
-| `RayCastBullet` with combined `PhxInteractionLayers` for teleport | Vanilla | `4_World/plugins/plugindeveloper/developerteleport.c` |
-| `SphereCastBullet` with small radius for precise hit detection | Vanilla | `4_World/plugins/plugindeveloper/developerteleport.c` |
+| `RayCastBullet` with combined `PhxInteractionLayers` for teleport | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
+| `SphereCastBullet` with small radius for precise hit detection | Vanilla | `4_World/plugins/pluginbase/plugindeveloper/developerteleport.c` |
 | `GetObjectsAtPosition` with `null` proxyCargo for area kill zones | Vanilla | `4_World/classes/contaminatedarea/geyserarea.c` |
 | `IsObjectObstructedCache` to batch raycast calls per frame | Vanilla | `4_World/static/miscgameplayfunctions.c` |
 | Combined `PhxInteractionLayers` bitmask for melee obstruction | Vanilla | `4_World/classes/meleetargeting.c` |
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Animation System](18-animation-system.md) | **Terrain & World Queries**

@@ -1,6 +1,5 @@
 # Rozdział 5.1: stringtable.csv --- Lokalizacja
 
-[Strona główna](../README.md) | **stringtable.csv** | [Następny: inputs.xml >>](02-inputs-xml.md)
 
 ---
 
@@ -372,14 +371,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP używa zredukowanego zestawu kolumn (13 kolumn, bez kolumny `hungarian`) i nie poprzedza kluczy prefiksem `STR_`:
+VPP używa zredukowanego zestawu kolumn (14 kolumn, bez kolumny `hungarian`) i nie poprzedza kluczy prefiksem `STR_`:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-To demonstruje, że prefiks `STR_` jest konwencją, nie wymogiem. Jednak jego pominięcie oznacza, że nie możesz używać rozwiązywania prefiksu `#` w plikach layoutów. VPP odwołuje się do tych kluczy tylko przez kod skryptu. Prefiks `STR_` jest mocno zalecany dla wszystkich nowych modów.
+To demonstruje, że prefiks `STR_` jest konwencją, nie wymogiem. Rozwiązywanie prefiksu `#` w plikach layoutów działa z dowolnym kluczem w stringtable --- nie zależy od prefiksu `STR_`. VPP odwołuje się do tych kluczy przez atrybut `loc` w swoim inputs.xml (np. `loc="vpp_focus_on_game"`), a także przez kod skryptu. Prefiks `STR_` jest wciąż mocno zalecany dla wszystkich nowych modów.
 
 ### MyMod Missions
 

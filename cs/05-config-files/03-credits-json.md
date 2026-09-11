@@ -1,6 +1,5 @@
 # Kapitola 5.3: Credits.json
 
-[Domů](../README.md) | [<< Předchozí: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Další: Formát ImageSet >>](04-imagesets.md)
 
 ---
 
@@ -23,9 +22,9 @@
 
 ## Přehled
 
-Když hráč vybere váš mod v launcheru DayZ nebo v herním menu modů, engine hledá soubor `Credits.json` uvnitř PBO vašeho modu. Pokud je nalezen, titulky se zobrazí v rolujícím zobrazení uspořádaném do oddělení a sekcí --- podobně jako filmové titulky.
+Když si hráč prohlíží titulky vašeho modu, engine načte soubor, jehož cestu deklarujete v klíči `creditsJson` vašeho bloku `CfgMods` v `config.cpp` (například `creditsJson = "MyMod/Scripts/Data/Credits.json";`). Titulky se poté zobrazí v rolujícím zobrazení uspořádaném do oddělení a sekcí --- podobně jako filmové titulky.
 
-Soubor je volitelný. Pokud chybí, pro váš mod se žádná sekce titulků nezobrazí. Nicméně jeho zahrnutí je dobrým postupem: oceňuje práci vašeho týmu a dodává modu profesionální vzhled.
+Soubor je volitelný. Pokud nedeklarujete klíč `creditsJson`, soubor se nikdy nenačte a pro váš mod se žádné titulky nezobrazí. Nicméně jeho zahrnutí je dobrým postupem: oceňuje práci vašeho týmu a dodává modu profesionální vzhled.
 
 ---
 
@@ -43,7 +42,7 @@ Umístěte `Credits.json` do podsložky `Data` vašeho adresáře Scripts, nebo 
         Credits.json         <-- Také platné (DabsFramework, Colorful-UI)
 ```
 
-Obě umístění fungují. Engine prohledává obsah PBO a hledá soubor pojmenovaný přesně `Credits.json` (na některých platformách záleží na velikosti písmen).
+Soubor může být umístěn kdekoli v PBO. Důležité je, aby hodnota `creditsJson` ve vašem bloku `CfgMods` ukazovala na jeho přesnou cestu (na některých platformách záleží na velikosti písmen).
 
 ---
 
@@ -53,14 +52,13 @@ Soubor používá přímočarou strukturu JSON se třemi úrovněmi hierarchie:
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -72,8 +70,9 @@ Soubor používá přímočarou strukturu JSON se třemi úrovněmi hierarchie:
 
 | Pole | Typ | Povinné | Popis |
 |------|-----|---------|-------|
-| `Header` | string | Ne | Hlavní nadpis zobrazený na vrcholu titulků. Pokud je vynechán, žádný nadpis se nezobrazí. |
 | `Departments` | array | Ano | Pole objektů oddělení |
+
+Vanilní parser (`JsonDataCredits`) rozpoznává pouze pole `Departments`. Neexistuje žádné pole `Header` nejvyšší úrovně --- jakýkoli klíč `Header`, který přidáte, je tiše ignorován. Chcete-li zobrazit nadpis na vrcholu titulků, použijte místo toho první `DepartmentName`.
 
 ### Objekt oddělení
 
@@ -84,23 +83,12 @@ Soubor používá přímočarou strukturu JSON se třemi úrovněmi hierarchie:
 
 ### Objekt sekce
 
-V praxi existují dvě varianty pro výpis jmen. Engine podporuje obě.
-
-**Varianta 1: Pole `Names`** (používá MyMod Core)
-
-| Pole | Typ | Povinné | Popis |
-|------|-----|---------|-------|
-| `SectionName` | string | Ano | Podnadpis v rámci oddělení |
-| `Names` | pole řetězců | Ano | Seznam jmen přispěvatelů |
-
-**Varianta 2: Pole `SectionLines`** (používají COT, Expansion, DabsFramework)
-
 | Pole | Typ | Povinné | Popis |
 |------|-----|---------|-------|
 | `SectionName` | string | Ano | Podnadpis v rámci oddělení |
 | `SectionLines` | pole řetězců | Ano | Seznam jmen přispěvatelů nebo textových řádků |
 
-Obě pole `Names` i `SectionLines` slouží ke stejnému účelu. Použijte to, které preferujete --- engine je vykresluje identicky.
+Vanilní třída sekce (`JsonDataCreditsSection`) rozpoznává pouze `SectionName` a `SectionLines`. Můžete vidět, že některé mody používají klíč `Names`, ale engine ho nikdy nečte --- pole `Names` je tiše ignorováno a nevykreslí nic. Pro seznam jmen vždy používejte `SectionLines`.
 
 ---
 
@@ -110,12 +98,10 @@ Zobrazení titulků sleduje tuto vizuální hierarchii:
 
 ```
 ╔══════════════════════════════════╗
-║         MY MOD NAME              ║  <-- Header (velký, centrovaný)
-║                                  ║
 ║     DEPARTMENT NAME              ║  <-- DepartmentName (střední, centrovaný)
 ║                                  ║
 ║     Section Name                 ║  <-- SectionName (malý, centrovaný)
-║     Person 1                     ║  <-- Names/SectionLines (seznam)
+║     Person 1                     ║  <-- SectionLines (seznam)
 ║     Person 2                     ║
 ║     Person 3                     ║
 ║                                  ║
@@ -128,10 +114,9 @@ Zobrazení titulků sleduje tuto vizuální hierarchii:
 ╚══════════════════════════════════╝
 ```
 
-- `Header` se zobrazí jednou na vrcholu
 - Každý `DepartmentName` funguje jako hlavní oddělovač sekcí
 - Každý `SectionName` funguje jako podnadpis
-- Jména se rolují vertikálně v zobrazení titulků
+- `SectionLines` se rolují vertikálně v zobrazení titulků
 
 ### Prázdné řetězce pro odsazení
 
@@ -181,14 +166,13 @@ Názvy oddělení mohou také používat reference na stringtable:
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -200,22 +184,21 @@ Názvy oddělení mohou také používat reference na stringtable:
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -231,26 +214,25 @@ Názvy oddělení mohou také používat reference na stringtable:
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +241,7 @@ Názvy oddělení mohou také používat reference na stringtable:
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -267,7 +249,7 @@ Názvy oddělení mohou také používat reference na stringtable:
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +258,7 @@ Názvy oddělení mohou také používat reference na stringtable:
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +275,17 @@ Názvy oddělení mohou také používat reference na stringtable:
 
 ### MyMod Core
 
-Minimální, ale úplný soubor titulků používající variantu `Names`:
+Minimální, ale úplný soubor titulků:
 
 ```json
 {
-    "Header": "MyMod Core",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyMod Core",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["Documentation Team"]
+                    "SectionLines": ["Documentation Team"]
                 }
             ]
         }
@@ -355,7 +336,7 @@ Používá variantu `SectionLines` s více sekcemi a poděkováními:
 }
 ```
 
-Pozoruhodné: COT zcela vynechává pole `Header`. Název modu pochází z jiných metadat (config.cpp `CfgMods`).
+Pozoruhodné: COT používá jako svůj nadpis první `DepartmentName` ("Community Online Tools"). Název modu pochází také z jiných metadat (config.cpp `CfgMods`).
 
 ### DabsFramework
 
@@ -413,19 +394,18 @@ Před distribucí použijte validátor JSON.
 
 Soubor musí být pojmenován přesně `Credits.json` (velké C). Na souborových systémech citlivých na velikost písmen nebude `credits.json` ani `CREDITS.JSON` nalezen.
 
-### Míchání Names a SectionLines
+### Použití klíče `Names`
 
-V rámci jedné sekce použijte jedno nebo druhé:
+Některé mody zapisují pole `Names`, ale engine ho nikdy nečte. Parsuje se pouze `SectionLines`:
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-Toto je nejednoznačné. Zvolte si jeden formát a používejte ho konzistentně v celém souboru.
+V tomto příkladu se "Dev1" ve hře nikdy neobjeví --- sekce se vykreslí prázdná. Přispěvatele vždy uvádějte pod `SectionLines`.
 
 ### Problémy s kódováním
 
@@ -436,9 +416,9 @@ Uložte soubor jako UTF-8. Znaky mimo ASCII (jména s diakritikou, znaky CJK) vy
 ## Osvědčené postupy
 
 - Před zabalením do PBO ověřte svůj JSON externím nástrojem --- engine neposkytuje žádnou užitečnou chybovou zprávu pro nesprávně formátovaný JSON.
-- Pro konzistenci používejte variantu `SectionLines`, protože je to formát používaný modly COT, Expansion a DabsFramework.
+- Pro každý seznam jmen používejte `SectionLines`. Je to jediné pole, které engine čte, a je to formát používaný modly COT, Expansion a DabsFramework.
 - Zahrňte oddělení "Legal Notices", pokud váš mod obsahuje assety třetích stran (fonty, ikony, zvuky) s požadavky na uvedení autora.
-- Udržujte pole `Header` shodné s `name` vašeho modu v `mod.cpp` a `config.cpp` pro konzistentní identitu.
+- Použijte první `DepartmentName` jako nadpis shodný s `name` vašeho modu v `mod.cpp` a `config.cpp` pro konzistentní identitu.
 - Prázdné řetězce `DepartmentName` a `SectionName` používejte střídmě pro vizuální odsazení --- nadměrné použití způsobí fragmentovaný vzhled titulků.
 
 ---

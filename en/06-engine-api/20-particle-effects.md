@@ -1,21 +1,20 @@
-# Chapter 6.20: Particle & Effect System
+# Particle & Effect System
 
-[Home](../README.md) | [<< Previous: Terrain & World Queries](19-terrain-queries.md) | **Particle & Effect System** | [Next: Zombie & AI System >>](21-zombie-ai-system.md)
 
 ---
 
 ## Introduction
 
-DayZ's particle and visual effects system handles fire, smoke, blood, explosions, weather effects, vehicle exhaust, contaminated area gas, and more. Every visual effect you see in the game world --- from a campfire to a bullet impact crater --- is driven by this system.
+DayZ's particle and visual effects system handles fire, smoke, blood, explosions, weather effects, vehicle exhaust, contaminated area gas, and more. Particles provide many of these visuals; lights, materials and post-processing are separate systems.
 
 There are **two layers** for working with particles from script:
 
 1. **Low-level:** The `Particle` / `ParticleSource` classes and `ParticleManager` --- direct control over engine particle objects.
 2. **High-level:** The `EffectParticle` wrapper and `SEffectManager` --- lifecycle-managed effects with events, autodestroy, and integration with the unified Effect system (shared with `EffectSound`).
 
-All particle playback is **client-side only**. Dedicated servers have no rendering pipeline and cannot display particles. Always guard particle creation behind `!GetGame().IsDedicatedServer()` or rely on the built-in guards in the API. The `ParticleManager.GetInstance()` method already returns `null` on dedicated servers.
+Render particles on a client or a local host with rendering, not a dedicated server. Dedicated servers have no rendering pipeline and cannot display particles. Always guard particle creation behind `!GetGame().IsDedicatedServer()` or rely on the built-in guards in the API. The `ParticleManager.GetInstance()` method already returns `null` on dedicated servers.
 
-This chapter covers the complete particle pipeline: the `ParticleList` registry, both creation approaches, the `EmitorParam` system for runtime tuning, the `EffectParticle` wrapper, `SEffectManager` integration, and real-world patterns from vanilla code.
+This chapter covers the main script-facing particle pipeline: the `ParticleList` registry, both creation approaches, the `EmitorParam` system for runtime tuning, the `EffectParticle` wrapper, `SEffectManager` integration, and real-world patterns from vanilla code.
 
 ---
 
@@ -66,13 +65,13 @@ Static int IDs                               EffectParticle
   (native engine particle component)  (child Object with vobject)
       |
       v
-  .ptc file (binary particle definition)
+  .ptc file (particle definition asset)
 ```
 
 **Key distinction:**
 
 - **`Particle`** (legacy) creates a separate child `Object` to hold the particle effect. Each instance registers for `EOnFrame` to track lifetime. Suitable for simple, infrequent particles.
-- **`ParticleSource`** (modern, via `ParticleManager`) is the particle entity itself, with native C++ lifetime management. Uses a pre-allocated pool of 10,000 slots. Preferred for all new code.
+- **`ParticleSource`** (modern, via `ParticleManager`) is the particle entity itself, with native C++ lifetime management. The global manager normally reserves 10,000 slots (1 under `BULDOZER`); custom manager settings can differ. Prefer the manager for new pooled effects.
 
 ---
 
@@ -197,10 +196,12 @@ Materials include: `WOOD`, `CONCRETE`, `DIRT`, `METAL`, `GLASS`, `SAND`, `SNOW`,
 
 ### Method 1: ParticleManager (Recommended)
 
+Usage fragments assume a rendering context, a valid manager, valid parent objects and supplied positions. Check returned particles before using them. API/declaration excerpts describe existing vanilla classes; do not redeclare them in your mod.
+
 `ParticleManager` uses a pre-allocated pool of `ParticleSource` entities. This avoids the overhead of creating and destroying objects at runtime.
 
 ```c
-// Get the global ParticleManager singleton (returns null on server)
+// Get the global ParticleManager singleton (returns null on a dedicated server)
 ParticleManager pm = ParticleManager.GetInstance();
 if (!pm)
     return;
@@ -211,7 +212,7 @@ ParticleSource p = pm.PlayOnObject(
     myObject,                        // parent entity
     "0 0.5 0",                       // local offset from parent origin
     "0 0 0",                         // local orientation (yaw, pitch, roll)
-    false                            // force world-space rotation
+    false                            // keep rotation relative to parent
 );
 
 // Play a particle at a world position (no parent)
@@ -220,28 +221,28 @@ ParticleSource p2 = pm.PlayInWorld(
     worldPosition
 );
 
-// Extended variant with parent for world-position particles
+// Extended variant with explicit orientation and no parent
 ParticleSource p3 = pm.PlayInWorldEx(
     ParticleList.EXPLOSION_LANDMINE,
-    parentObj,              // optional parent
+    null,                   // no parent: position is world-space
     worldPosition,
     "0 0 0",                // orientation
-    true                     // force world rotation
+    true                     // irrelevant without a parent
 );
 ```
 
 **Create without playing** (deferred activation):
 
 ```c
-// Create but don't play yet
-ParticleSource p = pm.CreateOnObject(
+// In the owning class: retain ownership until delayed playback is finished.
+ParticleSource p = pm.CreateParticle(
     ParticleList.POWER_GENERATOR_SMOKE,
-    generatorObj,
-    "0 1.2 0"
+    "0 1.2 0", false, generatorObj, vector.Zero, false, this
 );
 
-// ... later, start it
-p.PlayParticle();
+// ... later, if creation succeeded, start it
+if (p)
+    p.PlayParticle();
 ```
 
 **Batch creation** (multiple particles at once):
@@ -253,7 +254,7 @@ ParticleProperties props = new ParticleProperties(
     ParticlePropertiesFlags.PLAY_ON_CREATION,
     null,         // no parent
     vector.Zero,  // orientation
-    this          // owner (prevents pool reuse while alive)
+    this          // owner (prevents reuse while alive, unless flagged; fill in only when the owner reuses the stored particle)
 );
 
 pm.CreateParticles(results, "graphics/particles/debug_dot.ptc", {props}, 10);
@@ -295,6 +296,8 @@ p3.PlayParticle();
 
 ### Stopping
 
+Treat the calls below as alternatives on a valid particle. For pooled particles, a stopped source can become available for reuse; do not keep controlling an old handle after releasing it. Use an owner when you deliberately retain a pooled source for restart.
+
 ```c
 // Gradual fade (default) -- particle stops emitting, existing particles finish
 p.StopParticle();
@@ -314,7 +317,7 @@ p.StopParticle(StopParticleFlags.RESET);
 
 ### Auto-Destroy Behavior
 
-`ParticleSource` auto-destroys by default when the particle ends or stops:
+Standalone `ParticleSource` instances auto-destroy by default when they end or stop. The following flag methods require a `ParticleSource` reference:
 
 ```c
 // Check current flags
@@ -401,14 +404,14 @@ Every particle effect contains one or more **emitters** (also spelled "emitors" 
 | `GRAVITY_SCALE_RND` | float | Random gravity variation |
 | `BIRTH_RATE` | float | Particle spawn rate |
 | `BIRTH_RATE_RND` | float | Random spawn rate variation |
-| `LIFETIME` | float | Emitter active duration |
+| `LIFETIME` | float | Lifetime of emitted particles |
 | `LIFETIME_RND` | float | Random lifetime variation |
 | `LIFETIME_BY_ANIM` | bool | Tie lifetime to animation |
 | `ANIM_ONCE` | bool | Play animation once |
 | `RAND_FRAME` | bool | Start on random frame |
 | `EFFECT_TIME` | float | Total effect time for emitter |
 | `REPEAT` | bool | Loop the emitter |
-| `CURRENT_TIME` | float | Current emitter time (read) |
+| `CURRENT_TIME` | float | Current emitter time (read/write) |
 | `ACTIVE_PARTICLES` | int | Active particle count (read-only) |
 | `SORT` | bool | Sort particles by distance |
 | `WIND` | bool | Affected by wind |
@@ -459,7 +462,7 @@ p.IncrementParticleParam(EmitorParam.GRAVITY_SCALE, -0.5);  // reduce current gr
 
 ### Low-Level Engine Functions
 
-These are the raw proto functions that all the above methods call internally:
+These are the raw proto functions used by the wrappers. Pass the entity that carries the particle component: a `ParticleSource` carries it on itself, while legacy `Particle` uses a separate internal child object. The scalar wrapper methods above take floats; use the native parameter API with the appropriate type for vector-valued parameters.
 
 ```c
 // Get emitter count
@@ -488,11 +491,11 @@ p.SetWiggle(15.0, 0.5);
 // Check if wiggling
 bool wiggling = p.IsWiggling();
 
-// Stop wiggling (restores original orientation)
+// Stop wiggling (ParticleSource also restores its cached pre-wiggle orientation)
 p.StopWiggle();
 ```
 
-**Note:** On legacy `Particle`, wiggle only works when the particle has a parent. On `ParticleSource`, it works in all cases.
+**Note:** On legacy `Particle`, wiggle only works when the particle has a parent. `ParticleSource` implements both parented and unparented orientation updates.
 
 ---
 
@@ -591,11 +594,13 @@ When `Start()` is called on an `EffectParticle`:
 
 When `Stop()` is called:
 
-1. The managed `Particle` is stopped and released (`SetParticle(null)`).
-2. The `Event_OnStopped` invoker fires.
-3. If `IsAutodestroy()` is true, the Effect queues itself for deletion.
+1. The managed particle receives `Stop()` and the wrapper clears it with `SetParticle(null)`.
+2. The base `Effect.Stop()` invokes `Event_OnStopped` only if `IsPlaying()` is still true.
+3. `EffectParticle` binds the particle's stop event to `Event_OnEffectEnded()`, which clears the playing flag and requests destruction when autodestroy is enabled. Do not depend on both stop invokers firing in a fixed order.
 
 ### Attaching EffectParticle to Objects
+
+Use these as alternative attachment patterns. Do not restart an already playing wrapper merely to change its parent; use `AttachTo()` for the live particle.
 
 ```c
 EffectParticle eff = new BleedingSourceEffect();
@@ -624,7 +629,7 @@ eff.SetAutodestroy(true);
 // Option 2: Manual destruction
 SEffectManager.DestroyEffect(eff);
 
-// Option 3: Stop by registered ID
+// Option 3: Stop by registered ID (does not unregister unless autodestroy is set)
 SEffectManager.Stop(effectID);
 ```
 
@@ -655,8 +660,9 @@ int id = SEffectManager.PlayInWorld(eff, pos);
 
 // Later, to fully clean up:
 SEffectManager.DestroyEffect(eff);
-// or
-SEffectManager.EffectUnregister(id);
+// To unregister without destroying, stop first and retain responsibility for eff:
+// eff.Stop();
+// SEffectManager.EffectUnregister(id);
 ```
 
 ### Server-Side Particle Effecters
@@ -710,7 +716,8 @@ ParticleProperties props = new ParticleProperties(
 ### Campfire / Fireplace Effect
 
 ```c
-class MyFireplace
+// Illustrative ItemBase subclass; supply a model with these memory points.
+class MyFireplace : ItemBase
 {
     protected Particle m_FireParticle;
     protected Particle m_SmokeParticle;
@@ -723,6 +730,9 @@ class MyFireplace
         ParticleManager pm = ParticleManager.GetInstance();
         if (!pm)
             return;
+
+        // Prevent repeated starts from abandoning previously playing particles.
+        StopFire();
 
         // Play fire at a memory point
         m_FireParticle = pm.PlayOnObject(
@@ -750,6 +760,14 @@ class MyFireplace
 
         if (m_SmokeParticle)
             m_SmokeParticle.StopParticle();
+
+        m_FireParticle = null;
+        m_SmokeParticle = null;
+    }
+
+    void ~MyFireplace()
+    {
+        StopFire();
     }
 }
 ```
@@ -759,6 +777,9 @@ class MyFireplace
 ```c
 void OnPlayerHit(vector hitPosition)
 {
+    if (GetGame().IsDedicatedServer())
+        return;
+
     BloodSplatter eff = new BloodSplatter();  // extends EffectParticle
     eff.SetAutodestroy(true);
     SEffectManager.PlayInWorld(eff, hitPosition);
@@ -768,6 +789,7 @@ void OnPlayerHit(vector hitPosition)
 ### Bleeding Source Attached to Player
 
 ```c
+// Existing vanilla class, shown for reference; use it without redeclaring it.
 class BleedingSourceEffect : EffectParticle
 {
     void BleedingSourceEffect()
@@ -803,6 +825,8 @@ void UpdateExhaust()
 void CleanupExhaust()
 {
     SEffectManager.DestroyEffect(m_exhaustFx);
+    m_exhaustFx = null;
+    m_exhaustPtcFx = -1;
 }
 ```
 
@@ -810,14 +834,12 @@ void CleanupExhaust()
 
 ```c
 // From vanilla wreck_uh1y.c
-class Wreck_UH1Y extends Wreck
+// m_ParticleEfx is declared in the parent class CrashBase
+class Wreck_UH1Y extends CrashBase
 {
-    protected Particle m_ParticleEfx;
-
-    override void EEInit()
+    void Wreck_UH1Y()
     {
-        super.EEInit();
-        if (!GetGame().IsDedicatedServer())
+        if (!g_Game.IsDedicatedServer())
         {
             m_ParticleEfx = ParticleManager.GetInstance().PlayOnObject(
                 ParticleList.SMOKING_HELI_WRECK,
@@ -867,7 +889,7 @@ graphics/particles/mymod/custom_smoke.ptc
 
 ### Particle File Format
 
-`.ptc` files are binary particle definitions created with the **Enfusion Workbench Particle Editor**. They define emitters, textures, blend modes, velocities, colors, and all visual properties. These files cannot be authored from script alone --- they require the toolchain.
+`.ptc` files are particle definition assets. Source files can be readable text: every `.ptc` file in the extracted `graphics/particles/` tree begins with an `EffectDef` block -- **282** files across the full tree (215 directly under `graphics/particles/`, 64 under `impacts/`, 3 under `vehicles/boat/`), all 282 verified -- e.g. vanilla `graphics/particles/debug_dot.ptc`, which contains `EffectDef` and `EmitorDef` blocks with material, lifetime, color and emission settings. This reflects one extraction snapshot, not a release label. Author the asset with compatible DayZ tools and resources; `ParticleList` registration only supplies a path and does not create the asset.
 
 ### Lookup Methods
 
@@ -876,21 +898,22 @@ graphics/particles/mymod/custom_smoke.ptc
 string path = ParticleList.GetParticlePath(particleID);       // without .ptc
 string fullPath = ParticleList.GetParticleFullPath(particleID); // with .ptc
 
-// Get ID from path (without .ptc, without root)
+// Get ID from the complete registered path (including root, without .ptc)
 int id = ParticleList.GetParticleID("graphics/particles/mymod/custom_smoke");
 
-// Get ID by filename only (must be unique across all mods)
-int id2 = ParticleList.GetParticleIDByName("custom_smoke");
+// Get ID by the exact file_name argument used during registration.
+// The one-argument registration above uses "mymod/custom_smoke" as that key.
+int id2 = ParticleList.GetParticleIDByName("mymod/custom_smoke");
 
-// Validate an ID
-bool valid = ParticleList.IsValidId(id);  // not NONE and not INVALID
+// Check the two reserved sentinel values; this does NOT prove registration.
+bool valid = ParticleList.IsValidId(id);  // only rejects NONE and INVALID
 ```
 
 ---
 
 ## ParticleBase Events
 
-Both `Particle` and `ParticleSource` inherit from `ParticleBase`, which provides an event system via `ParticleEvents`:
+`ParticleSource` inherits from `Particle`, which inherits from `ParticleBase`; the base provides an event system via `ParticleEvents`:
 
 ```c
 ParticleEvents events = myParticle.GetEvents();
@@ -913,25 +936,21 @@ void OnMyParticleStarted(ParticleBase particle)
 ```
 
 **Difference between Stop and End:**
-- `OnParticleStop` fires when `StopParticle()` is called or the particle naturally finishes.
+- `OnParticleStop` fires on legacy stop/lifetime expiry. For `ParticleSource`, it fires after a successful native stop, at natural end, or when a playing source is destroyed.
 - `OnParticleEnd` fires only when the particle fully ends (no active particles remain). Looping particles never fire this naturally.
 
 ---
 
-## Observed in Real Mods
+## Observed in Vanilla Code
 
-Patterns seen in vanilla DayZ and community mods:
+Concrete vanilla examples illustrate several choices:
 
-1. **ParticleManager is dominant.** Nearly all vanilla 4_World code uses `ParticleManager.GetInstance().PlayOnObject()/PlayInWorld()` rather than `Particle.PlayOnObject()`. The pool-based approach is the standard.
+- `Wreck_UH1Y` creates pooled smoke at a fixed local offset.
+- `BleedingSourceEffect` only chooses a particle ID, while `EffExhaustSmoke` also tunes lifetime and birth rate from vehicle speed.
+- `CarScript` stores effect references/IDs and explicitly destroys its exhaust and coolant effects during cleanup.
+- `EffectArea` retains particles for zone-wide management.
 
-2. **EffectParticle subclasses are thin.** Most subclasses consist of a constructor that calls `SetParticleID()` and nothing else. Complex behavior (state changes, parameter tuning) happens in the owning class, not in the effect.
-
-3. **Vehicle effects use SEffectManager.** Cars and boats play particles through `SEffectManager.PlayOnObject()` with `EffectParticle` subclasses, storing both the effect ref and the returned ID.
-
-4. **Cleanup is explicit.** Vanilla code always calls `SEffectManager.DestroyEffect()` in destructors and cleanup methods. Relying solely on autodestroy is rare in entity-owned effects.
-
-5. **Memory points for attachment.** Object particles are almost always positioned at named memory points (`GetMemoryPointPos("fire_point")`) rather than hardcoded offsets.
-
+These examples show useful patterns, not a requirement that every effect use the same wrapper or attachment strategy.
 ---
 
 ## Theory vs Practice
@@ -940,7 +959,7 @@ Patterns seen in vanilla DayZ and community mods:
 |----------------------|-------------------|
 | `Particle.CreateOnObject()` and `ParticleManager.CreateOnObject()` both exist | `ParticleManager` version is preferred; legacy `Particle` version creates per-instance entities |
 | `ParticleAutoDestroyFlags` controls particle lifetime | Ignored for particles managed by a `ParticleManager` pool --- the pool handles lifecycle |
-| `ResetParticle()` and `RestartParticle()` are on `ParticleBase` | Only functional on `ParticleSource`, the `Particle` base throws "Not implemented" errors |
+| `ResetParticle()` and `RestartParticle()` are on `ParticleBase` | Only functional on `ParticleSource`, legacy `Particle` inherits a base implementation that logs a "Not implemented" warning and returns false |
 | `EffectParticle.ForceParticleRotationRelativeToWorld()` can be called anytime | Only takes effect on the next `Start()` call, cannot live-update an active particle |
 | `SetSource()` can change the particle ID at runtime | On legacy `Particle`, this only takes effect after stopping and replaying; `ParticleSource` updates immediately |
 
@@ -967,13 +986,13 @@ if (!GetGame().IsDedicatedServer())
 
 ### 2. Forgetting to Stop Looping Particles
 
-Looping particles (where `REPEAT = true` in the .ptc definition) never end on their own. If the owning entity is deleted without stopping them, they persist as orphaned effects.
+Looping particles (where `REPEAT = true` in the .ptc definition) never end on their own. Stop owned looping effects explicitly when their use ends. Do not rely on parent deletion as your cleanup policy; parenting, pool ownership and standalone autodestroy are different lifecycle mechanisms.
 
 ```c
 // WRONG: No cleanup
 void ~MyEntity()
 {
-    // particle keeps playing forever
+    // Missing explicit cleanup of the owned looping effect
 }
 
 // CORRECT: Stop in destructor
@@ -986,23 +1005,21 @@ void ~MyEntity()
 
 ### 3. Not Destroying EffectParticle References
 
-`SEffectManager` holds a strong `ref` to every registered Effect. If you don't unregister or destroy it, the effect and its associated particle remain in memory.
+`SEffectManager` holds a strong reference to every registered effect (`protected static ref map<int, ref Effect> m_EffectsMap;`) -- nulling your own variable does not release it. Stopping a particle can release its visual resource while the wrapper remains registered, so choose an explicit lifetime policy: release it through `DestroyEffect()`, through autodestroy, or through `EffectUnregister()` (which removes the map entry without deleting the effect, so you retain responsibility for it). Set autodestroy before playback for a one-shot effect, or retain the reference for later destruction.
 
 ```c
-// WRONG: Leak
-EffectParticle eff = new MySmoke();
-SEffectManager.PlayInWorld(eff, pos);
-eff = null;  // SEffectManager still holds the ref!
-
-// CORRECT: Either autodestroy or explicit cleanup
+// One-shot: configure cleanup before registering/playing.
+EffectParticle eff = new BloodSplatter();
 eff.SetAutodestroy(true);
-// or later:
-SEffectManager.DestroyEffect(eff);
+SEffectManager.PlayInWorld(eff, pos);
+
+// Alternative for an explicitly managed effect: retain its reference, then
+// SEffectManager.DestroyEffect(eff);
 ```
 
 ### 4. Using SetParameter on Null Particle Effect
 
-Both `Particle` and `ParticleSource` guard against null internally, but calling methods on a particle that has not been played yet (or has already been stopped and cleaned up) does nothing silently.
+Check the particle reference itself before calling methods. Legacy `Particle.SetParameter()` ignores changes while its internal child effect is absent, such as after `CreateOnObject()` but before playback. `ParticleSource` is different: its particle component is on the source entity itself, so do not apply the legacy play-first rule to it.
 
 ```c
 // This does nothing -- particle hasn't been created yet
@@ -1021,24 +1038,29 @@ Legacy `Particle` and `ParticleSource` have overlapping method names but differe
 ```c
 // WRONG: Using ResetParticle() on a legacy Particle
 Particle p = Particle.PlayInWorld(ParticleList.DEBUG_DOT, pos);
-p.ResetParticle();  // Throws "Not implemented" error
+p.ResetParticle();  // Logs "Not implemented" warning and returns false
 
 // ParticleSource (from ParticleManager) supports it
-ParticleSource ps = ParticleManager.GetInstance().PlayInWorld(ParticleList.DEBUG_DOT, pos);
-ps.ResetParticle();  // Works correctly
+ParticleManager pm = ParticleManager.GetInstance();
+if (pm)
+{
+    ParticleSource ps = pm.PlayInWorld(ParticleList.DEBUG_DOT, pos);
+    if (ps)
+        ps.ResetParticle();
+}
 ```
 
 ---
 
 ## Best Practices
 
-- **Always use `ParticleManager.GetInstance()` for new code.** The pool-based approach is more efficient, supports batch creation, and provides full `ParticleSource` functionality including reset, restart, and native lifecycle management.
-- **Guard all particle code with `!GetGame().IsDedicatedServer()`.** Even though `ParticleManager.GetInstance()` returns null on servers, calling any particle-related method on the server is wasteful. Guard early and return.
+- **Prefer `ParticleManager.GetInstance()` for new pooled effects.** The pool-based approach is more efficient, supports batch creation, and provides full `ParticleSource` functionality including reset, restart, and native lifecycle management.
+- **Guard direct rendering code with `!GetGame().IsDedicatedServer()`.** The manager is null on dedicated servers. Server-side `ParticleEffecter` creation/control is a separate supported mechanism for synchronized effects.
 - **Store particle references and clean them up explicitly.** In your entity's destructor or cleanup method, always stop and null your particle references. For `EffectParticle` wrappers, use `SEffectManager.DestroyEffect()`.
 - **Use memory points for attachment positions.** Hardcoded offsets break when models change. Use `GetMemoryPointPos("point_name")` to position particles relative to model geometry.
 - **Use `EffectParticle` subclasses for lifecycle-managed effects.** When you need start/stop events, autodestroy, or integration with `SEffectManager`, wrapping your particle in an `EffectParticle` is cleaner than managing raw `Particle` instances manually.
 - **Prefer `SetAutodestroy(true)` for one-shot effects.** Fire-and-forget particles (explosions, blood splatters) should self-clean. Persistent effects (engine smoke, bleeding) should be managed explicitly.
-- **Call `ResetParticlePosition()` after teleporting an entity.** Without this, emitted particles streak between the old and new positions in a single frame.
+- **Consider `ResetParticlePosition()` when moving a particle abruptly.** Pass the entity carrying the particle component to reset its position history.
 
 ---
 
@@ -1061,11 +1083,7 @@ ps.ResetParticle();  // Works correctly
 
 ## Compatibility & Impact
 
-- **Multi-Mod:** `ParticleList` is a single global class. Multiple mods can register particles via `modded class ParticleList`, but particle filenames must be unique --- duplicates cause an error on the second registration, and `GetParticleIDByName()` only returns the first match.
-- **Performance:** The global `ParticleManager` pool is limited to 10,000 slots (`ParticleManagerConstants.POOL_SIZE`). Exceeding this creates "virtual" particles that wait for a slot to free up. Mods spawning many simultaneous particles (e.g., weather effects, contaminated areas with hundreds of emitters) should monitor pool usage and avoid exhausting it.
-- **Server/Client:** All particle rendering is client-side. Server-side particle effecters (`ParticleEffecter`) are network-synced entities that trigger client-side rendering via `OnVariablesSynchronized`. Direct `Particle` or `ParticleManager` calls on a dedicated server do nothing.
-- **Legacy Compatibility:** The legacy `Particle` static methods (`Particle.PlayOnObject`, `Particle.CreateInWorld`) still work and are used by older mods. They are not deprecated but are less efficient than `ParticleManager` equivalents.
-
----
-
-[Home](../README.md) | [<< Previous: Terrain & World Queries](19-terrain-queries.md) | **Particle & Effect System** | [Next: Zombie & AI System >>](21-zombie-ai-system.md)
+- **Multi-Mod:** `ParticleList` is a single global class. Multiple mods can register particles via `modded class ParticleList`, but use distinct registration keys. Re-registering the same root/path returns its existing ID. Reusing the same `file_name` for a different root warns and keeps name-only lookup bound to the first registration, even though the other full path receives an ID.
+- **Performance:** The normal global pool size is 10,000 (`ParticleManagerConstants.POOL_SIZE`), with different settings possible. `CreateParticles()` documents virtual results while the pool is still allocating, unless disabled; it does not promise unlimited queuing when a fully allocated pool is exhausted. Check creation results. Mods spawning many simultaneous particles (e.g., weather effects, contaminated areas with hundreds of emitters) should monitor pool usage and avoid exhausting it.
+- **Server/Client:** All particle rendering is client-side. Server-side particle effecters (`ParticleEffecter`) are network-synced entities that trigger client-side rendering via `OnVariablesSynchronized`. Do not dereference `ParticleManager.GetInstance()` on a dedicated server: it is null. Direct rendering calls are not a substitute for network-synchronized effecters.
+- **Legacy Compatibility:** The legacy `Particle` static methods (`Particle.PlayOnObject`, `Particle.CreateInWorld`) still work and are used by older mods. They remain in the script API for compatibility; prefer pooled equivalents when appropriate.

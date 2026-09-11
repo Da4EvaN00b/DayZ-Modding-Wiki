@@ -1,6 +1,5 @@
 # Chapter 9.8: Optymalizacja wydajnosci
 
-[Strona glowna](../README.md) | [<< Poprzedni: Trwalosc danych](07-persistence.md) | [Dalej: Kontrola dostepu >>](09-access-control.md)
 
 ---
 
@@ -30,7 +29,7 @@ Z danych spolecznosci (400+ wspomnien o FPS/wydajnosci/lagach/desyncu na Discord
 2. **Spawn zdarzen** -- zbyt wiele aktywnych zdarzen dynamicznych (pojazdy, zwierzeta, rozbicia helikopterow) w `events.xml` zuzywa cykle spawnu/czyszczenia i sloty obiektow.
 3. **Liczba graczy + liczba modow** -- kazdy polaczony gracz generuje aktualizacje obiektow, a kazdy mod dodaje klasy skryptow, ktore silnik musi kompilowac i wykonywac co tick.
 
-Petla gry serwera dziala ze stalym tickrate 30 FPS. Gdy serwer nie moze utrzymac 30 FPS, gracze doswiadczaja desyncu -- gumowania, opoznionych podnoszonych przedmiotow i bledow rejestracji trafien. Ponizej 15 FPS serwera gra staje sie niegrywalna.
+Petla gry serwera dziala ze zmiennym FPS, ktory waha sie wraz z obciazeniem. Gdy serwer nie moze utrzymac zdrowego FPS (domyslny prog `serverFpsWarning` to 15), gracze doswiadczaja desyncu -- gumowania, opoznionych podnoszonych przedmiotow i bledow rejestracji trafien. Ponizej 15 FPS serwera gra staje sie niegrywalna.
 
 ---
 
@@ -53,7 +52,7 @@ Oto vanillowe domyslne wartosci parametrow bezposrednio wplywajacych na wydajnos
 | `ZombieMaxCount` | 1000 | Limit calkowitej liczby zarazonych na serwerze. Kazdy zombie uzywa pathfindingu AI. Obnizenie do 500-700 zauwaznie poprawia FPS serwera na zaludnionych serwerach. |
 | `AnimalMaxCount` | 200 | Limit zwierzat. Zwierzeta maja prostsza AI niz zombie, ale nadal zuzywaja czas ticku. Obniz do 100, jesli widzisz problemy z FPS. |
 | `ZoneSpawnDist` | 300 | Odleglosc w metrach, przy ktorej strefy zombie aktywuja sie wokol graczy. Obnizenie do 200 oznacza mniej jednoczesnie aktywnych stref. |
-| `SpawnInitial` | 1200 | Liczba przedmiotow, ktore CE tworzy przy pierwszym starcie. Wyzsze wartosci oznaczaja dluzsze poczatkowe ladowanie. Nie wplywa na wydajnosc w stanie ustalonym. |
+| `SpawnInitial` | 1200 | Liczba prob spawnu (testow) dozwolonych podczas poczatkowego spawnu przedmiotow, a nie liczba utworzonych przedmiotow. Ilosc lootu pojawiajacego sie przy pierwszym starcie jest sterowana przez `InitialSpawn` (domyslnie 100, wartosc procentowa). Wyzsze wartosci oznaczaja dluzsze poczatkowe ladowanie. Nie wplywa na wydajnosc w stanie ustalonym. |
 | `CleanupLifetimeDefault` | 45 | Domyslny czas czyszczenia w sekundach dla przedmiotow bez okreslonego lifetime. Nizsze wartosci oznaczaja szybsze cykle czyszczenia, ale czestsze przetwarzanie CE. |
 
 **Zalecany profil wydajnosci** (dla serwerow majacych problemy powyzej 40 graczy):
@@ -135,7 +134,7 @@ Glowny plik konfiguracyjny serwera ma ograniczone opcje zwiazane z wydajnoscia:
 | `maxPlayers` | Obniz to, jesli serwer ma problemy. Kazdy gracz generuje ruch sieciowy i aktualizacje obiektow. Zmiana z 60 na 40 graczy moze odzyskac 5-10 FPS serwera. |
 | `instanceId` | Okresla sciezke `storage_1/`. Nie jest ustawieniem wydajnosci, ale jesli twoj magazyn jest na wolnym dysku, wplywa na I/O trwalosci. |
 
-**Czego nie mozesz zmienic:** tickrate serwera jest ustalony na 30 FPS. Nie ma ustawienia, aby go zwiekszyc lub zmniejszyc. Jesli serwer nie moze utrzymac 30 FPS, po prostu dziala wolniej.
+**Czego nie mozesz zmienic:** nie ma ustawienia, aby wymusic wyzszy minimalny FPS serwera. FPS serwera jest zmienny i waha sie wraz z obciazeniem. Mozesz ograniczyc maksimum parametrem startowym `-limitFPS=` (obecne maksimum to 200), aby zmniejszyc zuzycie CPU na serwerach o niskiej populacji, ale jesli serwer nie nadaza pod obciazeniem, po prostu dziala wolniej.
 
 ---
 
@@ -225,7 +224,3 @@ Folder `storage_1/` rosnacy do kilku gigabajtow spowalnia kazdy cykl trwalosci. 
 ### Logowanie pozostawione wlaczone
 
 Diagnostyczne logowanie CE, debugowe logowanie skryptow i logowanie narzedzi administratorskich zapisuja na dysku co tick. Wlaczaj je do diagnozy, a potem wylaczaj. Trwale rozbudowane logowanie na zajetym serwerze moze kosztowac 1-2 FPS samo w sobie.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Trwalosc danych](07-persistence.md) | [Dalej: Kontrola dostepu >>](09-access-control.md)

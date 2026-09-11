@@ -1,6 +1,5 @@
 # Chapter 1.1: 変数と型
 
-[ホーム](../README.md) | **変数と型** | [次: 配列、マップ、セット >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -305,8 +304,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // 他の型からの変換
-    string fromInt = "Score: " + 42;     // 動作しない -- 明示的に変換が必要
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // 動作する -- + 演算子が 42 を "42" に変換する
+    string correct = "Score: " + 42.ToString();  // "Score: 42"（明示的、結果は同じ）
 
     // Format の使用が推奨されるアプローチ
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +463,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // 文字列から typename を取得
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // 型の比較
     if (t == PlayerBase)
@@ -873,7 +872,3 @@ posB[1] = 99;             // posB のみが変更される
 | スコープ | 変数は `{}` ブロックにスコープされる。ネスト/兄弟ブロックでの再宣言不可 |
 | 変換 | `float` から `int` は切り捨て。文字列パースには `.ToInt()`、`.ToFloat()`、`.ToVector()` を使用 |
 | フォーマット | 混合型の文字列構築には常に `string.Format()` を使用 |
-
----
-
-[ホーム](../README.md) | **変数と型** | [次: 配列、マップ、セット >>](02-arrays-maps-sets.md)

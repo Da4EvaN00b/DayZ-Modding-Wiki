@@ -1,6 +1,5 @@
 # Chapitre 6.20: Particle & Effect System
 
-[Accueil](../README.md) | [<< Précédent : Terrain & World Queries](19-terrain-queries.md) | **Particle & Effect System** | [Suivant : Zombie & AI System >>](21-zombie-ai-system.md)
 
 ---
 
@@ -810,14 +809,12 @@ void CleanupExhaust()
 
 ```c
 // From vanilla wreck_uh1y.c
-class Wreck_UH1Y extends Wreck
+// m_ParticleEfx est déclaré dans la classe parente CrashBase
+class Wreck_UH1Y extends CrashBase
 {
-    protected Particle m_ParticleEfx;
-
-    override void EEInit()
+    void Wreck_UH1Y()
     {
-        super.EEInit();
-        if (!GetGame().IsDedicatedServer())
+        if (!g_Game.IsDedicatedServer())
         {
             m_ParticleEfx = ParticleManager.GetInstance().PlayOnObject(
                 ParticleList.SMOKING_HELI_WRECK,
@@ -1065,7 +1062,3 @@ ps.ResetParticle();  // Works correctly
 - **Performance :** The global `ParticleManager` pool is limited to 10,000 slots (`ParticleManagerConstants.POOL_SIZE`). Exceeding this creates "virtual" particles that wait for a slot to free up. Mods apparition many simultaneous particles (e.g., weather effects, contaminated areas with hundreds of emitters) should monitor pool usage and avoid exhausting it.
 - **Serveur/Client :** All particle rendering is côté client. Côté serveur particle effecters (`ParticleEffecter`) are network-synced entities that trigger côté client rendering via `OnVariablesSynchronized`. Direct `Particle` or `ParticleManager` calls on a dedicated server do nothing.
 - **Legacy Compatibility:** The legacy `Particle` static methods (`Particle.PlayOnObject`, `Particle.CreateInWorld`) still work and are used by older mods. They are not deprecated but are less efficient than `ParticleManager` equivalents.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Terrain & World Queries](19-terrain-queries.md) | **Particle & Effect System** | [Suivant : Zombie & AI System >>](21-zombie-ai-system.md)

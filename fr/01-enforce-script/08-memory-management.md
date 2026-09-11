@@ -1,6 +1,5 @@
 # Chapitre 1.8 : Gestion de la mémoire
 
-[Accueil](../README.md) | [<< Précédent : Math & Vecteurs](07-math-vectors.md) | **Gestion de la mémoire** | [Suivant : Casting & Réflexion >>](09-casting-reflection.md)
 
 ---
 
@@ -670,7 +669,3 @@ delete obj;                      // Détruit immédiatement, met à null toutes 
 class Parent { ref Child m_Child; }      // Forte -- le parent possède l'enfant
 class Child  { Parent m_Parent; }        // Faible -- l'enfant observe le parent
 ```
-
----
-
-[<< 1.7 : Math & Vecteurs](07-math-vectors.md) | [Accueil](../README.md) | [1.9 : Casting & Réflexion >>](09-casting-reflection.md)

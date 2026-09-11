@@ -1,6 +1,5 @@
 # Capítulo 6.23: World Configuration Systems
 
-[Inicio](../README.md) | [<< Anterior: Admin & Server Management](22-admin-server.md) | **World Systems**
 
 ---
 
@@ -138,7 +137,7 @@ When a player is inside a contaminated trigger zone without proper protection:
 - The PPE effect tints the player's vision (green/yellow tint by default)
 - Gas particles appear around the player character
 
-**Protection:** Gas masks with intact filters and NBC suits provide protection. The protection logic is handled in script (`ContaminatedAreaAgent` and related classes), not in the JSON configuration.
+**Protection:** Gas masks with intact filters and NBC suits provide protection. El tick de daño se gestiona en script mediante la clase `ContaminatedTrigger` (usando `GameConstants.AI_CONTAMINATION_DMG_PER_SEC`), y la protección proviene del equipo NBC equipado --- ninguno de los dos se define en la configuración JSON.
 
 ### Multiple Zones
 
@@ -499,7 +498,7 @@ The `cfgGameplay.json` file provides server admins with a way to tweak gameplay 
 |------|-----------|---------|-------------|
 | float | `sprintStaminaModifierErc` | `1.0` | Stamina consumption rate during standing sprint |
 | float | `sprintStaminaModifierCro` | `1.0` | Stamina consumption rate during crouched sprint |
-| float | `staminaWeightLimitThreshold` | `6000.0` | Stamina points (divided by 1000) exempt from weight deduction |
+| float | `staminaWeightLimitThreshold` | `6000.0` | Umbral de peso transportado en gramos (6000 g = 6 kg) por debajo del cual la carga no penaliza la stamina |
 | float | `staminaMax` | `100.0` | Maximum stamina (do not set to 0) |
 | float | `staminaKgToStaminaPercentPenalty` | `1.75` | Multiplier for stamina deduction based on player load |
 | float | `staminaMinCap` | `5.0` | Minimum stamina cap (do not set to 0) |
@@ -791,7 +790,3 @@ All five systems share these characteristics:
 - Loaded at **server start** (changes require restart)
 - Require **no script modifications** for basic use
 - Can be **combined with scripting** for advanced behavior
-
----
-
-[Inicio](../README.md) | [<< Anterior: Admin & Server Management](22-admin-server.md) | **World Systems**

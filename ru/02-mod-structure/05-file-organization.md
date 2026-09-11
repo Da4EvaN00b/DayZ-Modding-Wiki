@@ -1,6 +1,5 @@
 # Глава 2.5: Лучшие практики организации файлов
 
-[Главная](../README.md) | [<< Назад: Минимально жизнеспособный мод](04-minimum-viable-mod.md) | **Организация файлов** | [Далее: Архитектура сервера и клиента >>](06-server-client-split.md)
 
 ---
 
@@ -134,8 +133,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // Паттерн VPP: [Имя] (без префикса)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Правила:**
@@ -679,7 +678,7 @@ MyMod_Weapons/
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -689,18 +688,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- Один из немногих модов, использующих слой 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Примечание: DabsFramework использует имена папок в нижнем регистре (`scripts/`, `gui/`). Это работает, потому что Windows нечувствительна к регистру, но может вызвать проблемы на Linux. Соглашение -- использовать каноническое написание (`Scripts/`, `GUI/`).
+Примечание: физические папки DabsFramework используют каноническое написание (`Scripts/`, `GUI/`, `1_Core/`), но пути в `files[]` его `config.cpp` ссылаются на них в нижнем регистре (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). Это несоответствие регистра работает, потому что Windows нечувствительна к регистру, но может вызвать проблемы на Linux. Держите пути `files[]` совпадающими с фактическим написанием папок.
 
 ---
 
@@ -845,7 +844,7 @@ MyModPanel.c
 |---------|-----|--------|
 | Глубокие папки подсистем в `3_Game` | StarDZ Core | 15+ папок в `3_Game/` (Config, RPC, Events, Logging, Permissions и т.д.) |
 | Общая папка `Common/` | COT | Включена в `files[]` каждого модуля скриптов для предоставления кросс-слойных утилитных типов |
-| Имена папок в нижнем регистре | DabsFramework | Использует `scripts/`, `gui/` вместо `Scripts/`, `GUI/` -- работает на Windows, но рискованно на Linux |
+| Пути в нижнем регистре в `files[]` | DabsFramework | Физические папки -- это `Scripts/`, `GUI/`, но `files[]` в `config.cpp` ссылается на них в нижнем регистре (`scripts/`, `gui/`, `1_core`) -- работает на Windows, но рискованно на Linux |
 | Отдельный GUI PBO | Expansion, COT | GUI-ресурсы (макеты, наборы изображений, стили) упакованы в выделенный PBO со своим config.cpp |
 | Минимум скриптов для контентных модов | Паки оружия | Каталог `Data/` доминирует; в `Scripts/` только тонкий config.cpp и опциональные переопределения поведения |
 

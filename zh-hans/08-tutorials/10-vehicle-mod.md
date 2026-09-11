@@ -1,6 +1,5 @@
 # 第 8.10 章：创建自定义载具模组
 
-[首页](../README.md) | [<< 上一章：专业模组模板](09-professional-template.md) | **创建自定义载具** | [下一章：创建自定义服装 >>](11-clothing-mod.md)
 
 ---
 
@@ -752,7 +751,7 @@ class MFM_RallyHatchback extends OffroadHatchback
 
 **CrewCanGetThrough** -- 每帧调用以判断玩家是否可以进出座位。Niva 的后排座位（索引 2 和 3）与前排座位的工作方式不同：前排座椅靠背必须向前折叠（动画阶段 > 0.5），后排乘客才能通过。这模拟了现实中两门掀背车的行为，后排乘客必须倾斜前排座位。
 
-**OnDebugSpawn** -- 当你使用调试生成菜单时调用。`SpawnUniversalParts()` 添加前灯灯泡和汽车电池。`FillUpCarFluids()` 将燃油、冷却液、机油和制动液填充至最大值。然后我们创建车轮、车门、引擎盖和后备箱盖。这为你提供了一辆可以立即驾驶的测试载具。
+**OnDebugSpawn** -- 当你使用调试生成菜单时调用。`SpawnUniversalParts()` 添加前灯灯泡和汽车电池。`FillUpCarFluids()` 将燃油、冷却液和机油填充至最大值（它不会填充制动液）。然后我们创建车轮、车门、引擎盖和后备箱盖。这为你提供了一辆可以立即驾驶的测试载具。
 
 ---
 

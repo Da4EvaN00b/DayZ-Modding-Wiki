@@ -1,12 +1,11 @@
 # 6.5. fejezet: Utófeldolgozási effektek (PPE)
 
-[Kezdőlap](../README.md) | [<< Előző: Kamerák](04-cameras.md) | **Utófeldolgozási effektek** | [Következő: Értesítések >>](06-notifications.md)
 
 ---
 
 ## Bevezetés
 
-A DayZ utófeldolgozási effekt (PPE) rendszere a jelenet renderelése után alkalmazott vizuális effekteket vezérli: elmosódás, színkorrekció, vignettálás, kromatikus aberráció, éjjellátó és sok más. A rendszer `PPERequester` osztályokra épül, amelyek meghatározott vizuális effekteket kérhetnek. Egyszerre több kérelmező is aktív lehet, és a motor összekeveri a hozzájárulásukat. Ez a fejezet a PPE rendszer modokban való használatát tárgyalja.
+A DayZ utófeldolgozási effekt (PPE) rendszere a jelenet renderelése után alkalmazott vizuális effekteket vezérli: elmosódás, színkorrekció, vignettálás, kromatikus aberráció, éjjellátó és sok más. A rendszer `PPERequesterBase` osztályokra épül, amelyek meghatározott vizuális effekteket kérhetnek. Egyszerre több kérelmező is aktív lehet, és a motor összekeveri a hozzájárulásukat. Ez a fejezet a PPE rendszer modokban való használatát tárgyalja.
 
 ---
 
@@ -18,32 +17,32 @@ PPEManager
 │   ├── REQ_INVENTORYBLUR         // Leltár elmosódás
 │   ├── REQ_MENUEFFECTS           // Menü effektek
 │   ├── REQ_CONTROLLERDISCONNECT  // Kontroller leválasztás fedvény
-│   ├── REQ_UNCONSCIOUS           // Eszméletlenség effekt
+│   ├── REQ_UNCONEFFECTS         // Eszméletlenség effekt
 │   ├── REQ_FEVEREFFECTS          // Láz vizuális effektek
 │   ├── REQ_FLASHBANGEFFECTS      // Vakítógránát
 │   ├── REQ_BURLAPSACK            // Zsákvászon a fejen
 │   ├── REQ_DEATHEFFECTS          // Halál képernyő
 │   ├── REQ_BLOODLOSS             // Vérveszteség telítetlenítés
 │   └── ... (még sok más)
-└── PPERequester_*                // Egyedi kérelmező implementációk
+└── PPERequester_*                // Egyedi kérelmező implementációk (a PPERequesterBase kiterjesztései)
 ```
 
 ---
 
 ## PPEManager
 
-A `PPEManager` egy singleton, amely koordinálja az összes aktív PPE kérelmet. Ritkán lépsz vele közvetlen interakcióba --- ehelyett a `PPERequester` alosztályokon keresztül dolgozol.
+A `PPEManager` egy singleton, amely koordinálja az összes aktív PPE kérelmet. Ritkán lépsz vele közvetlen interakcióba --- ehelyett a `PPERequesterBase` alosztályokon keresztül dolgozol.
 
 ```c
-// A kezelő példány lekérése
-PPEManager GetPPEManager();
+// A kezelő példány lekérése (statikus metódus a PPEManagerStatic-on)
+PPEManager mgr = PPEManagerStatic.GetPPEManager();
 ```
 
 ---
 
 ## PPERequesterBank
 
-**Fájl:** `3_Game/PPE/pperequesterbank.c`
+**Fájl:** `3_Game/ppemanager/pperequesterbank.c`
 
 Statikus nyilvántartás, amely az összes PPE kérelmező példányát tárolja. Az egyes kérelmezőket a konstans indexükkel éred el.
 
@@ -51,7 +50,7 @@ Statikus nyilvántartás, amely az összes PPE kérelmező példányát tárolja
 
 ```c
 // Kérelmező lekérése a bank konstansa alapján
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 ```
 
 ### Gyakori kérelmező konstansok
@@ -60,7 +59,7 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 |----------|--------|
 | `REQ_INVENTORYBLUR` | Gauss elmosódás, amikor a leltár nyitva van |
 | `REQ_MENUEFFECTS` | Menü háttér elmosódás |
-| `REQ_UNCONSCIOUS` | Eszméletlenség vizuális (elmosódás + telítetlenítés) |
+| `REQ_UNCONEFFECTS` | Eszméletlenség vizuális (elmosódás + telítetlenítés) |
 | `REQ_DEATHEFFECTS` | Halál képernyő (szürkeárnyalatos + vignetta) |
 | `REQ_BLOODLOSS` | Vérveszteség telítetlenítés |
 | `REQ_FEVEREFFECTS` | Láz kromatikus aberráció |
@@ -69,18 +68,15 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 | `REQ_PAINBLUR` | Fájdalom elmosódás effekt |
 | `REQ_CONTROLLERDISCONNECT` | Kontroller leválasztás fedvény |
 | `REQ_CAMERANV` | Éjjellátó |
-| `REQ_FILMGRAINEFFECTS` | Filmzaj fedvény |
-| `REQ_RAINEFFECTS` | Eső képernyő effektek |
-| `REQ_COLORSETTING` | Színkorrekciós beállítások |
 
 ---
 
 ## PPERequester alap
 
-Minden PPE kérelmező a `PPERequester`-t terjeszti ki:
+Minden PPE kérelmező a `PPERequesterBase`-t terjeszti ki (a konkrét kérelmezők neve `PPERequester_*`, pl. `PPERequester_InventoryBlur`):
 
 ```c
-class PPERequester : Managed
+class PPERequesterBase
 {
     // Effekt indítása
     void Start(Param par = null);
@@ -89,17 +85,16 @@ class PPERequester : Managed
     void Stop(Param par = null);
 
     // Ellenőrzés, hogy aktív-e
-    bool IsActiveRequester();
+    bool IsRequesterRunning();
 
-    // Értékek beállítása anyag paramétereken
-    void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
-                              float val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueColor(int mat_id, int param_idx, bool relative,
-                              float val1, float val2, float val3, float val4,
-                              int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueBool(int mat_id, int param_idx, bool relative,
+    // Értékek beállítása anyag paramétereken (protected: csak kérelmező alosztályon belülről hívható)
+    protected void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
+                              float val, int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueColor(int mat_id, int param_idx, array<float> val,
+                              int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueBool(int mat_id, int param_idx,
                              bool val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueInt(int mat_id, int param_idx, bool relative,
+    protected void SetTargetValueInt(int mat_id, int param_idx, bool relative,
                             int val, int priority_layer, int operator = PPOperators.SET);
 }
 ```
@@ -107,15 +102,19 @@ class PPERequester : Managed
 ### PPOperators
 
 ```c
-class PPOperators
+enum PPOperators
 {
-    static const int SET          = 0;  // Közvetlenül beállítja az értéket
-    static const int ADD          = 1;  // Hozzáadás az aktuális értékhez
-    static const int ADD_RELATIVE = 2;  // Relatív hozzáadás az aktuálishoz
-    static const int HIGHEST      = 3;  // Az aktuális és az új közül a magasabb használata
-    static const int LOWEST       = 4;  // Az aktuális és az új közül az alacsonyabb használata
-    static const int MULTIPLY     = 5;  // Aktuális érték szorzása
-    static const int OVERRIDE     = 6;  // Kényszerített felülírás
+    LOWEST,                      // 0 - Az aktuális és az új közül az alacsonyabb használata
+    HIGHEST,                     // 1 - Az aktuális és az új közül a magasabb használata
+    ADD,                         // 2 - Lineáris összeadás
+    ADD_RELATIVE,                // 3 - Lineáris relatív összeadás
+    SUBSTRACT,                   // 4 - Lineáris kivonás
+    SUBSTRACT_RELATIVE,          // 5 - Lineáris relatív kivonás
+    SUBSTRACT_REVERSE,           // 6 - A cél kivonása a célállomásból
+    SUBSTRACT_REVERSE_RELATIVE,  // 7 - A cél relatív kivonása a célállomásból
+    MULTIPLICATIVE,              // 8 - Lineáris szorzás
+    SET,                         // 9 - Az érték beállítása (nem szakítja meg a további számításokat)
+    OVERRIDE                     // 10 - Az érték beállítása és a további számítások megszakítása
 }
 ```
 
@@ -131,14 +130,15 @@ Az effektek meghatározott utófeldolgozási anyagokat céloznak meg. Gyakori an
 | `PostProcessEffectType.FilmGrain` | Filmzaj |
 | `PostProcessEffectType.RadialBlur` | Radiális elmosódás |
 | `PostProcessEffectType.ChromAber` | Kromatikus aberráció |
-| `PostProcessEffectType.WetEffect` | Nedves lencse effekt |
+| `PostProcessEffectType.WetDistort` | Nedves lencse effekt |
 | `PostProcessEffectType.ColorGrading` | Színkorrekció / LUT |
 | `PostProcessEffectType.DepthOfField` | Mélységélesség |
 | `PostProcessEffectType.SSAO` | Képernyőtér ambient okklúzió |
 | `PostProcessEffectType.GodRays` | Volumetrikus fény |
 | `PostProcessEffectType.Rain` | Eső a képernyőn |
-| `PostProcessEffectType.Vignette` | Vignetta fedvény |
 | `PostProcessEffectType.HBAO` | Horizont-alapú ambient okklúzió |
+
+A vignetta nem külön anyagtípus; ez a `PPEGlow.PARAM_VIGNETTE` (25-ös index) paraméter a `PostProcessEffectType.Glow` anyagon.
 
 ---
 
@@ -150,7 +150,7 @@ A legegyszerűbb példa --- az elmosódás, ami a leltár megnyitásakor jelenik
 
 ```c
 // Elmosódás indítása
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 blurReq.Start();
 
 // Elmosódás leállítása
@@ -160,7 +160,7 @@ blurReq.Stop();
 ### Vakítógránát effekt
 
 ```c
-PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
 flashReq.Start();
 
 // Leállítás késleltetés után
@@ -168,7 +168,7 @@ GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(StopFlashbang, 3000, fa
 
 void StopFlashbang()
 {
-    PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+    PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
     flashReq.Stop();
 }
 ```
@@ -177,12 +177,12 @@ void StopFlashbang()
 
 ## Egyéni PPE kérelmező létrehozása
 
-Egyéni utófeldolgozási effektek létrehozásához terjesd ki a `PPERequester`-t és regisztráld.
+Egyéni utófeldolgozási effektek létrehozásához terjesd ki a `PPERequester_GameplayBase` (vagy `PPERequester_MenuBase`) osztályt és regisztráld.
 
 ### 1. lépés: A kérelmező definiálása
 
 ```c
-class MyCustomPPERequester extends PPERequester
+class MyCustomPPERequester extends PPERequester_GameplayBase
 {
     override protected void OnStart(Param par = null)
     {
@@ -190,11 +190,11 @@ class MyCustomPPERequester extends PPERequester
 
         // Erős vignetta alkalmazása
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.8, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.8, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
 
-        // Színek telítetlenítése
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 0.3, PPEManager.L_0_STATIC, PPOperators.SET);
+        // Színek telítetlenítése (a telítettség a Glow anyagon van)
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 0.3, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 
     override protected void OnStop(Param par = null)
@@ -203,9 +203,9 @@ class MyCustomPPERequester extends PPERequester
 
         // Visszaállítás alapértékekre
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.0, PPEManager.L_0_STATIC, PPOperators.SET);
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 1.0, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 1.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 }
 ```
@@ -222,30 +222,35 @@ Az éjjellátó PPE effektként van implementálva. A releváns kérelmező a `R
 
 ```c
 // NVG effekt engedélyezése
-PPERequester nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
+PPERequesterBase nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
 nvgReq.Start();
 
 // NVG effekt letiltása
 nvgReq.Stop();
 ```
 
-A tényleges játékon belüli NVG az NVGoggles tárgy által az `ComponentEnergyManager` és az `NVGoggles.ToggleNVG()` metódusán keresztül aktiválódik, amely belsőleg a PPE rendszert vezérli.
+A tényleges játékon belüli NVG-t az `ActionToggleNVG` felhasználói művelet kapcsolja be; a szemüveg az energiakezelőt (`ComponentEnergyManager`) használja az áramellátási állapotához, az NVG PPE-t (`REQ_CAMERANV`) pedig ettől függetlenül vezérlik.
 
 ---
 
 ## Színkorrekció
 
-A színkorrekció a jelenet általános színmegjelenését módosítja:
+A telítettség a Glow anyag egyik paramétere (`PPEGlow.PARAM_SATURATION`). Mivel az érték-beállítók `protected`-ek, egy egyéni kérelmező alosztályon belülről állítod be:
 
 ```c
-PPERequester colorReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_COLORSETTING);
-colorReq.Start();
+class MyColorRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Telítettség beállítása (1.0 = normál, 0.0 = szürkeárnyalatos, >1.0 = túltelített)
-colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
-                              PPEColorGrading.PARAM_SATURATION,
-                              false, 0.5, PPEManager.L_0_STATIC,
-                              PPOperators.SET);
+        // Telítettség beállítása (1.0 = normál, 0.0 = szürkeárnyalatos, >1.0 = túltelített)
+        SetTargetValueFloat(PostProcessEffectType.Glow,
+                            PPEGlow.PARAM_SATURATION,
+                            false, 0.5, PPEGlow.L_22_BLOODLOSS,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
@@ -255,47 +260,59 @@ colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
 ### Gauss elmosódás
 
 ```c
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
-blurReq.Start();
+class MyBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Elmosódás intenzitás beállítása (0.0 = nincs, nagyobb = több elmosódás)
-blurReq.SetTargetValueFloat(PostProcessEffectType.GaussFilter,
-                             PPEGaussFilter.PARAM_INTENSITY,
-                             false, 0.5, PPEManager.L_0_STATIC,
-                             PPOperators.SET);
+        // Elmosódás intenzitás beállítása (0.0 = nincs, nagyobb = több elmosódás)
+        SetTargetValueFloat(PostProcessEffectType.GaussFilter,
+                            PPEGaussFilter.PARAM_INTENSITY,
+                            false, 0.5, PPEGaussFilter.L_0_INV,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ### Radiális elmosódás
 
 ```c
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_PAINBLUR);
-req.Start();
+class MyRadialBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-req.SetTargetValueFloat(PostProcessEffectType.RadialBlur,
-                         PPERadialBlur.PARAM_POWERX,
-                         false, 0.3, PPEManager.L_0_STATIC,
-                         PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.RadialBlur,
+                            PPERadialBlur.PARAM_POWERX,
+                            false, 0.3, PPERadialBlur.L_0_PAIN_BLUR,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
 
 ## Prioritási rétegek
 
-Amikor több kérelmező módosítja ugyanazt a paramétert, a prioritási réteg határozza meg, melyik nyer:
+Amikor több kérelmező módosítja ugyanazt a paramétert, a prioritási réteg határozza meg, melyik nyer. A prioritási réteg konstansok minden anyagosztályon (nem a `PPEManager`-en) vannak deklarálva effektspecifikus nevekkel, és nagy számokat használnak (a magasabb nyer). Például a Glow anyagon:
 
 ```c
-class PPEManager
+class PPEGlow: PPEClassBase
 {
-    static const int L_0_STATIC   = 0;   // Legalacsonyabb prioritás (statikus effektek)
-    static const int L_1_VALUES   = 1;   // Dinamikus értékváltozások
-    static const int L_2_SCRIPTS  = 2;   // Szkript-vezérelt effektek
-    static const int L_3_EFFECTS  = 3;   // Játékmenet effektek
-    static const int L_4_OVERLAY  = 4;   // Fedvény effektek
-    static const int L_LAST       = 100;  // Legmagasabb prioritás (mindent felülír)
+    // ... paraméter konstansok ...
+
+    static const int L_22_BLOODLOSS = 100;
+
+    static const int L_23_GLASSES   = 100;
+    static const int L_23_TOXIC_TINT = 200;
+    static const int L_23_HMP       = 300;
+    static const int L_23_NVG       = 600;
 }
 ```
 
-A magasabb számok élveznek elsőbbséget. Használd a `PPEManager.L_LAST` értéket, hogy az effekted felülírjon minden mást.
+Más anyagok a sajátjaikat deklarálják, pl. `PPEGaussFilter.L_0_INV` (500) és `PPERadialBlur.L_0_PAIN_BLUR` (100). A magasabb számok élveznek elsőbbséget, ezért válassz olyan réteget, amely minden felülírandó effekt fölött van.
 
 ---
 
@@ -306,21 +323,21 @@ A magasabb számok élveznek elsőbbséget. Használd a `PPEManager.L_LAST` ért
 | Hozzáférés | `PPERequesterBank.GetRequester(KONSTANS)` |
 | Indítás/Leállítás | `requester.Start()` / `requester.Stop()` |
 | Paraméterek | `SetTargetValueFloat(anyag, paraméter, relatív, érték, réteg, operátor)` |
-| Operátorok | `PPOperators.SET`, `ADD`, `MULTIPLY`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
+| Operátorok | `PPOperators.SET`, `ADD`, `MULTIPLICATIVE`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
 | Gyakori effektek | Elmosódás, vignetta, telítettség, NVG, vakítógránát, filmzaj, kromatikus aberráció |
 | NVG | `REQ_CAMERANV` kérelmező |
-| Prioritás | 0-100 közötti rétegek; magasabb szám nyer konfliktus esetén |
-| Egyéni | `PPERequester` kiterjesztése, `OnStart()` / `OnStop()` felülírása |
+| Prioritás | Anyagonkénti réteg konstansok; magasabb szám nyer konfliktus esetén |
+| Egyéni | `PPERequester_GameplayBase` kiterjesztése, `OnStart()` / `OnStop()` felülírása |
 
 ---
 
 ## Bevált gyakorlatok
 
 - **Mindig hívd meg a `Stop()` metódust a kérelmeződ eltakarításához.** A PPE kérelmező leállításának elmulasztása állandóan aktívvá teszi a vizuális effektet, még az aktiváló feltétel megszűnése után is.
-- **Használj megfelelő prioritási rétegeket.** A játékmenet effektek az `L_3_EFFECTS` vagy magasabb rétegbe kerüljenek. Az `L_LAST` (100) használata mindent felülír, beleértve a vanilla eszméletlenségi és halál effekteket, ami ronthatja a játékos élményét.
+- **Használj megfelelő prioritási rétegeket.** Válassz olyan anyagonkénti réteg konstanst, amely az általad felülírni kívánt effektek fölött van. Egy nagyon magas réteg használata mindent felülír, beleértve a vanilla eszméletlenségi és halál effekteket, ami ronthatja a játékos élményét.
 - **Részesítsd előnyben a beépített kérelmezőket az egyéniekkel szemben.** A `PPERequesterBank` már tartalmaz kérelmezőket elmosódáshoz, telítetlenítéshez, vignettához és filmzajhoz. Használd ezeket módosított paraméterekkel, mielőtt egyéni kérelmező osztályt hoznál létre.
 - **Teszteld a PPE effekteket különböző fényviszonyok között.** A vignetta és a telítetlenítés drasztikusan másként néz ki éjjel és nappal. Ellenőrizd, hogy az effekted mindkét szélsőségben jól olvasható.
-- **Kerüld több magas intenzitású elmosódás effekt halmozását.** Több aktív elmosódás kérelmező összeadódik, és a képernyő olvashatatlanná válhat. Ellenőrizd az `IsActiveRequester()` értékét, mielőtt további effekteket indítanál.
+- **Kerüld több magas intenzitású elmosódás effekt halmozását.** Több aktív elmosódás kérelmező összeadódik, és a képernyő olvashatatlanná válhat. Ellenőrizd az `IsRequesterRunning()` értékét, mielőtt további effekteket indítanál.
 
 ---
 

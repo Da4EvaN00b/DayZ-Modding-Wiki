@@ -1,6 +1,5 @@
-# Chapter 9.1: Configuracao do Servidor e Primeiro Lancamento
+# Configuracao do Servidor e Primeiro Lancamento
 
-[Inicio](../README.md) | **Configuracao do Servidor** | [Proximo: Estrutura de Diretorios >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Ativar logs do servidor |
 | `-adminlog` | Registrar acoes de admin |
 | `-netlog` | Registrar eventos de rede |
-| `-freezecheck` | Auto-reiniciar ao detectar travamento |
+| `-freezecheck` | Para o servidor e grava um dump de falha quando travado por mais de 5 minutos |
 
 ### Passo 3: Aguardar a Inicializacao
 
@@ -226,7 +225,7 @@ Abra o Steam, va em **Visualizar > Servidores de Jogos > Favoritos**, clique em 
 
 ### Metodo 4: Porta de Consulta
 
-Use uma ferramenta externa como https://www.battlemetrics.com/ ou o pacote npm `gamedig` para consultar a porta 27016 (porta de consulta Steam = porta do jogo + 24714).
+Use uma ferramenta externa como https://www.battlemetrics.com/ ou o pacote npm `gamedig` para consultar a porta de consulta Steam. Por padrao, ela e **2305 UDP** (configuravel via `steamQueryPort` no `serverDZ.cfg`), nao a porta do jogo.
 
 ---
 
@@ -300,7 +299,3 @@ Isso e normal. O servidor DayZ usa uma unica thread. Nao execute multiplas insta
 ```cpp
 template = "dayzOffline.chernarusplus";  // Deve corresponder ao nome da pasta em mpmissions/
 ```
-
----
-
-**[Inicio](../README.md)** | **Proximo:** [Estrutura de Diretorios >>](02-directory-structure.md)

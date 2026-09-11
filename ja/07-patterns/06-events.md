@@ -1,6 +1,5 @@
 # Chapter 7.6: イベント駆動アーキテクチャ
 
-[ホーム](../README.md) | [<< 前: パーミッションシステム](05-permissions.md) | **イベント駆動アーキテクチャ** | [次: パフォーマンス最適化 >>](07-performance.md)
 
 ---
 
@@ -105,16 +104,18 @@ graph TB
     style SUB3 fill:#4A90D9,color:#fff
 ```
 
-`Insert`は内部リストに関数リファレンスを追加します。`Remove`はリストを検索し一致するエントリを削除します。同じ関数で`Insert`を2回呼び出すと、`Invoke`ごとに2回呼び出されます。`Remove`を1回呼び出すと1つのエントリが削除されます。
+`Insert`は内部リストに関数リファレンスを追加します。`Remove`はリストを検索し一致するエントリを削除します。同じ関数で`Insert`を2回呼び出すと、`Invoke`ごとに2回呼び出されます。デフォルトでは`Remove(fn)`は`EScriptInvokerRemoveFlags.ALL`を使用するため、一致するすべてのエントリを削除します。最新の1つのエントリのみを削除するには、`Remove(fn, EScriptInvokerRemoveFlags.NONE)`を呼び出してください。
 
 ```c
 // 同じハンドラを2回サブスクライブするのはバグです：
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Invokeごとに2回呼び出される
 
-// 1回のRemoveは1つのエントリのみを削除します：
+// デフォルトのALLフラグは一致するすべてのエントリを削除します：
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// まだInvokeごとに1回呼び出される — 2回目のInsertがまだ残っている
+// Invokeごとに0回呼び出される — 両方のInsertが消えた。
+// 1つのエントリを残すには、NONEを渡す：
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### 型付きシグネチャ
@@ -133,13 +134,11 @@ ref ScriptInvoker OnWeatherChanged = new ScriptInvoker();
 多くのバニラDayZクラスは`ScriptInvoker`イベントを公開しています：
 
 ```c
-// UIScriptedMenuにはOnVisibilityChangedがあります
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayerはGetOnDeathStart()経由でScriptInvokerを公開しています
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // サブスクライブ
 
-// MissionBaseにはイベントフックがあります
+// MissionBaseにはイベントフックがあります（仮想メソッドであり、ScriptInvokerではありません）
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -489,10 +488,6 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | `Insert()`でサブスクライブしたが`Remove()`を呼び出さない | メモリリーク：invokerがデッドオブジェクトへの参照を保持。`Invoke()`時に解放されたメモリに呼び出す（クラッシュ）またはムダな反復でノーオペ | すべての`Insert()`に`OnMissionFinish`またはデストラクタでの`Remove()`をペアにする |
 | シャットダウン中にnullのEventBus invokerで`Remove()`を呼び出す | `MyEventBus.Cleanup()`がすでにinvokerをnullにしている可能性がある。nullで`.Remove()`を呼び出すとクラッシュ | `Remove()`の前に常にinvokerのnullチェック：`if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| 同じハンドラの二重`Insert()` | `Invoke()`ごとにハンドラが2回呼び出される。1回の`Remove()`は1つのエントリのみ削除し、ステイルサブスクリプションが残る | Insert前にチェックするか、`Insert()`が1回のみ呼び出されることを確認する（例：ガードフラグ付きの`OnInit`で） |
+| 同じハンドラの二重`Insert()` | `Invoke()`ごとにハンドラが2回呼び出される。デフォルトの`Remove()`（フラグ`ALL`）はすべてのエントリを一度に削除し、すべてのサブスクリプションを削除する | Insert前にチェックするか、`Insert()`が1回のみ呼び出されることを確認する（例：ガードフラグ付きの`OnInit`で） |
 | 匿名/ラムダ関数をハンドラとして使用する | `Remove()`に渡すリファレンスがないため削除できない | 常に名前付きメソッドをイベントハンドラとして使用する |
 | 不一致の引数シグネチャでイベントを発火する | サブスクライバーがガーベジデータを受信するかランタイムでクラッシュ。コンパイル時チェックなし | すべての`ScriptInvoker`宣言の上に期待されるシグネチャをドキュメント化し、すべてのハンドラで正確に一致させる |
-
----
-
-[ホーム](../README.md) | [<< 前: パーミッションシステム](05-permissions.md) | **イベント駆動アーキテクチャ** | [次: パフォーマンス最適化 >>](07-performance.md)

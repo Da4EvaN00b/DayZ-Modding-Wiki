@@ -1,6 +1,5 @@
 # Chapter 9.7: Stato del Mondo e Persistenza
 
-[Home](../README.md) | [<< Precedente: Spawn dei Giocatori](06-player-spawning.md) | [Successivo: Ottimizzazione delle Prestazioni >>](08-performance.md)
 
 La persistenza di DayZ mantiene il mondo vivo tra i riavvii. Capire come funziona ti permette di gestire le basi, pianificare i wipe ed evitare la corruzione dei dati.
 
@@ -188,7 +187,3 @@ Questi vengono fuori ripetutamente nelle comunita di amministratori di server:
 | Confondere il reset del meteo con il wipe completo | Cancellare `events.xy` resetta solo le posizioni degli eventi dinamici. Non resetta il loot, le basi o i giocatori. | Sappi quali file controllano cosa (vedi la tabella delle directory sopra). |
 | Bandiera non aggiornata in tempo | Dopo 40 giorni (FlagRefreshMaxDuration), la bandiera scade e tutte le parti della base collegate diventano idonee alla pulizia. I giocatori perdono l'intera base. | Ricorda ai giocatori l'intervallo di aggiornamento. Abbassa FlagRefreshMaxDuration sui server con pochi giocatori. |
 | Modificare globals.xml mentre il server e in esecuzione | Le modifiche non vengono recepite fino al riavvio. Peggio, il server potrebbe sovrascrivere le tue modifiche allo spegnimento. | Modifica i file di configurazione solo mentre il server e fermo. |
-
----
-
-[Home](../README.md) | [<< Precedente: Spawn dei Giocatori](06-player-spawning.md) | [Successivo: Ottimizzazione delle Prestazioni >>](08-performance.md)

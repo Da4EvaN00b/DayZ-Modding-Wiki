@@ -1,731 +1,472 @@
-# Chapter 3.9: Real Mod UI Patterns
+# Production UI Architecture Patterns
 
-[Home](../README.md) | [<< Previous: Dialogs & Modals](08-dialogs-modals.md) | **Real Mod UI Patterns** | [Next: Advanced Widgets >>](10-advanced-widgets.md)
+> **Summary:** The architecture patterns behind real DayZ admin tools, market menus, themed menu replacers, notification feeds, and map editors — taught here through original teaching implementations that you can adapt to your mod.
 
----
+The `LNT_*` examples are teaching sketches: supply the referenced layouts, complete placeholder actions, and connect input or client/server messages in your mod. Keep cooperating UI classes in `5_Mission` so a lower script module does not reference classes defined above it.
 
-This chapter surveys UI patterns found in six professional DayZ mods: COT (Community Online Tools), VPP Admin Tools, DabsFramework, Colorful UI, Expansion, and DayZ Editor. Each mod solves different problems. Studying their approaches gives you a library of proven patterns beyond what official documentation covers.
-
-All code shown is extracted from actual mod source. File paths reference the original repositories.
+For a concrete public implementation, compare Dabs Framework's [SliderPrefab handler](https://github.com/InclementDab/DayZ-Dabs-Framework/blob/fd859fd891f45a4a9c9089597db0c621ef3a9de5/DabsFramework/Scripts/3_Game/DabsFramework/_Legacy/Prefabs/SliderPrefab.c) with its [SliderPrefab layout](https://github.com/InclementDab/DayZ-Dabs-Framework/blob/fd859fd891f45a4a9c9089597db0c621ef3a9de5/DabsFramework/gui/Layouts/prefabs/SliderPrefab.layout). The layout binds `Value` and `CalculatedValue` through `ViewBinding`, and its `Relay_Command` values route to `OnButtonUp`/`OnButtonDown`; the handler clamps the value and notifies the controller. This is a framework-dependent legacy prefab at the linked revision, not a standalone vanilla API recipe.
 
 ---
 
-## Why Study Real Mods?
+## Table of Contents
 
-DayZ documentation explains individual widgets and event callbacks but says nothing about:
-
-- How to manage 12 admin panels without code duplication
-- How to build a dialog system with callback routing
-- How to theme an entire UI without touching vanilla layout files
-- How to synchronize a market grid with server data over RPC
-- How to structure an editor with undo/redo and a command system
-
-These are architecture problems. Every large mod invents solutions for them. Some are elegant, some are cautionary tales. This chapter maps the patterns so you can pick the right approach for your project.
+- [Why Architecture Patterns Matter](#why-architecture-patterns-matter)
+- [Module-Form-Window Admin Panels](#module-form-window-admin-panels)
+- [A Mini Window Manager](#a-mini-window-manager)
+- [Declarative Data Binding](#declarative-data-binding)
+- [A Three-Layer Theme System](#a-three-layer-theme-system)
+- [Multi-Type Notifications](#multi-type-notifications)
+- [The Command Pattern](#the-command-pattern)
+- [Common UI Architecture Patterns](#common-ui-architecture-patterns)
+- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
+- [Which Pattern to Use When](#which-pattern-to-use-when)
 
 ---
 
-## COT (Community Online Tools) UI Patterns
+## Why Architecture Patterns Matter
 
-COT is the most widely-used DayZ admin tool. Its UI architecture is built around a module-form-window system where each tool (ESP, Player Manager, Teleport, Object Spawner, etc.) is a self-contained module with its own panel.
+DayZ's documentation explains individual widgets and event callbacks, but it says nothing about the problems that appear the moment a UI grows past one panel:
 
-### Module-Form-Window Architecture
+- How to manage a dozen admin panels without code duplication
+- How to build a draggable, focusable sub-window system inside a fullscreen menu
+- How to theme an entire client without touching vanilla layout files
+- How to keep a data-heavy panel in sync without rewriting widget code by hand
+- How to structure an editor-style tool with undo/redo and keyboard shortcuts
 
-COT separates concerns into three layers:
+These are *architecture* problems, and the DayZ modding community has converged on a handful of reusable solutions for each one. This chapter maps those solutions. Every example is written fresh against vanilla APIs and uses the wiki's teaching mod family, **Lantern** (the `LNT_` prefix; its full framework code lives in the Part 7 pattern chapters). Nothing here is copied from a shipped mod — each pattern is reconstructed from the concept up so you can adapt it to your own project.
 
-1. **JMRenderableModuleBase** -- Declares the module's metadata (title, icon, layout path, permissions). Manages the CF_Window lifecycle. Does not contain UI logic.
-2. **JMFormBase** -- The actual UI panel. Extends `ScriptedWidgetEventHandler`. Receives widget events, builds UI elements, talks to the module for data operations.
-3. **CF_Window** -- The windowing container provided by the CF framework. Handles drag, resize, close chrome.
+---
 
-A module declares itself with overrides:
+## Module-Form-Window Admin Panels
+
+The most scalable admin-tool architecture splits every tool into three cooperating layers so that adding a tool never touches existing code:
+
+1. **Module** — declares metadata (title, layout path, access rule). Holds no UI logic.
+2. **Form** — a `ScriptedWidgetEventHandler` that builds and reads the panel's widgets.
+3. **Window** — a thin container that owns the widget tree and the title bar.
+
+A single registry lists every module. Adding a new tool is one module class, one form class, one layout file, and one line in the registry.
+
+### The Module
 
 ```c
-class JMExampleModule: JMRenderableModuleBase
+// 5_Mission — keep this descriptor with the UI classes it references.
+class LNT_PanelModule
 {
-    void JMExampleModule()
+    protected ref LNT_Window m_Window;
+    protected ref LNT_Form m_Form;
+
+    // Override these in each tool.
+    string GetTitle()  { return "Panel"; }
+    string GetLayout() { return "Lantern_Admin/GUI/layouts/panel.layout"; }
+
+    // Gate visibility. Wire this to your permission system (see Part 7.5).
+    bool HasAccess() { return true; }
+
+    // Each module supplies the form that drives its layout.
+    LNT_Form CreateForm() { return new LNT_Form(); }
+
+    bool IsOpen() { return m_Window != null; }
+
+    void Open()
     {
-        GetPermissionsManager().RegisterPermission("Admin.Example.View");
-        GetPermissionsManager().RegisterPermission("Admin.Example.Button");
+        if (!HasAccess())
+            return;
+        if (m_Window)
+            return;
+
+        m_Window = new LNT_Window();
+        m_Form = CreateForm();
+        m_Window.Load(GetLayout(), GetTitle(), m_Form);
     }
 
-    override bool HasAccess()
+    void Close()
     {
-        return GetPermissionsManager().HasPermission("Admin.Example.View");
+        if (m_Window)
+        {
+            m_Window.Unload();
+            m_Window = null;
+            m_Form = null;
+        }
     }
 
-    override string GetLayoutRoot()
+    void Toggle()
     {
-        return "JM/COT/GUI/layouts/Example_form.layout";
+        if (IsOpen())
+            Close();
+        else
+            Open();
+    }
+}
+```
+
+### The Window
+
+```c
+// 5_Mission — owns the widget tree, sets the title, hands events to the form.
+class LNT_Window
+{
+    protected Widget m_Root;
+
+    void Load(string layout, string title, LNT_Form form)
+    {
+        m_Root = GetGame().GetWorkspace().CreateWidgets(layout);
+        if (!m_Root)
+            return;
+
+        TextWidget titleWidget = TextWidget.Cast(m_Root.FindAnyWidget("TitleText"));
+        if (titleWidget)
+            titleWidget.SetText(title);
+
+        form.Attach(m_Root);
     }
 
-    override string GetTitle()
+    void Unload()
     {
-        return "Example Module";
+        if (m_Root)
+        {
+            m_Root.Unlink();
+            m_Root = null;
+        }
     }
 
-    override string GetIconName()
+    Widget GetRoot() { return m_Root; }
+}
+```
+
+### The Form
+
+```c
+// 5_Mission — receives widget events and builds/reads the panel contents.
+class LNT_Form : ScriptedWidgetEventHandler
+{
+    protected Widget m_Root;
+
+    // Called by the window once the layout exists.
+    void Attach(Widget root)
     {
-        return "E";
+        m_Root = root;
+        m_Root.SetHandler(this);
+        OnAttached();
     }
 
-    override bool ImageIsIcon()
+    // Override to cache child widgets and populate the panel.
+    void OnAttached() {}
+
+    override bool OnClick(Widget w, int x, int y, int button)
     {
         return false;
     }
 }
 ```
 
-The module is registered in a central constructor that builds the module list:
+### A Concrete Tool and the Registry
 
 ```c
-modded class JMModuleConstructor
+class LNT_KickForm : LNT_Form
 {
-    override void RegisterModules(out TTypenameArray modules)
+    protected ButtonWidget m_KickButton;
+
+    override void OnAttached()
     {
-        super.RegisterModules(modules);
-
-        modules.Insert(JMPlayerModule);
-        modules.Insert(JMObjectSpawnerModule);
-        modules.Insert(JMESPModule);
-        modules.Insert(JMTeleportModule);
-        modules.Insert(JMCameraModule);
-        // ...
-    }
-}
-```
-
-When `Show()` is called on a module, it creates a window and loads the form:
-
-```c
-void Show()
-{
-    if (HasAccess())
-    {
-        m_Window = new CF_Window();
-        Widget widgets = m_Window.CreateWidgets(GetLayoutRoot());
-        widgets.GetScript(m_Form);
-        m_Form.Init(m_Window, this);
-    }
-}
-```
-
-The form's `Init` binds the module reference through a protected override:
-
-```c
-class JMExampleForm: JMFormBase
-{
-    protected JMExampleModule m_Module;
-
-    protected override bool SetModule(JMRenderableModuleBase mdl)
-    {
-        return Class.CastTo(m_Module, mdl);
+        m_KickButton = ButtonWidget.Cast(m_Root.FindAnyWidget("KickButton"));
     }
 
-    override void OnInit()
+    override bool OnClick(Widget w, int x, int y, int button)
     {
-        // Build UI elements programmatically using UIActionManager
-    }
-}
-```
-
-**Key takeaway:** Each tool is entirely self-contained. Adding a new admin tool means creating one Module class, one Form class, one layout file, and inserting one line in the constructor. No existing code changes.
-
-### Programmatic UI with UIActionManager
-
-COT does not build complex forms in layout files. Instead, it uses a factory class (`UIActionManager`) that creates standardized UI action widgets at runtime:
-
-```c
-override void OnInit()
-{
-    m_Scroller = UIActionManager.CreateScroller(layoutRoot.FindAnyWidget("panel"));
-    Widget actions = m_Scroller.GetContentWidget();
-
-    // Grid layout: 8 rows, 1 column
-    m_PanelAlpha = UIActionManager.CreateGridSpacer(actions, 8, 1);
-
-    // Standard widget types
-    m_Text = UIActionManager.CreateText(m_PanelAlpha, "Label", "Value");
-    m_EditableText = UIActionManager.CreateEditableText(
-        m_PanelAlpha, "Name:", this, "OnChange_EditableText"
-    );
-    m_Slider = UIActionManager.CreateSlider(
-        m_PanelAlpha, "Speed:", 0, 100, this, "OnChange_Slider"
-    );
-    m_Checkbox = UIActionManager.CreateCheckbox(
-        m_PanelAlpha, "Enable Feature", this, "OnClick_Checkbox"
-    );
-    m_Button = UIActionManager.CreateButton(
-        m_PanelAlpha, "Execute", this, "OnClick_Button"
-    );
-
-    // Sub-grid for side-by-side buttons
-    Widget gridButtons = UIActionManager.CreateGridSpacer(m_PanelAlpha, 1, 2);
-    m_Button = UIActionManager.CreateButton(gridButtons, "Left", this, "OnClick_Left");
-    m_NavButton = UIActionManager.CreateNavButton(gridButtons, "Right", ...);
-}
-```
-
-Each `UIAction*` widget type has its own layout file (e.g., `UIActionSlider.layout`, `UIActionCheckbox.layout`) loaded as a prefab. The factory approach means:
-
-- Consistent sizing and spacing across all panels
-- No layout file duplication
-- New action types can be added once and used everywhere
-
-### ESP Overlay (Drawing on CanvasWidget)
-
-COT's ESP system draws labels, health bars, and lines directly over the 3D world using `CanvasWidget`. The key pattern is a screen-space `CanvasWidget` that covers the entire viewport, with individual ESP widget handlers positioned at projected world coordinates:
-
-```c
-class JMESPWidgetHandler: ScriptedWidgetEventHandler
-{
-    bool ShowOnScreen;
-    int Width, Height;
-    float FOV;
-    vector ScreenPos;
-    JMESPMeta Info;
-
-    void OnWidgetScriptInit(Widget w)
-    {
-        layoutRoot = w;
-        layoutRoot.SetHandler(this);
-        Init();
-    }
-
-    void Show()
-    {
-        layoutRoot.Show(true);
-        OnShow();
-    }
-
-    void Hide()
-    {
-        OnHide();
-        layoutRoot.Show(false);
-    }
-}
-```
-
-ESP widgets are created from prefab layouts (`esp_widget.layout`) and positioned each frame by projecting 3D positions to screen coordinates. The canvas itself is a fullscreen overlay loaded at startup.
-
-### Confirmation Dialogs
-
-COT provides a callback-based confirmation system built into `JMFormBase`. Confirmations are created with named callbacks:
-
-```c
-CreateConfirmation_Two(
-    JMConfirmationType.INFO,
-    "Are you sure?",
-    "This will kick the player.",
-    "#STR_COT_GENERIC_YES", "OnConfirmKick",
-    "#STR_COT_GENERIC_NO", ""
-);
-```
-
-The `JMConfirmationForm` uses `CallByName` to invoke the callback method on the form:
-
-```c
-class JMConfirmationForm: JMConfirmation
-{
-    protected override void CallCallback(string callback)
-    {
-        if (callback != "")
+        if (w == m_KickButton)
         {
-            g_Game.GetCallQueue(CALL_CATEGORY_GUI).CallByName(
-                m_Window.GetForm(), callback, new Param1<JMConfirmation>(this)
-            );
+            // send your kick RPC here
+            return true;
         }
+        return false;
     }
+}
+
+class LNT_KickPanel : LNT_PanelModule
+{
+    override string GetTitle()     { return "Player Kick"; }
+    override string GetLayout()    { return "Lantern_Admin/GUI/layouts/kick_panel.layout"; }
+    override LNT_Form CreateForm() { return new LNT_KickForm(); }
 }
 ```
 
-This allows chaining confirmations (one confirmation opens another) without hardcoding the flow.
+```c
+// A single place that lists every admin tool.
+// Adding a tool = one line in RegisterPanels().
+class LNT_PanelRegistry
+{
+    protected ref array<ref LNT_PanelModule> m_Panels;
+
+    void LNT_PanelRegistry()
+    {
+        m_Panels = new array<ref LNT_PanelModule>();
+        RegisterPanels();
+    }
+
+    void RegisterPanels()
+    {
+        m_Panels.Insert(new LNT_KickPanel());
+        // m_Panels.Insert(new LNT_TeleportPanel());
+        // m_Panels.Insert(new LNT_SpawnPanel());
+    }
+
+    array<ref LNT_PanelModule> GetPanels() { return m_Panels; }
+}
+```
+
+**Key takeaway:** each tool is entirely self-contained. Because the registry is the only shared list and it grows by insertion, two people can add two tools without a merge conflict.
 
 ---
 
-## VPP Admin Tools UI Patterns
+## A Mini Window Manager
 
-VPP takes a different approach from COT: it uses `UIScriptedMenu` with a toolbar HUD, draggable sub-windows, and a global dialog box system.
-
-### Toolbar Button Registration
-
-`VPPAdminHud` maintains a list of button definitions. Each button maps a permission string to a display name, icon, and tooltip:
+Fullscreen admin HUDs often need several floating panels the operator can drag around, bring to the front, and maximize — a tiny window manager living inside one menu. The whole behavior rides on the title-bar widget and four `ScriptedWidgetEventHandler` overrides. The drag and double-click signatures below match the engine's handler interface exactly (`OnDrag`, `OnDragging`, `OnDoubleClick`, `OnMouseButtonDown`).
 
 ```c
-class VPPAdminHud extends VPPScriptedMenu
+// A draggable, maximizable sub-window. The title bar drives drag and maximize.
+class LNT_SubWindow : ScriptedWidgetEventHandler
 {
-    private ref array<ref VPPButtonProperties> m_DefinedButtons;
+    protected Widget m_Root;
+    protected Widget m_TitleBar;
+    protected float m_DragOffsetX;
+    protected float m_DragOffsetY;
+    protected bool m_Maximized;
+    protected float m_NormalW;
+    protected float m_NormalH;
 
-    void VPPAdminHud()
+    // Shared counter so the last-focused window always sorts on top.
+    static int s_TopSort = 100;
+
+    void Attach(Widget root)
     {
-        InsertButton("MenuPlayerManager", "Player Manager",
-            "set:dayz_gui_vpp image:vpp_icon_players",
-            "#VSTR_TOOLTIP_PLAYERMANAGER");
-        InsertButton("MenuItemManager", "Items Spawner",
-            "set:dayz_gui_vpp image:vpp_icon_item_manager",
-            "#VSTR_TOOLTIP_ITEMMANAGER");
-        // ... 10 more tools
-        DefineButtons();
-
-        // Verify permissions with server via RPC
-        array<string> perms = new array<string>;
-        for (int i = 0; i < m_DefinedButtons.Count(); i++)
-            perms.Insert(m_DefinedButtons[i].param1);
-        GetRPCManager().VSendRPC("RPC_PermitManager",
-            "VerifyButtonsPermission", new Param1<ref array<string>>(perms), true);
-    }
-}
-```
-
-External mods can override `DefineButtons()` to add their own toolbar buttons, making VPP extensible without modifying its source.
-
-### Sub-Menu Window System
-
-Each tool panel extends `AdminHudSubMenu`, which provides draggable window behavior, show/hide toggling, and window priority management:
-
-```c
-class AdminHudSubMenu: ScriptedWidgetEventHandler
-{
-    protected Widget M_SUB_WIDGET;
-    protected Widget m_TitlePanel;
-
-    void ShowSubMenu()
-    {
-        m_IsVisible = true;
-        M_SUB_WIDGET.Show(true);
-        VPPAdminHud rootHud = VPPAdminHud.Cast(
-            GetVPPUIManager().GetMenuByType(VPPAdminHud)
-        );
-        rootHud.SetWindowPriorty(this);
-        OnMenuShow();
+        m_Root = root;
+        m_Root.SetHandler(this);
+        m_TitleBar = m_Root.FindAnyWidget("TitleBar");
+        m_Root.GetSize(m_NormalW, m_NormalH);
     }
 
-    // Drag support via title bar
+    // Raise this window above its siblings.
+    void BringToFront()
+    {
+        s_TopSort = s_TopSort + 1;
+        m_Root.SetSort(s_TopSort);
+    }
+
+    override bool OnMouseButtonDown(Widget w, int x, int y, int button)
+    {
+        BringToFront();
+        return false;
+    }
+
+    // Drag begins: remember where inside the title bar the cursor grabbed.
     override bool OnDrag(Widget w, int x, int y)
     {
-        if (w == m_TitlePanel)
+        if (w == m_TitleBar)
         {
-            M_SUB_WIDGET.GetPos(m_posX, m_posY);
-            m_posX = x - m_posX;
-            m_posY = y - m_posY;
-            return false;
-        }
-        return true;
-    }
-
-    override bool OnDragging(Widget w, int x, int y, Widget reciever)
-    {
-        if (w == m_TitlePanel)
-        {
-            SetWindowPos(x - m_posX, y - m_posY);
-            return false;
-        }
-        return true;
-    }
-
-    // Double-click title bar to maximize/restore
-    override bool OnDoubleClick(Widget w, int x, int y, int button)
-    {
-        if (button == MouseState.LEFT && w == m_TitlePanel)
-        {
-            ResizeWindow(!m_WindowExpanded);
-            return true;
-        }
-        return super.OnDoubleClick(w, x, y, button);
-    }
-}
-```
-
-**Key takeaway:** VPP builds a mini window manager inside DayZ. Each sub-menu is a draggable, resizable window with focus management. The `SetWindowPriorty()` call adjusts z-order so the clicked window comes to front.
-
-### VPPDialogBox -- Callback-based Dialog
-
-VPP's dialog system uses an enum-driven approach. The dialog shows/hides buttons based on a type enum, and routes the result through `CallFunction`:
-
-```c
-enum DIAGTYPE
-{
-    DIAG_YESNO,
-    DIAG_YESNOCANCEL,
-    DIAG_OK,
-    DIAG_OK_CANCEL_INPUT
-}
-
-class VPPDialogBox extends ScriptedWidgetEventHandler
-{
-    private Class   m_CallBackClass;
-    private string  m_CbFunc = "OnDiagResult";
-
-    void InitDiagBox(int diagType, string title, string content,
-                     Class callBackClass, string cbFunc = string.Empty)
-    {
-        m_CallBackClass = callBackClass;
-        if (cbFunc != string.Empty)
-            m_CbFunc = cbFunc;
-
-        switch (diagType)
-        {
-            case DIAGTYPE.DIAG_YESNO:
-                m_Yes.Show(true);
-                m_No.Show(true);
-                break;
-            case DIAGTYPE.DIAG_OK_CANCEL_INPUT:
-                m_Ok.Show(true);
-                m_Cancel.Show(true);
-                m_InputBox.Show(true);
-                break;
-        }
-        m_TitleText.SetText(title);
-        m_Content.SetText(content);
-    }
-
-    private void OnOutCome(int result)
-    {
-        GetGame().GameScript.CallFunction(m_CallBackClass, m_CbFunc, null, result);
-        delete this;
-    }
-}
-```
-
-The `ConfirmationEventHandler` wraps a button widget so clicking it spawns a dialog. The dialog result is forwarded to any class via a named callback:
-
-```c
-class ConfirmationEventHandler extends ScriptedWidgetEventHandler
-{
-    void InitEvent(Class callbackClass, string functionName,
-                   int diagtype, string title, string message,
-                   Widget parent, bool allowChars = false)
-    {
-        m_CallBackClass = callbackClass;
-        m_CallbackFunc  = functionName;
-        m_DiagType      = diagtype;
-        m_Title         = title;
-        m_Message       = message;
-    }
-
-    override bool OnClick(Widget w, int x, int y, int button)
-    {
-        if (w == m_root)
-        {
-            m_diagBox = GetVPPUIManager().CreateDialogBox(m_Parent);
-            m_diagBox.InitDiagBox(m_DiagType, m_Title, m_Message, this);
+            float px;
+            float py;
+            m_Root.GetScreenPos(px, py);
+            m_DragOffsetX = x - px;
+            m_DragOffsetY = y - py;
             return true;
         }
         return false;
     }
 
-    void OnDiagResult(int outcome, string input)
+    // Drag in progress: move the window so the grab point tracks the cursor.
+    override bool OnDragging(Widget w, int x, int y, Widget reciever)
     {
-        GetGame().GameScript.CallFunctionParams(
-            m_CallBackClass, m_CallbackFunc, null,
-            new Param2<int, string>(outcome, input)
-        );
-    }
-}
-```
-
-### PopUp with OnWidgetScriptInit
-
-VPP popup forms bind to their layout via `OnWidgetScriptInit` and use `ScriptedWidgetEventHandler`:
-
-```c
-class PopUpCreatePreset extends ScriptedWidgetEventHandler
-{
-    private Widget m_root;
-    private ButtonWidget m_Close, m_Cancel, m_Save;
-    private EditBoxWidget m_editbox_name;
-
-    void OnWidgetScriptInit(Widget w)
-    {
-        m_root = w;
-        m_root.SetHandler(this);
-        m_Close = ButtonWidget.Cast(m_root.FindAnyWidget("button_close"));
-        m_Cancel = ButtonWidget.Cast(m_root.FindAnyWidget("button_cancel"));
-        m_Save = ButtonWidget.Cast(m_root.FindAnyWidget("button_save"));
-        m_editbox_name = EditBoxWidget.Cast(m_root.FindAnyWidget("editbox_name"));
-    }
-
-    void ~PopUpCreatePreset()
-    {
-        if (m_root != null)
-            m_root.Unlink();
-    }
-
-    override bool OnClick(Widget w, int x, int y, int button)
-    {
-        switch (w)
+        if (w == m_TitleBar)
         {
-            case m_Close:
-            case m_Cancel:
-                delete this;
-                break;
-            case m_Save:
-                if (m_PresetName != "")
-                {
-                    m_RootClass.SaveNewPreset(m_PresetName);
-                    delete this;
-                }
-                break;
+            m_Root.SetScreenPos(x - m_DragOffsetX, y - m_DragOffsetY);
+            return true;
         }
-        return true;
+        return false;
+    }
+
+    // Double-click the title bar to toggle maximize.
+    override bool OnDoubleClick(Widget w, int x, int y, int button)
+    {
+        if (button == MouseState.LEFT && w == m_TitleBar)
+        {
+            ToggleMaximize();
+            return true;
+        }
+        return false;
+    }
+
+    void ToggleMaximize()
+    {
+        if (m_Maximized)
+        {
+            m_Root.SetSize(m_NormalW, m_NormalH);
+            m_Maximized = false;
+        }
+        else
+        {
+            m_Root.SetSize(1.0, 1.0);
+            m_Maximized = true;
+        }
     }
 }
 ```
 
-**Key takeaway:** `delete this` on close is the common popup disposal pattern. The destructor calls `m_root.Unlink()` to remove the widget tree. This is clean but requires care -- if anything holds a reference to the popup after deletion, you get a null access.
+**Key takeaway:** `SetSort()` is the whole z-order story — a monotonically increasing counter guarantees the clicked window jumps to the front without tracking every sibling. The drag math stores the grab offset once in `OnDrag`, then applies it every frame in `OnDragging`, so the panel never snaps to the cursor's corner.
 
 ---
 
-## DabsFramework UI Patterns
+## Declarative Data Binding
 
-DabsFramework introduces a full MVC (Model-View-Controller) architecture for DayZ UI. It is used by DayZ Editor and Expansion as their UI foundation.
+Manually calling `FindAnyWidget()` and `SetText()` for every value gets unmanageable fast. The binding concept flips it around: you store named values on a view-model and let it push each value to the widget that shares its name. Update the value, the widget follows.
 
-### ViewController and Data Binding
-
-The core idea: instead of manually finding widgets and setting their text, you declare properties on a controller class and bind them to widgets by name in the layout editor.
+The version below is deliberately minimal so the mechanism is visible in one screen. Mature community UI frameworks generalize this into two-way binding, list collections, and command relays — but they are all elaborations of this same name-matching idea.
 
 ```c
-class TestController: ViewController
+// A tiny view-model: hold named values, update the matching widget on change.
+class LNT_ViewModel
 {
-    // Variable name matches Binding_Name in the layout
-    string TextBox1 = "Initial Text";
-    int TextBox2;
-    bool WindowButton1;
+    protected Widget m_Root;
+    protected ref map<string, string> m_Text;
 
-    void SetWindowButton1(bool state)
+    void LNT_ViewModel(Widget root)
     {
-        WindowButton1 = state;
-        NotifyPropertyChanged("WindowButton1");
+        m_Root = root;
+        m_Text = new map<string, string>();
     }
 
-    override void PropertyChanged(string propertyName)
+    // Set a named property and push it to the widget of the same name.
+    void SetText(string name, string value)
     {
-        switch (propertyName)
+        m_Text.Set(name, value);
+        NotifyPropertyChanged(name);
+    }
+
+    string GetText(string name)
+    {
+        if (m_Text.Contains(name))
+            return m_Text.Get(name);
+        return "";
+    }
+
+    // Find the widget whose name matches the property and write to it.
+    void NotifyPropertyChanged(string name)
+    {
+        if (!m_Root)
+            return;
+
+        Widget w = m_Root.FindAnyWidget(name);
+        if (!w)
+            return;
+
+        TextWidget textWidget = TextWidget.Cast(w);
+        if (textWidget)
         {
-            case "WindowButton1":
-                Print("Button state: " + WindowButton1);
-                break;
+            textWidget.SetText(GetText(name));
+            return;
+        }
+
+        EditBoxWidget editWidget = EditBoxWidget.Cast(w);
+        if (editWidget)
+            editWidget.SetText(GetText(name));
+    }
+
+    // Re-push every property, e.g. right after the layout is created.
+    void Refresh()
+    {
+        string key;
+        for (int i = 0; i < m_Text.Count(); i++)
+        {
+            key = m_Text.GetKey(i);
+            NotifyPropertyChanged(key);
         }
     }
 }
 ```
 
-In the layout, each widget has a `ViewBinding` script class with a `Binding_Name` reference property set to the variable name (e.g., "TextBox1"). When `NotifyPropertyChanged()` is called, the framework finds all ViewBindings with that name and updates the widget:
+Usage is one call — set a value and the label updates itself:
 
 ```c
-class ViewBinding : ScriptedViewBase
-{
-    reference string Binding_Name;
-    reference string Selected_Item;
-    reference bool Two_Way_Binding;
-    reference string Relay_Command;
-
-    void UpdateView(ViewController controller)
-    {
-        if (m_PropertyConverter)
-        {
-            m_PropertyConverter.GetFromController(controller, Binding_Name, 0);
-            m_WidgetController.Set(m_PropertyConverter);
-        }
-    }
-
-    void UpdateController(ViewController controller)
-    {
-        if (m_PropertyConverter && Two_Way_Binding)
-        {
-            m_WidgetController.Get(m_PropertyConverter);
-            m_PropertyConverter.SetToController(controller, Binding_Name, 0);
-            controller.NotifyPropertyChanged(Binding_Name);
-        }
-    }
-}
+LNT_ViewModel vm = new LNT_ViewModel(panelRoot);
+vm.SetText("PlayerName", "Survivor_42");
+vm.SetText("Health", "88%");
 ```
 
-**Two-way binding** means changes in the widget (user typing) propagate back to the controller property automatically.
-
-### ObservableCollection -- List Data Binding
-
-For dynamic lists, DabsFramework provides `ObservableCollection<T>`. Insert/remove operations automatically update the bound widget (e.g., a WrapSpacer or ScrollWidget):
-
-```c
-class MyController: ViewController
-{
-    ref ObservableCollection<string> ItemList;
-
-    void MyController()
-    {
-        ItemList = new ObservableCollection<string>(this);
-        ItemList.Insert("Item A");
-        ItemList.Insert("Item B");
-    }
-
-    override void CollectionChanged(string property_name,
-                                    CollectionChangedEventArgs args)
-    {
-        // Called automatically on Insert/Remove
-    }
-}
-```
-
-Each `Insert()` fires a `CollectionChanged` event, which the ViewBinding intercepts to create/destroy child widgets. No manual widget management needed.
-
-### ScriptView -- Layout-from-Code
-
-`ScriptView` is the all-script alternative to `OnWidgetScriptInit`. You subclass it, override `GetLayoutFile()`, and instantiate it. The constructor loads the layout, finds the controller, and wires everything:
-
-```c
-class CustomDialogWindow: ScriptView
-{
-    override string GetLayoutFile()
-    {
-        return "MyMod/gui/layouts/dialogs/Dialog.layout";
-    }
-
-    override typename GetControllerType()
-    {
-        return CustomDialogController;
-    }
-}
-
-// Usage:
-CustomDialogWindow window = new CustomDialogWindow();
-```
-
-Widget variables declared as fields on `ScriptView` subclasses are auto-populated by name matching against the layout hierarchy (`LoadWidgetsAsVariables`). This eliminates `FindAnyWidget()` calls.
-
-### RelayCommand -- Button-to-Action Binding
-
-Buttons can be bound to `RelayCommand` objects via the `Relay_Command` reference property in ViewBinding. This decouples button clicks from handlers:
-
-```c
-class EditorCommand: RelayCommand
-{
-    override bool Execute(Class sender, CommandArgs args)
-    {
-        // Perform action
-        return true;
-    }
-
-    override bool CanExecute()
-    {
-        // Enable/disable the button
-        return true;
-    }
-
-    override void CanExecuteChanged(bool state)
-    {
-        // Grey out the widget when disabled
-        if (m_ViewBinding)
-        {
-            Widget root = m_ViewBinding.GetLayoutRoot();
-            root.SetAlpha(state ? 1 : 0.15);
-            root.Enable(state);
-        }
-    }
-}
-```
-
-**Key takeaway:** DabsFramework eliminates boilerplate. You declare data, bind it by name, and the framework handles synchronization. The cost is the learning curve and the framework dependency.
+**Key takeaway:** the binding removes the busywork, not the control — when a value maps cleanly to a named widget the view-model handles it, and anything specialized (an item preview, a map marker) still gets a direct widget reference.
 
 ---
 
-## Colorful UI Patterns
+## A Three-Layer Theme System
 
-Colorful UI replaces vanilla DayZ menus with themed versions without modifying vanilla script files. Its approach is entirely based on `modded class` overrides and a centralized color/branding system.
-
-### 3-Layer Theme System
-
-Colors are organized in three tiers:
-
-**Layer 1 -- UIColor (base palette):** Raw color values with semantic names.
+To re-skin the client without editing vanilla files, separate *color* from *meaning* from *identity* into three layers. Server owners edit only the middle layer to recolor every menu at once.
 
 ```c
-class UIColor
+// Layer 1 - raw palette: named ARGB values, no UI meaning yet.
+class LNT_Palette
 {
-    static int White()           { return ARGB(255, 255, 255, 255); }
-    static int Grey()            { return ARGB(255, 130, 130, 130); }
-    static int Red()             { return ARGB(255, 173, 35, 35); }
-    static int Discord()         { return ARGB(255, 88, 101, 242); }
-    static int cuiTeal()         { return ARGB(255, 102, 153, 153); }
-    static int cuiDarkBlue()     { return ARGB(155, 0, 0, 32); }
+    static int White()    { return ARGB(255, 255, 255, 255); }
+    static int Slate()    { return ARGB(255, 130, 130, 130); }
+    static int Amber()    { return ARGB(255, 255, 190, 60); }
+    static int DeepBlue() { return ARGB(255, 12, 20, 40); }
+    static int Danger()   { return ARGB(255, 190, 55, 55); }
 }
 ```
 
-**Layer 2 -- colorScheme (semantic mapping):** Maps UI concepts to palette colors. Server owners change this layer to theme their server.
-
 ```c
-class colorScheme
+// Layer 2 - semantic scheme: map UI roles to palette entries.
+// Change this layer to re-skin every menu at once.
+class LNT_Scheme
 {
-    static int BrandColor()      { return ARGB(255, 255, 204, 102); }
-    static int AccentColor()     { return ARGB(255, 100, 35, 35); }
-    static int PrimaryText()     { return UIColor.White(); }
-    static int TextHover()       { return BrandColor(); }
-    static int ButtonHover()     { return BrandColor(); }
-    static int TabSelectedColor(){ return BrandColor(); }
-    static int Separator()       { return BrandColor(); }
-    static int OptionSliderColors() { return BrandColor(); }
+    static int Brand()       { return LNT_Palette.Amber(); }
+    static int PrimaryText() { return LNT_Palette.White(); }
+    static int Background()  { return LNT_Palette.DeepBlue(); }
+    static int Separator()   { return LNT_Palette.Amber(); }
+    static int Warning()     { return LNT_Palette.Danger(); }
 }
 ```
 
-**Layer 3 -- Branding/Settings (server identity):** Logo paths, URLs, feature toggles.
-
 ```c
-class Branding
+// Layer 3 - branding: server identity (logo, links).
+class LNT_Branding
 {
     static string Logo()
     {
-        return "Colorful-UI/GUI/textures/Shared/CuiPro_Logo.edds";
+        return "Lantern_Core/GUI/textures/logo.edds";
     }
 
     static void ApplyLogo(ImageWidget widget)
     {
-        if (!widget) return;
+        if (!widget)
+            return;
         widget.LoadImageFile(0, Logo());
         widget.SetFlags(WidgetFlags.STRETCH);
     }
 }
-
-class SocialURL
-{
-    static string Discord  = "http://www.example.com";
-    static string Facebook = "http://www.example.com";
-    static string Twitter  = "http://www.example.com";
-}
 ```
 
-### Non-Destructive Vanilla UI Modification
-
-Colorful UI replaces vanilla menus using `modded class`. Each vanilla `UIScriptedMenu` subclass is modded to load a custom layout file and apply theme colors:
+This example tints the menu after vanilla initialization. If you replace its layout, you must also preserve the initialization and widget bindings that MainMenu.Init establishes; matching names alone does not initialize cached members.
 
 ```c
-modded class MainMenu extends UIScriptedMenu
+// Re-skin the vanilla main menu without editing vanilla files.
+modded class MainMenu
 {
-    protected ImageWidget m_TopShader, m_BottomShader, m_MenuDivider;
-
     override Widget Init()
     {
-        layoutRoot = GetGame().GetWorkspace().CreateWidgets(
-            "Colorful-UI/GUI/layouts/menus/cui.mainMenu.layout"
-        );
+        layoutRoot = super.Init(); // Preserve vanilla widget caching and setup
 
-        m_TopShader = ImageWidget.Cast(layoutRoot.FindAnyWidget("TopShader"));
-        m_BottomShader = ImageWidget.Cast(layoutRoot.FindAnyWidget("BottomShader"));
+        Widget divider = layoutRoot.FindAnyWidget("MenuDivider");
+        if (divider)
+            divider.SetColor(LNT_Scheme.Separator());
 
-        // Apply theme colors
-        if (m_TopShader) m_TopShader.SetColor(colorScheme.TopShader());
-        if (m_BottomShader) m_BottomShader.SetColor(colorScheme.BottomShader());
-        if (m_MenuDivider) m_MenuDivider.SetColor(colorScheme.Separator());
-
-        Branding.ApplyLogo(m_Logo);
+        ImageWidget logo = ImageWidget.Cast(layoutRoot.FindAnyWidget("Logo"));
+        LNT_Branding.ApplyLogo(logo);
 
         return layoutRoot;
     }
 }
 ```
 
-This pattern is important: Colorful UI ships entirely custom `.layout` files that mirror vanilla widget names. The `modded class` override swaps the layout path but keeps vanilla widget names so that if any vanilla code references those widget names, it still works.
-
-### Resolution-Aware Layout Variants
-
-Colorful UI provides separate inventory layout directories for different screen widths:
+For different screen shapes, ship parallel layout folders that hold identical widget names at different sizes and pick one at runtime:
 
 ```
 GUI/layouts/inventory/narrow/   -- small screens
@@ -733,345 +474,276 @@ GUI/layouts/inventory/medium/   -- standard 1080p
 GUI/layouts/inventory/wide/     -- ultrawide
 ```
 
-Each directory contains the same file names (`cargo_container.layout`, `left_area.layout`, etc.) with adjusted sizing. The correct variant is selected at runtime based on screen resolution.
-
-### Configuration via Static Variables
-
-Server owners configure Colorful UI by editing static variable values in `Settings.c`:
-
-```c
-static bool StartMainMenu    = true;
-static bool NoHints          = false;
-static bool LoadVideo        = true;
-static bool ShowDeadScreen   = false;
-static bool CuiDebug         = true;
-```
-
-This is the simplest possible config system: edit the script, rebuild PBO. No JSON loading, no config manager. For a client-only visual mod, this is appropriate.
-
-**Key takeaway:** Colorful UI demonstrates that you can retheme the entire DayZ client without server-side code, using only `modded class` overrides, custom layout files, and a centralized color system.
+**Key takeaway:** you can retheme the entire client with only `modded class` overrides, replacement `.layout` files, and one central scheme — no server-side code required for a purely visual mod.
 
 ---
 
-## Expansion UI Patterns
+## Multi-Type Notifications
 
-DayZ Expansion is the largest community mod ecosystem. Its UI ranges from notification toasts to full market trading interfaces with server synchronization.
-
-### Notification System (Multiple Types)
-
-Expansion defines six notification visual types, each with its own layout:
+Vanilla ships one notification look through `NotificationSystem`:
 
 ```c
-enum ExpansionNotificationType
+// Vanilla baseline: a single built-in style.
+NotificationSystem.AddNotification(NotificationType.GENERIC_ERROR, 6, "Connection lost");
+
+// From the server, target one player:
+NotificationSystem.SendNotificationToPlayer(player, NotificationType.GENERIC_ERROR, 6, "Kicked for AFK");
+```
+
+To get several visually distinct styles — a corner toast, a wide banner, a killfeed line — map each *type* to its own layout and expose one static entry point that anything can call.
+
+```c
+// Each type maps to its own layout for a distinct look.
+enum LNT_NoticeType
 {
-    TOAST    = 1,    // Small corner popup
-    BAGUETTE = 2,   // Wide banner across screen
-    ACTIVITY = 4,   // Activity feed entry
-    KILLFEED = 8,   // Kill announcement
-    MARKET   = 16,  // Market transaction result
-    GARAGE   = 32   // Vehicle storage result
+    TOAST,     // small corner popup
+    BANNER,    // wide strip across the top
+    KILLFEED   // combat log entry
 }
 ```
 
-Notifications are created from anywhere (client or server) using a static API:
-
 ```c
-// From server, sent to specific player via RPC:
-NotificationSystem.Create_Expansion(
-    "Trade Complete",          // title
-    "You purchased M4A1",     // text
-    "market_icon",             // icon name
-    ARGB(255, 50, 200, 50),   // color
-    7,                         // display time (seconds)
-    sendTo,                    // PlayerIdentity (null = all)
-    ExpansionNotificationType.MARKET  // type
-);
-```
-
-The notification module maintains a list of active notifications and manages their lifecycle. Each `ExpansionNotificationView` (a `ScriptView` subclass) handles its own show/hide animation:
-
-```c
-class ExpansionNotificationView: ScriptView
+// A single notice: type, text, and lifetime.
+class LNT_Notice
 {
-    protected bool m_Showing;
-    protected bool m_Hiding;
-    protected float m_ShowUpdateTime;
-    protected float m_TotalShowUpdateTime;
+    LNT_NoticeType type;
+    string title;
+    string body;
+    float seconds;
 
-    void ShowNotification()
+    void LNT_Notice(LNT_NoticeType noticeType, string noticeTitle, string noticeBody, float noticeSeconds)
     {
-        if (GetExpansionClientSettings().ShowNotifications
-            && GetExpansionClientSettings().NotificationSound)
-            PlaySound();
-
-        GetLayoutRoot().Show(true);
-        m_Showing = true;
-        m_ShowUpdateTime = 0;
-        SetView();
+        type = noticeType;
+        title = noticeTitle;
+        body = noticeBody;
+        seconds = noticeSeconds;
     }
 
-    void HideNotification()
+    string GetLayout()
     {
-        m_Hiding = true;
-        m_HideUpdateTime = 0;
+        if (type == LNT_NoticeType.BANNER)
+            return "Lantern_Core/GUI/layouts/notice_banner.layout";
+        if (type == LNT_NoticeType.KILLFEED)
+            return "Lantern_Core/GUI/layouts/notice_killfeed.layout";
+        return "Lantern_Core/GUI/layouts/notice_toast.layout";
     }
 }
 ```
 
-Each notification type has a separate layout file (`expansion_notification_toast.layout`, `expansion_notification_killfeed.layout`, etc.) allowing completely different visual treatments.
-
-### Market Menu (Complex Interactive Panel)
-
-The `ExpansionMarketMenu` is one of the most complex UIs in any DayZ mod. It extends `ExpansionScriptViewMenu` (which extends DabsFramework's ScriptView) and manages:
-
-- Category tree with collapsible sections
-- Item grid with search filtering
-- Buy/sell price display with currency icons
-- Quantity controls
-- Item preview widget
-- Player inventory preview
-- Dropdown selectors for skins
-- Attachment configuration checkboxes
-- Confirmation dialogs for purchases/sales
-
 ```c
-class ExpansionMarketMenu: ExpansionScriptViewMenu
+// Static entry point: build a notice from anywhere and queue it for display.
+class LNT_Notifications
 {
-    protected ref ExpansionMarketMenuController m_MarketMenuController;
-    protected ref ExpansionMarketModule m_MarketModule;
-    protected ref ExpansionMarketItem m_SelectedMarketItem;
+    protected static ref array<ref LNT_Notice> s_Queue;
 
-    // Direct widget references (auto-populated by ScriptView)
-    protected EditBoxWidget market_filter_box;
-    protected ButtonWidget market_item_buy;
-    protected ButtonWidget market_item_sell;
-    protected ScrollWidget market_categories_scroller;
-    protected ItemPreviewWidget market_item_preview;
-    protected PlayerPreviewWidget market_player_preview;
-
-    // State tracking
-    protected int m_Quantity = 1;
-    protected int m_BuyPrice;
-    protected int m_SellPrice;
-    protected ExpansionMarketMenuState m_CurrentState;
-}
-```
-
-**Key takeaway:** For complex interactive UIs, Expansion combines DabsFramework's MVC with traditional widget references. The controller handles data binding for lists and text, while direct widget references handle specialized widgets like `ItemPreviewWidget` and `PlayerPreviewWidget` that need imperative control.
-
-### ExpansionScriptViewMenu -- Menu Lifecycle
-
-Expansion wraps ScriptView in a menu base class that handles input locking, blur effects, and update timers:
-
-```c
-class ExpansionScriptViewMenu: ExpansionScriptViewMenuBase
-{
-    override void OnShow()
+    static void Init()
     {
-        super.OnShow();
-        LockControls();
-        PPEffects.SetBlurMenu(0.5);
-        SetFocus(GetLayoutRoot());
-        CreateUpdateTimer();
+        if (!s_Queue)
+            s_Queue = new array<ref LNT_Notice>();
     }
 
-    override void OnHide()
+    static void Create(LNT_NoticeType type, string title, string body, float seconds)
     {
-        super.OnHide();
-        PPEffects.SetBlurMenu(0.0);
-        DestroyUpdateTimer();
-        UnlockControls();
-    }
-
-    override void LockControls(bool lockMovement = true)
-    {
-        ShowHud(false);
-        ShowUICursor(true);
-        LockInputs(true, lockMovement);
+        Init();
+        LNT_Notice notice = new LNT_Notice(type, title, body, seconds);
+        s_Queue.Insert(notice);
+        // A display element (a HUD or UIScriptedMenu) reads s_Queue, builds the
+        // layout from notice.GetLayout(), then removes it when its time expires.
     }
 }
 ```
 
-This ensures every Expansion menu consistently locks player movement, shows cursor, applies background blur, and cleans up on close.
+Call this UI helper on the client. A server event needs an RPC or the vanilla SendNotificationToPlayer API to reach that client:
+
+```c
+LNT_Notifications.Create(LNT_NoticeType.BANNER, "Airdrop Incoming", "Sector B4", 8);
+```
+
+**Key takeaway:** the type enum is the extension point. Adding a new visual style is a new enum value plus a new layout file — the `Create` API and the queue never change.
 
 ---
 
-## DayZ Editor UI Patterns
+## The Command Pattern
 
-DayZ Editor is a full object placement tool built as a DayZ mod. It uses DabsFramework extensively and implements patterns typically found in desktop applications: toolbars, menus, property inspectors, command system with undo/redo.
-
-### Command Pattern with Keyboard Shortcuts
-
-The Editor's command system decouples actions from UI elements. Each action (New, Open, Save, Undo, Redo, Delete, etc.) is an `EditorCommand` subclass:
+Editor-style tools need actions that are decoupled from the buttons and keys that trigger them, that can enable or disable themselves, and that can be undone. Model each action as a command object; a manager registers them by type and keeps an undo stack.
 
 ```c
-class EditorUndoCommand: EditorCommand
+// Base command: an action decoupled from any button or key.
+class LNT_Command
 {
-    protected override bool Execute(Class sender, CommandArgs args)
+    // Do the work. Return true on success.
+    bool Execute() { return true; }
+
+    // Reverse the work if the command supports it.
+    void Undo() {}
+    bool SupportsUndo() { return false; }
+
+    // Whether the command may run right now (drives button enable state).
+    bool CanExecute() { return true; }
+
+    string GetName() { return "Command"; }
+
+    // Optional keyboard shortcut. An empty array means none.
+    array<int> GetShortcut() { return new array<int>(); }
+}
+```
+
+```c
+class LNT_DeleteCommand : LNT_Command
+{
+    override bool SupportsUndo() { return true; }
+    override bool Execute()
     {
-        super.Execute(sender, args);
-        m_Editor.Undo();
+        // remove the selection; push it onto your restore buffer
         return true;
     }
 
-    override string GetName()
+    override void Undo()
     {
-        return "#STR_EDITOR_UNDO";
+        // re-create the object from the restore buffer
     }
 
-    override string GetIcon()
+    override string GetName() { return "Delete"; }
+}
+
+class LNT_UndoCommand : LNT_Command
+{
+    protected LNT_CommandManager m_Manager;
+
+    void LNT_UndoCommand(LNT_CommandManager manager)
     {
-        return "set:dayz_editor_gui image:undo";
+        m_Manager = manager;
     }
 
-    override ShortcutKeys GetShortcut()
+    override bool Execute()
     {
-        return { KeyCode.KC_LCONTROL, KeyCode.KC_Z };
+        m_Manager.UndoLast();
+        return true;
     }
 
     override bool CanExecute()
     {
-        return GetEditor().CanUndo();
+        return m_Manager.CanUndo();
+    }
+
+    override string GetName() { return "Undo"; }
+
+    // Ctrl+Z
+    override array<int> GetShortcut()
+    {
+        array<int> keys = new array<int>();
+        keys.Insert(KeyCode.KC_LCONTROL);
+        keys.Insert(KeyCode.KC_Z);
+        return keys;
     }
 }
 ```
 
-The `EditorCommandManager` registers all commands and maps shortcuts:
-
 ```c
-class EditorCommandManager
+// Registers commands by type and keeps an undo stack of executed commands.
+class LNT_CommandManager
 {
-    protected ref map<typename, ref EditorCommand> m_Commands;
-    protected ref map<int, EditorCommand> m_CommandShortcutMap;
+    protected ref map<typename, ref LNT_Command> m_Commands;
+    protected ref array<ref LNT_Command> m_UndoStack;
 
-    EditorCommand UndoCommand;
-    EditorCommand RedoCommand;
-    EditorCommand DeleteCommand;
-
-    void Init()
+    void LNT_CommandManager()
     {
-        UndoCommand = RegisterCommand(EditorUndoCommand);
-        RedoCommand = RegisterCommand(EditorRedoCommand);
-        DeleteCommand = RegisterCommand(EditorDeleteCommand);
-        // ...
+        m_Commands = new map<typename, ref LNT_Command>();
+        m_UndoStack = new array<ref LNT_Command>();
+    }
+
+    void Register(LNT_Command command)
+    {
+        m_Commands.Set(command.Type(), command);
+    }
+
+    LNT_Command Get(typename commandType)
+    {
+        if (m_Commands.Contains(commandType))
+            return m_Commands.Get(commandType);
+        return null;
+    }
+
+    // Run a command and, if it succeeded, remember it for undo.
+    void Run(typename commandType)
+    {
+        LNT_Command command = Get(commandType);
+        if (!command)
+            return;
+        if (!command.CanExecute())
+            return;
+        if (command.Execute() && command.SupportsUndo())
+            m_UndoStack.Insert(command);
+    }
+
+    bool CanUndo()
+    {
+        return m_UndoStack.Count() > 0;
+    }
+
+    void UndoLast()
+    {
+        if (!CanUndo())
+            return;
+
+        int last = m_UndoStack.Count() - 1;
+        LNT_Command command = m_UndoStack.Get(last);
+        command.Undo();
+        m_UndoStack.Remove(last);
     }
 }
 ```
 
-Commands integrate with DabsFramework's `RelayCommand` so toolbar buttons automatically grey out when `CanExecute()` returns false.
+The deletion and restoration bodies are placeholders. Store a distinct restore record for each execution in your restore buffer; a shared command instance alone is not a history of object state. The Undo command is not itself inserted into the undo stack.
 
-### Menu Bar System
-
-The Editor builds its menu bar (File, Edit, View, Editor) using an observable collection of menu items. Each menu is a `ScriptView` subclass:
+Wiring is one setup call. A toolbar button and a keybind can both fire `Run(LNT_DeleteCommand)` without knowing anything about deletion:
 
 ```c
-class EditorMenu: ScriptView
+void SetupCommands(LNT_CommandManager manager)
 {
-    protected EditorMenuController m_TemplateController;
-
-    void AddMenuButton(typename editor_command_type)
-    {
-        AddMenuButton(GetEditor().CommandManager[editor_command_type]);
-    }
-
-    void AddMenuButton(EditorCommand editor_command)
-    {
-        AddMenuItem(new EditorMenuItem(this, editor_command));
-    }
-
-    void AddMenuDivider()
-    {
-        AddMenuItem(new EditorMenuItemDivider(this));
-    }
-
-    void AddMenuItem(EditorMenuItem menu_item)
-    {
-        m_TemplateController.MenuItems.Insert(menu_item);
-    }
+    manager.Register(new LNT_DeleteCommand());
+    manager.Register(new LNT_UndoCommand(manager));
 }
 ```
 
-The `ObservableCollection` automatically creates the visual menu items when commands are inserted.
-
-### HUD with Data-Bound Panels
-
-The editor HUD controller uses `ObservableCollection` for all list panels:
-
-```c
-class EditorHudController: EditorControllerBase
-{
-    // Object lists bound to sidebar panels
-    ref ObservableCollection<ref EditorPlaceableListItem> LeftbarSpacerConfig;
-    ref ObservableCollection<EditorListItem> RightbarPlacedData;
-    ref ObservableCollection<EditorPlayerListItem> RightbarPlayerData;
-
-    // Log entries with max count
-    static const int MAX_LOG_ENTRIES = 20;
-    ref ObservableCollection<ref EditorLogEntry> EditorLogEntries;
-
-    // Camera track keyframes
-    ref ObservableCollection<ref EditorCameraTrackListItem> CameraTrackData;
-}
-```
-
-Adding an object to the scene automatically adds it to the sidebar list. Deleting removes it. No manual widget creation/destruction.
-
-### Theming via Widget Name Lists
-
-The Editor centralizes themed widgets using a static array of widget names:
-
-```c
-static const ref array<string> ThemedWidgetStrings = {
-    "LeftbarPanelSearchBarIconButton",
-    "FavoritesTabButton",
-    "ShowPrivateButton",
-    // ...
-};
-```
-
-A theming pass iterates this array and applies colors from `EditorSettings`, avoiding scattered `SetColor()` calls throughout the codebase.
+**Key takeaway:** because `CanExecute()` lives on the command, a toolbar can grey out a button by asking the command directly, and the same command answers to a keyboard shortcut and a menu item without duplication. Note the manager holds `LNT_UndoCommand` by `ref` while the undo command holds the manager as a **raw** reference — this one-sided ownership avoids a reference cycle.
 
 ---
 
 ## Common UI Architecture Patterns
 
-These patterns appear across multiple mods. They represent the community's consensus on how to solve recurring DayZ UI problems.
+These smaller patterns appear across many mods and complement the six above.
 
-### Panel Manager (Show/Hide by Name or Type)
+### Panel Manager (Show/Hide by Type)
 
-Both VPP and COT maintain a registry of UI panels accessible by typename:
+Keep one registry of live panels keyed by typename so you never open a duplicate and always have a single point of control for visibility:
 
 ```c
-// VPP pattern
-VPPScriptedMenu GetMenuByType(typename menuType)
+UIScriptedMenu GetMenuByType(typename menuType)
 {
-    foreach (VPPScriptedMenu menu : M_SCRIPTED_UI_INSTANCES)
+    foreach (UIScriptedMenu menu : m_Instances)
     {
-        if (menu && menu.GetType() == menuType)
+        if (menu && menu.Type() == menuType)
             return menu;
     }
-    return NULL;
+    return null;
 }
 
-// COT pattern
 void ToggleShow()
 {
     if (IsVisible())
         Close();
     else
-        Show();
+        Open();
 }
 ```
 
-This prevents duplicate panels and provides a single point of control for visibility.
-
 ### Widget Recycling for Lists
 
-When displaying large lists (player lists, item catalogs, object browsers), mods avoid creating/destroying widgets on every update. Instead they maintain a pool:
+For large lists (player lists, item catalogs, object browsers), never create and destroy widgets on every refresh. Maintain a pool: hide the excess, create only when the pool is too small, then update in place.
 
 ```c
-// Simplified pattern used across mods
-void UpdatePlayerList(array<PlayerInfo> players)
+void UpdatePlayerList(array<ref PlayerInfo> players)
 {
     // Hide excess widgets
     for (int i = players.Count(); i < m_PlayerWidgets.Count(); i++)
@@ -1084,7 +756,7 @@ void UpdatePlayerList(array<PlayerInfo> players)
         m_PlayerWidgets.Insert(w);
     }
 
-    // Update visible widgets with data
+    // Update the visible widgets with data
     for (int j = 0; j < players.Count(); j++)
     {
         m_PlayerWidgets[j].Show(true);
@@ -1093,19 +765,16 @@ void UpdatePlayerList(array<PlayerInfo> players)
 }
 ```
 
-DabsFramework's `ObservableCollection` handles this automatically, but manual implementations use this pattern.
-
 ### Lazy Widget Creation
 
-Several mods defer widget creation until first show:
+Defer building a panel until its first show, so opening the admin HUD does not construct every tool that will never be used:
 
 ```c
-// VPP pattern
 override Widget Init()
 {
     if (!m_Init)
     {
-        layoutRoot = GetGame().GetWorkspace().CreateWidgets(VPPATUIConstants.VPPAdminHud);
+        layoutRoot = GetGame().GetWorkspace().CreateWidgets("Lantern_Admin/GUI/layouts/admin_hud.layout");
         m_Init = true;
         return layoutRoot;
     }
@@ -1114,23 +783,20 @@ override Widget Init()
 }
 ```
 
-This avoids loading all admin panels at startup when most will never be opened.
-
 ### Event Delegation Through Handler Chains
 
-A common pattern is a parent handler that delegates to child handlers:
+A parent handler can route an event to whichever child panel is active, keeping event wiring in one place:
 
 ```c
-// Parent handles click, routes to appropriate child
 override bool OnClick(Widget w, int x, int y, int button)
 {
-    if (w == m_closeButton)
+    if (w == m_CloseButton)
     {
-        HideSubMenu();
+        Hide();
         return true;
     }
 
-    // Delegate to active tool panel
+    // Delegate to the active tool panel
     if (m_ActivePanel)
         return m_ActivePanel.OnClick(w, x, y, button);
 
@@ -1138,34 +804,31 @@ override bool OnClick(Widget w, int x, int y, int button)
 }
 ```
 
-### OnWidgetScriptInit as Universal Entry Point
+### OnWidgetScriptInit as the Layout-to-Script Bridge
 
-Every mod studied uses `OnWidgetScriptInit` as the layout-to-script binding mechanism:
+When a layout's root widget declares a `scriptclass`, the engine calls `OnWidgetScriptInit` on that class as soon as `CreateWidgets()` processes it. This is the standard place to cache child widgets:
 
 ```c
 void OnWidgetScriptInit(Widget w)
 {
-    m_root = w;
-    m_root.SetHandler(this);
+    m_Root = w;
+    m_Root.SetHandler(this);
 
-    // Find child widgets
-    m_Button = ButtonWidget.Cast(m_root.FindAnyWidget("button_name"));
-    m_Text = TextWidget.Cast(m_root.FindAnyWidget("text_name"));
+    m_Button = ButtonWidget.Cast(m_Root.FindAnyWidget("button_name"));
+    m_Text = TextWidget.Cast(m_Root.FindAnyWidget("text_name"));
 }
 ```
-
-This is set via the `scriptclass` property in the layout file. The engine calls `OnWidgetScriptInit` automatically when `CreateWidgets()` processes a widget with a script class.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-These mistakes appear in real mod code and cause performance issues or crashes.
+These mistakes appear in real mod code and cause stutter, leaks, or crashes.
 
 ### Creating Widgets Every Frame
 
 ```c
-// BAD: Creates new widgets on every Update call
+// BAD: creates new widgets on every Update call
 override void Update(float dt)
 {
     Widget label = GetGame().GetWorkspace().CreateWidgets("label.layout", m_Parent);
@@ -1173,34 +836,34 @@ override void Update(float dt)
 }
 ```
 
-Widget creation allocates memory and triggers layout recalculation. At 60 FPS this creates 60 widgets per second. Always create once and update in place.
+Widget creation allocates memory and forces a layout recalculation. At 60 FPS this leaks 60 widgets per second. Create once, then update in place.
 
 ### Not Cleaning Up Event Handlers
 
 ```c
-// BAD: Insert without corresponding Remove
+// BAD: Insert without a matching Remove
 void OnInit()
 {
     GetGame().GetUpdateQueue(CALL_CATEGORY_GUI).Insert(Update);
-    JMScriptInvokers.ESP_VIEWTYPE_CHANGED.Insert(OnESPViewTypeChanged);
+    LNT_EventBus.OnViewTypeChanged.Insert(OnViewTypeChanged);
 }
 
-// Missing from destructor:
+// Missing from the destructor:
 // GetGame().GetUpdateQueue(CALL_CATEGORY_GUI).Remove(Update);
-// JMScriptInvokers.ESP_VIEWTYPE_CHANGED.Remove(OnESPViewTypeChanged);
+// LNT_EventBus.OnViewTypeChanged.Remove(OnViewTypeChanged);
 ```
 
-Every `Insert` on a `ScriptInvoker` or update queue needs a matching `Remove` in the destructor. Orphaned handlers cause calls to deleted objects and null access crashes.
+Every `Insert` on a `ScriptInvoker` or update queue needs a matching `Remove` in the destructor. Orphaned handlers keep calling into a deleted object and trigger null-access crashes.
 
 ### Hardcoding Pixel Positions
 
 ```c
-// BAD: Breaks on different resolutions
+// BAD: breaks at other resolutions
 m_Panel.SetPos(540, 320);
 m_Panel.SetSize(400, 300);
 ```
 
-Always use proportional (0.0-1.0) positioning or let container widgets handle layout. Pixel positions only work at the resolution they were designed for.
+Use proportional (0.0-1.0) positioning or let container widgets do the layout. Absolute pixels only work at the resolution they were designed for.
 
 ### Deep Widget Nesting Without Purpose
 
@@ -1208,12 +871,12 @@ Always use proportional (0.0-1.0) positioning or let container widgets handle la
 Frame -> Panel -> Frame -> Panel -> Frame -> TextWidget
 ```
 
-Every nesting level adds layout calculation overhead. If an intermediate widget serves no purpose (no background, no sizing constraint, no event handling), remove it. Flatten hierarchies where possible.
+Every nesting level adds layout-calculation overhead. If an intermediate widget has no background, no sizing constraint, and no event handling, delete it and flatten the hierarchy.
 
 ### Ignoring Focus Management
 
 ```c
-// BAD: Opens dialog but does not set focus
+// BAD: shows the dialog but leaves focus behind it
 void ShowDialog()
 {
     m_Dialog.Show(true);
@@ -1221,7 +884,7 @@ void ShowDialog()
 }
 ```
 
-Without `SetFocus()`, keyboard events may still go to widgets behind the dialog. Expansion's approach is correct:
+Without `SetFocus()`, keyboard events can still reach widgets behind the dialog. Set focus on show:
 
 ```c
 override void OnShow()
@@ -1233,52 +896,36 @@ override void OnShow()
 ### Forgetting Widget Cleanup on Destruction
 
 ```c
-// BAD: Widget tree leaks when script object is destroyed
-void ~MyPanel()
+// BAD: the widget tree leaks when the script object is destroyed
+void ~LNT_Panel()
 {
-    // m_root.Unlink() is missing!
+    // m_Root.Unlink() is missing!
 }
 ```
 
-If you create widgets with `CreateWidgets()`, you own them. Call `Unlink()` on the root in your destructor. `ScriptView` and `UIScriptedMenu` handle this automatically, but raw `ScriptedWidgetEventHandler` subclasses must do it manually.
+If you create widgets with `CreateWidgets()`, you own them — call `Unlink()` on the root in your destructor. A `UIScriptedMenu` cleans up its own `layoutRoot` automatically, but a raw `ScriptedWidgetEventHandler` subclass must do it itself.
 
 ---
 
-## Summary: Which Pattern to Use When
+## Which Pattern to Use When
 
-| Need | Recommended Pattern | Source Mod |
-|------|-------------------|------------|
-| Simple tool panel | `ScriptedWidgetEventHandler` + `OnWidgetScriptInit` | VPP |
-| Complex data-bound UI | `ScriptView` + `ViewController` + `ObservableCollection` | DabsFramework |
-| Admin panel system | Module + Form + Window (module registration pattern) | COT |
-| Draggable sub-windows | `AdminHudSubMenu` (title bar drag handling) | VPP |
-| Confirmation dialog | `VPPDialogBox` or `JMConfirmation` (callback-based) | VPP / COT |
-| Popup with input | `PopUpCreatePreset` pattern (`delete this` on close) | VPP |
-| Fullscreen menu | `ExpansionScriptViewMenu` (lock controls, blur, timer) | Expansion |
-| Theme/color system | 3-layer (palette, scheme, branding) with `modded class` | Colorful UI |
-| Vanilla UI override | `modded class` + replacement `.layout` files | Colorful UI |
-| Notification system | Type enum + per-type layout + static creation API | Expansion |
-| Toolbar command system | `EditorCommand` + `EditorCommandManager` + shortcuts | DayZ Editor |
-| Menu bar with items | `EditorMenu` + `ObservableCollection<EditorMenuItem>` | DayZ Editor |
-| ESP/HUD overlay | Fullscreen `CanvasWidget` + projected widget positioning | COT |
-| Resolution variants | Separate layout directories (narrow/medium/wide) | Colorful UI |
-| Large list performance | Widget recycling pool (hide/show, create on demand) | Common |
-| Configuration | Static variables (client mod) or JSON via config manager | Colorful UI |
+| Need | Pattern | Section |
+|------|---------|---------|
+| Multi-panel admin tool | Module + Form + Window, one-line registration | [Admin Panels](#module-form-window-admin-panels) |
+| Draggable, focusable sub-windows | Title-bar drag + double-click maximize + `SetSort` z-order | [Mini Window Manager](#a-mini-window-manager) |
+| Data-heavy panel that changes often | Name-matched view-model binding | [Data Binding](#declarative-data-binding) |
+| Re-skin menus without editing vanilla | Palette / scheme / branding + `modded class` | [Theme System](#a-three-layer-theme-system) |
+| Several notice styles from one API | Type enum + per-type layout + static `Create` | [Notifications](#multi-type-notifications) |
+| Undo/redo, shortcuts, toolbar actions | Command objects + manager with undo stack | [Command Pattern](#the-command-pattern) |
+| Show/hide panels without duplicates | Typename registry | [Common Patterns](#common-ui-architecture-patterns) |
+| Large lists without churn | Widget recycling pool | [Common Patterns](#common-ui-architecture-patterns) |
+| Bind a layout to a script class | `OnWidgetScriptInit` | [Common Patterns](#common-ui-architecture-patterns) |
 
-### Decision Flowchart
+### Decision Flow
 
-1. **Is it a one-off simple panel?** Use `ScriptedWidgetEventHandler` with `OnWidgetScriptInit`. Build the layout in the editor, find widgets by name.
-
-2. **Does it have dynamic lists or frequently-changing data?** Use DabsFramework's `ViewController` with `ObservableCollection`. The data binding eliminates manual widget updates.
-
-3. **Is it part of a multi-panel admin tool?** Use the COT module-form pattern. Each tool is self-contained with its own module, form, and layout. Registration is a single line.
-
-4. **Does it need to replace vanilla UI?** Use the Colorful UI pattern: `modded class`, custom layout file, centralized color scheme.
-
-5. **Does it need server-to-client data sync?** Combine any pattern above with RPC. Expansion's market menu shows how to manage loading states, request/response cycles, and update timers within a ScriptView.
-
-6. **Does it need undo/redo or complex interaction?** Use the command pattern from DayZ Editor. Commands decouple actions from buttons, support shortcuts, and integrate with DabsFramework's `RelayCommand` for automatic enable/disable.
-
----
-
-*Next chapter: [Advanced Widgets](10-advanced-widgets.md) -- RichTextWidget formatting, CanvasWidget drawing, MapWidget markers, ItemPreviewWidget, PlayerPreviewWidget, VideoWidget, and RenderTargetWidget.*
+1. **A one-off simple panel?** Use a `ScriptedWidgetEventHandler` with `OnWidgetScriptInit`. Build the layout in the editor, find widgets by name.
+2. **Dynamic lists or frequently-changing data?** Use the [view-model binding](#declarative-data-binding) so you set values instead of rewriting widget code.
+3. **Part of a multi-panel admin tool?** Use the [module-form-window](#module-form-window-admin-panels) pattern — each tool is self-contained and registration is one line.
+4. **Replacing vanilla UI?** Use the [three-layer theme](#a-three-layer-theme-system) with `modded class` and a replacement layout that reuses vanilla widget names.
+5. **Server-to-client data sync?** Combine any pattern above with RPC — manage loading states and a request/response cycle inside the panel's update loop.
+6. **Undo/redo or complex interaction?** Use the [command pattern](#the-command-pattern): commands decouple actions from buttons, carry their own shortcuts, and answer `CanExecute()` for automatic enable/disable.

@@ -1,6 +1,5 @@
 # Глава 6.2: Система транспорта
 
-[Главная](../README.md) | [<< Предыдущая: Система сущностей](01-entity-system.md) | **Транспорт** | [Следующая: Погода >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ EntityAI
 proto native int   CrewSize();                          // Общее количество мест
 proto native int   CrewMemberIndex(Human crew_member);  // Получить индекс места пассажира
 proto native Human CrewMember(int posIdx);              // Получить пассажира по индексу места
-proto native void  CrewGetOut(int posIdx);              // Принудительно высадить из места
+proto native Human CrewGetOut(int posIdx);              // Принудительно высадить из места (возвращает высаженного пассажира)
 proto native void  CrewDeath(int posIdx);               // Убить пассажира на месте
 ```
 
 ### Посадка экипажа
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Скриптовый (переопределяемый) метод, не proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Компонент в индекс места
-proto native vector CrewEntryPoint(int posIdx);         // Мировая точка посадки для места
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Точка/направление посадки в пространстве модели
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Точка/направление посадки в мировом пространстве
 ```
 
 **Пример --- высадка всех пассажиров:**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // Скорость в км/ч (абсо
 ### Управление (симуляция)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = все колёса
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (доп. параметры не используются)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (второй параметр не используется)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust устарел)
+proto native void  SetClutch(float value);                    // SetClutchState устарел
 ```
 
 ### Колёса
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Обратные вызовы (переопределяйте в CarScript)
@@ -219,17 +219,28 @@ graph TD
 
 ### Фары
 
+API фар находится в `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = выключены, 1 = включены
-int  GetLightsState();
+proto native bool LightIsOn();    // True, когда фары включены
+proto native void LightOn();      // Включить фары
+proto native void LightOff();     // Выключить фары
+proto native void LightToggle();  // Переключить текущее состояние фар
 ```
 
 ### Управление дверьми
 
+Состояние двери запрашивается через `GetCarDoorsState`, который возвращает значение `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` или `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Возвращает значение CarDoorState
 ```
 
 ### Ключевые переопределения для пользовательского транспорта
@@ -238,8 +249,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Инициализация деталей, жидкостей
 override void OnEngineStart();             // Пользовательское поведение при запуске
 override void OnEngineStop();              // Пользовательское поведение при остановке
-override void EOnSimulate(IEntity other, float dt);  // Потиковая симуляция
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Потиковая симуляция (CarScript)
 ```
 
 **Пример --- создание транспорта с полными жидкостями:**
@@ -286,31 +296,36 @@ proto native float EngineGetRPM();
 
 ### Жидкости
 
-Лодки используют то же перечисление `CarFluid`, но обычно только `FUEL`:
+Лодки используют отдельное перечисление `BoatFluid`, которое определяет только `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Скорость
+### Скорость и движение
+
+`Boat` не предоставляет `GetSpeedometer()` (этот метод существует только у `Car`). Вместо этого читайте обороты двигателя и скорость гребного винта:
 
 ```c
-proto native float GetSpeedometer();   // Скорость в км/ч
+proto native float EngineGetRPM();                   // Обороты двигателя
+proto native float PropellerGetAngularVelocity();    // Угловая скорость гребного винта
 ```
 
 **Пример --- спавн лодки:**
+
+`Boat_01` не является напрямую спавнимым классом; спавните один из конкретных цветовых вариантов (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -489,7 +504,7 @@ maxHandbrakeTorque = 6000;
 **Изменено:**
 - `Material1`, `Material2` --- тип изменён с `dMaterial` на `SurfaceProperties`
 
-Моды, читающие данные `Contact` в `EOnContact`, должны обновить имена переменных и типы.
+Моды, читающие данные `Contact` в `OnContact`, должны обновить имена переменных и типы.
 
 ---
 
@@ -508,7 +523,3 @@ maxHandbrakeTorque = 6000;
 ### Динамические коллизии для всего транспорта (1.29, экспериментальная)
 
 Класс `Transport` (родитель `CarScript` и `BoatScript`) теперь имеет динамическое разрешение коллизий. Ранее это было только у `CarScript`. Моды лодок получают корректную обработку столкновений.
-
----
-
-[Главная](../README.md) | [<< Предыдущая: Система сущностей](01-entity-system.md) | **Транспорт** | [Следующая: Погода >>](03-weather.md)

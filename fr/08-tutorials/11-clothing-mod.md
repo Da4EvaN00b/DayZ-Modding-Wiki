@@ -1,6 +1,5 @@
 # Chapitre 8.11 : Créer des vêtements personnalisés
 
-[Accueil](../README.md) | [<< Précédent : Créer un véhicule personnalisé](10-vehicle-mod.md) | **Créer des vêtements personnalisés** | [Suivant : Construire un système d'échange >>](12-trading-system.md)
 
 ---
 
@@ -198,9 +197,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Visibilité du joueur pour l'IA (plus bas = plus difficile à détecter). |
 | `absorbency` | `0.3` | Absorption d'eau (0 = imperméable, 1 = éponge). Plus bas est mieux pour la résistance à la pluie. |
 
-**Référence vanilla heatIsolation :** T-shirt 0.2, Sweat à capuche 0.5, Veste Gorka 0.7, Veste de terrain 0.8, Manteau en laine 0.9.
+**Référence vanilla heatIsolation :** T-shirt 0.1, Sweat à capuche 0.6, Veste Gorka 0.4, Veste de randonnée 0.8, Manteau en laine 0.9.
 
-**Réparation :** `repairableWithKits[] = { 5, 2 }` liste les types de kits (5=Kit de couture, 2=Kit de couture en cuir). `repairCosts[]` donne le matériau consommé par réparation, dans l'ordre correspondant.
+**Réparation :** `repairableWithKits[] = { 5, 2 }` liste les types de kits (5=Ruban adhésif, 2=Kit de couture). `repairCosts[]` donne le matériau consommé par réparation, dans l'ordre correspondant.
 
 **Armure :** Une valeur de `damage` de 0.8 signifie que le joueur reçoit 80% des dommages entrants (20% absorbés). Des valeurs plus basses = plus de protection.
 
@@ -242,7 +241,7 @@ Pour un contrôle complet des matériaux, créez des fichiers `.rvmat` et réfé
 
 ## Étape 4 : Ajouter l'espace de cargo
 
-En étendant `GorkaEJacket_ColorBase`, vous héritez automatiquement de sa grille de cargo (4x3) et de son emplacement d'inventaire (`"Body"`). La propriété `itemSize[] = { 3, 4 }` définit la taille de la veste quand elle est stockée comme butin -- PAS sa capacité de cargo.
+En étendant `GorkaEJacket_ColorBase`, vous héritez automatiquement de sa grille de cargo (`itemsCargoSize[] = { 6, 4 }`) et de son emplacement d'inventaire (`"Body"`). La propriété `itemSize[] = { 3, 4 }` définit la taille de la veste quand elle est stockée comme butin -- PAS sa capacité de cargo.
 
 Emplacements de vêtements courants : `"Body"` (vestes), `"Legs"` (pantalons), `"Feet"` (bottes), `"Headgear"` (chapeaux), `"Vest"` (harnais), `"Gloves"`, `"Mask"`, `"Back"` (sacs à dos).
 

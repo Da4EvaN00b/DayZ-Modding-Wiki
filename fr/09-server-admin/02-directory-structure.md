@@ -1,6 +1,5 @@
 # Chapter 9.2 : Structure des répertoires et dossier de mission
 
-[Accueil](../README.md) | [<< Précédent : Installation du serveur](01-server-setup.md) | **Structure des répertoires** | [Suivant : Référence serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -174,7 +173,7 @@ Définit les règles d'apparition de **chaque objet** du jeu. Avec environ 23 00
 
 ### globals.xml
 
-Paramètres globaux qui affectent l'ensemble de l'économie : nombre de zombies, nombre d'animaux, timers de nettoyage, plages de dégâts du loot, timing de réapparition. Il y a 33 paramètres au total. Voir le [Chapitre 9.4](04-loot-economy.md) pour la référence complète.
+Paramètres globaux qui affectent l'ensemble de l'économie : nombre de zombies, nombre d'animaux, timers de nettoyage, plages de dégâts du loot, timing de réapparition. Il y a 30 paramètres au total. Voir le [Chapitre 9.4](04-loot-economy.md) pour la référence complète.
 
 ### events.xml
 
@@ -258,19 +257,19 @@ Contient l'état persistant du serveur entre les redémarrages :
 
 ```
 storage_1/
-  players.db         # Base de données SQLite de tous les personnages joueurs
+  players/           # Enregistrements binaires des personnages, un par joueur
   spawnpoints.bin    # Données binaires des points d'apparition
   backup/            # Sauvegardes automatiques des données de persistance
   data/              # État du monde (objets placés, construction de bases, véhicules)
 ```
 
-**Ne modifiez jamais `players.db` pendant que le serveur tourne.** C'est une base de données SQLite verrouillée par le processus serveur. Si vous devez effacer les personnages, arrêtez d'abord le serveur et supprimez ou renommez le fichier.
+**Ne modifiez jamais à la main les fichiers de `players/` pendant que le serveur tourne.** Ce sont des enregistrements binaires opaques écrits uniquement par le processus serveur. Si vous devez effacer les personnages, arrêtez d'abord le serveur et supprimez ou renommez le dossier.
 
 Pour effectuer un **wipe complet de la persistance**, arrêtez le serveur et supprimez l'intégralité du dossier `storage_1/`. Le serveur le recréera au prochain lancement avec un monde vierge.
 
 Pour un **wipe partiel** (conserver les personnages, réinitialiser le loot) :
 1. Arrêtez le serveur
-2. Supprimez les fichiers dans `storage_1/data/` mais conservez `players.db`
+2. Supprimez les fichiers dans `storage_1/data/` mais conservez `storage_1/players/`
 3. Redémarrez
 
 ---
@@ -438,7 +437,3 @@ L'attribut `a` est l'angle de rotation en degrés.
 | `storage_1/` | Suppression uniquement | Persistance -- ne pas modifier manuellement |
 | `battleye/` | **Non** | Anti-triche -- ne pas toucher |
 | `mapgroup*.xml` | Avec précaution | Positions de loot des bâtiments -- modification avancée uniquement |
-
----
-
-**Précédent :** [Installation du serveur](01-server-setup.md) | [Accueil](../README.md) | **Suivant :** [Référence serverDZ.cfg >>](03-server-cfg.md)

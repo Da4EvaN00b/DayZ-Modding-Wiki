@@ -1,6 +1,5 @@
 # Rozdział 7.1: Wzorzec Singleton
 
-[Strona główna](../README.md) | **Wzorzec Singleton** | [Dalej: Systemy modułów >>](02-module-systems.md)
 
 ---
 
@@ -544,7 +543,3 @@ Przed wdrożeniem singletona zweryfikuj:
 | Singletony to antywzorzec; użyj wstrzykiwania zależności | Enforce Script nie ma kontenera DI. Singletony to standardowe podejście do globalnych managerów we wszystkich głównych modach. |
 | Leniwa inicjalizacja jest zawsze wystarczająca | Handlery RPC muszą być zarejestrowane zanim jakikolwiek klient się połączy, więc zachłanna inicjalizacja w `OnInit()` jest często konieczna. |
 | Singletony nie powinny być nigdy niszczone | Misje DayZ restartują się bez restartowania procesu serwera; singletony *muszą* być niszczone i odtwarzane przy każdym cyklu misji. |
-
----
-
-[Strona główna](../README.md) | **Wzorzec Singleton** | [Dalej: Systemy modułów >>](02-module-systems.md)

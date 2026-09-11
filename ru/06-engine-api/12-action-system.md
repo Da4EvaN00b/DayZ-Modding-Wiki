@@ -1,6 +1,5 @@
 # Chapter 6.12: Action System
 
-[Home](../README.md) | [<< Previous: Mission Hooks](11-mission-hooks.md) | **Action System** | [Next: Input System >>](13-input-system.md)
 
 ---
 
@@ -767,7 +766,7 @@ Action components control _how_ the action progresses over time. They are create
 | `CAInteract` | none | Instant execution for interact actions |
 | `CAContinuousTime` | `float time` | Progress bar, completes after `time` seconds |
 | `CAContinuousRepeat` | `float time` | Repeating cycles, fires `OnFinishProgress` each cycle |
-| `CAContinuousQuantity` | `float quantity, float time` | Consumes quantity over time |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Consumes quantity over time |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Like Quantity but applies food/drink modifiers |
 
 ### CAContinuousTime

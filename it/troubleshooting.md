@@ -1,6 +1,5 @@
 # Guida alla risoluzione dei problemi
 
-[Home](./README.md) | **Guida alla risoluzione dei problemi**
 
 ---
 
@@ -72,7 +71,7 @@
 
 | Sintomo | Causa | Soluzione |
 |---------|-------|-----------|
-| Il layout si carica ma nulla e visibile | La dimensione del widget e zero | Controlla i valori `hexactsize` e `vexactsize`. Nessuna dimensione negativa. Vedi [Capitolo 3.3](03-gui-system/03-sizing-positioning.md). |
+| Il layout si carica ma nulla e visibile | La dimensione del widget e zero | Controlla l'attributo `size` del widget (i valori `w h` devono essere maggiori di zero). Nessuna dimensione negativa. (`hexactsize`/`vexactsize` sono flag `0`/`1` che scelgono il dimensionamento proporzionale (`0`) o in pixel (`1`), non la dimensione stessa.) Vedi [Capitolo 3.3](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` restituisce null | Il percorso del file layout e sbagliato o il file manca | Verifica il percorso del file `.layout` (barre, nessun errore di battitura). Il motore restituisce silenziosamente `null`. |
 | I widget esistono ma non sono cliccabili | Un altro widget copre il pulsante | Controlla la `priority` del widget (ordine z). Priorita piu alta = renderizzato sopra e cattura l'input per primo. |
 | L'input di gioco e bloccato dopo la chiusura dell'UI | Le chiamate `ChangeGameFocus()` sono sbilanciate | Ogni `ChangeGameFocus(1)` deve avere un corrispondente `ChangeGameFocus(-1)`. |

@@ -1,6 +1,5 @@
-# Chapter 4.6: PBO Packing
+# PBO Packing
 
-[Home](../README.md) | [<< Previous: DayZ Tools Workflow](05-dayz-tools.md) | **PBO Packing** | [Next: Workbench Guide >>](07-workbench-guide.md)
 
 ---
 
@@ -17,8 +16,8 @@ Understanding how to create PBOs correctly -- when to binarize, how to set prefi
 - [What is a PBO?](#what-is-a-pbo)
 - [PBO Internal Structure](#pbo-internal-structure)
 - [AddonBuilder: The Packing Tool](#addonbuilder-the-packing-tool)
-- [The -packonly Flag](#the--packonly-flag)
-- [The -prefix Flag](#the--prefix-flag)
+- [The -packonly Flag](#the-packonly-flag)
+- [The -prefix Flag](#the-prefix-flag)
 - [Binarization: When Needed vs. Not](#binarization-when-needed-vs-not)
 - [Key Signing](#key-signing)
 - [@mod Folder Structure](#mod-folder-structure)
@@ -32,11 +31,11 @@ Understanding how to create PBOs correctly -- when to binarize, how to set prefi
 
 ## What is a PBO?
 
-A PBO is a flat archive file that contains a directory tree of game assets. It has no compression (unlike ZIP) -- files inside are stored at their original size. The "packing" is purely organizational: many files become one file with an internal path structure.
+A PBO is a flat archive file that contains a directory tree of game assets. Packing combines files under virtual paths. Do not equate the archive format with a general-purpose ZIP compressor; the installed FileBank reports its old -compress option as unsupported.
 
 ### Key Characteristics
 
-- **No compression:** Files are stored verbatim. The PBO's size equals the sum of its contents plus a small header.
+- **Build output size:** Texture and model conversion affect size before packing; measure the resulting archive rather than assuming a ZIP-like compression ratio.
 - **Flat header:** A list of file entries with paths, sizes, and offsets.
 - **Prefix metadata:** Each PBO declares an internal path prefix that maps its contents into the engine's virtual filesystem.
 - **Read-only at runtime:** The engine reads from PBOs but never writes to them.
@@ -57,7 +56,7 @@ When you open a PBO (using a tool like PBO Manager or MikeroTools), you see a di
 
 ```
 MyMod.pbo
-  $PBOPREFIX$                    <-- Text file containing the prefix path
+  [header property: prefix=MyMod] <-- Metadata, not an ordinary file entry
   config.bin                      <-- Binarized config.cpp (or config.cpp if -packonly)
   Scripts/
     3_Game/
@@ -84,7 +83,7 @@ MyMod.pbo
 
 ### $PBOPREFIX$
 
-The `$PBOPREFIX$` file is a tiny text file at the root of the PBO that declares the mod's path prefix. For example:
+A `$PBOPREFIX$` text file can be a source-side convention used by packing tools. The runtime path prefix is stored as the `prefix` property in the PBO header, not as a required runtime text-file entry. For example:
 
 ```
 MyMod
@@ -130,7 +129,7 @@ AddonBuilder.exe [source_path] [output_path] [options]
     "P:\MyMod" ^
     "P:\output" ^
     -prefix="MyMod" ^
-    -sign="P:\keys\MyKey"
+    -sign="P:\keys\MyKey.biprivatekey"
 ```
 
 ### Command-Line Options
@@ -139,13 +138,18 @@ AddonBuilder.exe [source_path] [output_path] [options]
 |------|-------------|
 | `-prefix=<path>` | Set the PBO internal prefix (critical for path resolution) |
 | `-packonly` | Skip binarization, pack files as-is |
-| `-sign=<key_path>` | Sign the PBO with the specified BI key (private key path, no extension) |
-| `-include=<path>` | Include file list -- only pack files matching this filter |
+| `-sign=<key_path>` | Sign the PBO with the specified BI key (full `.biprivatekey` file path) |
+| `-include=<path>` | File containing patterns for files copied directly without binarization; not an overall packing whitelist |
 | `-exclude=<path>` | Exclude file list -- skip files matching this filter |
 | `-binarize=<path>` | Path to Binarize.exe (if not in default location) |
 | `-temp=<path>` | Temporary directory for Binarize output |
-| `-clear` | Clear output directory before packing |
+| `-clear` | Delete the current project subfolder in the temporary binarization directory before binarizing |
 | `-project=<path>` | Project drive path (usually `P:\`) |
+| `-binarizeAllTextures` | Convert TGA/PNG textures even when unreferenced or absent from textures.lst |
+| `-binarizeFullLogs` | Enable extended Binarize logging |
+| `-binarizeNoLogs` | Disable extended Binarize logging |
+| `-dssignfile=<path>` | Override the DSSignFile executable path |
+| `-help` | Display installed command-line help |
 
 ---
 
@@ -175,7 +179,7 @@ AddonBuilder.exe "P:\MyScriptMod" "P:\output" -prefix="MyScriptMod" -packonly
 
 For an **item mod** (weapons, clothing, vehicles with models and textures):
 ```bash
-AddonBuilder.exe "P:\MyItemMod" "P:\output" -prefix="MyItemMod" -sign="P:\keys\MyKey"
+AddonBuilder.exe "P:\MyItemMod" "P:\output" -prefix="MyItemMod" -sign="P:\keys\MyKey.biprivatekey"
 ```
 
 > **Tip:** Many mods split into multiple PBOs precisely to optimize the build process. Script PBOs use `-packonly` (fast), while data PBOs with models and textures get full binarization (slower but necessary).
@@ -184,7 +188,7 @@ AddonBuilder.exe "P:\MyItemMod" "P:\output" -prefix="MyItemMod" -sign="P:\keys\M
 
 ## The -prefix Flag
 
-The `-prefix` flag sets the PBO's internal path prefix, which is written to the `$PBOPREFIX$` file inside the PBO. This prefix is critical -- it determines how the engine resolves paths to content inside the PBO.
+The `-prefix` flag sets the PBO's internal path prefix, which FileBank stores as a `prefix` header property. This prefix is critical -- it determines how the engine resolves paths to content inside the PBO.
 
 ### How Prefix Works
 
@@ -233,10 +237,10 @@ Binarization is the conversion of human-readable source formats into engine-opti
 
 | File Type | Binarized To | Required? |
 |-----------|-------------|-----------|
-| `config.cpp` | `config.bin` | Required for mods defining items (CfgVehicles, CfgWeapons) |
+| `config.cpp` | `config.bin` | Optional binary config; choose the asset build workflow independently |
 | `.p3d` (MLOD) | `.p3d` (ODOL) | Recommended -- ODOL loads faster and is smaller |
 | `.tga` / `.png` | `.paa` | Required -- engine needs PAA at runtime |
-| `.edds` | `.paa` | Required -- same as above |
+| `.edds` | `.edds` | GUI texture resource; keep the format referenced by the imageset |
 | `.rvmat` | `.rvmat` (processed) | Paths resolved, minor optimization |
 | `.wrp` | `.wrp` (optimized) | Required for terrain/map mods |
 
@@ -254,17 +258,7 @@ Binarization is the conversion of human-readable source formats into engine-opti
 
 Config.cpp binarization is the step most modders encounter issues with. The binarizer parses the config.cpp text, validates its structure, resolves inheritance chains, and outputs a binary config.bin.
 
-**When binarization is required for config.cpp:**
-- The config defines `CfgVehicles` entries (items, weapons, vehicles, buildings).
-- The config defines `CfgWeapons` entries.
-- The config defines entries that reference models or textures.
-
-**When binarization is NOT required:**
-- The config only defines `CfgPatches` and `CfgMods` (mod registration).
-- The config only defines sound configurations.
-- Script-only mods with minimal config.
-
-> **Rule of thumb:** If your config.cpp adds physical items to the game world, you need binarization. If it only registers scripts and defines non-item data, `-packonly` works fine.
+Text config.cpp files can define game config classes, including CfgVehicles. Choose binarization for the assets and release workflow, not merely because a class name is present. For example, model.cfg animation data must be baked into the model; `-packonly` does not perform that work. Script-only addons with ready-to-use resources can use `-packonly`.
 
 ---
 
@@ -297,7 +291,7 @@ DSCreateKey.exe MyModKey
 ```bash
 AddonBuilder.exe "P:\MyMod" "P:\output" ^
     -prefix="MyMod" ^
-    -sign="P:\keys\MyModKey"
+    -sign="P:\keys\MyModKey.biprivatekey"
 ```
 
 This produces:
@@ -389,7 +383,7 @@ setlocal
 
 set TOOLS="P:\DayZ Tools\Bin\AddonBuilder\AddonBuilder.exe"
 set OUTPUT="P:\@MyMod\addons"
-set KEY="P:\keys\MyKey"
+set KEY="P:\keys\MyKey.biprivatekey"
 
 echo === Building Scripts PBO ===
 %TOOLS% "P:\MyMod\Scripts" %OUTPUT% -prefix="MyMod\Scripts" -packonly -clear
@@ -401,7 +395,7 @@ echo === Build Complete ===
 pause
 ```
 
-### Python Build Script Pattern (dev.py)
+### Python Build Script Pattern
 
 For more sophisticated builds, a Python script provides better error handling, logging, and conditional logic:
 
@@ -412,7 +406,7 @@ import sys
 
 ADDON_BUILDER = r"P:\DayZ Tools\Bin\AddonBuilder\AddonBuilder.exe"
 OUTPUT_DIR = r"P:\@MyMod\addons"
-KEY_PATH = r"P:\keys\MyKey"
+KEY_PATH = r"P:\keys\MyKey.biprivatekey"
 
 PBOS = [
     {
@@ -472,17 +466,50 @@ if __name__ == "__main__":
     main()
 ```
 
-### Integration with dev.py
+### Integration with a Build Orchestrator
 
-The MyMod project uses `dev.py` as the central build orchestrator:
+For a multi-mod workspace, the build script above is usually just one stage of a larger orchestrator: a single command that builds every PBO, links the output into the game directory, launches the server, and tails the script log for errors. That closes the whole edit-build-test loop with one keystroke.
 
-```bash
-python dev.py build          # Build all PBOs
-python dev.py server         # Build + launch server + monitor logs
-python dev.py full           # Build + server + client
+A minimal `build.py` orchestrator sketch:
+
+```python
+import subprocess
+import sys
+
+def build_all():
+    """Build every PBO (see build_pbo above)."""
+    # ... loop over PBOS, return False on any failure
+    return True
+
+def link_output():
+    """Junction @MyMod from the output dir into the DayZ install."""
+    subprocess.run([
+        "cmd", "/c", "mklink", "/J",
+        r"C:\DayZ\@MyMod", r"P:\@MyMod",
+    ])
+
+def launch_server():
+    """Start the diag server with the mod loaded."""
+    subprocess.Popen([
+        r"C:\DayZ\DayZDiag_x64.exe", "-server",
+        "-mod=@MyMod", "-config=serverDZ.cfg", "-doLogs",
+    ])
+
+def tail_log():
+    """Follow the newest script log and print SCRIPT (E) lines."""
+    # ... open the latest script_*.log, poll for new lines,
+    # highlight errors so failures are visible immediately
+
+if __name__ == "__main__":
+    if not build_all():
+        sys.exit(1)
+    link_output()
+    if "server" in sys.argv:
+        launch_server()
+        tail_log()
 ```
 
-This pattern is recommended for any multi-mod workspace. A single command builds everything, launches the server, and starts monitoring -- eliminating manual steps and reducing human error.
+Typical subcommands to expose: `build` (PBOs only), `server` (build + launch + monitor), and `check` (scan the latest log offline). A single command that does all of it eliminates manual steps and reduces human error.
 
 ---
 
@@ -523,6 +550,19 @@ class CfgPatches
     };
 };
 ```
+
+### Keep Every Single PBO Reasonably Small
+
+Splitting a texture-heavy or model-heavy addon can make incremental builds and diagnosis easier. Do not diagnose an `ACCESS_VIOLATION` solely from archive size: inspect the logs and isolate the failing addon and asset. A particular byte threshold is not a substitute for testing the packaged mod.
+
+To preserve resource paths while splitting, move distinct files into sibling source folders and pack both with the same `-prefix` header value. Ensure the two archives do not contain overlapping virtual file paths:
+
+```
+MyMod/Data/Weapons/Rifles/      -> packs to MyMod_Weapons_Rifles.pbo   (prefix: MyMod\Data\Weapons\Rifles)
+MyMod/Data/Weapons/Rifles2/     -> packs to MyMod_Weapons_Rifles2.pbo  (prefix: MyMod\Data\Weapons\Rifles  <- same!)
+```
+
+Because the *physical* folder name (`Rifles2`) never has to appear in the *virtual* prefix, every existing `model=`/texture reference under `Rifles/...` keeps resolving correctly with zero script or config changes -- you are only moving files between two PBOs that both present themselves under the same virtual path.
 
 ---
 
@@ -627,35 +667,27 @@ Development involves two testing modes. Choosing the right one for each situatio
 
 7. **Test both file patching and PBO modes.** Some bugs only appear in one mode. Binarized configs behave differently from text configs in edge cases.
 
-8. **Clean your output directory regularly.** Stale PBOs from previous builds can cause confusing behavior. Use the `-clear` flag or manually clean before building.
+8. **Clean your output directory regularly.** Stale PBOs from previous builds can cause confusing behavior. Remove stale output PBOs deliberately. `-clear` cleans temporary binarization data for the current project; it does not clean the output directory.
 
 9. **Split large mods into multiple PBOs.** The time saved on incremental rebuilds pays for itself within the first day of development.
 
-10. **Read the build logs.** Binarize and AddonBuilder produce log files. When something goes wrong, the answer is almost always in the logs. Check `%TEMP%\AddonBuilder\` and `%TEMP%\Binarize\` for detailed output.
+10. **Read the build logs.** Binarize and AddonBuilder produce log files. When something goes wrong, the answer is almost always in the logs. The installed AddonBuilder `logger.xml` writes `AddonBuilder.rpt`, `AddonBuilderProcess.rpt` and `AddonBuilder.User.rpt` under `DayZ Tools\Bin\Logs\`. The Windows temporary directory (or `-temp`) holds binarized intermediate files, not these configured log files.
 
 ---
 
 ## Observed in Real Mods
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| 20+ PBOs per mod with fine-grained splits | Expansion (all modules) | Splits into separate PBOs for Scripts, Data, GUI, Vehicles, Book, Market, etc., enabling independent rebuilds and optional client/server separation |
-| Scripts/Data/GUI triple-split | StarDZ (Core, Missions, AI) | Each mod produces 2-3 PBOs: `_Scripts.pbo` (packonly), `_Data.pbo` (binarized models/textures), `_GUI.pbo` (packonly layouts) |
+| Pattern | Where Seen | Detail |
+|---------|------------|--------|
+| Many PBOs per mod with fine-grained splits | Large content frameworks | 20+ separate PBOs for scripts, data, GUI, vehicles, and per-feature modules, enabling independent rebuilds and optional client/server separation |
+| Scripts/Data/GUI triple-split | Framework mods | Each mod produces 2-3 PBOs: `_Scripts.pbo` (packonly), `_Data.pbo` (binarized models/textures), `_GUI.pbo` (packonly layouts) |
 | Single monolithic PBO | Simple retexture mods | Small mods with only a config.cpp and a few PAA textures pack everything into one PBO with binarization |
-| Key versioning per major release | Expansion | Generates new key pairs for breaking updates, forcing all clients and servers to update in sync |
+| Key versioning per major release | Actively updated mods | A new key pair for breaking updates forces all clients and servers to update in sync |
 
 ---
 
 ## Compatibility & Impact
 
-- **Multi-Mod:** PBO prefix collisions cause the engine to load one mod's files instead of another's. Every mod must use a unique prefix. Check `$PBOPREFIX$` carefully when debugging "file not found" errors in multi-mod environments.
+- **Multi-Mod:** PBO prefix collisions cause the engine to load one mod's files instead of another's. Choose distinct virtual paths for unrelated assets; split PBOs can share a prefix if their file paths do not overlap. Check the PBO header prefix carefully when debugging "file not found" errors in multi-mod environments.
 - **Performance:** PBO loading is fast (sequential file reads), but mods with many large PBOs increase server startup time. Binarized content loads faster than unbinarized. Use ODOL models and PAA textures for release builds.
-- **Version:** The PBO format itself has not changed. AddonBuilder receives periodic fixes via DayZ Tools updates, but the command-line flags and packing behavior have been stable since DayZ 1.0.
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.5 DayZ Tools Workflow](05-dayz-tools.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [Next: Workbench Guide](07-workbench-guide.md) |
+- **Tool options:** Check the help embedded in your installed AddonBuilder when scripting a build; use full paths for tools and signing keys.

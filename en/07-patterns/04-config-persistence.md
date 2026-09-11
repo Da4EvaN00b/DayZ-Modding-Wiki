@@ -1,6 +1,6 @@
-# Chapter 7.4: Config Persistence
+# Config Persistence
 
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)
+> **Summary:** How to save and load mod configuration data — JSON serialization with `JsonFileLoader`, raw file I/O with `FileHandle` and `FPrintln`, versioned auto-migration, directory management, and auto-save timers.
 
 ---
 
@@ -30,9 +30,22 @@ This chapter covers the standard patterns for config persistence, from basic JSO
 
 `JsonFileLoader` is the engine's built-in serializer. It converts between Enforce Script objects and JSON files using reflection --- it reads the public fields of your class and maps them to JSON keys automatically.
 
-### Critical Gotcha
+### Two APIs: Prefer LoadFile/SaveFile, Not the Legacy JsonLoadFile/JsonSaveFile
 
-**`JsonFileLoader<T>.JsonLoadFile()` and `JsonFileLoader<T>.JsonSaveFile()` return `void`.** You cannot check their return value. You cannot assign them to a `bool`. You cannot use them in an `if` condition. This is one of the most common mistakes in DayZ modding.
+`JsonFileLoader<T>` actually exposes two generations of the same operation, and the vanilla source itself marks the older pair as superseded (`jsonfileloader.c`, comments directly above each: *"use JsonFileLoader::LoadFile instead"* / *"use JsonFileLoader::SaveFile instead"*):
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `static bool LoadFile(string filename, out T data, out string errorMessage)` | `bool` | **Modern, preferred.** Tells you whether the load succeeded and gives you an error string when it did not. |
+| `static bool SaveFile(string filename, T data, out string errorMessage)` | `bool` | **Modern, preferred.** Same success/error reporting for saves. |
+| `static void JsonLoadFile(string filename, out T data)` | `void` | Legacy. No success/failure signal at all -- see the gotcha below. |
+| `static void JsonSaveFile(string filename, T data)` | `void` | Legacy. Same limitation for saves. |
+
+Prefer `LoadFile`/`SaveFile` in new code -- they give you a real `bool` result plus an error message, which sidesteps the entire gotcha this section used to have to work around. The legacy `JsonLoadFile`/`JsonSaveFile` still work and appear throughout older mods and this chapter's examples, so the gotcha below still matters when you touch that code.
+
+### Critical Gotcha (Legacy API Only)
+
+**`JsonFileLoader<T>.JsonLoadFile()` and `JsonFileLoader<T>.JsonSaveFile()` return `void`.** You cannot check their return value. You cannot assign them to a `bool`. You cannot use them in an `if` condition. This is one of the most common mistakes in DayZ modding -- and the reason the modern `LoadFile`/`SaveFile` pair above exists.
 
 ```c
 // WRONG — will not compile
@@ -44,12 +57,19 @@ if (JsonFileLoader<MyConfig>.JsonLoadFile(path, config))
     // ...
 }
 
-// RIGHT — call and then check the object state
+// WORKAROUND with the legacy API — call and then check the object state
 JsonFileLoader<MyConfig>.JsonLoadFile(path, config);
 // Check if the data was actually populated
 if (config.m_ServerName != "")
 {
     // Data loaded successfully
+}
+
+// BETTER — switch to the modern API and get a real result
+string error;
+if (!JsonFileLoader<MyConfig>.LoadFile(path, config, error))
+{
+    Print("Config load failed: " + error);
 }
 ```
 
@@ -121,7 +141,7 @@ The resulting JSON looks like:
 | `string` | String |
 | `vector` | Array of 3 numbers |
 | `array<T>` | JSON array |
-| `map<string, T>` | JSON object (string keys only) |
+| `map<K, T>` | JSON object (`K` may be `string`, `int`, or an `enum`; JSON renders all keys as strings) |
 | Nested class | Nested JSON object |
 
 ### Nested Objects
@@ -295,11 +315,11 @@ void EnsureDirectories()
 
 ### Important: MakeDirectory Is Not Recursive
 
-`MakeDirectory` creates only the final directory in the path. If the parent does not exist, it fails silently. You must create each level:
+`MakeDirectory` creates only the final directory in the path. If the parent does not exist, the create does not happen -- the signature is `proto native bool MakeDirectory(string name)` (`1_core/proto/ensystem.c:525`), returning a `bool` you should check rather than assume; vanilla documents only `//!Makes a directory` (`:524`) and does not state what value comes back for a missing parent, so treat the return value as the contract to test, not a known outcome. Create each level in turn:
 
 ```c
 // WRONG: Parent "MyMod" doesn't exist yet
-MakeDirectory("$profile:MyMod/Data/Players");  // Fails silently
+MakeDirectory("$profile:MyMod/Data/Players");  // Nothing is created; the return value is your only signal
 
 // RIGHT: Create each level
 MakeDirectory("$profile:MyMod");
@@ -312,13 +332,13 @@ MakeDirectory("$profile:MyMod/Data/Players");
 A framework mod defines all paths as constants in a dedicated class:
 
 ```c
-class MyModConst
+class LNT_Const
 {
-    static const string PROFILE_DIR    = "$profile:MyMod";
-    static const string CONFIG_DIR     = "$profile:MyMod/Configs";
-    static const string LOG_DIR        = "$profile:MyMod/Logs";
-    static const string PLAYERS_DIR    = "$profile:MyMod/Players";
-    static const string PERMISSIONS_FILE = "$profile:MyMod/Permissions.json";
+    static const string PROFILE_DIR    = "$profile:Lantern";
+    static const string CONFIG_DIR     = "$profile:Lantern/Configs";
+    static const string LOG_DIR        = "$profile:Lantern/Logs";
+    static const string PLAYERS_DIR    = "$profile:Lantern/Players";
+    static const string PERMISSIONS_FILE = "$profile:Lantern/Permissions.json";
 };
 ```
 
@@ -362,11 +382,21 @@ class MyModConfig
 
 ### Reflective ConfigBase Pattern
 
-This pattern uses a reflective config system where each config class declares its fields as descriptors. This allows the admin panel to auto-generate UI for any config without hardcoded field names:
+The Lantern examples in this wiki use a reflective config base — `LNT_ConfigBase` — where each config subclass declares its fields as descriptors. This lets an admin panel auto-generate UI for any config without hardcoded field names. This chapter is where that base is canonically defined:
 
 ```c
-// Conceptual pattern (reflective config):
-class MyConfigBase
+// Field descriptor: one entry per configurable field.
+// GetFields() returns an array of these so the admin panel can
+// render UI without hardcoding field names.
+class LNT_ConfigField
+{
+    string m_Name;      // field identifier, e.g. "MaxDistance"
+    string m_Type;      // "int", "float", "bool", "string"
+    string m_Category;  // grouping label for the admin panel
+}
+
+// Reflective config base (the wiki's Lantern teaching example):
+class LNT_ConfigBase
 {
     // Each config declares its version
     int ConfigVersion;
@@ -379,7 +409,7 @@ class MyConfigBase
     }
 
     // Reflection: get all configurable fields
-    array<ref MyConfigField> GetFields();
+    array<ref LNT_ConfigField> GetFields();
 
     // Dynamic get/set by field name (for admin panel sync)
     string GetFieldValue(string fieldName);
@@ -391,28 +421,43 @@ class MyConfigBase
 };
 ```
 
-### VPP ConfigurablePlugin Pattern
+### Self-Loading Config Module
 
-VPP merges config management directly into the plugin lifecycle:
+A config manager does not need a separate load call from the mission. A module can JSON-load its own config in `OnInit`, writing defaults on first run. This keeps each feature's config self-contained — the module owns its file and its lifecycle. (For the module lifecycle itself, see [Module Systems](02-module-systems.md).)
 
 ```c
-// VPP pattern (simplified):
-class VPPESPConfig
+// Data class — public fields are serialized
+class LNT_ESPConfig
 {
     bool EnableESP = true;
     float MaxDistance = 1000.0;
     int RefreshRate = 5;
 };
 
-class VPPESPPlugin : ConfigurablePlugin
+// Module loads its own config on init, saving defaults if the file is absent
+class LNT_AutoConfigModule
 {
-    ref VPPESPConfig m_ESPConfig;
+    protected ref LNT_ESPConfig m_Config;
+    protected const string CONFIG_PATH = "$profile:Lantern/ESP.json";
 
-    override void OnInit()
+    void OnInit()
     {
-        m_ESPConfig = new VPPESPConfig();
-        // ConfigurablePlugin.LoadConfig() handles the JSON load
-        super.OnInit();
+        m_Config = new LNT_ESPConfig();
+
+        if (FileExist(CONFIG_PATH))
+        {
+            JsonFileLoader<LNT_ESPConfig>.JsonLoadFile(CONFIG_PATH, m_Config);
+        }
+        else
+        {
+            // First run: persist defaults so the admin has a file to edit
+            JsonFileLoader<LNT_ESPConfig>.JsonSaveFile(CONFIG_PATH, m_Config);
+        }
+    }
+
+    LNT_ESPConfig GetConfig()
+    {
+        return m_Config;
     }
 };
 ```
@@ -500,20 +545,21 @@ void MigrateConfig(MyModConfig config)
         // config.DifficultyMode = "Normal"; // Set new default
     }
 
-    MyLog.Info("Config", "Migrated config from v"
-        + config.ConfigVersion.ToString() + " to v" + CURRENT_VERSION.ToString());
+    LNT_Log.Info("Config", "Migrated config from v" + config.ConfigVersion.ToString() + " to v" + CURRENT_VERSION.ToString());
 }
 ```
 
-### Expansion's Migration Example
+### A Versioned-Migration Checklist
 
-Expansion is known for aggressive config evolution. Some Expansion configs have gone through 17+ versions. Their pattern:
-1. Each version bump has a dedicated migration function
-2. Migrations run in order (1 to 2, then 2 to 3, then 3 to 4, etc.)
-3. Each migration only changes what is necessary for that version step
-4. The final version number is written to disk after all migrations complete
+Large, long-lived mods treat config migration as a first-class feature. DayZ Expansion is the clearest public example: each of its settings classes carries a `static const int VERSION` and converts older files forward on load, so server owners never hand-edit a config after an update. In the repository's `experimental` branch at commit `6dacd00`, 48 settings classes declare such a constant and the highest has reached **32** (`DayZExpansion/AI/Scripts/3_Game/DayZExpansion_AI/Settings/Patrols/ExpansionAIPatrolSettings.c:61`), with 23 and 20 elsewhere. `ExpansionAISettings` shows the mechanism directly: a ladder of `if (m_Version < N)` steps from 1 up to 20, then `m_Version = VERSION` (`.../Settings/ExpansionAISettings.c:24,266-373`). Read those numbers as a snapshot of that one commit -- they record how many times each settings schema has been revised, not a release history of the mod. However you structure it, a robust migration flow follows the same checklist:
 
-This is the gold standard for config versioning in DayZ mods.
+1. Give each config an integer `ConfigVersion` field from day one.
+2. Write a dedicated migration step for every version bump.
+3. Run migrations in order (1 to 2, then 2 to 3, then 3 to 4, etc.) — never skip intermediate steps, because each one assumes the previous ran.
+4. Make each step change only what that version step requires; leave everything else untouched.
+5. Preserve user-modified values: only overwrite a field when it still holds the old default.
+6. Write the final version number to disk after all steps complete, then re-save the file.
+7. Log the migration (`from v3 to v5`) so a broken upgrade is visible in the server log.
 
 ---
 
@@ -599,12 +645,12 @@ void BanPlayer(string uid, string reason)
 if (JsonFileLoader<MyConfig>.JsonLoadFile(path, config)) { ... }
 ```
 
-`JsonLoadFile` returns `void`. Call it, then check the object's state.
+`JsonLoadFile` returns `void`. Either call it and then check the object's state, or -- better -- switch to `JsonFileLoader<T>.LoadFile(path, config, error)`, which returns a real `bool` and an error message (see [JsonFileLoader Pattern](#jsonfileloader-pattern)).
 
 ### 2. Not Checking FileExist Before Loading
 
 ```c
-// WRONG — crashes or produces empty object with no diagnostic
+// WRONG — silently does nothing when the file is absent, and says so to no one
 JsonFileLoader<MyConfig>.JsonLoadFile("$profile:MyMod/Config.json", config);
 
 // RIGHT — check first, create defaults if missing
@@ -616,9 +662,11 @@ if (!FileExist("$profile:MyMod/Config.json"))
 JsonFileLoader<MyConfig>.JsonLoadFile("$profile:MyMod/Config.json", config);
 ```
 
+`JsonLoadFile` opens with `if (FileExist(filename))` and simply returns when that check fails (`3_game/tools/jsonfileloader.c:105-108`), so a missing file leaves your object exactly as you passed it in -- no crash, no error, no signal. That is why you check first and write defaults yourself, or use `LoadFile`, which reports `File "%1" does not exist` through its `out` error string.
+
 ### 3. Forgetting to Create Directories
 
-`JsonSaveFile` fails silently if the directory does not exist. Always ensure directories before saving.
+`JsonSaveFile` gives up silently if the file cannot be opened for writing -- it returns as soon as `OpenFile` yields a null handle, with no error (`3_game/tools/jsonfileloader.c:143-147`). A missing parent directory is the usual cause. Always ensure directories before saving, or use `SaveFile`, which returns `false` and fills in an error message.
 
 ### 4. Public Fields You Did Not Intend to Serialize
 
@@ -637,17 +685,19 @@ class MyConfig
 };
 ```
 
-### 5. Backslash and Quote Characters in JSON Values
+### 5. Absolute, Backslashed Paths in Config Values
 
-Enforce Script's CParser has trouble with `\\` and `\"` in string literals. Avoid storing file paths with backslashes in configs. Use forward slashes:
+The `\\` and `\"` escape sequences work fine in Enforce Script string literals -- vanilla writes `"DZ\\plants"` in `3_game/objectspawner.c:4` and `"Cannot open file \"%1\" for reading"` in `3_game/tools/jsonfileloader.c:14`, and the manual-JSON example earlier in this chapter uses `\"` for the same reason. The mistake is not the escaping; it is storing a machine-specific absolute path at all.
 
 ```c
-// BAD — backslashes may break parsing
+// BAD — absolute, machine-specific, and outside the profile sandbox
 string LogPath = "C:\\DayZ\\Logs\\server.log";
 
-// GOOD — forward slashes work everywhere
+// GOOD — profile-relative and portable across every host
 string LogPath = "$profile:MyMod/Logs/server.log";
 ```
+
+Use forward slashes in stored paths as a convention: the filesystem prefixes (`$profile:`, `$saves:`, `$mission:`) are written that way throughout vanilla, and one engine subsystem's fix-up for the wrong delimiter is a **diagnostic-build-only** convenience, not something to rely on -- particle registration rewrites `\` to `/` and logs a warning, but only inside `#ifdef DIAG_DEVELOPER` (`3_game/particles/particlelist.c:390-395`, guarding the `Replace` at `:391` and the `ErrorEx` at `:393`, under a comment that reads "Silently fail on retail" at `:389`). On a **retail** build, a backslash path is not normalised at all (`:397`) -- which is precisely why the forward-slash convention matters. One real escaping caveat remains, and it belongs to JSON rather than to Enforce Script: a backslash inside a JSON *string value* must be escaped in the file itself, so a Windows path written into JSON appears as `"C:\\DayZ"` on disk. Another reason to stay with `$profile:` and forward slashes.
 
 ---
 
@@ -667,7 +717,7 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 
 7. **Save on mission finish.** The auto-save timer is a safety net, not the primary save. Always save during `OnMissionFinish()`.
 
-8. **Define path constants in one place.** A `MyModConst` class with all paths prevents string duplication and makes path changes trivial.
+8. **Define path constants in one place.** A `LNT_Const` class with all paths prevents string duplication and makes path changes trivial.
 
 9. **Log load/save operations.** When debugging config issues, a log line saying "Loaded config v3 from $profile:MyMod/Config.json" is invaluable.
 
@@ -692,7 +742,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Use async file I/O to avoid blocking | Enforce Script has no async file I/O; all reads/writes are synchronous. Load at startup, save on timers. |
 | Validate JSON with a schema | No JSON schema validation exists; validate fields in `OnAfterLoad()` or with guard clauses after loading. |
 | Use a database for structured data | No database access from Enforce Script; JSON files in `$profile:` are the only persistence mechanism. |
-
----
-
-[Home](../README.md) | [<< Previous: RPC Patterns](03-rpc-patterns.md) | **Config Persistence** | [Next: Permission Systems >>](05-permissions.md)

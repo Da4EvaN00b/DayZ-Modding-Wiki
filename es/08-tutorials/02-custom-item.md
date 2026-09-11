@@ -1,6 +1,5 @@
 # Capitulo 8.2: Crear un Item Personalizado
 
-[Inicio](../README.md) | [<< Anterior: Tu Primer Mod](01-first-mod.md) | **Crear un Item Personalizado** | [Siguiente: Construir un Panel de Admin >>](03-admin-panel.md)
 
 ---
 
@@ -323,7 +322,7 @@ Abre `types.xml` y agrega este bloque dentro del elemento raiz `<types>`:
 ### Tags Comunes de Usage y Value
 
 **Usage (donde spawnea):**
-- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medical`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
+- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medic`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
 
 **Value (tier del mapa):**
 - `Tier1` -- costa/areas iniciales

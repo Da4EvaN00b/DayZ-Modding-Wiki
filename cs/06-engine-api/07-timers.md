@@ -1,6 +1,5 @@
 # Chapter 6.7: Timers & CallQueue
 
-[Domů](../README.md) | [<< Předchozí: Oznámení](06-notifications.md) | **Časovače a CallQueue** | [Další: Souborové I/O a JSON >>](08-file-io.md)
 
 ---
 
@@ -33,7 +32,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**Soubor:** `3_Game/tools/utilityclasses.c`
+**Soubor:** `2_GameLib/tools.c`
 
 The primary mechanism for deferred function calls. Supports one-shot delays, repeating calls, and immediate next-frame execution.
 
@@ -99,16 +98,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-Call a method by its string name. Useful when metoda reference is not přímo dostupný.
+Call a method by its string name on the next frame. Useful when metoda reference is not přímo dostupný. For a delayed or repeating by-name call, use `CallLaterByName` instead:
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **Example:**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +151,7 @@ Called interníly by engine každý frame. You should nikdy need to call this ru
 
 ## Timer
 
-**Soubor:** `3_Game/tools/utilityclasses.c`
+**Soubor:** `3_Game/tools/tools.c`
 
 A class-based timer with explicit start/stop lifecycle. Cleaner for long-lived timers that need to be paused or restarted.
 
@@ -161,7 +164,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | Parameter | Description |
@@ -239,15 +242,9 @@ void Continue();
 
 Resumes a paused timer from where it left off.
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-Returns `true` if the timer is aktuálně paused.
-
 **Příklad --- pause and resume:**
+
+`Timer` nemá metodu `IsPaused()`. Protože `IsRunning()` vrací `true` pouze tehdy, když je časovač aktivní (a `false`, jakmile je pozastaven nebo zastaven), použijte ji k rozhodnutí, zda pozastavit nebo pokračovat:
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +257,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +284,25 @@ Returns the total duration set by `Run()`.
 
 ## ScriptInvoker
 
-**Soubor:** `3_Game/tools/utilityclasses.c`
+**Soubor:** `2_GameLib/tools.c`
 
 An dokoncet/delegate system. `ScriptInvoker` holds a list of zpětné volání functions and invokes all of them when `Invoke()` is called. This is DayZ's equivalent of C# dokoncets or the observer pattern.
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-Register a zpětné volání function.
+Register a zpětné volání function. Volitelný argument `flags` přijímá `EScriptInvokerInsertFlags.IMMEDIATE` (výchozí) nebo `EScriptInvokerInsertFlags.UNIQUE`. Při úspěchu vrací `true`.
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-Unregister a zpětné volání function.
+Unregister a zpětné volání function. Volitelný argument `flags` má výchozí hodnotu `EScriptInvokerRemoveFlags.ALL`. Při úspěchu vrací `true`.
 
 ### Invoke
 
@@ -319,10 +316,10 @@ Call all registered functions with the provided parameters.
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-Number of registered zpětné volánís.
+Vrací, kolikrát je daná funkce `fn` aktuálně zaregistrována v invokeru (nikoli celkový počet všech zpětných volání).
 
 ### Clear
 
@@ -387,17 +384,16 @@ Functions registered on the update queue are called každý frame with no parame
 
 ## WidgetFadeTimer
 
-**Soubor:** `3_Game/tools/utilityclasses.c`
+**Soubor:** `3_Game/tools/tools.c`
 
-A specialized timer for fading widgets in and out.
+A specialized timer for fading widgets in and out. `WidgetFadeTimer` rozšiřuje `TimerBase`, takže dědí `Stop()` a `IsRunning()`.
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop() and IsRunning() are inherited from TimerBase
 }
 ```
 
@@ -405,7 +401,9 @@ class WidgetFadeTimer
 |-----------|-------------|
 | `w` | The widget to fade |
 | `time` | Duration of the fade in seconds |
-| `continue_from_current` | If `true`, start from current alpha; jinak start from 0 (fade in) or 1 (fade out) |
+| `continue_` | If `true`, start from current alpha; jinak start from 0 (fade in) or 1 (fade out) |
+
+Pro kontrolu, zda právě probíhá prolínání, použijte zděděnou metodu `IsRunning()`.
 
 **Example:**
 
@@ -433,17 +431,18 @@ void HideNotification()
 
 ## GetRemainingTime (CallQueue)
 
-The `ScriptCallQueue` také provides a way to query how much time is left on a scheduled `CallLater`:
+The `ScriptCallQueue` také provides a way to query how much time is left (in milliseconds) on a scheduled call. There are two variants --- one keyed by function reference and one keyed by name:
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **Example:**
 
 ```c
-// Get how much time is left on a CallLater
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// Get how much time is left on a call scheduled by name
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("Callback fires in %1 ms", remaining));
 ```

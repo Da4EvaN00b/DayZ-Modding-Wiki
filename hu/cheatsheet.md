@@ -1,6 +1,5 @@
 # Enforce Script gyorsreferencia
 
-[Kezdőlap](./README.md) | **Gyorsreferencia**
 
 ---
 
@@ -30,7 +29,7 @@
 | Metódus | Visszatérés | Megjegyzés |
 |---------|-------------|------------|
 | `Insert(item)` | `int` (index) | Hozzáfűzés |
-| `InsertAt(item, idx)` | `void` | Beszúrás pozícióra |
+| `InsertAt(item, idx)` | `int` (count) | Beszúrás pozícióra |
 | `Get(idx)` / `arr[idx]` | `T` | Hozzáférés index alapján |
 | `Set(idx, item)` | `void` | Csere az indexen |
 | `Find(item)` | `int` | Index vagy -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Megfordítás |
 | `GetRandomElement()` | `T` | Véletlenszerű választás |
 | `InsertAll(other)` | `void` | Mindent hozzáfűz a másikból |
-| `Copy(other)` | `void` | Csere másolattal |
+| `Copy(other)` | `int` (count) | Csere másolattal |
 | `Resize(n)` | `void` | Átméretezés (alapértékekkel tölt) |
 | `Reserve(n)` | `void` | Kapacitás előfoglalása |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Helyben módosít, visszaadja a darabszámot |
 | `s.ToLower()` | `void` | **Helyben!** |
 | `s.ToUpper()` | `void` | **Helyben!** |
-| `s.TrimInPlace()` | `void` | **Helyben!** |
+| `s.TrimInPlace()` | `int` (length) | **Helyben!** |
 | `s.Split(delim, out arr)` | `void` | TStringArray-re bontja |
 | `s.Get(idx)` | `string` | Egyetlen karakter |
 | `s.Set(idx, ch)` | `void` | Karakter cseréje |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### IsAlive ellenőrzés (EntityAI szükséges)
+### IsAlive ellenőrzés
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// Az IsAlive() a bázis Object osztályon van definiálva (a !IsDamageDestroyed() értéket adja vissza)
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach map iteráció

@@ -1,6 +1,5 @@
 # Chapter 7.3: RPC Communication Patterns
 
-[Domů](../README.md) | [<< Předchozí: Systémy modulů](02-module-systems.md) | **RPC Communication Patterns** | [Další: Perzistence konfigurace >>](04-config-persistence.md)
 
 ---
 
@@ -656,7 +655,3 @@ Or use a centralized `Cleanup()` that clears the celý handler map (as `MyRPC.Cl
 | Use protocol buffers or schema-based serialization | Enforce Script has no protobuf support; you ručně `Write`/`Read` primitives in matched order |
 | Validate all inputs with schema enforcement | No schema platnýation exists; každý `ctx.Read()` return value must be checked individually |
 | RPCs should be idempotent | Practical in DayZ pouze for query RPCs; mutation RPCs (spawn, delete, teleport) are inherently non-idempotent --- guard with permission checks místo toho |
-
----
-
-[Domů](../README.md) | [<< Předchozí: Systémy modulů](02-module-systems.md) | **RPC Communication Patterns** | [Další: Perzistence konfigurace >>](04-config-persistence.md)

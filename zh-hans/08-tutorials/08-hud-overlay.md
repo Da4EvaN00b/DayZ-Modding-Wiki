@@ -1,6 +1,5 @@
 # 第 8.8 章：构建 HUD 覆盖层
 
-[首页](../README.md) | [<< 上一章：发布到 Steam 创意工坊](07-publishing-workshop.md) | **构建 HUD 覆盖层** | [下一章：专业模组模板 >>](09-professional-template.md)
 
 ---
 
@@ -84,101 +83,95 @@ ServerInfoHUD/
 
 ## 步骤 1：创建布局文件
 
-布局文件（`.layout`）用 XML 定义控件层次结构。DayZ 的 GUI 系统使用坐标模型，其中每个控件的位置和大小以比例值（父级的 0.0 到 1.0）加像素偏移来表示。
+布局文件（`.layout`）用基于花括号的格式定义控件层次结构。每个控件声明为 `WidgetClass WidgetName { ... }`，属性是裸的 `name value` 行（仅当 name 包含空格时才加引号），子控件嵌套在内层的 `{ }` 块中。DayZ 的 GUI 系统使用坐标模型，其中每个控件的位置和大小以比例值（父级的 0.0 到 1.0）加像素偏移来表示。
 
 ### `GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <!-- 根框架：覆盖全屏，不消费输入 -->
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <!-- 背景面板：右上角 -->
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <!-- 服务器名称文本 -->
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- 玩家数量文本 -->
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-            <!-- 游戏内时间文本 -->
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-              <Attribute name="halign" value="0" />
-              <Attribute name="valign" value="0" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  // 背景面板：右上角
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    // 服务器名称文本
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+     "text halign" left
+     "text valign" top
+    }
+    // 玩家数量文本
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+    // 游戏内时间文本
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+     "text halign" left
+     "text valign" top
+    }
+   }
+  }
+ }
+}
 ```
 
 ### 关键布局概念
 
 | 属性 | 含义 |
 |-----------|---------|
-| `halign="2"` | 水平对齐：**右对齐**。控件锚定到其父级的右边缘。 |
-| `valign="0"` | 垂直对齐：**顶部**。 |
-| `hexactpos="0"` + `vexactpos="1"` | 水平位置是比例值（1.0 = 右边缘），垂直位置是像素值。 |
-| `hexactsize="1"` + `vexactsize="1"` | 宽度和高度是像素值（220 x 70）。 |
-| `color="0 0 0 0.55"` | RGBA 浮点值。背景面板为 55% 不透明度的黑色。 |
+| `halign right` | 水平对齐：**右对齐**。控件锚定到其父级的右边缘。 |
+| `valign top` | 垂直对齐：**顶部**。 |
+| `hexactpos 0` + `vexactpos 1` | 水平位置是比例值（1.0 = 右边缘），垂直位置是像素值。 |
+| `hexactsize 1` + `vexactsize 1` | 宽度和高度是像素值（220 x 70）。 |
+| `color 0 0 0 0.55` | RGBA 浮点值。背景面板为 55% 不透明度的黑色。 |
 
-`ServerInfoPanel` 位于比例 X=1.0（右边缘），`halign="2"`（右对齐），因此面板的右边缘与屏幕右侧齐平。Y 位置距顶部 0 像素。这将我们的 HUD 放在右上角。
+`ServerInfoPanel` 位于比例 X=1.0（右边缘），`halign right`（右对齐），因此面板的右边缘与屏幕右侧齐平。Y 位置距顶部 0 像素。这将我们的 HUD 放在右上角。
 
 **为什么面板使用像素大小？** 比例大小会让面板随分辨率缩放，但对于小型信息控件，你需要固定的像素占用空间，这样文本在所有分辨率下都保持可读。
 
@@ -485,6 +478,10 @@ RPC ID 在所有模组中必须唯一。我们在 `3_Game` 层定义，以便客
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// 最大玩家槽位数。没有 GetGame().GetMaxPlayers() 原生方法，因此将
+// 此值设为与你的服务器配置（启动参数中的值）一致。
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 **为什么是 `3_Game`？** 常量和枚举属于客户端和服务器都能访问的最低层级。`3_Game` 层在 `4_World` 和 `5_Mission` 之前加载，因此双方都能看到这些值。
@@ -532,8 +529,9 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         playerCount = players.Count();
 
-        // 从服务器配置获取最大玩家数
-        maxPlayers = GetGame().GetMaxPlayers();
+        // 没有 GetGame().GetMaxPlayers()。配置的槽位数存在于服务器配置中，
+        // 而不在脚本可访问的 CGame 原生方法里，因此这里使用一个已知的常量。
+        maxPlayers = SIH_MAX_PLAYERS;
 
         // 将响应发送回请求客户端
         ScriptRPC rpc = new ScriptRPC();
@@ -935,6 +933,10 @@ class CfgMods
 
 const int SIH_RPC_REQUEST_INFO = 72810;
 const int SIH_RPC_RESPONSE_INFO = 72811;
+
+// 最大玩家槽位数。没有 GetGame().GetMaxPlayers() 原生方法，因此将
+// 此值设为与你的服务器配置（启动参数中的值）一致。
+const int SIH_MAX_PLAYERS = 60;
 ```
 
 ### 文件 5：`ServerInfoHUD/Scripts/4_World/ServerInfoHUD/ServerInfoServer.c`
@@ -974,8 +976,9 @@ modded class PlayerBase
         GetGame().GetPlayers(players);
         int playerCount = players.Count();
 
-        // 获取最大玩家槽位
-        int maxPlayers = GetGame().GetMaxPlayers();
+        // 没有 GetGame().GetMaxPlayers()。配置的槽位数存在于服务器配置中，
+        // 而不在脚本可访问的 CGame 原生方法里，因此这里使用一个已知的常量。
+        int maxPlayers = SIH_MAX_PLAYERS;
 
         // 将数据发送回请求客户端
         ScriptRPC rpc = new ScriptRPC();
@@ -1284,73 +1287,68 @@ modded class MissionGameplay
 
 ### 文件 8：`ServerInfoHUD/GUI/layouts/ServerInfoHUD.layout`
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<layoutset>
-  <children>
-    <Widget name="ServerInfoRoot" type="FrameWidgetClass">
-      <Attribute name="position" value="0 0" />
-      <Attribute name="size" value="1 1" />
-      <Attribute name="halign" value="0" />
-      <Attribute name="valign" value="0" />
-      <Attribute name="hexactpos" value="0" />
-      <Attribute name="vexactpos" value="0" />
-      <Attribute name="hexactsize" value="0" />
-      <Attribute name="vexactsize" value="0" />
-      <children>
-        <Widget name="ServerInfoPanel" type="ImageWidgetClass">
-          <Attribute name="position" value="1 0" />
-          <Attribute name="size" value="220 70" />
-          <Attribute name="halign" value="2" />
-          <Attribute name="valign" value="0" />
-          <Attribute name="hexactpos" value="0" />
-          <Attribute name="vexactpos" value="1" />
-          <Attribute name="hexactsize" value="1" />
-          <Attribute name="vexactsize" value="1" />
-          <Attribute name="color" value="0 0 0 0.55" />
-          <children>
-            <Widget name="ServerNameText" type="TextWidgetClass">
-              <Attribute name="position" value="8 6" />
-              <Attribute name="size" value="204 20" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="14" />
-              <Attribute name="text" value="Server Name" />
-              <Attribute name="color" value="1 1 1 0.9" />
-            </Widget>
-            <Widget name="PlayerCountText" type="TextWidgetClass">
-              <Attribute name="position" value="8 28" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Players: - / -" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-            <Widget name="TimeText" type="TextWidgetClass">
-              <Attribute name="position" value="8 48" />
-              <Attribute name="size" value="204 18" />
-              <Attribute name="hexactpos" value="1" />
-              <Attribute name="vexactpos" value="1" />
-              <Attribute name="hexactsize" value="1" />
-              <Attribute name="vexactsize" value="1" />
-              <Attribute name="font" value="gui/fonts/MetronBook" />
-              <Attribute name="fontsize" value="12" />
-              <Attribute name="text" value="Time: --:--" />
-              <Attribute name="color" value="0.8 0.8 0.8 0.85" />
-            </Widget>
-          </children>
-        </Widget>
-      </children>
-    </Widget>
-  </children>
-</layoutset>
+```
+FrameWidgetClass ServerInfoRoot {
+ position 0 0
+ size 1 1
+ halign left
+ valign top
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass ServerInfoPanel {
+   position 1 0
+   size 220 70
+   halign right
+   valign top
+   hexactpos 0
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0 0 0 0.55
+   {
+    TextWidgetClass ServerNameText {
+     position 8 6
+     size 204 20
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 14
+     text "Server Name"
+     color 1 1 1 0.9
+    }
+    TextWidgetClass PlayerCountText {
+     position 8 28
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Players: - / -"
+     color 0.8 0.8 0.8 0.85
+    }
+    TextWidgetClass TimeText {
+     position 8 48
+     size 204 18
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     font "gui/fonts/MetronBook"
+     fontsize 12
+     text "Time: --:--"
+     color 0.8 0.8 0.8 0.85
+    }
+   }
+  }
+ }
+}
 ```
 
 ---
@@ -1371,31 +1369,22 @@ protected void RefreshFPS()
     if (!m_FPSText)
         return;
 
-    float fps = 1.0 / GetGame().GetDeltaT();
+    float fps = GetGame().GetLastFPS();
     m_FPSText.SetText("FPS: " + Math.Round(fps).ToString());
 }
 ```
 
-在更新方法中与 `RefreshTime()` 一起调用 `RefreshFPS()`。注意 `GetDeltaT()` 返回当前帧的时间，因此 FPS 值会波动。为了更平滑的显示，可以在几帧内取平均值：
+在更新方法中与 `RefreshTime()` 一起调用 `RefreshFPS()`。注意 `GetLastFPS()` 返回上一帧的帧率，因此该值会波动。为了更平滑的显示，可以使用引擎内置的滚动平均值：
 
 ```c
-protected float m_FPSAccum;
-protected int m_FPSFrames;
-
 protected void RefreshFPS()
 {
     if (!m_FPSText)
         return;
 
-    m_FPSAccum += GetGame().GetDeltaT();
-    m_FPSFrames++;
-
-    float avgFPS = m_FPSFrames / m_FPSAccum;
+    // GetAvgFPS 在给定数量的近期帧上取平均值。
+    float avgFPS = GetGame().GetAvgFPS(64);
     m_FPSText.SetText("FPS: " + Math.Round(avgFPS).ToString());
-
-    // 每秒重置（当主计时器触发时）
-    m_FPSAccum = 0;
-    m_FPSFrames = 0;
 }
 ```
 
@@ -1483,7 +1472,7 @@ class DraggableHUD : ScriptedWidgetEventHandler
         return false;
     }
 
-    override bool OnUpdate(Widget w, int x, int y, int oldX, int oldY)
+    override bool OnDrag(Widget w, int x, int y)
     {
         if (m_Dragging && m_DragWidget)
         {
@@ -1600,7 +1589,7 @@ override void OnInit()
 |---------|--------|---------|
 | `OnUpdate(float timeslice)` | 每帧调用一次，参数为帧时间差 | 在 144 FPS 的客户端上，这每秒触发 144 次。每次调用发送一个 RPC 会为每个玩家每秒创建 144 个网络数据包。始终累积 `timeslice` 并仅在总和超过你的间隔时执行操作。 |
 | `CreateWidgets()` 布局路径 | 从你提供的路径加载布局 | 路径相对于 PBO 前缀，而不是文件系统。如果你的 PBO 前缀与路径字符串不匹配，`CreateWidgets` 静默返回 NULL，日志中没有错误。 |
-| `WidgetFadeTimer` | 平滑地动画化控件透明度 | `FadeOut` 在动画完成后隐藏控件，但 `FadeIn` 不会先调用 `Show(true)`。你必须在调用 `FadeIn` 之前手动显示控件，否则什么都不会出现。 |
+| `WidgetFadeTimer` | 平滑地动画化控件透明度 | `FadeOut` 在 alpha 接近零时隐藏控件，而 `FadeIn` 会在将 alpha 从 0 动画到 1 之前先对控件本身调用 `Show(true)`。因此在 `FadeIn` 之前额外调用 `m_Root.Show(true)` 是多余的（无害，但并非必需）。 |
 | `GetUApi().GetInputByName()` | 返回你自定义按键绑定的输入操作 | 如果 `inputs.xml` 没有在 `config.cpp` 的 `class inputs` 中引用，操作名称未知，`GetInputByName` 返回 null，导致在 `.LocalPress()` 上崩溃。 |
 
 ---

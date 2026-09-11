@@ -1,6 +1,5 @@
 # 第 7.2 章：模块/插件系统
 
-[首页](../README.md) | [<< 上一章：单例模式](01-singletons.md) | **模块/插件系统** | [下一章：RPC 模式 >>](03-rpc-patterns.md)
 
 ---
 
@@ -219,18 +218,28 @@ class ConfigurablePlugin : PluginBase
 
 ### 注册
 
-VPP 在 modded `MissionServer.OnInit()` 中注册插件：
+VPP 通过 mod 修改原版的 `PluginManager.Init()` 来注册插件。`RegisterPlugin` 接受插件的类名字符串以及客户端/服务器标志（它不接受 `new` 实例）：
 
 ```c
 // VPP 模式
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+管理器会自行实例化每个已注册的插件。要在别处获取正在运行的插件，请使用 `GetPluginManager().GetPluginByType(VPPESPPlugin)` 或全局的 `GetPlugin(VPPESPPlugin)`。
 
 ### 主要特点
 
-- **手动注册**：每个插件显式 `new` 并注册
+- **手动注册**：每个插件在 `PluginManager.Init()` 中按类名注册；由管理器实例化它
 - **配置集成**：`ConfigurablePlugin` 将配置管理与模块生命周期合并
 - **自包含**：不依赖 CF；VPP 的插件管理器是自有系统
 - **明确所有权**：插件管理器持有所有插件的 `ref`，控制其生命周期
@@ -529,7 +538,7 @@ override void OnMissionFinish()
 | **配置集成** | 独立 | 内置于 ConfigurablePlugin | 独立 | 通过 MyConfigManager |
 | **Update 分发** | 自动 | 管理器调用 `OnUpdate` | 自动 | 管理器调用 `OnUpdate` |
 | **清理** | CF 处理 | 手动 `OnDestroy` | CF 处理 | `MyModuleManager.Cleanup()` |
-| **跨 mod 访问** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **跨 mod 访问** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 选择与你 mod 的依赖情况匹配的方式。如果你已经依赖 CF，使用 `CF_ModuleCore`。如果你想要零外部依赖，按照自定义管理器或 VPP 模式构建自己的系统。
 
@@ -565,7 +574,3 @@ override void OnMissionFinish()
 | 模块应在运行时可热交换 | DayZ 不支持脚本热重载；模块在整个任务生命周期中存活 |
 | 使用接口定义模块契约 | Enforce Script 没有 `interface` 关键字；使用基类虚方法（`override`）替代 |
 | 依赖注入解耦模块 | 不存在 DI 框架；使用管理器查找和 `#ifdef` 守卫处理可选的跨 mod 依赖 |
-
----
-
-[首页](../README.md) | [<< 上一章：单例模式](01-singletons.md) | **模块/插件系统** | [下一章：RPC 模式 >>](03-rpc-patterns.md)

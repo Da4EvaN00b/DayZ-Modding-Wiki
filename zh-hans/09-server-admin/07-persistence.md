@@ -1,6 +1,5 @@
 # Chapter 9.7: 世界状态与持久化
 
-[首页](../README.md) | [<< 上一章: 玩家出生](06-player-spawning.md) | [下一章: 性能调优 >>](08-performance.md)
 
 DayZ 的持久化系统在重启之间保持世界的存活状态。了解其工作原理可以帮助你管理基地、规划清档和避免数据损坏。
 
@@ -188,7 +187,3 @@ cp -r /path/to/serverprofile/storage_1 "$BACKUP_DIR/"
 | 将天气重置与完全清档混淆 | 删除 `events.xy` 只会重置动态事件位置。它不会重置战利品、基地或玩家。 | 了解哪些文件控制什么（见上面的目录表）。 |
 | 旗帜未及时刷新 | 40 天（FlagRefreshMaxDuration）后，旗帜过期，所有附属的基地部件变为可清理状态。玩家失去整个基地。 | 提醒玩家刷新间隔。在低人口服务器上降低 FlagRefreshMaxDuration。 |
 | 服务器运行时编辑 globals.xml | 更改直到重启才会生效。更糟的是，服务器可能在关闭时覆盖你的编辑。 | 只在服务器停止时编辑配置文件。 |
-
----
-
-[首页](../README.md) | [<< 上一章: 玩家出生](06-player-spawning.md) | [下一章: 性能调优 >>](08-performance.md)

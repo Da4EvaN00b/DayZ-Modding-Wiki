@@ -1,6 +1,5 @@
 # 第 2.3 章：mod.cpp 与 Workshop
 
-[首页](../README.md) | [<< 上一章：config.cpp 深入解析](02-config-cpp.md) | **mod.cpp 与 Workshop** | [下一章：最小可行模组 >>](04-minimum-viable-mod.md)
 
 ---
 
@@ -251,9 +250,10 @@ type = "servermod";
 当你发布到 Steam Workshop 时，DayZ 工具会自动生成 `meta.cpp` 文件：
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // Steam Workshop 物品 ID
-timestamp = 1711000000;       // 上次更新的 Unix 时间戳
+protocol = 1;
+publishedid = 2900000000;            // Steam Workshop 物品 ID
+name = "My Mod";                     // Workshop 物品名称
+timestamp = 5249975085759540888;     // 内部 64 位数值，并非 Unix 时间戳
 ```
 
 不要手动编辑 `meta.cpp`。它由发布工具管理。

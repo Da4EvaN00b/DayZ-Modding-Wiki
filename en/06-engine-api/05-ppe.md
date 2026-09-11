@@ -1,12 +1,11 @@
-# Chapter 6.5: Post-Process Effects (PPE)
+# Post-Process Effects (PPE)
 
-[Home](../README.md) | [<< Previous: Cameras](04-cameras.md) | **Post-Process Effects** | [Next: Notifications >>](06-notifications.md)
 
 ---
 
 ## Introduction
 
-DayZ's Post-Process Effects (PPE) system controls visual effects applied after scene rendering: blur, color grading, vignette, chromatic aberration, night vision, and more. The system is built around `PPERequester` classes that can request specific visual effects. Multiple requesters can be active simultaneously, and the engine blends their contributions. This chapter covers how to use the PPE system in mods.
+DayZ's Post-Process Effects (PPE) system controls visual effects applied after scene rendering: blur, color grading, vignette, chromatic aberration, night vision, and more. The system is built around `PPERequesterBase` classes that can request specific visual effects. Multiple requesters can be active simultaneously, and the engine blends their contributions. This chapter covers how to use the PPE system in mods.
 
 ---
 
@@ -18,32 +17,32 @@ PPEManager
 │   ├── REQ_INVENTORYBLUR         // Inventory blur
 │   ├── REQ_MENUEFFECTS           // Menu effects
 │   ├── REQ_CONTROLLERDISCONNECT  // Controller disconnect overlay
-│   ├── REQ_UNCONSCIOUS           // Unconsciousness effect
+│   ├── REQ_UNCONEFFECTS         // Unconsciousness effect
 │   ├── REQ_FEVEREFFECTS          // Fever visual effects
 │   ├── REQ_FLASHBANGEFFECTS      // Flashbang
 │   ├── REQ_BURLAPSACK            // Burlap sack on head
 │   ├── REQ_DEATHEFFECTS          // Death screen
 │   ├── REQ_BLOODLOSS             // Blood loss desaturation
 │   └── ... (many more)
-└── PPERequester_*                // Individual requester implementations
+└── PPERequester_*                // Individual requester implementations (extend PPERequesterBase)
 ```
 
 ---
 
 ## PPEManager
 
-The `PPEManager` is a singleton that coordinates all active PPE requests. You rarely interact with it directly --- instead, you work through `PPERequester` subclasses.
+The `PPEManager` is a singleton that coordinates all active PPE requests. You rarely interact with it directly --- instead, you work through `PPERequesterBase` subclasses.
 
 ```c
-// Get the manager instance
-PPEManager GetPPEManager();
+// Get the manager instance (static method on PPEManagerStatic)
+PPEManager mgr = PPEManagerStatic.GetPPEManager();
 ```
 
 ---
 
 ## PPERequesterBank
 
-**File:** `3_Game/PPE/pperequesterbank.c`
+**File:** `3_Game/ppemanager/pperequesterbank.c`
 
 A static registry that holds instances of all PPE requesters. Access specific requesters by their constant index.
 
@@ -51,7 +50,7 @@ A static registry that holds instances of all PPE requesters. Access specific re
 
 ```c
 // Get a requester by its bank constant
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 ```
 
 ### Common Requester Constants
@@ -60,7 +59,7 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 |----------|--------|
 | `REQ_INVENTORYBLUR` | Gaussian blur when inventory is open |
 | `REQ_MENUEFFECTS` | Menu background blur |
-| `REQ_UNCONSCIOUS` | Unconsciousness visual (blur + desaturation) |
+| `REQ_UNCONEFFECTS` | Unconsciousness visual (blur + desaturation) |
 | `REQ_DEATHEFFECTS` | Death screen (grayscale + vignette) |
 | `REQ_BLOODLOSS` | Blood loss desaturation |
 | `REQ_FEVEREFFECTS` | Fever chromatic aberration |
@@ -69,18 +68,15 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 | `REQ_PAINBLUR` | Pain blur effect |
 | `REQ_CONTROLLERDISCONNECT` | Controller disconnect overlay |
 | `REQ_CAMERANV` | Night vision |
-| `REQ_FILMGRAINEFFECTS` | Film grain overlay |
-| `REQ_RAINEFFECTS` | Rain screen effects |
-| `REQ_COLORSETTING` | Color correction settings |
 
 ---
 
 ## PPERequester Base
 
-All PPE requesters extend `PPERequester`:
+All PPE requesters extend `PPERequesterBase` (concrete requesters are named `PPERequester_*`, e.g. `PPERequester_InventoryBlur`):
 
 ```c
-class PPERequester : Managed
+class PPERequesterBase
 {
     // Start the effect
     void Start(Param par = null);
@@ -89,17 +85,16 @@ class PPERequester : Managed
     void Stop(Param par = null);
 
     // Check if active
-    bool IsActiveRequester();
+    bool IsRequesterRunning();
 
-    // Set values on material parameters
-    void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
-                              float val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueColor(int mat_id, int param_idx, bool relative,
-                              float val1, float val2, float val3, float val4,
-                              int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueBool(int mat_id, int param_idx, bool relative,
+    // Set values on material parameters (protected: only callable from inside a requester subclass)
+    protected void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
+                              float val, int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueColor(int mat_id, int param_idx, array<float> val,
+                              int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueBool(int mat_id, int param_idx,
                              bool val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueInt(int mat_id, int param_idx, bool relative,
+    protected void SetTargetValueInt(int mat_id, int param_idx, bool relative,
                             int val, int priority_layer, int operator = PPOperators.SET);
 }
 ```
@@ -107,15 +102,19 @@ class PPERequester : Managed
 ### PPOperators
 
 ```c
-class PPOperators
+enum PPOperators
 {
-    static const int SET          = 0;  // Directly set the value
-    static const int ADD          = 1;  // Add to current value
-    static const int ADD_RELATIVE = 2;  // Add relative to current
-    static const int HIGHEST      = 3;  // Use the highest of current and new
-    static const int LOWEST       = 4;  // Use the lowest of current and new
-    static const int MULTIPLY     = 5;  // Multiply current value
-    static const int OVERRIDE     = 6;  // Force override
+    LOWEST,                      // 0 - Use the lowest of current and new
+    HIGHEST,                     // 1 - Use the highest of current and new
+    ADD,                         // 2 - Linear addition
+    ADD_RELATIVE,                // 3 - Linear relative addition
+    SUBSTRACT,                   // 4 - Linear subtraction
+    SUBSTRACT_RELATIVE,          // 5 - Linear relative subtraction
+    SUBSTRACT_REVERSE,           // 6 - Subtract target from destination
+    SUBSTRACT_REVERSE_RELATIVE,  // 7 - Relative subtract target from destination
+    MULTIPLICATIVE,              // 8 - Linear multiplication
+    SET,                         // 9 - Set the value (does not terminate further calculations)
+    OVERRIDE                     // 10 - Set the value and terminate further calculations
 }
 ```
 
@@ -131,14 +130,15 @@ Effects target specific post-processing materials. Common material IDs:
 | `PostProcessEffectType.FilmGrain` | Film grain |
 | `PostProcessEffectType.RadialBlur` | Radial blur |
 | `PostProcessEffectType.ChromAber` | Chromatic aberration |
-| `PostProcessEffectType.WetEffect` | Wet lens effect |
+| `PostProcessEffectType.WetDistort` | Wet lens effect |
 | `PostProcessEffectType.ColorGrading` | Color grading / LUT |
 | `PostProcessEffectType.DepthOfField` | Depth of field |
 | `PostProcessEffectType.SSAO` | Screen-space ambient occlusion |
 | `PostProcessEffectType.GodRays` | Volumetric light |
 | `PostProcessEffectType.Rain` | Rain on screen |
-| `PostProcessEffectType.Vignette` | Vignette overlay |
 | `PostProcessEffectType.HBAO` | Horizon-based ambient occlusion |
+
+Vignette is not a separate material type; it is parameter `PPEGlow.PARAM_VIGNETTE` (index 25) on the `PostProcessEffectType.Glow` material.
 
 ---
 
@@ -150,7 +150,7 @@ The simplest example --- the blur that appears when the inventory opens:
 
 ```c
 // Start blur
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 blurReq.Start();
 
 // Stop blur
@@ -160,7 +160,7 @@ blurReq.Stop();
 ### Flashbang Effect
 
 ```c
-PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
 flashReq.Start();
 
 // Stop after a delay
@@ -168,7 +168,7 @@ GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(StopFlashbang, 3000, fa
 
 void StopFlashbang()
 {
-    PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+    PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
     flashReq.Stop();
 }
 ```
@@ -177,12 +177,12 @@ void StopFlashbang()
 
 ## Creating a Custom PPE Requester
 
-To create custom post-process effects, extend `PPERequester` and register it.
+To create custom post-process effects, extend `PPERequester_GameplayBase` (or `PPERequester_MenuBase`) and register it.
 
 ### Step 1: Define the Requester
 
 ```c
-class MyCustomPPERequester extends PPERequester
+class MyCustomPPERequester extends PPERequester_GameplayBase
 {
     override protected void OnStart(Param par = null)
     {
@@ -190,11 +190,11 @@ class MyCustomPPERequester extends PPERequester
 
         // Apply a strong vignette
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.8, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.8, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
 
-        // Desaturate colors
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 0.3, PPEManager.L_0_STATIC, PPOperators.SET);
+        // Desaturate colors (saturation lives on the Glow material)
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 0.3, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 
     override protected void OnStop(Param par = null)
@@ -203,9 +203,9 @@ class MyCustomPPERequester extends PPERequester
 
         // Reset to defaults
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.0, PPEManager.L_0_STATIC, PPOperators.SET);
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 1.0, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 1.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 }
 ```
@@ -222,30 +222,35 @@ Night vision is implemented as a PPE effect. The relevant requester is `REQ_CAME
 
 ```c
 // Enable NVG effect
-PPERequester nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
+PPERequesterBase nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
 nvgReq.Start();
 
 // Disable NVG effect
 nvgReq.Stop();
 ```
 
-The actual NVG in-game is triggered by the NVGoggles item through its `ComponentEnergyManager` and the `NVGoggles.ToggleNVG()` method, which internally drives the PPE system.
+The actual NVG in-game is toggled by the `ActionToggleNVG` user action; the goggles use the energy manager (`ComponentEnergyManager`) for their power state, and the NVG PPE (`REQ_CAMERANV`) is driven separately.
 
 ---
 
 ## Color Grading
 
-Color grading modifies the overall color appearance of the scene:
+Saturation is a parameter of the Glow material (`PPEGlow.PARAM_SATURATION`). Because the value setters are `protected`, you adjust it from inside a custom requester subclass:
 
 ```c
-PPERequester colorReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_COLORSETTING);
-colorReq.Start();
+class MyColorRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Adjust saturation (1.0 = normal, 0.0 = grayscale, >1.0 = oversaturated)
-colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
-                              PPEColorGrading.PARAM_SATURATION,
-                              false, 0.5, PPEManager.L_0_STATIC,
-                              PPOperators.SET);
+        // Adjust saturation (1.0 = normal, 0.0 = grayscale, >1.0 = oversaturated)
+        SetTargetValueFloat(PostProcessEffectType.Glow,
+                            PPEGlow.PARAM_SATURATION,
+                            false, 0.5, PPEGlow.L_22_BLOODLOSS,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
@@ -255,47 +260,59 @@ colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
 ### Gaussian Blur
 
 ```c
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
-blurReq.Start();
+class MyBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Adjust blur intensity (0.0 = none, higher = more blur)
-blurReq.SetTargetValueFloat(PostProcessEffectType.GaussFilter,
-                             PPEGaussFilter.PARAM_INTENSITY,
-                             false, 0.5, PPEManager.L_0_STATIC,
-                             PPOperators.SET);
+        // Adjust blur intensity (0.0 = none, higher = more blur)
+        SetTargetValueFloat(PostProcessEffectType.GaussFilter,
+                            PPEGaussFilter.PARAM_INTENSITY,
+                            false, 0.5, PPEGaussFilter.L_0_INV,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ### Radial Blur
 
 ```c
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_PAINBLUR);
-req.Start();
+class MyRadialBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-req.SetTargetValueFloat(PostProcessEffectType.RadialBlur,
-                         PPERadialBlur.PARAM_POWERX,
-                         false, 0.3, PPEManager.L_0_STATIC,
-                         PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.RadialBlur,
+                            PPERadialBlur.PARAM_POWERX,
+                            false, 0.3, PPERadialBlur.L_0_PAIN_BLUR,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
 
 ## Priority Layers
 
-When multiple requesters modify the same parameter, the priority layer determines which one wins:
+When multiple requesters modify the same parameter, the priority layer determines which one wins. Priority-layer constants are declared on each material class (not on `PPEManager`) with effect-specific names, and use large numbers (higher wins). For example, on the Glow material:
 
 ```c
-class PPEManager
+class PPEGlow: PPEClassBase
 {
-    static const int L_0_STATIC   = 0;   // Lowest priority (static effects)
-    static const int L_1_VALUES   = 1;   // Dynamic value changes
-    static const int L_2_SCRIPTS  = 2;   // Script-driven effects
-    static const int L_3_EFFECTS  = 3;   // Gameplay effects
-    static const int L_4_OVERLAY  = 4;   // Overlay effects
-    static const int L_LAST       = 100;  // Highest priority (override all)
+    // ... parameter constants ...
+
+    static const int L_22_BLOODLOSS = 100;
+
+    static const int L_23_GLASSES   = 100;
+    static const int L_23_TOXIC_TINT = 200;
+    static const int L_23_HMP       = 300;
+    static const int L_23_NVG       = 600;
 }
 ```
 
-Higher numbers take priority. Use `PPEManager.L_LAST` to force your effect to override all others.
+Other materials declare their own, e.g. `PPEGaussFilter.L_0_INV` (500) and `PPERadialBlur.L_0_PAIN_BLUR` (100). Higher numbers take priority, so pick a layer above any effect you need to override.
 
 ---
 
@@ -306,21 +323,21 @@ Higher numbers take priority. Use `PPEManager.L_LAST` to force your effect to ov
 | Access | `PPERequesterBank.GetRequester(CONSTANT)` |
 | Start/Stop | `requester.Start()` / `requester.Stop()` |
 | Parameters | `SetTargetValueFloat(material, param, relative, value, layer, operator)` |
-| Operators | `PPOperators.SET`, `ADD`, `MULTIPLY`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
+| Operators | `PPOperators.SET`, `ADD`, `MULTIPLICATIVE`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
 | Common effects | Blur, vignette, saturation, NVG, flashbang, grain, chromatic aberration |
 | NVG | `REQ_CAMERANV` requester |
-| Priority | Layers 0-100; higher number wins conflicts |
-| Custom | Extend `PPERequester`, override `OnStart()` / `OnStop()` |
+| Priority | Per-material layer constants; higher number wins conflicts |
+| Custom | Extend `PPERequester_GameplayBase`, override `OnStart()` / `OnStop()` |
 
 ---
 
 ## Best Practices
 
 - **Always call `Stop()` to clean up your requester.** Failing to stop a PPE requester leaves its visual effect permanently active, even after the triggering condition ends.
-- **Use appropriate priority layers.** Gameplay effects should use `L_3_EFFECTS` or higher. Using `L_LAST` (100) overrides everything including vanilla unconsciousness and death effects, which can break the player experience.
+- **Use appropriate priority layers.** Pick a per-material layer constant that sits above the effects you intend to override. Using a very high layer overrides everything including vanilla unconsciousness and death effects, which can break the player experience.
 - **Prefer built-in requesters over custom ones.** The `PPERequesterBank` already contains requesters for blur, desaturation, vignette, and grain. Reuse them with adjusted parameters before creating a custom requester class.
 - **Test PPE effects under different lighting conditions.** Vignette and desaturation look drastically different at night vs daytime. Verify your effect reads well in both extremes.
-- **Avoid stacking multiple high-intensity blur effects.** Multiple active blur requesters compound, potentially rendering the screen unreadable. Check `IsActiveRequester()` before starting additional effects.
+- **Avoid stacking multiple high-intensity blur effects.** Multiple active blur requesters compound, potentially rendering the screen unreadable. Check `IsRequesterRunning()` before starting additional effects.
 
 ---
 

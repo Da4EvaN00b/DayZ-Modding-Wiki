@@ -1,6 +1,5 @@
 # Rozdział 8.7: Publikacja w Steam Workshop
 
-[Strona główna](../README.md) | [<< Poprzedni: Debugowanie i testowanie](06-debugging-testing.md) | **Publikacja w Steam Workshop** | [Następny: Budowanie nakładki HUD >>](08-hud-overlay.md)
 
 ---
 
@@ -109,7 +108,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### Referencja pól
@@ -127,7 +125,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | Nie | Duży obraz wyświetlany w panelu przeglądu moda |
 | `action` | Nie | URL otwierany, gdy gracz kliknie "Website" (zazwyczaj strona Workshop lub GitHub) |
 | `version` | Tak | Aktualny ciąg wersji (np. `"1.0.0"`) |
-| `versionPath` | Nie | Ścieżka do pliku tekstowego z numerem wersji (dla automatycznych buildów) |
 
 ### Częste błędy
 
@@ -454,7 +451,7 @@ Gdy twój mod zapisuje trwałe dane (konfiguracje JSON, pliki danych graczy), pr
 
 Przykład sprawdzenia migracji w Enforce Script:
 
-```csharp
+```c
 // W funkcji ładowania konfiguracji
 if (config.configVersion < 2)
 {

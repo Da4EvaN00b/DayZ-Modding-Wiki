@@ -1,6 +1,5 @@
 # Rozdział 6.2: System pojazdów
 
-[Strona główna](../README.md) | [<< Poprzedni: System encji](01-entity-system.md) | **Pojazdy** | [Następny: Pogoda >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ Abstrakcyjna baza dla wszystkich pojazdów. Zapewnia zarządzanie miejscami i do
 proto native int   CrewSize();                          // Całkowita liczba miejsc
 proto native int   CrewMemberIndex(Human crew_member);  // Pobranie indeksu miejsca członka
 proto native Human CrewMember(int posIdx);              // Pobranie człowieka na indeksie miejsca
-proto native void  CrewGetOut(int posIdx);              // Wymuszenie wyjścia z miejsca
+proto native Human CrewGetOut(int posIdx);              // Wymuszenie wyjścia z miejsca (zwraca wyrzuconego człowieka)
 proto native void  CrewDeath(int posIdx);               // Zabicie członka na miejscu
 ```
 
 ### Wsiadanie załogi
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Metoda skryptowa (do nadpisania), nie proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Komponent na indeks miejsca
-proto native vector CrewEntryPoint(int posIdx);         // Pozycja wejścia dla miejsca
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Punkt/kierunek wejścia w przestrzeni modelu
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Punkt/kierunek wejścia w przestrzeni świata
 ```
 
 **Przykład --- wyrzucenie wszystkich pasażerów:**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // Prędkość w km/h (wartość bezwzgl
 ### Sterowanie (symulacja)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = wszystkie koła
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (dodatkowe parametry nieużywane)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (drugi parametr nieużywany)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust jest przestarzałe)
+proto native void  SetClutch(float value);                    // SetClutchState jest przestarzałe
 ```
 
 ### Koła
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacki (nadpisanie w CarScript)
@@ -219,17 +219,28 @@ Typowe strefy uszkodzeń dla pojazdów:
 
 ### Światła
 
+API świateł znajduje się w klasie `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = wyłączone, 1 = włączone
-int  GetLightsState();
+proto native bool LightIsOn();    // True, gdy światła są włączone
+proto native void LightOn();      // Włączenie świateł
+proto native void LightOff();     // Wyłączenie świateł
+proto native void LightToggle();  // Przełączenie aktualnego stanu świateł
 ```
 
 ### Sterowanie drzwiami
 
+Stan drzwi sprawdza się za pomocą `GetCarDoorsState`, które zwraca wartość `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` lub `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Zwraca wartość CarDoorState
 ```
 
 ### Kluczowe nadpisania dla niestandardowych pojazdów
@@ -238,8 +249,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Inicjalizacja części pojazdu, płynów
 override void OnEngineStart();             // Niestandardowe zachowanie przy starcie silnika
 override void OnEngineStop();              // Niestandardowe zachowanie przy wyłączeniu silnika
-override void EOnSimulate(IEntity other, float dt);  // Symulacja co tik
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Symulacja co tik (CarScript)
 ```
 
 **Przykład --- tworzenie pojazdu z pełnymi płynami:**
@@ -286,31 +296,36 @@ proto native float EngineGetRPM();
 
 ### Płyny
 
-Łodzie używają tego samego wyliczenia `CarFluid`, ale zazwyczaj używają tylko `FUEL`:
+Łodzie używają osobnego wyliczenia `BoatFluid`, które definiuje tylko `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Prędkość
+### Prędkość i napęd
+
+`Boat` nie udostępnia `GetSpeedometer()` (ta metoda istnieje tylko w klasie `Car`). Zamiast tego odczytuj RPM silnika i prędkość śruby napędowej:
 
 ```c
-proto native float GetSpeedometer();   // Prędkość w km/h
+proto native float EngineGetRPM();                   // RPM silnika
+proto native float PropellerGetAngularVelocity();    // Prędkość kątowa śruby napędowej
 ```
 
 **Przykład --- tworzenie łodzi:**
+
+`Boat_01` nie jest klasą bezpośrednio tworzalną; utwórz jeden z konkretnych wariantów kolorystycznych (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -492,7 +507,7 @@ Klasa `Contact` została zmodyfikowana:
 **Zmienione:**
 - `Material1`, `Material2` --- typ zmieniony z `dMaterial` na `SurfaceProperties`
 
-Mody odczytujące dane `Contact` w `EOnContact` muszą zaktualizować nazwy i typy nowych zmiennych.
+Mody odczytujące dane `Contact` w `OnContact` muszą zaktualizować nazwy i typy nowych zmiennych.
 
 ---
 
@@ -511,7 +526,3 @@ Na `Transport` dodano funkcje fizyczne umożliwiające pojazdom **uśpienie** w 
 ### Dynamiczna kolizja dla wszystkich Transport (1.29 eksperymentalne)
 
 Klasa `Transport` (rodzic `CarScript` i `BoatScript`) ma teraz dynamiczną rozdzielczość kolizji. Wcześniej miał ją tylko `CarScript`. Mody łodzi korzystają z prawidłowej obsługi kolizji.
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: System encji](01-entity-system.md) | **Pojazdy** | [Następny: Pogoda >>](03-weather.md)

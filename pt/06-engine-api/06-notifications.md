@@ -1,6 +1,5 @@
-# Chapter 6.6: Notification System
+# Notification System
 
-[Home](../README.md) | [<< Previous: Post-Process Effects](05-ppe.md) | **Notifications** | [Next: Timers & CallQueue >>](07-timers.md)
 
 ---
 
@@ -157,11 +156,13 @@ O jogo vanilla define tipos de notificação com títulos e ícones associados. 
 
 | Tipo | Descrição |
 |------|-------------|
-| `NotificationType.GENERIC` | Notificação genérica |
-| `NotificationType.FRIENDLY_FIRE` | Aviso de fogo amigo |
-| `NotificationType.JOIN` | Jogador entrou |
-| `NotificationType.LEAVE` | Jogador saiu |
-| `NotificationType.STATUS` | Atualização de status |
+| `NotificationType.FRIEND_CONNECTED` | Um amigo conectou |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Convite falhou (já está no mesmo servidor) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Falha ao obter sessão ao entrar |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Falha de conexão genérica |
+| `NotificationType.DISCONNECTED` | Desconectado do servidor |
+| `NotificationType.GENERIC_ERROR` | Erro genérico |
+| `NotificationType.NOTIFICATIONS_END` | Valor sentinela (marca o fim do enum) |
 
 > **Nota:** Os tipos disponíveis dependem da versão do jogo. Para máxima flexibilidade, use as variantes `Extended` que aceitam strings personalizadas de título e ícone.
 
@@ -207,7 +208,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +237,7 @@ O sistema de notificações precisa ser atualizado a cada frame para lidar com a
 static void Update(float timeslice);
 ```
 
-Isto é chamado automaticamente pelo método `OnUpdate` da missão vanilla. Se você está escrevendo uma missão completamente personalizada, certifique-se de chamá-lo.
+Isto é chamado automaticamente a partir de `DayZGame.OnUpdate` (o loop de atualização do jogo), não pelo `OnUpdate` da missão. Se você está escrevendo uma classe de jogo completamente personalizada, certifique-se de chamá-lo.
 
 ---
 

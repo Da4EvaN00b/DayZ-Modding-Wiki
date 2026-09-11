@@ -1,6 +1,5 @@
 # Chapter 1.10: Enums & Preprocessor
 
-[Domů](../README.md) | [<< Předchozí: Přetypování a reflexe](09-casting-reflection.md) | **Výčty a preprocesor** | [Další: Zpracování chyb >>](11-error-handling.md)
 
 ---
 
@@ -610,11 +609,3 @@ if (state == EDamageState.PRISTINE || state == EDamageState.WORN)
 | `DIAG_DEVELOPER` | Diagnostic build |
 | `PLATFORM_WINDOWS` | Windows OS |
 | Custom: `defines[]` | Your mod's config.cpp |
-
----
-
-## Navigace
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.9 Casting & Reflection](09-casting-reflection.md) | [Part 1: Enforce Script](../README.md) | [1.11 Error Handling](11-error-handling.md) |

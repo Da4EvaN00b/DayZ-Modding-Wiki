@@ -1,6 +1,5 @@
 # Chapter 9.6: 玩家出生
 
-[首页](../README.md) | [<< 上一章: 载具刷新](05-vehicle-spawning.md) | [下一章: 持久化 >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## cfgplayerspawnpoints.xml 概述
 
-此文件位于你的任务文件夹中（例如 `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`）。它有两个部分，各自有独立的参数和位置气泡：
+此文件位于你的任务文件夹中（例如 `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`）。它有三个部分，各自有独立的参数和位置气泡：
 
 - **`<fresh>`** -- 全新角色（首次生命或死亡后）
 - **`<hop>`** -- 跳服玩家（在其他服务器上已有角色）
+- **`<travel>`** -- 游戏内地图旅行/传送出生点
 
 ---
 
@@ -77,12 +77,12 @@
 
 | 参数 | 值 | 含义 |
 |------|------|------|
-| `grid_density` | 4 | 网格点之间的间距（米）——越低候选点越多，CPU 消耗越高 |
-| `grid_width` | 200 | 网格在每个气泡中心的 X 轴方向延伸 200 米 |
-| `grid_height` | 200 | 网格在每个气泡中心的 Z 轴方向延伸 200 米 |
+| `grid_density` | 4 | 网格的采样频率（细分数量）——越高候选点越多，CPU 消耗越高。点之间的间距 = `grid_width` / `grid_density` |
+| `grid_width` | 200 | 候选网格的总宽度（米）（以气泡为中心）——在 X 轴上向每侧延伸约 100 米 |
+| `grid_height` | 200 | 候选网格的总高度（米）（以气泡为中心）——在 Z 轴上向每侧延伸约 100 米 |
 | `min_steepness` / `max_steepness` | -45 / 45 | 地形坡度范围（度）——排除悬崖面和陡坡 |
 
-每个气泡获得一个 200x200 米的网格，每 4 米一个点（约 2,500 个候选位置）。引擎按坡度和静态距离过滤，然后在出生时应用 `spawn_params`。
+每个气泡获得一个 200x200 米的网格，候选点之间的间距为 `grid_width` / `grid_density` = 200/4 = 50 米（约 16-25 个候选位置量级）。引擎按坡度和静态距离过滤，然后在出生时应用 `spawn_params`。
 
 #### `allow_in_water` 参数 (1.28+)
 
@@ -111,8 +111,8 @@
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@
 |------|------|------|
 | `enablegroups` | true | 位置气泡被组织为命名组 |
 | `groups_as_regular` | true | 组被视为常规出生点（可以选择任意组） |
-| `lifetime` | 240 | 已使用的出生点再次可用前的秒数 |
-| `counter` | -1 | 出生点可使用的次数。-1 = 无限制 |
+| `lifetime` | 120 | 系统切换到另一组之前，某个出生组保持活跃的秒数。-1 = 禁用 |
+| `counter` | 2 | 某个组在被切换之前保持活跃的登录次数（每组）。-1 = 禁用 |
 
-已使用的位置被锁定 240 秒，防止两个玩家在同一位置出生。
+`lifetime` 控制系统切换到另一组之前，某个出生组保持活跃组的时长；它不是逐个位置的锁定。同时出生之间的间距由 `min_dist_player` 强制保证。
 
 ---
 
@@ -192,7 +192,7 @@
 
 <!-- 跳服 group_params 差异 -->
 <enablegroups>false</enablegroups>        <!-- 新生: true -->
-<lifetime>360</lifetime>                  <!-- 新生: 240 -->
+<lifetime>360</lifetime>                  <!-- 新生: 120 -->
 ```
 
 跳服组分布在**内陆**：Balota (6)、Cherno (5)、Pusta (5)、Kamyshovo (4)、Solnechny (5)、Nizhnee (6)、Berezino (5)、Olsha (4)、Svetlojarsk (5)、Dobroye (5)。设置 `enablegroups=false` 后，引擎将所有 50 个位置视为平面池。
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-每个玩家获得的物品：**BandageDressing**（快捷栏 3）、随机 **Chemlight**（快捷栏 2）、随机水果——35% 苹果、30% 李子、35% 梨（快捷栏 1）。`SetRandomHealth` 将所有物品设置为 45-65% 的耐久度。
+每个玩家获得的物品：**BandageDressing**（快捷栏 2）、随机 **Chemlight**（快捷栏 1）、随机水果——35% 苹果、30% 李子、35% 梨（快捷栏 3）。`SetRandomHealth` 将所有物品设置为 45-65% 的耐久度。
 
 ### 添加自定义初始装备
 
@@ -279,7 +279,7 @@ SetRandomHealth( itemEnt );
 4. `x` 用于东西方向，`z` 用于南北方向——引擎从地形计算 Y（海拔）
 5. 重启服务器——不需要清除持久化数据
 
-为了均衡出生，每组保持至少 4 个位置，这样 240 秒的锁定不会在多个玩家同时死亡时阻塞所有位置。
+为了均衡出生，每组保持至少 4 个位置，这样当多个玩家同时死亡时，单个组有足够的分散度来满足 `min_dist_player`。
 
 ---
 
@@ -291,7 +291,7 @@ SetRandomHealth( itemEnt );
 
 ### 出生点不够
 
-只有 2-3 个位置时，240 秒的锁定会导致聚集。原版使用 49 个新生位置分布在 11 个组中。至少设置 4 个以上的组共 20 个位置。
+只有 2-3 个位置时，活跃组无法将玩家分散开，从而导致聚集。原版使用 49 个新生位置分布在 11 个组中。至少设置 4 个以上的组共 20 个位置。
 
 ### 忘记跳服部分
 
@@ -303,8 +303,4 @@ SetRandomHealth( itemEnt );
 
 ### 玩家总是在同一地点出生
 
-只有 1-2 个位置的组会被 240 秒的冷却锁定。每组添加更多位置。
-
----
-
-[首页](../README.md) | [<< 上一章: 载具刷新](05-vehicle-spawning.md) | [下一章: 持久化 >>](07-persistence.md)
+只有 1-2 个位置的组提供的候选点太少，引擎无法变化所选位置。每组添加更多位置。

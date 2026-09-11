@@ -1,6 +1,5 @@
 # Enforce Script Spickzettel
 
-[Startseite](./README.md) | **Spickzettel**
 
 ---
 
@@ -30,7 +29,7 @@
 | Methode | Rückgabe | Hinweise |
 |---------|----------|----------|
 | `Insert(item)` | `int` (Index) | Anhängen |
-| `InsertAt(item, idx)` | `void` | An Position einfügen |
+| `InsertAt(item, idx)` | `int` (Anzahl) | An Position einfügen |
 | `Get(idx)` / `arr[idx]` | `T` | Zugriff per Index |
 | `Set(idx, item)` | `void` | An Index ersetzen |
 | `Find(item)` | `int` | Index oder -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Umkehren |
 | `GetRandomElement()` | `T` | Zufällige Auswahl |
 | `InsertAll(other)` | `void` | Alle aus anderem anhängen |
-| `Copy(other)` | `void` | Mit Kopie ersetzen |
+| `Copy(other)` | `int` (Anzahl) | Mit Kopie ersetzen |
 | `Resize(n)` | `void` | Größe ändern (füllt mit Standards) |
 | `Reserve(n)` | `void` | Kapazität vorab zuweisen |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("null"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Ändert in-place, gibt Anzahl zurück |
 | `s.ToLower()` | `void` | **In-place!** |
 | `s.ToUpper()` | `void` | **In-place!** |
-| `s.TrimInPlace()` | `void` | **In-place!** |
+| `s.TrimInPlace()` | `int` (Länge) | **In-place!** |
 | `s.Split(delim, out arr)` | `void` | Teilt in TStringArray |
 | `s.Get(idx)` | `string` | Einzelnes Zeichen |
 | `s.Set(idx, ch)` | `void` | Zeichen ersetzen |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### IsAlive prüfen (erfordert EntityAI)
+### IsAlive prüfen
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() ist auf der Basisklasse Object definiert (gibt !IsDamageDestroyed() zurück)
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach Map-Iteration

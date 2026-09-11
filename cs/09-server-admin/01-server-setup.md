@@ -1,6 +1,5 @@
 # Chapter 9.1: Nastaveni serveru a prvni spusteni
 
-[Domu](../README.md) | **Nastaveni serveru** | [Dalsi: Adresarova struktura >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Povoleni logovani serveru |
 | `-adminlog` | Logovani adminskych akci |
 | `-netlog` | Logovani sitovych udalosti |
-| `-freezecheck` | Automaticky restart pri detekci zamrznuti |
+| `-freezecheck` | Zastavi server a zapise crash dump, kdyz je zamrznuty dele nez 5 minut |
 
 ### Krok 3: Pockejte na inicializaci
 
@@ -226,7 +225,7 @@ Otevrte Steam, prejdete na **Zobrazit > Herní servery > Oblibene**, kliknete na
 
 ### Metoda 4: Dotazovaci port
 
-Pouzijte externi nastroj jako https://www.battlemetrics.com/ nebo balicek `gamedig` npm pro dotaz na port 27016 (dotazovaci port Steamu = herní port + 24714).
+Pouzijte externi nastroj jako https://www.battlemetrics.com/ nebo balicek `gamedig` npm pro dotaz na dotazovaci port Steamu. Vychozi hodnota je **2305 UDP** (konfigurovatelne pres `steamQueryPort` v `serverDZ.cfg`), nikoli herní port.
 
 ---
 
@@ -300,7 +299,3 @@ To je normalni. DayZ Server je jednovlaknovy. Nespoustejte vice instanci serveru
 ```cpp
 template = "dayzOffline.chernarusplus";  // Musi odpovidat nazvu slozky v mpmissions/
 ```
-
----
-
-**[Domu](../README.md)** | **Dalsi:** [Adresarova struktura >>](02-directory-structure.md)

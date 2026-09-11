@@ -1,6 +1,5 @@
 # Chapter 7.5: Permission Systems
 
-[Home](../README.md) | [<< Previous: Config Persistence](04-config-persistence.md) | **Permission Systems** | [Next: Event-Driven Architecture >>](06-events.md)
 
 ---
 
@@ -618,7 +617,3 @@ This is exactly the pattern MyMod uses to migrate from its original flat `AdminU
 9. **Implement migration from day one.** When your permission format changes (and it will), automatic migration prevents support tickets.
 
 10. **Sync permissions to the client on connect.** The client needs to know its own permissions for UI purposes (showing/hiding admin buttons). Send a summary on connect; do not send the entire server permissions file.
-
----
-
-[<< Zurück: Config Persistence](04-config-persistence.md) | [Startseite](../README.md) | [Next: Event-Driven Architecture >>](06-events.md)

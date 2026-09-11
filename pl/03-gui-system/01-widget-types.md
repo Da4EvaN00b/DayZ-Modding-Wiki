@@ -1,6 +1,5 @@
 # Rozdział 3.1: Typy widgetów
 
-[Strona główna](../README.md) | **Typy widgetów** | [Dalej: Pliki layoutów >>](02-layout-files.md)
 
 ---
 
@@ -39,11 +38,13 @@ Widgety kontenerów przechowują i organizują widgety potomne. Same nie wyświe
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Układ przepływowy. Układa dzieci sekwencyjnie z zawijaniem, paddingiem i marginesami. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Układ siatkowy. Układa dzieci w siatce zdefiniowanej przez `Columns` i `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Przewijany widok. Umożliwia pionowe/poziome przewijanie treści potomnej. |
-| `SpacerBaseWidget` | -- | Abstrakcyjna klasa bazowa dla `WrapSpacerWidget` i `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Abstrakcyjna klasa bazowa dla `SpacerWidget` i `ScrollWidget`. `WrapSpacerWidget` i `GridSpacerWidget` rozszerzają `SpacerWidget`. |
 
 ### FrameWidget
 
-Koń roboczy interfejsu DayZ. Używaj `FrameWidget` jako domyślnego kontenera, gdy musisz grupować widgety. Nie ma żadnego wyglądu wizualnego -- jest czysto strukturalny.
+Koń roboczy interfejsu DayZ. Używaj ramki jako domyślnego kontenera, gdy musisz grupować widgety. Nie ma żadnego wyglądu wizualnego -- jest czysto strukturalny.
+
+> **Uwaga:** `FrameWidgetClass` jest używalny w plikach `.layout`, a `FrameWidgetTypeID` istnieje dla `CreateWidget()`, ale nie ma skryptowej klasy `FrameWidget`. Podobnie jak w przypadku `PanelWidget`, pracuj z ramką jako bazowym `Widget` -- nie rzutuj na `FrameWidget`.
 
 **Kluczowe metody:**
 - Wszystkie bazowe metody `Widget` (pozycja, rozmiar, kolor, dzieci, flagi)
@@ -52,7 +53,7 @@ Koń roboczy interfejsu DayZ. Używaj `FrameWidget` jako domyślnego kontenera, 
 
 ```c
 // Find a frame widget by name
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +315,8 @@ Poziomy suwak dla wartości numerycznych.
 **Kluczowe metody:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Returns float (0-1)
+sw.SetMinMax(0, 100);       // Konfiguruje zakres wartości (w innym wypadku zakres domyślny)
+sw.GetCurrent();            // Zwraca float w skonfigurowanym zakresie min/max
 sw.SetCurrent(float val);   // Set position
 ```
 

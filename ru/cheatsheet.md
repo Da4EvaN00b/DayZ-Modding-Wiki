@@ -1,6 +1,5 @@
 # Шпаргалка по Enforce Script
 
-[Главная](./README.md) | **Шпаргалка**
 
 ---
 
@@ -30,7 +29,7 @@
 | Метод | Возвращает | Примечания |
 |-------|-----------|------------|
 | `Insert(item)` | `int` (индекс) | Добавить в конец |
-| `InsertAt(item, idx)` | `void` | Вставить на позицию |
+| `InsertAt(item, idx)` | `int` (количество) | Вставить на позицию |
 | `Get(idx)` / `arr[idx]` | `T` | Доступ по индексу |
 | `Set(idx, item)` | `void` | Заменить по индексу |
 | `Find(item)` | `int` | Индекс или -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Обратить порядок |
 | `GetRandomElement()` | `T` | Случайный выбор |
 | `InsertAll(other)` | `void` | Добавить все из другого |
-| `Copy(other)` | `void` | Заменить копией |
+| `Copy(other)` | `int` (количество) | Заменить копией |
 | `Resize(n)` | `void` | Изменить размер (заполняет значениями по умолчанию) |
 | `Reserve(n)` | `void` | Предвыделить ёмкость |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Изменяет на месте, возвращает количество |
 | `s.ToLower()` | `void` | **На месте!** |
 | `s.ToUpper()` | `void` | **На месте!** |
-| `s.TrimInPlace()` | `void` | **На месте!** |
+| `s.TrimInPlace()` | `int` (длина) | **На месте!** |
 | `s.Split(delim, out arr)` | `void` | Разделяет в TStringArray |
 | `s.Get(idx)` | `string` | Один символ |
 | `s.Set(idx, ch)` | `void` | Заменить символ |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Проверка IsAlive (требуется EntityAI)
+### Проверка IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() определён у базового Object (возвращает !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Итерация по Map через foreach

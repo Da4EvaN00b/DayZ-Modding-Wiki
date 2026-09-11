@@ -1,6 +1,5 @@
 # Chapter 7.3: RPC Communication Patterns
 
-[Home](../README.md) | [<< Previous: Module Systems](02-module-systems.md) | **RPC Communication Patterns** | [Next: Config Persistence >>](04-config-persistence.md)
 
 ---
 
@@ -634,7 +633,3 @@ Or use a centralized `Cleanup()` that clears the entire handler map (as `MyRPC.C
 7. **Clean up handlers on shutdown.** Either unregister individually or clear the entire registry in `OnMissionFinish()`.
 
 8. **Use `CreateRPC()` for payloads, `Send()` for signals.** If you have no data to send (just a "do it" signal), use the header-only `Send()`. If you have data, use `CreateRPC()` + manual writes + manual `rpc.Send()`.
-
----
-
-[<< Zurück: Module Systems](02-module-systems.md) | [Startseite](../README.md) | [Next: Config Persistence >>](04-config-persistence.md)

@@ -1,14 +1,31 @@
-# Chapter 6.22: Admin & Server Management
+# Admin & Server Management
 
-[Home](../README.md) | [<< Previous: Zombie & AI System](21-zombie-ai-system.md) | **Admin & Server Management** | [Next: World Systems >>](23-world-systems.md)
+> **Summary:** The engine-level APIs that server administration is built on — reading the player list and identity, kicking and banning, writing the admin log, controlling time and weather, and reaching the Hive. Operational topics (server startup, launch parameters, `serverDZ.cfg`, BattlEye setup) live in Part 9; permission frameworks live in Part 7. Declarations are checked against the supplied extraction (release identity unconfirmed); snippets are illustrative and have not been compiled or runtime-tested, with a single worked example, **Lantern Admin**, showing how the pieces fit together.
+
+---
+
+## Table of Contents
+
+- [Player Management](#player-management)
+- [World Control](#world-control)
+- [Permission Checks](#permission-checks)
+- [Logging & Monitoring](#logging--monitoring)
+- [Hive & Database](#hive--database)
+- [Worked Example: Building Admin Features](#worked-example-building-admin-features)
+- [Connection Events & Load Order](#connection-events--load-order)
+- [BattlEye Notes](#battleye-notes)
+- [Best Practices](#best-practices)
+- [Common Mistakes](#common-mistakes)
 
 ---
 
 ## Introduction
 
-Server administration in DayZ covers a broad set of responsibilities: managing connected players, enforcing rules, controlling world state (time, weather), logging events for audit trails, and integrating with persistence systems. Unlike most game engines that provide a built-in admin panel, DayZ offers only low-level scripting APIs. The admin tool ecosystem --- COT, VPP, and custom solutions --- is built entirely on top of these APIs.
+Server administration in DayZ covers a broad set of responsibilities: managing connected players, enforcing rules, controlling world state (time, weather), logging events for audit trails, and integrating with persistence. Unlike most game engines that ship a built-in admin panel, DayZ exposes only low-level scripting APIs. Community admin tools such as **Community Online Tools (COT)**, **VPP Admin Tools**, and **DayZ-Expansion** build their panels entirely on top of these same engine APIs.
 
-This chapter documents the engine-level APIs available for server administration, the patterns established by major admin mods, and the integration points that connect scripts to the Hive database, BattlEye anti-cheat, and external services like Discord. All method signatures are taken from the vanilla script source and verified against real mod implementations.
+This chapter documents the engine-level admin APIs and the integration points that connect scripts to the Hive database and external services. Every signature is taken from the vanilla script source. Throughout the chapter, a small fictional framework called **Lantern Admin** (class prefix `LNT_`) is used to illustrate how the raw APIs combine into working features — related framework patterns live in Part 7. `LNT_FindPlayerByUID`, `LNT_RPC.SendReason`, `RequestTeleport`, and `RequestKick` are integration placeholders you must implement and register; this is not a complete admin mod.
+
+For operational setup — launch parameters, `serverDZ.cfg`, profile layout, mod load order — see **Part 9 (Server Administration)**, especially [9.1 Server Setup](../09-server-admin/01-server-setup.md) and [9.3 serverDZ.cfg](../09-server-admin/03-server-cfg.md).
 
 ---
 
@@ -16,16 +33,16 @@ This chapter documents the engine-level APIs available for server administration
 
 ### Getting All Online Players
 
-The engine provides two equivalent ways to retrieve all connected player entities.
+The engine provides two interfaces to retrieve all connected player entities.
 
 ```c
 // Via CGame (most common)
 array<Man> players = new array<Man>();
 GetGame().GetPlayers(players);
 
-// Via World object (identical result)
-array<Man> players = new array<Man>();
-GetGame().GetWorld().GetPlayerList(players);
+// Alternative via World
+array<Man> worldPlayers = new array<Man>();
+GetGame().GetWorld().GetPlayerList(worldPlayers);
 ```
 
 **Signatures** (from `3_Game/global/game.c` and `3_Game/global/world.c`):
@@ -69,8 +86,8 @@ class PlayerIdentityBase : Managed
     proto string GetName();         // Nick (short) name of player
     proto string GetPlainName();    // Nick without any processing
     proto string GetFullName();     // Full name of player
-    proto string GetId();           // Hashed unique id (BattlEye GUID) - use for DB/logs
-    proto string GetPlainId();      // Plaintext unique id (Steam64 ID) - use for lookups
+    proto string GetId();           // Unique id (hashed steamID, database Xbox id...) CAN be used in database or logs
+    proto string GetPlainId();      // Plaintext unique id - CANNOT be used in database or logs
     proto int    GetPlayerId();     // Session id (reused after disconnect)
 
     // --- Network Stats ---
@@ -82,7 +99,7 @@ class PlayerIdentityBase : Managed
     proto int GetBandwidthMax();
     proto int GetBandwidthAvg();
     proto float GetOutputThrottle(); // Throttling on output (0-1)
-    proto float GetInputThrottle();  // Throttling on input (0-1)
+    proto float GetInputThrottle();  // Throttling on input (0-1); unknown on server
 
     // --- Associated Player ---
     proto Man GetPlayer();          // Get the player entity
@@ -92,18 +109,18 @@ class PlayerIdentityBase : Managed
 class PlayerIdentity : PlayerIdentityBase {}
 ```
 
-**Identity ID guidance:**
+**Identity ID guidance (PC/Steam examples):**
 
 | Method | Returns | Use For |
 |--------|---------|---------|
-| `GetPlainId()` | Raw Steam64 ID (e.g. `"76561198012345678"`) | Admin lists, Steam profile lookups, display |
-| `GetId()` | BattlEye GUID hash | Database keys, persistent storage, log files |
-| `GetName()` | Display name (sanitized) | UI display, log messages |
+| `GetPlainId()` | Plaintext unique id --- on PC the raw Steam64 ID (e.g. `"76561198012345678"`) | Live in-memory comparisons and operator-facing display. The source comments it **"cannot be used in database or logs"** (`gameplay.c:369-370`) |
+| `GetId()` | Unique id of player: hashed steamID, database Xbox id, and so on | Database keys, persistent storage, log files --- the source explicitly sanctions this use (`gameplay.c:367-368`) |
+| `GetName()` | Short nickname | UI display, log messages |
 | `GetPlayerId()` | Integer session ID | Network operations within current session |
 
 ### Kicking Players
 
-DayZ does not expose a direct `KickPlayer()` script function. Instead, the engine provides `DisconnectPlayer()` which terminates the connection.
+The inspected `CGame` interface provides `DisconnectPlayer()` which terminates the connection.
 
 **Signature** (from `3_Game/global/game.c`):
 
@@ -111,32 +128,39 @@ DayZ does not expose a direct `KickPlayer()` script function. Instead, the engin
 proto native void DisconnectPlayer(PlayerIdentity identity, string uid = "");
 ```
 
-Admin mods implement kick functionality using this, combined with a notification RPC so the client sees a reason message before disconnection:
+A bare disconnect gives the player no explanation. The usual approach is to send a reason to the client over RPC first, then disconnect on a short timer so the message arrives before the connection drops. The following is a illustrative `LNT_` helper (`LNT_RPC` is the example framework's RPC router — see [RPC Patterns](../07-patterns/03-rpc-patterns.md)):
 
 ```c
-// Pattern from VPP Admin Tools - send reason, then disconnect
-void KickPlayerWithReason(PlayerBase target, string reason)
+class LNT_KickService
 {
-    if (!target || !target.GetIdentity())
-        return;
+    // Send the reason to the client, then disconnect after a brief delay
+    void KickWithReason(PlayerBase target, string reason)
+    {
+        if (!target)
+            return;
 
-    // Send kick reason to client via RPC (client shows it as dialog)
-    // Then disconnect after a short delay
-    GetGame().DisconnectPlayer(target.GetIdentity());
+        PlayerIdentity identity = target.GetIdentity();
+        if (!identity)
+            return;
+
+        // 1. Tell the client why (client shows it as a dialog)
+        LNT_RPC.SendReason(identity, reason);
+
+        // 2. Disconnect one second later, giving the RPC time to land
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.DoDisconnect, 1000, false, identity);
+    }
+
+    void DoDisconnect(PlayerIdentity identity)
+    {
+        if (identity)
+            GetGame().DisconnectPlayer(identity);
+    }
 }
 ```
 
-VPP uses a deferred approach, sending the reason via RPC first and calling disconnect on a timer:
+A delay gives the notification time to travel but cannot guarantee delivery. Keep the service alive while its callback is queued and revalidate that the identity still belongs to the intended connection.
 
-```c
-// From VPP missionServer.c - deferred kick via CallLater
-GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(
-    this.InvokeKickPlayer, m_LoginTimeMs, true,
-    identity.GetPlainId(), banReason
-);
-```
-
-The `EClientKicked` enum (from `3_Game/global/errormodulehandler/clientkickedmodule.c`) defines all possible kick reasons the engine recognizes:
+The `EClientKicked` enum (from `3_Game/global/errormodulehandler/clientkickedmodule.c`) defines the kick reasons the engine itself recognizes:
 
 ```c
 enum EClientKicked
@@ -147,53 +171,148 @@ enum EClientKicked
     KICK_ALL_ADMIN,     // Admin kicked all (RCON)
     KICK_ALL_SERVER,    // Server kicked all
     TIMEOUT,            // Network timeout
+    LOGOUT,             // Player logged out
     KICK,               // Generic kick
     BAN,                // Player was banned
     PING,               // Ping limit exceeded
     MODIFIED_DATA,      // Modified game files
+    UNSTABLE_NETWORK,   // Connection too unstable
+    SERVER_SHUTDOWN,    // Server shutting down
     NOT_WHITELISTED,    // Not on whitelist
+    NO_IDENTITY,        // No identity received
+    NO_INPUT_INTERFACE, // No input interface for player
+    INVALID_UID,        // UID incorrect while creating identity
+    BANK_COUNT,         // Bank count changed
     ADMIN_KICK,         // Kicked by admin
+    INVALID_ID,         // Invalid player ID
+    INPUT_HACK,         // Sending more inputs than possible
+    QUIT,               // Player closed the game
+    LEAVE,              // Player pressed Leave button
+    PLATFORM_NOT_SUPPORTED, // Platform not allowed on this server (crossplatform restriction)
+    // ... large jumps follow for login machine errors (LOGIN_MACHINE_ERROR = 48),
+    // DB errors, respawn, verification, auth, and PBO mismatch codes
     BATTLEYE = 240,     // BattlEye kick
-    // ... additional codes for login machine errors, DB errors, etc.
 }
 ```
 
 ### Ban Management
 
-The vanilla engine has no script-level ban API. Bans are managed through:
+The inspected declarations do not establish a general native ban API. This chapter describes external administration and mod-owned ban lists:
 
-1. **BattlEye** -- RCON commands (`#kick`, `#ban`, `#exec ban`)
-2. **Server-side ban lists** -- Admin mods maintain their own JSON ban files in `$profile:`
+1. **External administration** — verify commands for the actual server-console or BattlEye RCon interface; their syntax is not interchangeable (see [BattlEye Notes](#battleye-notes)).
+2. **Server-side ban lists** — an admin mod maintains its own JSON ban file under `$profile:` and refuses banned players as they connect.
 
-VPP implements a full ban system with expiration dates, stored under `$profile:VPPAdminTools/`:
+A script-side ban list is straightforward to build on vanilla file I/O. The `LNT_BanManager` below stores records — including a temporary-ban expiry — and persists them with `JsonFileLoader` (modern `LoadFile` / `SaveFile` return success and an error string; legacy `JsonLoadFile` / `JsonSaveFile` return void):
 
 ```c
-// VPP ban pattern (simplified from PlayerManager.c)
-void BanPlayer(PlayerIdentity sender, string targetId)
+// One ban entry, serialized to JSON
+class LNT_BanRecord
 {
-    // 1. Verify admin has permission
-    if (!GetPermissionManager().VerifyPermission(sender.GetPlainId(), "PlayerManager:BanPlayer"))
-        return;
+    string steamId;
+    string playerName;
+    string reason;
+    bool   permanent;
+    int    expiryDate;   // YYYYMMDD, ignored when permanent
+    int    expiryTime;   // HHMM,     ignored when permanent
+}
 
-    // 2. Create ban record with timestamp
-    BanDuration banDuration = GetBansManager().GetCurrentTimeStamp();
-    banDuration.Permanent = true;
+// The on-disk ban file
+class LNT_BanList
+{
+    ref array<ref LNT_BanRecord> bans = new array<ref LNT_BanRecord>();
+}
 
-    // 3. Add to persistent ban list (saved to JSON)
-    GetBansManager().AddToBanList(new BannedPlayer(
-        playerName, targetId, hashedId, banDuration, authorDetails, reason
-    ));
+class LNT_BanManager
+{
+    protected ref LNT_BanList m_List;
+    protected bool m_LoadOK;
+    protected const string BAN_PATH = "$profile:LanternAdmin/bans.json";
 
-    // 4. Kick the player to enforce immediately
-    GetGame().DisconnectPlayer(targetIdentity);
+    void LNT_BanManager()
+    {
+        MakeDirectory("$profile:LanternAdmin");
+        Load();
+    }
+
+    void Load()
+    {
+        m_List = new LNT_BanList();
+        m_LoadOK = true;
+        if (FileExist(BAN_PATH))
+        {
+            string error;
+            m_LoadOK = JsonFileLoader<LNT_BanList>.LoadFile(BAN_PATH, m_List, error);
+            if (!m_LoadOK || !m_List || !m_List.bans)
+            {
+                m_LoadOK = false;
+                ErrorEx("Ban list unavailable: " + error);
+            }
+        }
+    }
+
+    void Save()
+    {
+        if (!m_LoadOK)
+            return;
+        string error;
+        if (!JsonFileLoader<LNT_BanList>.SaveFile(BAN_PATH, m_List, error))
+            ErrorEx(error);
+    }
+
+    // Build comparable YYYYMMDD / HHMM stamps from the current UTC clock
+    void NowStamp(out int dateStamp, out int timeStamp)
+    {
+        int y, mo, d, h, mi, s;
+        GetYearMonthDayUTC(y, mo, d);
+        GetHourMinuteSecondUTC(h, mi, s);
+        dateStamp = y * 10000 + mo * 100 + d;
+        timeStamp = h * 100 + mi;
+    }
+
+    bool IsBanned(string steamId)
+    {
+        if (!m_LoadOK)
+            return true; // Example policy: refuse admission until the file is repaired
+        int nowDate, nowTime;
+        NowStamp(nowDate, nowTime);
+
+        foreach (LNT_BanRecord rec : m_List.bans)
+        {
+            if (!rec || rec.steamId != steamId)
+                continue;
+            if (rec.permanent)
+                return true;
+            // Temporary ban: still active until its expiry stamp passes
+            if (rec.expiryDate > nowDate)
+                return true;
+            if (rec.expiryDate == nowDate && rec.expiryTime > nowTime)
+                return true;
+        }
+        return false;
+    }
+
+    void Add(string steamId, string playerName, string reason, bool permanent, int expiryDate, int expiryTime)
+    {
+        if (!m_LoadOK)
+            return;
+        LNT_BanRecord rec = new LNT_BanRecord();
+        rec.steamId = steamId;
+        rec.playerName = playerName;
+        rec.reason = reason;
+        rec.permanent = permanent;
+        rec.expiryDate = expiryDate;
+        rec.expiryTime = expiryTime;
+        m_List.bans.Insert(rec);
+        Save();
+    }
 }
 ```
 
-On subsequent connection attempts, VPP checks the ban list during `ClientPrepareEvent` and refuses entry by scheduling a kick before the player fully loads.
+Enforcement happens as the player connects. The mission's `OnClientPrepareEvent` (see [Connection Events](#connection-events--load-order)) runs before the character finishes loading, but an admission-check integration must account for the remaining vanilla event flow. This storage example does not implement or test connection rejection. To ban someone already in-game, call `Add()` and then reuse the deferred kick from the previous section.
 
 ---
 
-## Server Commands & World Control
+## World Control
 
 ### Admin Log
 
@@ -217,7 +336,7 @@ if (adm)
     adm.DirectAdminLogPrint("Custom admin event occurred");
 ```
 
-The vanilla `PluginAdminLog` class (registered in `4_World/plugins/pluginmanager.c`) wraps `AdminLog()` and provides structured logging for player events:
+The vanilla `PluginAdminLog` class wraps `AdminLog()` and provides structured logging for player events:
 
 | Method | Logged Event |
 |--------|-------------|
@@ -231,30 +350,34 @@ The vanilla `PluginAdminLog` class (registered in `4_World/plugins/pluginmanager
 | `PlayerList()` | Periodic dump of all players with positions |
 | `PlayerTeleportedLog(player, from, to, reason)` | Teleportation events |
 
-The plugin is controlled by `serverDZ.cfg` settings:
+The plugin is controlled by `serverDZ.cfg` settings, read through the engine's `ServerConfigGetInt()`:
 
 ```c
-// Read in PluginAdminLog constructor
+// Read in the PluginAdminLog constructor
 m_HitFilter = g_Game.ServerConfigGetInt("adminLogPlayerHitsOnly");   // 1 = player hits only
 m_PlacementFilter = g_Game.ServerConfigGetInt("adminLogPlacement");  // 1 = log placements
 m_ActionsFilter = g_Game.ServerConfigGetInt("adminLogBuildActions"); // 1 = log build actions
 m_PlayerListFilter = g_Game.ServerConfigGetInt("adminLogPlayerList"); // 1 = periodic list
 ```
 
+The `serverDZ.cfg` keys themselves are documented in [9.3 serverDZ.cfg](../09-server-admin/03-server-cfg.md).
+
 ### Chat Messages
+
+**Signatures** (from `3_Game/global/game.c`):
 
 ```c
 // Print text to local chat (client-side)
 proto native void Chat(string text, string colorClass);
 
-// Send chat from server to specific player (undocumented behavior)
+// Send chat from server to a specific recipient
 proto native void ChatMP(Man recipient, string text, string colorClass);
 
-// Send player chat message (server context)
+// Submit player chat; this declaration is not a server-only contract
 proto native void ChatPlayer(string text);
 ```
 
-The `colorClass` parameter maps to config entries. Common values are `"colorAction"`, `"colorFriendly"`, `"colorImportant"`.
+The `colorClass` parameter is a string naming a chat color class. Vanilla uses `"colorAction"`, `"colorFriendly"` and `"colorImportant"` --- the first appears in the `Chat()` documentation example itself (`3_game/global/game.c:1029-1035`) and all three are used throughout `4_world/entities/itembase/fishingrod_base.c` (lines 129, 203, 209, 275, 297 and others). The value resolves against chat configuration, so a custom class must exist there before it will render.
 
 ### Time & Date Control
 
@@ -268,7 +391,7 @@ class World : Managed
     // Read current date/time
     proto void GetDate(out int year, out int month, out int day, out int hour, out int minute);
 
-    // Set date/time (server-side only, syncs to clients)
+    // Set date/time for server administration (replication not tested here)
     proto native void SetDate(int year, int month, int day, int hour, int minute);
 
     // Time acceleration multiplier (0-64, -1 to reset to config)
@@ -276,11 +399,11 @@ class World : Managed
 
     // Day/night queries
     proto native bool IsNight();
-    proto native float GetSunOrMoon(); // 0 = sun, 1 = moon
+    proto native float GetSunOrMoon(); // Native sun/moon query; encoding not documented here
 }
 ```
 
-**Example usage** (pattern from VPP TimeManager):
+**Example usage:**
 
 ```c
 // Read current time
@@ -297,12 +420,12 @@ GetGame().GetWorld().SetTimeMultiplier(2.0);
 Also available from `CGame`:
 
 ```c
-proto native float GetDayTime(); // Seconds since midnight (0-86400 approx.)
+proto native float GetDayTime(); // Current daytime on server; unit not specified in this declaration
 ```
 
 ### Weather Control
 
-The `Weather` class (accessed via `GetGame().GetWeather()`) exposes phenomenon objects for overcast, rain, fog, snowfall, and wind.
+The `Weather` class (accessed via `GetGame().GetWeather()`) exposes phenomenon objects for overcast, rain, fog, snowfall, and wind. This section covers the admin-facing calls; for the full weather model see [Weather](./03-weather.md).
 
 **Core structure** (from `3_Game/weather.c`):
 
@@ -324,12 +447,12 @@ class Weather
 }
 ```
 
-Each phenomenon (Overcast, Rain, Fog, etc.) extends `WeatherPhenomenon` with these key methods:
+Each phenomenon (Overcast, Rain, Fog, etc.) extends `WeatherPhenomenon`:
 
 ```c
 class WeatherPhenomenon
 {
-    proto native float GetActual();     // Current value (0-1)
+    proto native float GetActual();     // Current value (0-1 except wind)
     proto native float GetForecast();   // Target value
 
     // Set forecast: value, interpolation time (seconds), minimum duration (seconds)
@@ -361,7 +484,7 @@ weather.GetFog().Set(0.8, 30, 600);
 // Thunderstorm: high density, triggers above 0.6 overcast, 10s between strikes
 weather.SetStorm(1.0, 0.6, 10);
 
-// Take full control (prevents automatic weather changes)
+// Bypass WorldData callback; native forecasting still runs
 weather.MissionWeather(true);
 weather.GetOvercast().SetLimits(0.0, 0.2);   // Lock to clear
 weather.GetRain().SetLimits(0.0, 0.0);       // No rain
@@ -369,13 +492,15 @@ weather.GetRain().SetLimits(0.0, 0.0);       // No rain
 
 ---
 
-## Admin Permission Patterns
+## Permission Checks
+
+Any RPC handler that performs a privileged action must confirm the sender is allowed to do it — **server-side, every time**. Client-side UI checks are cosmetic; a modified client can send any RPC. This section covers the admin-specific plumbing; a reusable, dot-separated permission framework (`LNT_Permissions`) is built end to end in [Permissions](../07-patterns/05-permissions.md).
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Server
-    participant P as PermissionManager
+    participant P as Permissions
 
     C->>S: RPC: AdminCommand(action, data)
     S->>S: Get PlayerIdentity
@@ -392,205 +517,84 @@ sequenceDiagram
 
 ### UID-Based Admin Detection
 
-The simplest admin check is comparing a player's Steam ID against a hardcoded or file-loaded list.
+The simplest check compares a player's Steam64 ID against a file-loaded list:
 
 ```c
-// Minimal UID-based admin check
-ref array<string> m_AdminUIDs = new array<string>();
-
-void LoadAdmins()
+class LNT_AdminList
 {
-    // Load from file at $profile:admins.txt
-    // Each line contains one Steam64 ID
-    FileHandle file = OpenFile("$profile:admins.txt", FileMode.READ);
-    if (file == 0)
+    protected ref array<string> m_AdminUIDs = new array<string>();
+
+    void Load()
+    {
+        m_AdminUIDs.Clear();
+        // One Steam64 ID per line at $profile:LanternAdmin/admins.txt
+        FileHandle file = OpenFile("$profile:LanternAdmin/admins.txt", FileMode.READ);
+        if (file == 0)
+            return;
+
+        string line;
+        while (FGets(file, line) >= 0)
+        {
+            line = line.Trim();
+            if (line.Length() > 0)
+                m_AdminUIDs.Insert(line);
+        }
+        CloseFile(file);
+    }
+
+    bool IsAdmin(PlayerIdentity identity)
+    {
+        if (!identity)
+            return false;
+        return m_AdminUIDs.Find(identity.GetPlainId()) != -1;
+    }
+}
+```
+
+> **Identifier caution.** This example stores plaintext Steam64 IDs on disk because that is what operators can read and paste. The engine's own declaration says `GetPlainId()` **cannot be used in database or logs** (`gameplay.c:369-370`), while `GetId()` is the identifier documented for exactly that. If your admin data lands in a database or the RPT log, key it on `GetId()` and keep any plaintext ID for display only. The in-memory `Find()` comparison below is not itself database or log storage.
+
+A UID list answers only "admin or not". Real tools grade access with **hierarchical, dot-separated permissions** (`"admin.player.teleport"`, `"admin.world.weather"`) so a moderator can teleport but not spawn items. That model — registration, wildcard `"*"` super-admin, per-group storage — is the subject of the [Permissions](../07-patterns/05-permissions.md) chapter; the snippets below assume a `LNT_Permissions.GetInstance().HasPermission(uid, node)` from there.
+
+### Server-Side Validation in RPC Handlers
+
+Validate the sender before touching game state:
+
+```c
+// Server-side RPC handler
+void OnKickRequest(ParamsReadContext ctx, PlayerIdentity sender)
+{
+    Param1<string> data = new Param1<string>("");
+    if (!ctx.Read(data))
         return;
 
-    string line;
-    while (FGets(file, line) >= 0)
-    {
-        line = line.Trim();
-        if (line.Length() > 0)
-            m_AdminUIDs.Insert(line);
-    }
-    CloseFile(file);
-}
+    // ALWAYS verify permissions server-side, using the sender's real UID
+    if (!GetGame().IsServer() || !sender)
+        return;
+    if (!LNT_Permissions.GetInstance().HasPermission(sender.GetPlainId(), "admin.player.kick"))
+        return;
 
-bool IsAdmin(PlayerIdentity identity)
-{
-    if (!identity)
-        return false;
-    return m_AdminUIDs.Find(identity.GetPlainId()) != -1;
+    string targetUid = data.param1;
+    PlayerBase target = LNT_FindPlayerByUID(targetUid);
+    if (target && target.GetIdentity())
+        GetGame().DisconnectPlayer(target.GetIdentity());
 }
 ```
 
-### Hierarchical Permission Systems
+Never trust a client-side permission check alone. Always re-validate on the server, keyed on `sender.GetPlainId()` (the identity the engine attaches to the RPC), never on any UID the client puts in the payload.
 
-Both COT and VPP implement permission systems that go beyond simple admin/non-admin checks:
+### Permission & Data Storage
 
-**COT pattern** (dot-separated hierarchical permissions):
-
-```c
-// COT registers permissions on mission start
-GetPermissionsManager().RegisterPermission("Admin.Player.Read");
-GetPermissionsManager().RegisterPermission("Admin.Player.Teleport.Position");
-GetPermissionsManager().RegisterPermission("Camera.View");
-
-// Check before executing any privileged operation
-if (!GetPermissionsManager().HasPermission("Admin.Player.Teleport.Position", senderRPC))
-    return;
-```
-
-**VPP pattern** (colon-separated, user groups stored in `$profile:`):
-
-```c
-// VPP verifies permission and also checks target protection
-if (!GetPermissionManager().VerifyPermission(
-    sender.GetPlainId(), "PlayerManager:KickPlayer"))
-    return;
-
-// Two-argument form: also checks if target is protected
-if (GetPermissionManager().VerifyPermission(
-    sender.GetPlainId(), "PlayerManager:BanPlayer", targetId))
-{
-    // Proceed with ban
-}
-```
-
-VPP stores permission data under `$profile:VPPAdminTools/Permissions/`:
+Keep all admin data under one profile subfolder so operators can back it up or wipe it in one place:
 
 ```
-$profile:VPPAdminTools/
-    Permissions/
-        SuperAdmins/           -- UID files for superadmins
-        UserGroups/            -- Group definitions with permission sets
-    Logging/                   -- Session log files
-    ConfigurablePlugins/       -- Per-plugin config JSON
+$profile:LanternAdmin/
+    admins.txt          -- Steam64 IDs, one per line
+    bans.json           -- LNT_BanManager records
+    permissions/        -- Groups and per-UID grants (see Part 7 Permissions)
+    logs/               -- Session log files
 ```
 
-### Integration with RPC
-
-Every admin command must be validated server-side. The pattern is:
-
-1. Client sends RPC requesting an action
-2. Server receives RPC, extracts sender identity
-3. Server checks permissions using sender's `GetPlainId()`
-4. Server executes or rejects the action
-
-```c
-// Server-side RPC handler (VPP pattern)
-void KickPlayer(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
-{
-    if (type == CallType.Server)
-    {
-        Param2<ref array<string>, string> data;
-        if (!ctx.Read(data))
-            return;
-
-        // ALWAYS verify permissions server-side
-        if (!GetPermissionManager().VerifyPermission(
-            sender.GetPlainId(), "PlayerManager:KickPlayer"))
-            return;
-
-        // Execute the privileged action
-        array<string> ids = data.param1;
-        foreach (string tgId : ids)
-        {
-            PlayerBase tg = GetPermissionManager().GetPlayerBaseByID(tgId);
-            if (tg)
-                GetGame().DisconnectPlayer(tg.GetIdentity());
-        }
-    }
-}
-```
-
-Never trust client-side permission checks alone. Always re-validate on the server.
-
----
-
-## Server Startup & Configuration
-
-### init.c Execution
-
-The server entry point is `init.c`, located in the mission folder (e.g., `mpmissions/dayzOffline.chernarusplus/`). It creates and assigns the mission:
-
-```c
-// Typical init.c for server
-void main()
-{
-    // Hive setup for persistence
-    Hive hive = CreateHive();
-    if (hive)
-    {
-        hive.InitOnline("$mission:storage_1\\init.c");
-        hive.SetShardID("");
-        hive.SetEnviroment("dayz");
-    }
-}
-
-// Engine calls this to get the mission class
-Mission CreateCustomMission(string path)
-{
-    return new ChernarusPlus(path);
-}
-```
-
-### Mission Lifecycle
-
-`MissionServer` (extending `MissionBase`) receives connection events through its `OnEvent()` dispatcher:
-
-| Event Type | Method Called | When |
-|------------|-------------|------|
-| `ClientPrepareEventTypeID` | `OnClientPrepareEvent()` | Player begins connecting |
-| `ClientNewEventTypeID` | `OnClientNewEvent()` | New character created |
-| `ClientReadyEventTypeID` | `OnClientReadyEvent()` | Existing character loaded |
-| `ClientReconnectEventTypeID` | `OnClientReconnectEvent()` | Reconnecting to existing character |
-| `ClientDisconnectedEventTypeID` | `OnClientDisconnectedEvent()` | Player disconnecting |
-
-These are the primary hook points for admin mods. Both COT and VPP use `modded class MissionServer` to inject admin logic at each stage.
-
-### Server Profile Folder ($profile:)
-
-The `$profile:` path prefix resolves to the server's profile directory (set via `-profiles=` launch parameter). This is the primary location for server-side data:
-
-| Path | Content |
-|------|---------|
-| `$profile:` | Root profile folder |
-| `$profile:*.ADM` | Admin log files |
-| `$profile:*.RPT` | Script log / crash reports |
-| `$profile:storage_1/` | Hive persistence data |
-| `$profile:VPPAdminTools/` | VPP configuration and logs |
-| `$profile:CommunityOnlineTools/` | COT player permissions |
-
-### Common Launch Parameters
-
-| Parameter | Purpose |
-|-----------|---------|
-| `-config=serverDZ.cfg` | Server configuration file |
-| `-port=2302` | Game port |
-| `-profiles=ServerProfile` | Profile directory path |
-| `-mission=mpmissions/dayzOffline.chernarusplus` | Mission folder |
-| `-mod=@ModName` | Load mod(s) |
-| `-servermod=@ServerMod` | Server-only mod(s) |
-| `-BEpath=battleye` | BattlEye path |
-| `-dologs` | Enable logging |
-| `-adminlog` | Enable admin log (ADM file) |
-| `-freezecheck` | Enable freeze detection |
-| `-cpuCount=4` | CPU core count hint |
-
-### ServerConfig Access
-
-Scripts can read values from `serverDZ.cfg` at runtime:
-
-```c
-// From CGame
-proto native int ServerConfigGetInt(string name);
-
-// Example usage
-int debugMonitor = g_Game.ServerConfigGetInt("enableDebugMonitor");
-int personalLight = g_Game.ServerConfigGetInt("disablePersonalLight");
-int adminLogHitsOnly = g_Game.ServerConfigGetInt("adminLogPlayerHitsOnly");
-```
+The `$profile:` prefix resolves to whatever directory the operator set with `-profiles=` — never hardcode absolute paths.
 
 ---
 
@@ -598,100 +602,139 @@ int adminLogHitsOnly = g_Game.ServerConfigGetInt("adminLogPlayerHitsOnly");
 
 ### Admin Log (ADM Files)
 
-The primary server-side audit log. Controlled by `serverDZ.cfg` settings (`adminLogPlayerHitsOnly`, `adminLogPlacement`, `adminLogBuildActions`, `adminLogPlayerList`). Written to `$profile:` as `.ADM` files.
+The primary server-side audit log. Controlled by `serverDZ.cfg` settings (`adminLogPlayerHitsOnly`, `adminLogPlacement`, `adminLogBuildActions`, `adminLogPlayerList`) and written to `$profile:` as `.ADM` files.
 
 ```c
 // Write directly
 GetGame().AdminLog("Custom message to ADM file");
 ```
 
-The vanilla `PluginAdminLog` class provides structured logging. It automatically formats player prefixes with name, Steam ID, and position:
+`PluginAdminLog.GetPlayerPrefix` uses name, `identity.GetId()`, and position:
 
 ```c
 // Vanilla prefix format (from PluginAdminLog.GetPlayerPrefix):
-// Player "PlayerName" (id=SteamGUID pos=<X, Y, Z>)
+// Illustrative output: Player "PlayerName" (id=PlatformUniqueID pos=<X, Z, Y>)
 ```
 
-VPP's `VPPLogManager` additionally writes to its own log files and optionally mirrors to the ADM log:
+### Script Log
 
-```c
-// VPP dual logging pattern
-void Log(string str)
-{
-    // Write to VPP session log file
-    FPrintln(m_LogFile, timeStamp + str);
+`Print` and `PrintFormat` write script diagnostics. For explicit engine RPT output use `PrintToRPT`; these are separate log channels. No log output was generated in this audit.
 
-    // Optionally also write to engine admin log
-    if (SendLogsToADM)
-        GetGame().AdminLog(timeStamp + " [VPPAT] " + str);
-}
-```
-
-### Script Log (RPT Files)
-
-The script runtime log, used for debugging. Written via:
+Script diagnostics:
 
 ```c
 Print("Debug message");                              // Standard output
 PrintFormat("Player %1 at pos %2", name, pos);       // Formatted output
-Error("Something went wrong");                       // Error-level output
+Error("Something went wrong");                        // Error-level output
 ```
 
 ### Custom Log Files
 
-For mod-specific logging, use the file I/O API:
+For mod-specific logging, use the file I/O API. A dedicated log file keeps admin activity separate from the noise in the ADM/RPT logs — and can optionally mirror to the ADM log so operators see everything in one place:
 
 ```c
-// Create directory and log file
-MakeDirectory("$profile:MyMod/Logs");
-
-int hour, minute, second;
-int year, month, day;
-GetHourMinuteSecondUTC(hour, minute, second);
-GetYearMonthDayUTC(year, month, day);
-
-string fileName = string.Format("$profile:MyMod/Logs/Log_%1-%2-%3.txt", year, month, day);
-FileHandle file = OpenFile(fileName, FileMode.WRITE);
-
-if (file != 0)
+class LNT_AdminLog
 {
-    FPrintln(file, "=== Session Started ===");
-    FPrintln(file, "Admin action logged at " + hour + ":" + minute);
-    CloseFile(file);
+    protected FileHandle m_File;
+    protected bool m_MirrorToADM;
+
+    void Open(bool mirrorToADM)
+    {
+        Close();
+        m_MirrorToADM = mirrorToADM;
+
+        MakeDirectory("$profile:LanternAdmin");
+        MakeDirectory("$profile:LanternAdmin/logs");
+
+        int y, mo, d;
+        GetYearMonthDayUTC(y, mo, d);
+
+        string fileName = string.Format("$profile:LanternAdmin/logs/Log_%1-%2-%3.txt", y, mo, d);
+        m_File = OpenFile(fileName, FileMode.APPEND);
+    }
+
+    void Write(string message)
+    {
+        int h, mi, s;
+        GetHourMinuteSecondUTC(h, mi, s);
+        string stamp = string.Format("[%1:%2:%3] ", h, mi, s);
+
+        // Own log file
+        if (m_File != 0)
+            FPrintln(m_File, stamp + message);
+
+        // Optionally also into the engine admin log
+        if (m_MirrorToADM)
+            GetGame().AdminLog("[Lantern] " + message);
+    }
+
+    void Close()
+    {
+        if (m_File != 0)
+        {
+            CloseFile(m_File);
+            m_File = 0;
+        }
+    }
 }
 ```
 
-### Discord Webhook Patterns
+Note `FileMode.APPEND` — opening with `FileMode.WRITE` truncates the file each session.
 
-Both COT and VPP provide Discord integration via webhook URLs. The general pattern is:
+### Discord Webhooks
 
-**COT** uses a `JMWebhookModule` that creates Discord embed messages:
+The DayZ engine ships a **native HTTP client**: the `RestApi` class in `3_Game/http/restapi.c`. You do **not** need any external framework to POST to a Discord webhook — Framework wrappers, where used, are separate third-party APIs.
 
-```c
-// COT webhook pattern (from PluginAdminLog.c override)
-auto msg = m_Webhook.CreateDiscordMessage();
-msg.GetEmbed().AddField("Player Death",
-    player.FormatSteamWebhook() + " was killed by " + source.GetDisplayName());
-m_Webhook.Post("PlayerDeath", msg);
-```
-
-**VPP** uses a `WebHooksManager` with typed message classes:
+Build the JSON payload with `JsonSerializer` rather than string concatenation — that encodes JSON quotes, backslashes, and control characters correctly. Enforce supports escaped quotes; vanilla `JsonFileLoader.LoadFile` uses them in error strings:
 
 ```c
-// VPP webhook pattern (from PlayerManager.c)
-GetWebHooksManager().PostData(
-    AdminActivityMessage,
-    new AdminActivityMessage(
-        sender.GetPlainId(),
-        sender.GetName(),
-        "[PlayerManager] Kicked " + ids.Count() + " player(s)"
-    )
-);
+// Serializable body matching Discord's webhook schema
+class LNT_DiscordPayload
+{
+    string content;
+}
+
+// The callback must outlive the request: POST() is asynchronous and the engine
+// invokes OnSuccess/OnError/OnTimeout later (restapi.c:48-88). Holding it in a
+// file-scope ref is the simplest way to keep it alive.
+ref RestCallback g_LNT_DiscordCallback;
+
+// POST a message to a Discord webhook using the vanilla RestApi
+void LNT_PostDiscord(string webhookUrl, string message)
+{
+    if (!GetGame().IsServer())
+        return;
+    RestApi api = GetRestApi();
+    if (!api)
+        return;
+
+    RestContext ctx = api.GetRestContext(webhookUrl);
+    if (!ctx)
+        return;
+
+    ctx.SetHeader("application/json");
+
+    LNT_DiscordPayload payload = new LNT_DiscordPayload();
+    payload.content = message;
+
+    string body;
+    JsonSerializer serializer = new JsonSerializer();
+    if (!serializer.WriteToString(payload, false, body))
+        return;
+
+    // The request path is empty because the full webhook URL is the context.
+    // Assign the retained callback *before* the call so it is still alive when
+    // the engine reports the result.
+    g_LNT_DiscordCallback = new RestCallback();
+    ctx.POST(g_LNT_DiscordCallback, "", body);
+}
 ```
 
-Both store webhook URLs in `$profile:` JSON configuration files.
+Discord limits `content` to 2000 characters and documents `wait` and `allowed_mentions` in [Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook) (accessed 2026-09-11). Validate payload size and handle errors and rate limits in a production integration. Note the callback lifetime above: passing `new RestCallback()` directly as the argument leaves it unreferenced the moment `POST()` returns.
 
-> **Note:** The DayZ engine does not provide a native HTTP client. Webhook functionality relies on the CF (Community Framework) `RestApi` system, which provides an HTTP callback mechanism. This is an external dependency, not a vanilla engine feature.
+If `GetRestApi()` returns null, return rather than calling `CreateRestApi()`. That global is declared "out of Hive initialization" (`restapi.c:179-183`), is paired with `DestroyRestApi()`, and no vanilla script in the inspected extraction calls it; creating the engine-global REST API from a mod is not documented as side-effect-free and can collide with the engine's own instance.
+
+`RestContext.POST()` takes a `RestCallback` whose `OnSuccess` / `OnError` methods you can override to react to the HTTP result. Keep webhook posting server-side to protect its credential; this does not mean native REST is unavailable on clients. Store the webhook URL in your `$profile:` config rather than hardcoding it.
 
 ---
 
@@ -699,7 +742,7 @@ Both store webhook URLs in `$profile:` JSON configuration files.
 
 ### What Is the Hive
 
-The Hive is DayZ's persistence layer --- a native C++ system that stores character data, world objects (tents, barrels, vehicles), and server state to disk. It is not directly accessible from script beyond a small set of `proto native` methods.
+The Hive is DayZ's persistence layer — a native C++ system that stores character data, world objects (tents, barrels, vehicles), and server state to disk. It is not directly accessible from script beyond a small set of `proto native` methods.
 
 **Hive class** (from `3_Game/hive/hive.c`):
 
@@ -742,220 +785,206 @@ GetHive().CharacterExit(player);
 These are called automatically by `MissionServer` during connection and disconnection events:
 
 ```c
-// From MissionServer.OnClientDisconnectedEvent()
+// From MissionServer.PlayerDisconnected() (missionserver.c:677-710)
 if (GetHive())
 {
+    // save player
+    player.Save();
+
+    // unlock player in DB
     GetHive().CharacterExit(player);
 }
 ```
 
+`OnClientDisconnectedEvent()` (`missionserver.c:628-674`) does **not** call `CharacterExit` itself. Its logout-timer branch returns early and `UpdateLogoutPlayers()` reaches `PlayerDisconnected()` once the timer expires (`:290`); only the instant-logout branch calls `PlayerDisconnected()` directly (`:673`). Hook `PlayerDisconnected()` if you need to observe or extend the Hive exit.
+
 ### Object Persistence
 
-World objects (tents, barrels, buried stashes, vehicles) persist through the Central Economy (CE) system, not through direct script calls. The CE reads and writes to the `storage_1/` folder in the server profile. Scripts can force a save through the Hive but cannot query the persistence database directly.
+World objects (tents, barrels, buried stashes, vehicles) persist through the Central Economy (CE) system, not through direct script calls. Storage location depends on mission/server persistence configuration; do not infer it from `$profile:`. `Hive.CharacterSave` saves a character, not arbitrary world objects; these declarations expose no general database query. See [Central Economy](./10-central-economy.md).
 
 ### Hive Initialization Modes
 
 | Mode | Method | Use Case |
 |------|--------|----------|
 | Online | `InitOnline(ceSetup)` | Normal dedicated server with persistence |
-| Offline | `InitOffline()` | Singleplayer / listen server, local storage |
-| Sandbox | `InitSandbox()` | Testing, no persistence at all |
+| Offline | `InitOffline()` | Used by official dedicated-server mission examples |
+| Sandbox | `InitSandbox()` | Native mode; persistence guarantees not established here |
 
-The Hive mode is set in `init.c` before the mission starts. If no Hive is created, `GetHive()` returns null and the server runs without any persistence.
+The Hive mode is set in `init.c` before the mission starts. Guard `GetHive()` before use; a missing Hive reference alone does not establish the behavior of every persistence subsystem.
 
 ---
 
-## Common Admin Mod Patterns
+## Worked Example: Building Admin Features
 
-> These patterns were confirmed by studying the source code of COT (Community Online Tools) and VPP (Vanilla++ Admin Tools).
+The remaining features admin panels are known for — teleport, object spawning, weather/time toggles, on-screen overlays — are all thin wrappers over vanilla APIs. The `LNT_` code below is a single, illustrative example of how they wire together. (Lantern Admin is the wiki's teaching mod, not a shipped product.)
 
-### Teleport System
+### Teleport
 
-Admin mods implement teleportation by directly setting player position. VPP provides three teleport operations:
+A teleport is a server-side `SetPosition()` plus a log entry. Naming the three common moves as an enum keeps call sites readable:
 
 ```c
-// VPP teleport types (from PlayerManager.c)
-enum VPPAT_TeleportType
+enum LNT_Teleport
 {
-    GOTO,    // Admin teleports to target player
-    BRING,   // Target player teleported to admin
-    RETURN   // Return player to pre-teleport position
+    GOTO,    // admin moves to the target
+    BRING,   // target is moved to the admin
+    RETURN   // target is sent back to a saved position
 }
-```
 
-The actual position change is straightforward:
-
-```c
-// Teleport player to position (server-side)
-void TeleportPlayer(PlayerBase player, vector targetPos)
+// Server-side: move the player and record it in the ADM log
+void LNT_TeleportPlayer(PlayerBase player, vector destination, string reason)
 {
-    if (!player || !player.IsAlive())
+    if (!player)
+        return;
+    if (!player.IsAlive())
         return;
 
-    player.SetPosition(targetPos);
+    vector from = player.GetPosition();
+    player.SetPosition(destination);
+
+    PluginAdminLog adm = PluginAdminLog.Cast(GetPlugin(PluginAdminLog));
+    if (adm)
+        adm.PlayerTeleportedLog(player, from, destination, reason);
 }
 ```
 
-COT adds a crosshair-teleport feature bound to a hotkey:
+A "teleport to where I'm looking" hotkey resolves the destination on the client with a camera raycast, then sends the hit point to the server (which calls `LNT_TeleportPlayer`). The raycast uses the current camera transform and `DayZPhysics.RaycastRV`:
 
 ```c
-// COT teleport to cursor position (from MissionGameplay)
-// Gets world position at cursor, sends via RPC to server
-vector cursorPos = GetGame().GetCursorPos();
-// RPC_TeleportToPosition -> server sets player position
+// CLIENT: find the world point under the crosshair
+vector rayStart = GetGame().GetCurrentCameraPosition();
+vector rayEnd = rayStart + GetGame().GetCurrentCameraDirection() * 1000.0;
+
+vector hitPos;
+vector hitNormal;
+int hitComponent;
+bool hit = DayZPhysics.RaycastRV(rayStart, rayEnd, hitPos, hitNormal, hitComponent);
+if (hit)
+{
+    // Send hitPos to the server via RPC; the server validates and teleports
+    LNT_RPC.RequestTeleport(hitPos);
+}
 ```
-
-### Player ESP (Extra Sensory Perception)
-
-ESP overlays show player names, distances, and health above their heads on the admin's screen. COT implements this as `JMESPModule` with dedicated layouts:
-
-- ESP data is gathered server-side and sent to the admin client via RPC
-- Client renders `CanvasWidget` overlays at projected screen positions
-- Updates run on a timer to avoid excessive network traffic
 
 ### Object Spawner
 
-Both COT and VPP allow spawning any item or entity:
+Spawning any item or entity is `CreateObjectEx` with the flags that place it on the ground, followed by an optional health set:
 
 ```c
-// COT spawning pattern (from JMObjectSpawnerModule.c)
-void SpawnEntity_Position(string className, vector position,
-    float quantity, float health, float temp, int itemState)
+// Server-side: spawn an item on the surface, optionally at a set health
+Object LNT_SpawnItem(string className, vector position, float health)
 {
-    // On server: create the object
-    Object obj = GetGame().CreateObject(className, position, false, false, true);
+    Object obj = GetGame().CreateObjectEx(className, position, ECE_PLACE_ON_SURFACE);
 
-    // Set properties
     EntityAI entity = EntityAI.Cast(obj);
-    if (entity)
-    {
-        if (health >= 0)
-            entity.SetHealth("", "", health);
-    }
+    if (entity && health >= 0)
+        entity.SetHealth("", "", health);
+
+    return obj;
 }
 ```
 
-The engine's `CreateObject` signature:
+The relevant engine signatures (from `3_Game/global/game.c`):
 
 ```c
-proto native Object CreateObject(string type, vector pos,
-    bool create_local = false, bool init_ai = false, bool create_physics = true);
+proto native Object CreateObject(string type, vector pos, bool create_local = false, bool init_ai = false, bool create_physics = true);
 
-proto native Object CreateObjectEx(string type, vector pos,
-    int iFlags, int iRotation = RF_DEFAULT);
+proto native Object CreateObjectEx(string type, vector pos, int iFlags, int iRotation = RF_DEFAULT);
 ```
 
-### Weather & Time Controllers
+`ECE_PLACE_ON_SURFACE` (defined in `3_Game/ce/centraleconomy.c`) combines the create-physics, path-graph-update, and surface-trace flags, so the object drops onto terrain correctly.
 
-Admin weather panels wrap the `Weather` API described above:
+### Weather & Time Actions
+
+Admin weather and time panels are direct calls into the APIs shown under [World Control](#world-control):
 
 ```c
-// VPP weather control (from WeatherManager plugin)
-void ApplyWeather(float overcast, float rain, float fog,
-    float interpTime, float duration)
+// Apply a weather preset (server-side)
+void LNT_ApplyWeather(float overcast, float rain, float fog, float interpTime, float duration)
 {
     Weather w = GetGame().GetWeather();
+    w.MissionWeather(true);   // bypass WorldData callback; native forecasts continue
     w.GetOvercast().Set(overcast, interpTime, duration);
     w.GetRain().Set(rain, interpTime, duration);
     w.GetFog().Set(fog, interpTime, duration);
 }
-```
 
-Time control uses preset management with saved configurations:
-
-```c
-// VPP time preset application (from TimeManager.c)
-void ApplyDate(int year, int month, int day, int hour, int minute)
+// Apply a date/time preset (server-side)
+void LNT_ApplyDate(int year, int month, int day, int hour, int minute)
 {
     GetGame().GetWorld().SetDate(year, month, day, hour, minute);
 }
 ```
 
+### Player Overlays (ESP)
+
+An "ESP" overlay draws player names, distance, and health above heads on the admin's screen. It is a **world-overlay tooling** problem, not an admin-API one: the server sends positions and stats to the admin client over RPC on a timer (for example, every 1–5 seconds; tune the interval to your workload), and the client projects each world position to screen space with `GetGame().GetScreenPos()` / `GetScreenPosRelative()` and draws a widget there. The widget-projection technique is covered in [Advanced Widgets](../03-gui-system/10-advanced-widgets.md).
+
 ### Player Stats Viewer
 
-Admin mods read player stats via the `PlayerBase` API (see Chapter 6.14):
+An admin panel reads live player stats through the `PlayerBase` API (see [Player System](./14-player-system.md)):
 
 ```c
-// Common stats read for admin panel
+// Common stats read for an admin panel (server-side)
 float health = player.GetHealth("", "Health");
 float blood  = player.GetHealth("", "Blood");
 float shock  = player.GetHealth("", "Shock");
 float water  = player.GetStatWater().Get();
 float energy = player.GetStatEnergy().Get();
 vector pos   = player.GetPosition();
-int bleedSources = player.GetBleedingManagerServer().GetBleedingSourcesCount();
+int bleedSources;
+if (player.GetBleedingManagerServer())
+    bleedSources = player.GetBleedingManagerServer().GetBleedingSourcesCount();
 ```
 
 ---
 
-## BattlEye Integration
+## Connection Events & Load Order
 
-### What BattlEye Does
+`MissionServer` (extending `MissionBase`) dispatches connection events through its `OnEvent()` handler. These are the primary hook points for admin logic — a ban check on prepare, a welcome message on ready, a Hive save on disconnect:
 
-BattlEye is DayZ's anti-cheat system. It runs as a separate process alongside the server and monitors:
+| Event Type | Method | When |
+|------------|--------|------|
+| `ClientPrepareEventTypeID` | `OnClientPrepareEvent()` | Player begins connecting |
+| `ClientNewEventTypeID` | `OnClientNewEvent()` | New character created |
+| `ClientReadyEventTypeID` | `OnClientReadyEvent()` | Existing character loaded |
+| `ClientReconnectEventTypeID` | `OnClientReconnectEvent()` | Reconnecting to existing character |
+| `ClientDisconnectedEventTypeID` | `OnClientDisconnectedEvent()` | Player disconnecting |
 
-- Memory integrity of client game processes
-- Network packet validity
-- Script execution patterns (via script restrictions)
+The mechanics of `modded class MissionServer` and each event's parameters are covered in [Mission Hooks](./11-mission-hooks.md); the server startup path (`init.c`, `CreateCustomMission`, launch parameters) is covered in [9.1 Server Setup](../09-server-admin/01-server-setup.md).
 
-### Script Restrictions
+**Load order matters.** Admin tools are among the heaviest users of `modded class MissionServer` — **COT**, **VPP**, and **DayZ-Expansion** all intercept these connection events. When several mods override the same hook, only cooperative overrides survive:
 
-BattlEye uses restriction files (`scripts.txt`, `remoteexec.txt`) in the `battleye/` folder to filter script commands. When a script call matches a restriction pattern, BattlEye can:
+- Any override of `OnEvent()` or a specific `On*Event()` method **must call `super`**, to preserve vanilla behavior and earlier implementations in its inheritance chain.
+- If multiple mods override the same vanilla plugin (for example `PluginAdminLog`), call `super` when extending inherited behavior; document what an intentional replacement suppresses.
+- All admin commands are server-authoritative. Client mods provide UI only; a `-servermod=` package can run admin logic without shipping scripts to clients, but cannot draw in-game UI.
 
-1. **Log** the event (restriction level 1)
-2. **Log and kick** the player (restriction level 5)
+---
 
-Admin mods must add exceptions to these files for their RPC calls to function. This is why admin mods include BattlEye exception files in their installation instructions.
+## BattlEye Notes
 
-### How Admin Tools Work with BattlEye
+BattlEye and the server console are operational interfaces separate from the Enforce RPC handlers described here. Follow [9.9 Access Control](../09-server-admin/09-access-control.md) for setup and verify commands against the actual interface. This audit does not establish that DayZ custom RPCs need `scripts.txt` or `remoteexec.txt` exceptions; do not import that rule from Arma documentation. A chat channel for BattlEye messages is not a script command API.
 
-Admin tools operate within BattlEye's framework by:
-
-1. Using the standard DayZ RPC system (registered via `CGame.RPC()` or CF's `GetRPCManager()`)
-2. Providing BattlEye exception entries for their custom RPC calls
-3. Validating permissions server-side (BattlEye only monitors, it does not enforce admin permissions)
-
-The chat system includes a BattlEye channel (`CCBattlEye = 64`) for RCON messages:
+The chat system exposes a BattlEye channel for RCON/system messages:
 
 ```c
-// From chat.c - BattlEye/system messages displayed differently
+// From chat.c - BattlEye/system messages are displayed differently
 if (channel & CCSystem || channel & CCBattlEye)
 {
-    // Display as system message (different color/style)
+    // Display as a system message (different color/style)
 }
 ```
-
-RCON (Remote Console) is BattlEye's admin interface, separate from script. RCON commands like `#kick`, `#ban`, `#shutdown` are handled by BattlEye directly and are not accessible from Enforce Script.
 
 ---
 
 ## Best Practices
 
-- **Always validate permissions server-side.** Client-side checks are cosmetic only. Any RPC handler that performs a privileged action must call a permission check before executing. The client can be modified to skip UI-level checks.
-- **Use `GetPlainId()` for admin UID lists, `GetId()` for persistent data.** `GetPlainId()` returns the Steam64 ID that administrators actually know and use. `GetId()` returns the BattlEye GUID hash, which is what DayZ uses internally for character persistence.
-- **Null-check `GetIdentity()` in every admin operation.** During connection handshake and disconnect teardown, player entities exist without identity objects. Admin tools that iterate players must handle this gracefully.
-- **Log every admin action with both admin and target identifiers.** Include the admin's name, Steam ID, the action performed, and the target. This creates an audit trail that helps resolve disputes and detect admin abuse.
-- **Use `$profile:` for all server-side file storage.** Never use hardcoded absolute paths. The `$profile:` prefix adapts to whatever profile directory the server operator has configured.
-- **Defer kicks with `CallLater` when sending a reason.** If you disconnect a player instantly, they may not receive the RPC containing the kick reason. VPP uses a short delay (configurable via `m_LoginTimeMs`) to ensure the message arrives first.
-- **Call `MissionWeather(true)` before locking weather values.** Without this flag, the engine's automatic weather controller will override your settings when it computes the next forecast change.
-
----
-
-## Observed in Real Mods
-
-> These patterns were confirmed by studying the source code of professional DayZ admin mods.
-
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Deferred kick via `CallLater` + `DisconnectPlayer` with reason RPC | VPP Admin Tools | `5_Mission/missionServer.c` |
-| `GetPermissionsManager().HasPermission()` check before every RPC handler | COT | `5_Mission/CommunityOnlineTools.c` |
-| User groups with per-permission granularity stored in `$profile:` JSON | VPP Admin Tools | `PermissionManager/PermissionManager.c` |
-| `PluginAdminLog` override to add Discord webhook posts on kill events | COT | `4_World/Plugins/PluginAdminLog.c` |
-| `WebHooksManager.PostData()` for Discord notifications on every admin action | VPP Admin Tools | `PlayerManager/PlayerManager.c` |
-| Ban list checked during `ClientPrepareEvent` with deferred kick | VPP Admin Tools | `5_Mission/missionServer.c` |
-| `GetGame().GetWorld().SetDate()` wrapped in preset system with saved configs | VPP Admin Tools | `WeatherManager/TimeManager.c` |
-| `JMObjectSpawnerModule` using `GetGame().CreateObject()` with quantity/health params | COT | `modules/Object/JMObjectSpawnerModule.c` |
-| Session log files with UTC timestamps via `GetHourMinuteSecondUTC()` | VPP Admin Tools | `LogManager/LogManager.c` |
+- **Always validate permissions server-side.** Client-side checks are cosmetic. Any RPC handler that performs a privileged action must run a permission check before executing — the client can be modified to skip UI-level checks.
+- **Persist and log with `GetId()`; use `GetPlainId()` only in memory.** `3_game/gameplay.c:367-370` sanctions `GetId()` for database and log use and states that `GetPlainId()` **cannot** be used in either. Comparing a live `GetPlainId()` against a list already held in memory is not database or log storage, but the moment you write an identifier to a file, a database or the RPT, use `GetId()`. Do not assume `GetId()` is a BattlEye GUID --- it is the platform's own hashed identifier.
+- **Null-check `GetIdentity()` in every admin operation.** During the connection handshake and disconnect teardown, player entities exist without identity objects. Iterating players must handle this gracefully.
+- **Log every admin action with both admin and target identifiers.** Record the admin's name and Steam ID, the action, and the target. This audit trail helps resolve disputes and detect admin abuse.
+- **Use `$profile:` for all server-side file storage.** Never hardcode absolute paths. The `$profile:` prefix adapts to whatever profile directory the operator configured.
+- **Defer kicks with `CallLater` when sending a reason.** A synchronous disconnect can drop the socket before the reason RPC is flushed. A short delay gives it time to arrive but does not guarantee delivery.
+- **Call `MissionWeather(true)` before bounding weather values, then bound them with `SetLimits()`.** While the flag is set, `WeatherPhenomenon.OnBeforeChange()` returns `false` immediately (`3_game/weather.c:125-133`), so the `WorldData.WeatherOnBeforeChange` callback never runs. The flag does not stop native forecasting --- the bounds come from `SetLimits()`. Note that `Weather.SetWeatherUpdateFreeze(true)` (`weather.c:393-396`) **cannot take effect while `MissionWeather(true)` is set**, because `OnBeforeChange` returns before it reaches the `GetWeatherUpdateFrozen()` check at `:133-134`. Do not treat the two as combinable.
 
 ---
 
@@ -966,20 +995,22 @@ RCON (Remote Console) is BattlEye's admin interface, separate from script. RCON 
 Never rely solely on client-side UI to prevent unauthorized actions. A modified client can send any RPC.
 
 ```c
-// WRONG - only checking on client
+// WRONG - only checking on the client
 if (m_IsAdmin)
-    SendRPC_KickPlayer(targetId);
+    LNT_RPC.RequestKick(targetId);
 
-// CORRECT - client check is cosmetic, server re-validates
+// CORRECT - the client check is cosmetic; the server re-validates
 // Client:
 if (m_IsAdmin)
-    SendRPC_KickPlayer(targetId);
+    LNT_RPC.RequestKick(targetId);
 
 // Server RPC handler:
-void RPC_KickPlayer(PlayerIdentity sender, string targetId)
+void OnKickRequest(ParamsReadContext ctx, PlayerIdentity sender)
 {
-    // Re-validate on server
-    if (!IsAdmin(sender))
+    // Re-validate on the server, keyed on the sender's real UID
+    if (!GetGame().IsServer() || !sender)
+        return;
+    if (!LNT_Permissions.GetInstance().HasPermission(sender.GetPlainId(), "admin.player.kick"))
         return;
     // ... proceed
 }
@@ -991,27 +1022,27 @@ During `ClientPrepareEvent`, the player entity may not exist yet. During `Client
 
 ```c
 // WRONG
-void OnClientDisconnectedEvent(PlayerIdentity identity, PlayerBase player, ...)
+void OnClientDisconnectedEvent(PlayerIdentity identity, PlayerBase player, int logoutTime, bool authFailed)
 {
     string name = identity.GetName(); // identity can be null!
 }
 
 // CORRECT
-void OnClientDisconnectedEvent(PlayerIdentity identity, PlayerBase player, ...)
+void OnClientDisconnectedEvent(PlayerIdentity identity, PlayerBase player, int logoutTime, bool authFailed)
 {
     string name = "Unknown";
     if (identity)
         name = identity.GetName();
-    // Continue with safe fallback
+    // Continue with a safe fallback
 }
 ```
 
-### 3. Setting Weather Without MissionWeather Flag
+### 3. Expecting a Weather Value to Stick
 
-If you set weather values without calling `MissionWeather(true)`, the engine's automatic weather controller will override your changes at the next forecast computation.
+Without `MissionWeather(true)`, the `WorldData` callback can alter later forecasts and undo your value. With it, that callback is bypassed, but native forecast computation still runs --- **the flag alone does not lock weather.** Bound the phenomenon with `SetLimits()` if you want the value to hold, and do not reach for `SetWeatherUpdateFreeze()`: it is unreachable while `MissionWeather(true)` is set (`weather.c:125-135`).
 
 ```c
-// WRONG - changes will be overridden
+// WorldData callback may change later forecasts
 GetGame().GetWeather().GetOvercast().Set(0.0, 0, 600);
 
 // CORRECT - take control first
@@ -1019,12 +1050,12 @@ GetGame().GetWeather().MissionWeather(true);
 GetGame().GetWeather().GetOvercast().Set(0.0, 0, 600);
 ```
 
-### 4. Using GetGame().GetPlayer() on Server
+### 4. Using GetGame().GetPlayer() on the Server
 
-`GetGame().GetPlayer()` returns the local player entity. On a dedicated server, there is no local player.
+`GetGame().GetPlayer()` returns the local player entity. On a dedicated server there is no local player.
 
 ```c
-// WRONG - always null on dedicated server
+// WRONG - always null on a dedicated server
 PlayerBase admin = PlayerBase.Cast(GetGame().GetPlayer());
 
 // CORRECT - use GetPlayers() or track players via connection events
@@ -1034,26 +1065,30 @@ GetGame().GetPlayers(players);
 
 ### 5. Writing Files Without Creating Directories First
 
-`OpenFile()` will fail silently if the parent directory does not exist.
+`OpenFile()` returns `0` on failure; check the handle after creating the directory.
 
 ```c
 // WRONG - directory may not exist
-FileHandle f = OpenFile("$profile:MyMod/Logs/session.txt", FileMode.WRITE);
+FileHandle f = OpenFile("$profile:LanternAdmin/logs/session.txt", FileMode.WRITE);
 
-// CORRECT - ensure directory exists first
-MakeDirectory("$profile:MyMod");
-MakeDirectory("$profile:MyMod/Logs");
-FileHandle f = OpenFile("$profile:MyMod/Logs/session.txt", FileMode.WRITE);
+// CORRECT - ensure the directory exists first
+MakeDirectory("$profile:LanternAdmin");
+MakeDirectory("$profile:LanternAdmin/logs");
+FileHandle f = OpenFile("$profile:LanternAdmin/logs/session.txt", FileMode.WRITE);
 ```
 
 ---
 
-## Compatibility & Impact
+## Audit Sources and Limits
 
-> **Mod Compatibility:** `MissionServer` is heavily modded by admin tools. COT, VPP, and Expansion all use `modded class MissionServer` to intercept connection events. Load order determines which mod's hooks run outermost.
+Checked 2026-09-11 against `D:/DayZ Projects/scripts/` (release identity unconfirmed). Paths below are relative to that extraction.
 
-- **Load Order:** Admin mods that override `OnEvent()`, `InvokeOnConnect()`, or `OnClientDisconnectedEvent()` must call `super` to allow other mods to receive these events. Forgetting `super` breaks all subsequently loaded mods.
-- **PluginAdminLog Conflicts:** If multiple mods override `PluginAdminLog` (e.g., COT adds webhook support), only the last-loaded override is active unless each calls `super` in every overridden method.
-- **RPC ID Collisions:** COT uses CF's string-based RPC routing. VPP uses `GetRPCManager().AddRPC()` with string identifiers. Custom admin mods should avoid using raw integer RPC IDs that may collide with vanilla `ERPCs` values.
-- **Performance Impact:** ESP systems that send frequent player position updates can generate significant network traffic. Both COT and VPP use update timers (typically 1-5 second intervals) rather than per-frame updates. The vanilla `PluginAdminLog.PlayerList()` runs every 300 seconds (5 minutes) to minimize overhead.
-- **Server/Client:** All admin commands are server-authoritative. Client mods provide UI only. Server-only mods (`-servermod=`) can implement admin logic without distributing scripts to clients, but cannot provide in-game UI.
+- `3_game/global/game.c`, `global/world.c`, `gameplay.c`: game/world and identity declarations; `5_mission/mission/missionserver.c`: actual connection/Hive flow.
+- `3_game/weather.c:125-135`, `WeatherPhenomenon.OnBeforeChange`: `MissionWeather` bypasses the world script callback without stopping native forecasts, and returns before the `GetWeatherUpdateFrozen()` guard, so `SetWeatherUpdateFreeze` (`:393-401`) has no effect in that state.
+- `3_game/tools/jsonfileloader.c`, `3_game/http/restapi.c`, `1_core/proto/serializer.c`, `1_core/proto/ensystem.c`, `2_gamelib/tools.c`: persistence, HTTP, serialization, file and queue contracts.
+- `4_world/plugins/pluginbase/pluginadminlog.c`: log settings, event methods and player-prefix formatting.
+- [Official CE mission init](https://github.com/BohemiaInteractive/DayZ-Central-Economy/blob/9a21bb9f5fb9c62a7ce2761402196091588133e6/dayzOffline.chernarusplus/init.c): `CreateHive` / `InitOffline` use.
+- [COT command authorization](https://github.com/Jacob-Mango/DayZ-CommunityOnlineTools/blob/41f2c2b99565d0e3970163e162efbf1283fdca62/JM/COT/Scripts/4_World/CommunityOnlineTools/Classes/Commands/JMCommand.c#L18): a third-party permission check before dispatch, not a vanilla permission API.
+- [Bohemia Modded class documentation](https://community.bistudio.com/wiki/DayZ:Enforce_Script_Syntax#Modded_class): later modded classes inherit earlier implementations. Inspected through the coordinator's DOM cache captured 2026-09-11.
+
+The Lantern fragments require a server-side owner, lifecycle management and registered RPC handlers. They are not a complete deployment, ban-admission test, webhook test, or guaranteed notification-delivery mechanism. Snippets showing declarations describe class members; do not paste them as duplicate vanilla class definitions. Operational BattlEye/native behavior not confirmed by the inspected sources is explicitly left unclaimed.

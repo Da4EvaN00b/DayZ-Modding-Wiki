@@ -1,6 +1,5 @@
 # Chapter 9.3 : Référence complète de serverDZ.cfg
 
-[Accueil](../README.md) | [<< Précédent : Structure des répertoires](02-directory-structure.md) | **Référence serverDZ.cfg** | [Suivant : Économie du loot en profondeur >>](04-loot-economy.md)
 
 ---
 
@@ -103,7 +102,7 @@ lightingConfig = 0;                 // Luminosité nocturne (0 = plus lumineux, 
 | `disable3rdPerson` | int | 0, 1 | 0 | Mettez à 1 pour les serveurs première personne uniquement. C'est le paramètre "hardcore" le plus courant. |
 | `disableCrosshair` | int | 0, 1 | 0 | Mettez à 1 pour supprimer le réticule. Souvent associé à `disable3rdPerson=1`. |
 | `disablePersonalLight` | int | 0, 1 | 1 | La "lumière personnelle" est un léger halo autour du joueur la nuit. La plupart des serveurs la désactivent (valeur 1) pour le réalisme. |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = nuits plus lumineuses (clair de lune visible). 1 = nuits noires totales (nécessite lampe torche/NVG). |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = nuits plus lumineuses (clair de lune visible). 1 = nuits noires totales (nécessite lampe torche/NVG). 2 = éclairage spécifique à Sakhal. |
 
 ---
 
@@ -119,7 +118,7 @@ serverTimePersistent = 0;                  // Sauvegarder le temps entre les red
 | Paramètre | Type | Valeurs valides | Défaut | Notes |
 |-----------|------|----------------|--------|-------|
 | `serverTime` | string | `"SystemTime"` ou `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` utilise l'horloge locale de la machine. Définissez une heure fixe comme `"2024/9/15/12/0"` pour un serveur en jour permanent. |
-| `serverTimeAcceleration` | int | 0-24 | 12 | Multiplicateur pour le temps en jeu. À 12, un cycle complet de 24 heures dure 2 heures réelles. À 1, le temps est réel. À 24, un jour complet passe en 1 heure. |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | Multiplicateur pour le temps en jeu. À 12, un cycle complet de 24 heures dure 2 heures réelles. À 1, le temps est réel. À 24, un jour complet passe en 1 heure. |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | Multiplié par `serverTimeAcceleration`. Avec une valeur de 4 et une accélération de 12, la nuit passe à une vitesse de 48x (nuits très courtes). |
 | `serverTimePersistent` | int | 0, 1 | 0 | À 1, le serveur sauvegarde son horloge en jeu sur disque et reprend à partir de celle-ci après redémarrage. À 0, le temps revient à `serverTime` à chaque redémarrage. |
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 Les mods sont chargés dans l'ordre spécifié dans `-mod=`. L'ordre des dépendances est important : si le Mod B nécessite le Mod A, listez le Mod A en premier.
-
----
-
-**Précédent :** [Structure des répertoires](02-directory-structure.md) | [Accueil](../README.md) | **Suivant :** [Économie du loot en profondeur >>](04-loot-economy.md)

@@ -1,6 +1,5 @@
 # 第 1.8 章：内存管理
 
-[首页](../README.md) | [<< 上一章：数学与向量](07-math-vectors.md) | **内存管理** | [下一章：类型转换与反射 >>](09-casting-reflection.md)
 
 ---
 
@@ -670,7 +669,3 @@ delete obj;                      // 立即销毁，将所有引用置空（Manag
 class Parent { ref Child m_Child; }      // 强引用——父对象拥有子对象
 class Child  { Parent m_Parent; }        // 弱引用——子对象观察父对象
 ```
-
----
-
-[<< 1.7：数学与向量](07-math-vectors.md) | [首页](../README.md) | [1.9：类型转换与反射 >>](09-casting-reflection.md)

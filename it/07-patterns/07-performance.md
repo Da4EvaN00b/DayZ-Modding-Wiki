@@ -1,6 +1,5 @@
 # Capitolo 7.7: Ottimizzazione delle Prestazioni
 
-[Home](../README.md) | [<< Precedente: Architettura Event-Driven](06-events.md) | **Ottimizzazione delle Prestazioni**
 
 ---
 
@@ -442,7 +441,8 @@ Un'esigenza comune è tracciare tutti i veicoli (o tutte le entità di un tipo s
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +613,7 @@ Questa funzione scansiona ogni oggetto fisico nel mondo all'interno del raggio d
 
 ```c
 // NON FARLO MAI
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 Usa un registro basato su registrazione (vedi [Pattern Registro Veicoli](#pattern-registro-veicoli)).
@@ -797,7 +797,3 @@ Prima di rilasciare codice sensibile alle prestazioni, verifica:
 | Usa l'elaborazione asincrona per operazioni costose | Enforce Script è single-threaded senza primitive asincrone; distribuisci il lavoro su più frame usando l'elaborazione basata su indice |
 | L'object pooling è un'ottimizzazione prematura | La creazione di widget è genuinamente costosa in Enfusion; il pooling è pratica standard in ogni mod importante (COT, VPP, Expansion) |
 | Profila prima di ottimizzare | Corretto, ma alcuni pattern (scansioni del mondo, allocazione di stringhe per-frame, ricostruzioni per-tasto) sono *sempre* sbagliati in DayZ. Evitali fin dall'inizio. |
-
----
-
-[<< Precedente: Architettura Event-Driven](06-events.md) | [Home](../../it/README.md)

@@ -1,6 +1,5 @@
 # Frequently Asked Questions
 
-[Home](./README.md) | **FAQ**
 
 ---
 
@@ -60,7 +59,7 @@
 **R :** Utilisez `modded class` lorsque vous devez modifier ou etendre un comportement vanilla existant (ajouter une methode a `PlayerBase`, accrocher dans `MissionServer`). Creez de nouvelles classes pour des systemes autonomes qui n'ont pas besoin de surcharger quoi que ce soit. Les classes modded se chainent automatiquement -- appelez toujours `super` pour eviter de casser d'autres mods. Voir [Chapitre 1.4](01-enforce-script/04-modded-classes.md).
 
 ### Q : Comment dois-je organiser le code client vs serveur ?
-**R :** Utilisez les gardes preprocesseur `#ifdef SERVER` et `#ifdef CLIENT` pour le code qui ne doit s'executer que d'un cote. Pour les mods plus importants, separez en PBOs distincts : un mod client (UI, rendu, effets locaux) et un mod serveur (spawn, logique, persistance). Cela empeche la fuite de logique serveur vers les clients. Voir [Chapitre 2.5](02-mod-structure/05-file-organization.md) et [Chapitre 6.9](06-engine-api/09-networking.md).
+**R :** Utilisez les gardes preprocesseur `#ifdef SERVER` et `#ifndef SERVER` pour le code qui ne doit s'executer que d'un cote. Pour les mods plus importants, separez en PBOs distincts : un mod client (UI, rendu, effets locaux) et un mod serveur (spawn, logique, persistance). Cela empeche la fuite de logique serveur vers les clients. Voir [Chapitre 2.5](02-mod-structure/05-file-organization.md) et [Chapitre 6.9](06-engine-api/09-networking.md).
 
 ### Q : Quand dois-je utiliser un Singleton vs un Module/Plugin ?
 **R :** Utilisez un Module (enregistre avec le `PluginManager` de CF ou votre propre systeme de modules) lorsque vous avez besoin de gestion du cycle de vie (`OnInit`, `OnUpdate`, `OnMissionFinish`). Utilisez un Singleton autonome pour des services utilitaires sans etat qui ont juste besoin d'un acces global. Les modules sont preferes pour tout ce qui a un etat ou des besoins de nettoyage. Voir [Chapitre 7.1](07-patterns/01-singletons.md) et [Chapitre 7.2](07-patterns/02-module-systems.md).

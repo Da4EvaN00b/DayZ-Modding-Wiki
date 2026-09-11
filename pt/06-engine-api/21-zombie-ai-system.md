@@ -1,6 +1,5 @@
-# Capítulo 6.21: Sistema de Zumbis e IA
+# Sistema de Zumbis e IA
 
-[Início](../README.md) | [<< Anterior: Sistema de Partículas e Efeitos](20-particle-effects.md) | **Sistema de Zumbis e IA** | [Próximo: Administração e Gerenciamento de Servidor >>](22-admin-server.md)
 
 ---
 
@@ -157,7 +156,7 @@ De `3_Game/constants.c`:
 | `AI_MAX_BLOCKABLE_ANGLE` | `60` | Ângulo máximo (graus) onde a postura de bloqueio do jogador funciona contra infectados |
 | `AI_CONTAMINATION_DMG_PER_SEC` | `3` | Dano por tick em zonas contaminadas |
 | `NL_DAMAGE_CLOSECOMBAT_CONVERSION_INFECTED` | `0.20` | Conversão de choque para saúde para golpes corpo a corpo em infectados |
-| `NL_DAMAGE_FIREARM_CONVERSION_INFECTED` | varia | Conversão de choque para saúde para tiros de arma de fogo em infectados |
+| `NL_DAMAGE_FIREARM_CONVERSION_INFECTED` | `0.44` | Conversão de choque para saúde para tiros de arma de fogo em infectados (= `PROJECTILE_CONVERSION_INFECTED`) |
 
 ---
 
@@ -327,7 +326,7 @@ class DayZInfectedAttackType
 
 ### Grupos de Ataque
 
-**Grupo Chase** (`DayZInfectedAttackGroupType.CHASE`): Ataques correndo a 2.4m de alcance, sem redução de cooldown, sempre pitch central (-1). Duas variantes: esquerda e direita.
+**Grupo Chase** (`DayZInfectedAttackGroupType.CHASE`): Ataques correndo a 2.4m de alcance, sem redução de cooldown, sempre pitch -1. Duas variantes: esquerda e direita.
 
 **Grupo Fight** (`DayZInfectedAttackGroupType.FIGHT`): Ataques em pé a 1.4-1.7m de alcance. Dez variantes cobrindo pitch cima/centro/baixo e combinações esquerda/direita/pesado. Cooldowns de 0.1 a 0.6 segundos.
 
@@ -577,7 +576,7 @@ DayZInfected zombie = DayZInfected.Cast(
 );
 
 // Depois, inicializar a IA com um grupo
-AIWorld aiWorld = g_Game.GetAIWorld();
+AIWorld aiWorld = g_Game.GetWorld().GetAIWorld();
 AIGroup group = aiWorld.CreateDefaultGroup();
 zombie.InitAIAgent(group);
 
@@ -624,10 +623,10 @@ Os valores de `type` devem corresponder a nomes de classe em `cfgVehicles`. O CE
 
 ### AIWorld
 
-`AIWorld` fornece pathfinding de navmesh e gerenciamento de grupos:
+`AIWorld` fornece pathfinding de navmesh e gerenciamento de grupos. É obtido a partir do objeto `World` via `g_Game.GetWorld().GetAIWorld()`:
 
 ```csharp
-AIWorld aiWorld = g_Game.GetAIWorld();
+AIWorld aiWorld = g_Game.GetWorld().GetAIWorld();
 
 // Pathfinding
 PGFilter filter = new PGFilter();
@@ -930,7 +929,7 @@ Este plugin é uma referência excelente para testar qualquer mod relacionado a 
 | Aspecto | Impacto |
 |---------|---------|
 | **Desempenho** | Cada zumbi executa seu `CommandHandler` a cada frame no servidor. Grandes populações de zumbis (50+) podem causar lag no servidor. |
-| **Rede** | Três variáveis sincronizadas por zumbi (`m_MindState`, `m_MovementSpeed`, `m_IsCrawling`, `m_OrientationSynced`). Mudanças disparam `SetSynchDirty()`. |
+| **Rede** | Quatro variáveis sincronizadas por zumbi (`m_MindState`, `m_OrientationSynced`, `m_MovementSpeed`, `m_IsCrawling`). Mudanças disparam `SetSynchDirty()`. |
 | **Conflitos de mods** | Múltiplos mods usando `ModCommandHandlerBefore` retornando `true` vão conflitar --- apenas a sobrescrita do último mod carregado é executada. |
 | **Cliente/Servidor** | Command handler, lógica de combate e dano executam apenas do lado do servidor. Eventos sonoros e reprodução de animação são do lado do cliente. |
 | **Dependência do motor de IA** | Transições de estado mental, decisões de pathfinding e seleção de alvo são recursos do motor C++. O script não pode substituir ou contornar completamente a IA embutida. |

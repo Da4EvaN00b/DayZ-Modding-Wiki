@@ -1,10 +1,6 @@
-# DayZ Modding Glossary & Page Index
+# DayZ Modding Glossary
 
-[Home](./README.md) | **Glossary & Index**
-
----
-
-> This glossary defines every key term in DayZ modding and links to the chapter where it is explained in depth. Use Ctrl+F to search.
+> **Summary:** Definitions for every key term in DayZ modding and server administration, each linked to the chapter where it is explained in depth. For the full table of contents, see the [chapter index](index.md).
 
 ---
 
@@ -13,6 +9,7 @@
 - **Bold terms** are defined inline
 - **[Chapter links]** point to the full documentation
 - **See also** connects related concepts
+- Use Ctrl+F, or jump to a letter: [A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [J](#j) · [K](#k) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [R](#r) · [S](#s) · [T](#t) · [U](#u) · [V](#v) · [W](#w) · [X](#x) · [Z](#z)
 
 ---
 
@@ -99,6 +96,12 @@ The DayZ Tools process that converts human-readable source files (config.cpp, mo
 **Chapter:** [4.5 DayZ Tools Workflow](04-file-formats/05-dayz-tools.md) | [4.6 PBO Packing](04-file-formats/06-pbo-packing.md)
 **See also:** [AddonBuilder](#addonbuilder), [PBO](#pbo)
 
+### bisign
+Signature file (`.bisign`) generated when a PBO is signed with a private key. Servers running `verifySignatures = 2` accept only mods whose `.bisign` matches a `.bikey` in the `keys/` folder. One `.bisign` is produced per PBO, per key.
+
+**Chapter:** [9.10 Mod Management](09-server-admin/10-mod-management.md) | [8.7 Publishing to Workshop](08-tutorials/07-publishing-workshop.md)
+**See also:** [Key Pair](#key-pair), [verifySignatures](#verifysignatures)
+
 ### Bitflags
 Pattern using enum values as powers of two, combined with bitwise OR. Used for flags like `ECE_CREATEPHYSICS | ECE_UPDATEPATHGRAPH`.
 
@@ -149,6 +152,12 @@ DayZ's server-side system for managing loot, vehicle, and infected spawning. Con
 
 **Chapter:** [6.10 Central Economy](06-engine-api/10-central-economy.md) | [5.5 Server Configs](05-config-files/05-server-configs.md)
 **See also:** [types.xml](#typesxml)
+
+### CE Event
+A dynamic Central Economy spawn defined in `events.xml` and tuned by `cfgeventspawns.xml` -- helicopter crashes, vehicle wrecks, animal herds, and infected hordes. Each event has a nominal count, min/max, cooldown, and a list of children to spawn.
+
+**Chapter:** [9.5 Vehicle & Dynamic Event Spawning](09-server-admin/05-vehicle-spawning.md) | [6.10 Central Economy](06-engine-api/10-central-economy.md)
+**See also:** [events.xml](#eventsxml), [nominal](#nominal)
 
 ### CfgMods
 Block in `config.cpp` that defines mod metadata, script module paths, imageset paths, and preprocessor defines.
@@ -412,7 +421,7 @@ Primitive 32-bit IEEE 754 floating-point type. Default value is `0.0`.
 **Chapter:** [1.1 Variables & Types](01-enforce-script/01-variables-types.md)
 
 ### Font
-DayZ uses proprietary `.fnt` font files. Common fonts: `gui/fonts/MetroItalic` and `gui/fonts/MetroSuide`. Not user-definable -- only engine-bundled fonts.
+DayZ uses proprietary `.fnt` font files. Common fonts: `gui/fonts/Metron`, `gui/fonts/Metron-Bold`, and the SDF font `gui/fonts/sdf_MetronBook24` (crisp at any scale). Not user-definable -- only engine-bundled fonts.
 
 **Chapter:** [3.7 Styles, Fonts & Images](03-gui-system/07-styles-fonts.md)
 
@@ -445,7 +454,7 @@ Global accessor for the `CGame` singleton. Entry point for most engine APIs: `Ge
 **Chapter:** [6.1 Entity System](06-engine-api/01-entity-system.md) | [1.1 Variables & Types](01-enforce-script/01-variables-types.md)
 
 ### GetPlayer()
-`GetGame().GetPlayer()` -- returns the local player entity as `Man`. Cast to `PlayerBase` for gameplay methods.
+`GetGame().GetPlayer()` -- returns the local player entity as `DayZPlayer`. Cast to `PlayerBase` for gameplay methods.
 
 **Chapter:** [6.14 Player System](06-engine-api/14-player-system.md)
 
@@ -556,7 +565,7 @@ Base class for all inventory items (weapons, tools, food, clothing). Extends `In
 ## J
 
 ### JsonFileLoader
-`JsonFileLoader<T>.JsonLoadFile(path, data)` -- loads a JSON file and deserializes it into an object. Returns `void` (pass a ref object, do not assign return). Also `JsonSaveFile()` for saving.
+`JsonFileLoader<T>.LoadFile(path, out data, out errorMessage)` (`3_game/tools/jsonfileloader.c:7`) -- loads a JSON file and deserializes it into an object, returning `bool` success plus an error message. The older `JsonLoadFile(path, data)`/`JsonSaveFile()` pair returns `void` and so never signals the caller: it does nothing when the file is missing or cannot be opened, and logs a parse failure to the RPT via `ErrorEx` (`:129`). It still works, but is marked `//! DEPRECATED` in the vanilla source (`:99`).
 
 **Chapter:** [6.8 File I/O & JSON](06-engine-api/08-file-io.md) | [7.4 Config Persistence](07-patterns/04-config-persistence.md)
 **See also:** [File I/O](#file-io)
@@ -571,11 +580,23 @@ RSA key pair (`.bikey` + `.biprivatekey`) used to sign PBOs. Servers verify mod 
 
 ## L
 
+### Lantern (Example Mod Family)
+The wiki's constructed teaching example -- a fictional framework mod ("Lantern", by the fictional team Northlight) used consistently across chapters so every example shares one namespace. Classes carry the `LNT_` prefix (`LNT_Log`, `LNT_RPC`, `LNT_ModuleManager`, `LNT_ConfigBase`, `LNT_Permissions`, `LNT_EventBus`); the singleton entry point is `LanternCore`; packages are `Lantern_Core`, `Lantern_Admin`, and so on. A second fictional content mod, **NightPatrol** (`NP_` prefix), appears where a chapter needs two distinct mods. Lantern is never a real or shipped mod -- its full code is built from scratch across the Part 7 pattern chapters.
+
+**Chapter:** [7.1 Singleton Pattern](07-patterns/01-singletons.md) | [7.2 Module / Plugin Systems](07-patterns/02-module-systems.md)
+**See also:** [Singleton](#singleton), [Module System](#module-system)
+
 ### Layout File
 DayZ's `.layout` format for defining UI widget trees. Brace-delimited text format (not XML). Edited in Workbench or by hand.
 
 **Chapter:** [3.2 Layout File Format](03-gui-system/02-layout-files.md)
 **See also:** [Widget](#widget), [CreateWidgets](#createwidgets)
+
+### lifetime
+A `types.xml` attribute (seconds) that sets how long a spawned item persists on the ground before the Central Economy despawns it. High-value loot uses short lifetimes; deployed base items use very long ones.
+
+**Chapter:** [9.4 Loot Economy Deep Dive](09-server-admin/04-loot-economy.md) | [6.10 Central Economy](06-engine-api/10-central-economy.md)
+**See also:** [types.xml](#typesxml), [nominal](#nominal)
 
 ### Listen Server
 A server where one player also acts as the host. Both `GetGame().IsServer()` and `GetGame().IsClient()` return true. Requires special guard logic.
@@ -652,7 +673,7 @@ Metadata file in the mod root. Controls launcher display name, icon, description
 **See also:** [config.cpp](#configcpp)
 
 ### Mod Template
-Pre-made skeleton project with correct folder structure, config.cpp, mod.cpp, and script stubs. See InclementDab's open-source template or the professional template.
+Pre-made skeleton project with correct folder structure, config.cpp, mod.cpp, and script stubs. Chapters 8.5 and 8.9 build one from scratch; community-maintained starter templates also exist on GitHub, each under its own license -- check the license before reusing any of their code.
 
 **Chapter:** [8.5 Using the Mod Template](08-tutorials/05-mod-template.md) | [8.9 Professional Template](08-tutorials/09-professional-template.md)
 
@@ -668,7 +689,7 @@ Configuration file that defines animations (rotation, translation, hide) for P3D
 **See also:** [super](#super), [Override](#override)
 
 ### Module System
-Architectural pattern for organizing code into lifecycle-managed units registered with a central manager. Four approaches documented: CF, VPP, Dabs, and custom.
+Architectural pattern for organizing code into lifecycle-managed units registered with a central manager. Chapter 7.2 covers the vanilla `PluginManager`, framework-style module managers, and the custom `LNT_ModuleManager` built from scratch.
 
 **Chapter:** [7.2 Module / Plugin Systems](07-patterns/02-module-systems.md)
 **See also:** [Singleton](#singleton)
@@ -687,15 +708,21 @@ Client-server communication via `ScriptRPC`. All authoritative logic runs on the
 **Chapter:** [6.9 Networking & RPC](06-engine-api/09-networking.md)
 **See also:** [RPC](#rpc-remote-procedure-call), [ScriptRPC](#scriptrpc)
 
+### nominal
+A `types.xml` attribute: the target number of an item the Central Economy tries to keep in the world. The CE spawns toward `nominal` but never drops below `min`. Raising it makes loot more common; lowering it makes loot rarer.
+
+**Chapter:** [9.4 Loot Economy Deep Dive](09-server-admin/04-loot-economy.md) | [6.10 Central Economy](06-engine-api/10-central-economy.md)
+**See also:** [types.xml](#typesxml), [lifetime](#lifetime)
+
 ### Notification System
 `NotificationSystem` class for displaying toast-style popup messages. `AddNotification()` for local, `SendNotificationToPlayerExtended()` for server-to-client.
 
 **Chapter:** [6.6 Notification System](06-engine-api/06-notifications.md)
 
 ### notnull Parameter
-Function parameter modifier that guarantees the argument is not null at the engine level. Passing null to a `notnull` parameter causes a script error.
+Function parameter modifier declaring that `null` is never a valid argument. Bohemia's Enforce Script syntax page does not list it, so its enforcement -- compile time, runtime, or both -- is undocumented, and community references disagree. Vanilla treats the guarantee as real: `array<T>.InsertAll(notnull array<T> from)` dereferences the parameter with no null check (`1_core/proto/enscript.c:449`). Honour it at the call site and null-check there; a reference valid at the check can still become null afterwards (engine-side entity deletion), and the modifier does not make that safe.
 
-**Chapter:** [1.13 Functions & Methods](01-enforce-script/13-functions-methods.md)
+**Chapter:** [1.13 Functions & Methods](01-enforce-script/13-functions-methods.md) | [1.8 Memory Management](01-enforce-script/08-memory-management.md) | [1.11 Error Handling](01-enforce-script/11-error-handling.md)
 
 ### NULL / null
 Enforce Script's null reference value. Used interchangeably. No `nullptr` keyword exists.
@@ -897,6 +924,12 @@ The mechanism for sending data between client and server. Uses `ScriptRPC` to wr
 **Chapter:** [6.9 Networking & RPC](06-engine-api/09-networking.md) | [7.3 RPC Patterns](07-patterns/03-rpc-patterns.md)
 **See also:** [ScriptRPC](#scriptrpc), [ScriptInputUserData](#scriptinputuserdata)
 
+### RPT
+The DayZ server/client report log (`.RPT` file), written next to the profile. It captures engine warnings, crashes, and mod load errors that never reach the script log -- the first place to look when a server fails to start.
+
+**Chapter:** [9.11 Server Troubleshooting](09-server-admin/11-troubleshooting.md)
+**See also:** [Script Log](#script-log)
+
 ### RVMAT
 Real Virtuality Material file. Defines how textures are combined, which shader to use, and surface properties (shininess, transparency, self-illumination).
 
@@ -957,6 +990,18 @@ XML, JSON, and script files in the mission folder that control server behavior: 
 
 **Chapter:** [5.5 Server Configuration Files](05-config-files/05-server-configs.md)
 
+### serverDZ.cfg
+The main server config file. Sets hostname, `maxPlayers`, message-of-the-day, time acceleration (`serverTimeAcceleration`), `verifySignatures`, persistence, and the mission to load. Read line by line at startup; a syntax error stops the server.
+
+**Chapter:** [9.3 serverDZ.cfg Complete Reference](09-server-admin/03-server-cfg.md) | [5.5 Server Configuration Files](05-config-files/05-server-configs.md)
+**See also:** [verifySignatures](#verifysignatures), [servermod](#servermod)
+
+### servermod
+The `-servermod=` launch parameter that loads mods on the server only -- never sent to clients. Use it for server-side logic (admin tools, spawners) that players must not download. Contrast with `-mod=`, whose mods clients also load.
+
+**Chapter:** [9.10 Mod Management](09-server-admin/10-mod-management.md)
+**See also:** [serverDZ.cfg](#serverdzcfg)
+
 ### SetActions
 Method on `ItemBase` where actions are registered. Override it, call `super.SetActions()`, then `AddAction(ActionClass)`.
 
@@ -1000,6 +1045,17 @@ Valve's mod distribution platform. DayZ mods are uploaded via DayZ Tools publish
 
 **Chapter:** [8.7 Publishing to Workshop](08-tutorials/07-publishing-workshop.md)
 **See also:** [Publishing](#publishing)
+
+### SteamCMD
+Valve's command-line Steam client. Server admins use it to install and update the DayZ dedicated server and to download Workshop mods headlessly (no GUI), which makes it the backbone of automated server deployment scripts.
+
+**Chapter:** [9.1 Server Setup & First Launch](09-server-admin/01-server-setup.md) | [9.10 Mod Management](09-server-admin/10-mod-management.md)
+
+### storage_1
+The persistence storage folder the Central Economy writes under the mission's `storage_N` path. It holds the saved world state -- player data, built structures, vehicles, and dynamic events -- between restarts. Deleting it wipes persistence and forces a fresh world.
+
+**Chapter:** [9.7 World State & Persistence](09-server-admin/07-persistence.md)
+**See also:** [Central Economy](#central-economy-ce)
 
 ### string
 Immutable value type for text. Passed by value, compared by value. Rich built-in methods: `Substring`, `IndexOf`, `Replace`, `ToLower`, `Length`, `Split`.
@@ -1130,6 +1186,12 @@ DayZ's transport system. Vehicles have fluid systems (fuel, oil, brake, coolant)
 **Chapter:** [6.2 Vehicle System](06-engine-api/02-vehicles.md)
 **See also:** [CarScript](#carscript), [Transport](#transport)
 
+### verifySignatures
+The `serverDZ.cfg` setting that controls PBO signature checking. `verifySignatures = 2` (the recommended value) rejects any mod whose `.bisign` does not match a `.bikey` in the server's `keys/` folder, blocking tampered or unauthorized addons. `0` disables checking.
+
+**Chapter:** [9.3 serverDZ.cfg Complete Reference](09-server-admin/03-server-cfg.md) | [9.9 Access Control](09-server-admin/09-access-control.md)
+**See also:** [bisign](#bisign), [Key Pair](#key-pair)
+
 ### VPP (VPP Admin Tools)
 Major community admin mod by DaOne and GravityWolf. Provides player management, chat commands, webhooks, ESP, and a permission system.
 
@@ -1203,136 +1265,4 @@ DayZ's hostile AI framework. Infected patrol, detect players through sight/sound
 
 ---
 
-## Chapter Index
-
-Quick reference to all 92 chapters plus supplementary pages:
-
-### Part 1: Enforce Script Language
-| # | Chapter | Page |
-|---|---------|------|
-| 1.1 | Variables & Types | [01-enforce-script/01-variables-types.md](01-enforce-script/01-variables-types.md) |
-| 1.2 | Arrays, Maps & Sets | [01-enforce-script/02-arrays-maps-sets.md](01-enforce-script/02-arrays-maps-sets.md) |
-| 1.3 | Classes & Inheritance | [01-enforce-script/03-classes-inheritance.md](01-enforce-script/03-classes-inheritance.md) |
-| 1.4 | Modded Classes | [01-enforce-script/04-modded-classes.md](01-enforce-script/04-modded-classes.md) |
-| 1.5 | Control Flow | [01-enforce-script/05-control-flow.md](01-enforce-script/05-control-flow.md) |
-| 1.6 | String Operations | [01-enforce-script/06-strings.md](01-enforce-script/06-strings.md) |
-| 1.7 | Math & Vectors | [01-enforce-script/07-math-vectors.md](01-enforce-script/07-math-vectors.md) |
-| 1.8 | Memory Management | [01-enforce-script/08-memory-management.md](01-enforce-script/08-memory-management.md) |
-| 1.9 | Casting & Reflection | [01-enforce-script/09-casting-reflection.md](01-enforce-script/09-casting-reflection.md) |
-| 1.10 | Enums & Preprocessor | [01-enforce-script/10-enums-preprocessor.md](01-enforce-script/10-enums-preprocessor.md) |
-| 1.11 | Error Handling | [01-enforce-script/11-error-handling.md](01-enforce-script/11-error-handling.md) |
-| 1.12 | What Does NOT Exist | [01-enforce-script/12-gotchas.md](01-enforce-script/12-gotchas.md) |
-| 1.13 | Functions & Methods | [01-enforce-script/13-functions-methods.md](01-enforce-script/13-functions-methods.md) |
-
-### Part 2: Mod Structure
-| # | Chapter | Page |
-|---|---------|------|
-| 2.1 | The 5-Layer Script Hierarchy | [02-mod-structure/01-five-layers.md](02-mod-structure/01-five-layers.md) |
-| 2.2 | config.cpp Deep Dive | [02-mod-structure/02-config-cpp.md](02-mod-structure/02-config-cpp.md) |
-| 2.3 | mod.cpp & Workshop | [02-mod-structure/03-mod-cpp.md](02-mod-structure/03-mod-cpp.md) |
-| 2.4 | Your First Mod | [02-mod-structure/04-minimum-viable-mod.md](02-mod-structure/04-minimum-viable-mod.md) |
-| 2.5 | File Organization | [02-mod-structure/05-file-organization.md](02-mod-structure/05-file-organization.md) |
-| 2.6 | Server/Client Architecture | [02-mod-structure/06-server-client-split.md](02-mod-structure/06-server-client-split.md) |
-
-### Part 3: GUI & Layout System
-| # | Chapter | Page |
-|---|---------|------|
-| 3.1 | Widget Types | [03-gui-system/01-widget-types.md](03-gui-system/01-widget-types.md) |
-| 3.2 | Layout File Format | [03-gui-system/02-layout-files.md](03-gui-system/02-layout-files.md) |
-| 3.3 | Sizing & Positioning | [03-gui-system/03-sizing-positioning.md](03-gui-system/03-sizing-positioning.md) |
-| 3.4 | Container Widgets | [03-gui-system/04-containers.md](03-gui-system/04-containers.md) |
-| 3.5 | Programmatic Creation | [03-gui-system/05-programmatic-widgets.md](03-gui-system/05-programmatic-widgets.md) |
-| 3.6 | Event Handling | [03-gui-system/06-event-handling.md](03-gui-system/06-event-handling.md) |
-| 3.7 | Styles, Fonts & Images | [03-gui-system/07-styles-fonts.md](03-gui-system/07-styles-fonts.md) |
-| 3.8 | Dialogs & Modals | [03-gui-system/08-dialogs-modals.md](03-gui-system/08-dialogs-modals.md) |
-| 3.9 | Real Mod UI Patterns | [03-gui-system/09-real-mod-patterns.md](03-gui-system/09-real-mod-patterns.md) |
-| 3.10 | Advanced Widgets | [03-gui-system/10-advanced-widgets.md](03-gui-system/10-advanced-widgets.md) |
-
-### Part 4: File Formats & Tools
-| # | Chapter | Page |
-|---|---------|------|
-| 4.1 | Textures (.paa, .edds, .tga) | [04-file-formats/01-textures.md](04-file-formats/01-textures.md) |
-| 4.2 | 3D Models (.p3d) | [04-file-formats/02-models.md](04-file-formats/02-models.md) |
-| 4.3 | Materials (.rvmat) | [04-file-formats/03-materials.md](04-file-formats/03-materials.md) |
-| 4.4 | Audio (.ogg, .wss) | [04-file-formats/04-audio.md](04-file-formats/04-audio.md) |
-| 4.5 | DayZ Tools Workflow | [04-file-formats/05-dayz-tools.md](04-file-formats/05-dayz-tools.md) |
-| 4.6 | PBO Packing | [04-file-formats/06-pbo-packing.md](04-file-formats/06-pbo-packing.md) |
-| 4.7 | Workbench Guide | [04-file-formats/07-workbench-guide.md](04-file-formats/07-workbench-guide.md) |
-| 4.8 | Building Modeling | [04-file-formats/08-building-modeling.md](04-file-formats/08-building-modeling.md) |
-
-### Part 5: Configuration Files
-| # | Chapter | Page |
-|---|---------|------|
-| 5.1 | stringtable.csv | [05-config-files/01-stringtable.md](05-config-files/01-stringtable.md) |
-| 5.2 | inputs.xml | [05-config-files/02-inputs-xml.md](05-config-files/02-inputs-xml.md) |
-| 5.3 | Credits.json | [05-config-files/03-credits-json.md](05-config-files/03-credits-json.md) |
-| 5.4 | ImageSet Format | [05-config-files/04-imagesets.md](05-config-files/04-imagesets.md) |
-| 5.5 | Server Configuration Files | [05-config-files/05-server-configs.md](05-config-files/05-server-configs.md) |
-| 5.6 | Spawning Gear Configuration | [05-config-files/06-spawning-gear.md](05-config-files/06-spawning-gear.md) |
-
-### Part 6: Engine API Reference
-| # | Chapter | Page |
-|---|---------|------|
-| 6.1 | Entity System | [06-engine-api/01-entity-system.md](06-engine-api/01-entity-system.md) |
-| 6.2 | Vehicle System | [06-engine-api/02-vehicles.md](06-engine-api/02-vehicles.md) |
-| 6.3 | Weather System | [06-engine-api/03-weather.md](06-engine-api/03-weather.md) |
-| 6.4 | Camera System | [06-engine-api/04-cameras.md](06-engine-api/04-cameras.md) |
-| 6.5 | Post-Process Effects | [06-engine-api/05-ppe.md](06-engine-api/05-ppe.md) |
-| 6.6 | Notification System | [06-engine-api/06-notifications.md](06-engine-api/06-notifications.md) |
-| 6.7 | Timers & CallQueue | [06-engine-api/07-timers.md](06-engine-api/07-timers.md) |
-| 6.8 | File I/O & JSON | [06-engine-api/08-file-io.md](06-engine-api/08-file-io.md) |
-| 6.9 | Networking & RPC | [06-engine-api/09-networking.md](06-engine-api/09-networking.md) |
-| 6.10 | Central Economy | [06-engine-api/10-central-economy.md](06-engine-api/10-central-economy.md) |
-| 6.11 | Mission Hooks | [06-engine-api/11-mission-hooks.md](06-engine-api/11-mission-hooks.md) |
-| 6.12 | Action System | [06-engine-api/12-action-system.md](06-engine-api/12-action-system.md) |
-| 6.13 | Input System | [06-engine-api/13-input-system.md](06-engine-api/13-input-system.md) |
-| 6.14 | Player System | [06-engine-api/14-player-system.md](06-engine-api/14-player-system.md) |
-| 6.15 | Sound System | [06-engine-api/15-sound-system.md](06-engine-api/15-sound-system.md) |
-| 6.16 | Crafting System | [06-engine-api/16-crafting-system.md](06-engine-api/16-crafting-system.md) |
-| 6.17 | Construction System | [06-engine-api/17-construction-system.md](06-engine-api/17-construction-system.md) |
-| 6.18 | Animation System | [06-engine-api/18-animation-system.md](06-engine-api/18-animation-system.md) |
-| 6.19 | Terrain & World Queries | [06-engine-api/19-terrain-queries.md](06-engine-api/19-terrain-queries.md) |
-| 6.20 | Particle & Effect System | [06-engine-api/20-particle-effects.md](06-engine-api/20-particle-effects.md) |
-| 6.21 | Zombie & AI System | [06-engine-api/21-zombie-ai-system.md](06-engine-api/21-zombie-ai-system.md) |
-| 6.22 | Admin & Server Management | [06-engine-api/22-admin-server.md](06-engine-api/22-admin-server.md) |
-| 6.23 | World Systems | [06-engine-api/23-world-systems.md](06-engine-api/23-world-systems.md) |
-
-### Part 7: Patterns & Best Practices
-| # | Chapter | Page |
-|---|---------|------|
-| 7.1 | Singleton Pattern | [07-patterns/01-singletons.md](07-patterns/01-singletons.md) |
-| 7.2 | Module / Plugin Systems | [07-patterns/02-module-systems.md](07-patterns/02-module-systems.md) |
-| 7.3 | RPC Communication | [07-patterns/03-rpc-patterns.md](07-patterns/03-rpc-patterns.md) |
-| 7.4 | Config Persistence | [07-patterns/04-config-persistence.md](07-patterns/04-config-persistence.md) |
-| 7.5 | Permission Systems | [07-patterns/05-permissions.md](07-patterns/05-permissions.md) |
-| 7.6 | Event-Driven Architecture | [07-patterns/06-events.md](07-patterns/06-events.md) |
-| 7.7 | Performance Optimization | [07-patterns/07-performance.md](07-patterns/07-performance.md) |
-
-### Part 8: Tutorials
-| # | Chapter | Page |
-|---|---------|------|
-| 8.1 | Your First Mod (Hello World) | [08-tutorials/01-first-mod.md](08-tutorials/01-first-mod.md) |
-| 8.2 | Creating a Custom Item | [08-tutorials/02-custom-item.md](08-tutorials/02-custom-item.md) |
-| 8.3 | Building an Admin Panel | [08-tutorials/03-admin-panel.md](08-tutorials/03-admin-panel.md) |
-| 8.4 | Adding Chat Commands | [08-tutorials/04-chat-commands.md](08-tutorials/04-chat-commands.md) |
-| 8.5 | Using the DayZ Mod Template | [08-tutorials/05-mod-template.md](08-tutorials/05-mod-template.md) |
-| 8.6 | Debugging & Testing | [08-tutorials/06-debugging-testing.md](08-tutorials/06-debugging-testing.md) |
-| 8.7 | Publishing to Steam Workshop | [08-tutorials/07-publishing-workshop.md](08-tutorials/07-publishing-workshop.md) |
-| 8.8 | Building a HUD Overlay | [08-tutorials/08-hud-overlay.md](08-tutorials/08-hud-overlay.md) |
-| 8.9 | Professional Mod Template | [08-tutorials/09-professional-template.md](08-tutorials/09-professional-template.md) |
-| 8.10 | Creating a Vehicle Mod | [08-tutorials/10-vehicle-mod.md](08-tutorials/10-vehicle-mod.md) |
-| 8.11 | Creating a Clothing Mod | [08-tutorials/11-clothing-mod.md](08-tutorials/11-clothing-mod.md) |
-| 8.12 | Building a Trading System | [08-tutorials/12-trading-system.md](08-tutorials/12-trading-system.md) |
-| 8.13 | Diag Menu Reference | [08-tutorials/13-diag-menu.md](08-tutorials/13-diag-menu.md) |
-
-### Supplementary Pages
-| Page | Link |
-|------|------|
-| Enforce Script Cheat Sheet | [cheatsheet.md](cheatsheet.md) |
-| API Quick Reference | [06-engine-api/quick-reference.md](06-engine-api/quick-reference.md) |
-| FAQ | [faq.md](faq.md) |
-| Troubleshooting Guide | [troubleshooting.md](troubleshooting.md) |
-
----
-
-*This glossary covers 160+ terms across all 92 chapters and 4 supplementary pages of the DayZ Modding Complete Guide.*
+*Looking for the full list of chapters? See the [chapter index](index.md) -- the single, canonical table of contents for all parts and supplementary pages.*

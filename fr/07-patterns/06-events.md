@@ -1,6 +1,5 @@
 # Chapitre 7.6 : Architecture événementielle
 
-[Accueil](../README.md) | [<< Précédent : Systèmes de permissions](05-permissions.md) | **Architecture événementielle** | [Suivant : Optimisation des performances >>](07-performance.md)
 
 ---
 
@@ -107,16 +106,18 @@ graph TB
 
 ### Comment Insert/Remove fonctionnent
 
-`Insert` ajoute une référence de fonction à une liste interne. `Remove` recherche dans la liste et retire l'entrée correspondante. Si vous appelez `Insert` deux fois avec la même fonction, elle sera appelée deux fois à chaque `Invoke`. Si vous appelez `Remove` une fois, cela retire une seule entrée.
+`Insert` ajoute une référence de fonction à une liste interne. `Remove` recherche dans la liste et retire les entrées correspondantes. Si vous appelez `Insert` deux fois avec la même fonction, elle sera appelée deux fois à chaque `Invoke`. Par défaut, `Remove(fn)` utilise `EScriptInvokerRemoveFlags.ALL`, donc il retire toutes les entrées correspondantes. Pour ne retirer que la seule entrée la plus récente, appelez `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Abonner le même gestionnaire deux fois est un bug :
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Maintenant appelé 2x par Invoke
 
-// Un seul Remove ne retire qu'une entrée :
+// Le flag ALL par défaut retire toutes les entrées correspondantes :
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Encore appelé 1x par Invoke — le second Insert est toujours là
+// Appelé 0x par Invoke — les deux Insert ont disparu.
+// Pour laisser une entrée, passez NONE :
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Signatures typées
@@ -135,13 +136,11 @@ Si un abonné a la mauvaise signature, le comportement est indéfini à l'exécu
 De nombreuses classes vanilla DayZ exposent des événements `ScriptInvoker` :
 
 ```c
-// UIScriptedMenu a OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer expose un ScriptInvoker via GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // S'abonner
 
-// MissionBase a des hooks d'événements
+// MissionBase a des hooks d'événements (méthodes virtuelles, pas des ScriptInvokers)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,10 +545,6 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | S'abonner avec `Insert()` mais ne jamais appeler `Remove()` | Fuite mémoire : l'invoker détient une référence à l'objet mort ; sur `Invoke()`, appelle de la mémoire libérée (crash) ou no-ops avec de l'itération gaspillée | Associer chaque `Insert()` avec un `Remove()` dans `OnMissionFinish` ou le destructeur |
 | Appeler `Remove()` sur un invoker EventBus null pendant l'arrêt | `MyEventBus.Cleanup()` peut avoir déjà annulé l'invoker ; appeler `.Remove()` sur null crash | Toujours vérifier null sur l'invoker avant `Remove()` : `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Double `Insert()` du même gestionnaire | Le gestionnaire est appelé deux fois par `Invoke()` ; un `Remove()` ne retire qu'une entrée, laissant un abonnement périmé | Vérifier avant d'insérer, ou s'assurer que `Insert()` n'est appelé qu'une fois (ex: dans `OnInit` avec un drapeau de garde) |
+| Double `Insert()` du même gestionnaire | Le gestionnaire est appelé deux fois par `Invoke()` ; un `Remove()` par défaut (flag `ALL`) efface toutes les entrées d'un coup, retirant tous les abonnements | Vérifier avant d'insérer, ou s'assurer que `Insert()` n'est appelé qu'une fois (ex: dans `OnInit` avec un drapeau de garde) |
 | Utiliser des fonctions anonymes/lambda comme gestionnaires | Ne peuvent pas être retirées car il n'y a pas de référence à passer à `Remove()` | Toujours utiliser des méthodes nommées comme gestionnaires d'événements |
 | Déclencher des événements avec des signatures d'arguments incompatibles | Les abonnés reçoivent des données aberrantes ou crashent à l'exécution ; pas de vérification de type à la compilation | Documenter la signature attendue au-dessus de chaque déclaration `ScriptInvoker` et la respecter exactement dans tous les gestionnaires |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Systèmes de permissions](05-permissions.md) | **Architecture événementielle** | [Suivant : Optimisation des performances >>](07-performance.md)

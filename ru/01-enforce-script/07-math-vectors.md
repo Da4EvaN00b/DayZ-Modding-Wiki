@@ -1,6 +1,5 @@
 # Глава 1.7: Математические и векторные операции
 
-[Главная](../README.md) | [<< Назад: Строковые операции](06-strings.md) | **Математические и векторные операции** | [Далее: Управление памятью >>](08-memory-management.md)
 
 ---
 
@@ -751,7 +750,3 @@ v.Length()  v.LengthSq()  v.Normalized()  v.Normalize()
 // Константы vector
 vector.Zero  vector.Up  vector.Aside  vector.Forward
 ```
-
----
-
-[<< 1.6: Строковые операции](06-strings.md) | [Главная](../README.md) | [1.8: Управление памятью >>](08-memory-management.md)

@@ -1,6 +1,5 @@
 # Domande frequenti
 
-[Home](./README.md) | **FAQ**
 
 ---
 
@@ -60,7 +59,7 @@
 **R:** Usa `modded class` quando devi modificare o estendere il comportamento vanilla esistente (aggiungere un metodo a `PlayerBase`, hookarsi a `MissionServer`). Crea nuove classi per sistemi autonomi che non hanno bisogno di sovrascrivere nulla. Le classi moddate si concatenano automaticamente -- chiama sempre `super` per non rompere gli altri mod. Vedi il [Capitolo 1.4](01-enforce-script/04-modded-classes.md).
 
 ### D: Come devo organizzare il codice client vs. server?
-**R:** Usa le guard del preprocessore `#ifdef SERVER` e `#ifdef CLIENT` per codice che deve eseguire solo su un lato. Per mod piu grandi, dividili in PBO separati: mod client (UI, rendering, effetti locali) e mod server (spawn, logica, persistenza). Questo previene la fuoriuscita della logica server verso i client. Vedi il [Capitolo 2.5](02-mod-structure/05-file-organization.md) e il [Capitolo 6.9](06-engine-api/09-networking.md).
+**R:** Usa le guard del preprocessore `#ifdef SERVER` e `#ifndef SERVER` per codice che deve eseguire solo su un lato. Per mod piu grandi, dividili in PBO separati: mod client (UI, rendering, effetti locali) e mod server (spawn, logica, persistenza). Questo previene la fuoriuscita della logica server verso i client. Vedi il [Capitolo 2.5](02-mod-structure/05-file-organization.md) e il [Capitolo 6.9](06-engine-api/09-networking.md).
 
 ### D: Quando usare un Singleton vs. un Modulo/Plugin?
 **R:** Usa un Modulo (registrato tramite il `PluginManager` di CF o il tuo sistema di moduli) quando hai bisogno della gestione del ciclo di vita (`OnInit`, `OnUpdate`, `OnMissionFinish`). Usa un Singleton autonomo per servizi utility senza stato che necessitano solo di accesso globale. I moduli sono preferiti per qualsiasi cosa con stato o necessita di pulizia. Vedi il [Capitolo 7.1](07-patterns/01-singletons.md) e il [Capitolo 7.2](07-patterns/02-module-systems.md).

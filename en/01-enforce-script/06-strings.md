@@ -1,6 +1,6 @@
-# Chapter 1.6: String Operations
+# String Operations
 
-[Home](../README.md) | [<< Previous: Control Flow](05-control-flow.md) | **String Operations** | [Next: Math & Vectors >>](07-math-vectors.md)
+> **Summary:** Strings in Enforce Script are value types with in-place mutation methods. This chapter is a complete reference for every string operation — searching, slicing, splitting, formatting with `string.Format()`, and conversion — with practical parsing examples.
 
 ---
 
@@ -80,7 +80,7 @@ Finds the last occurrence of a substring.
 
 ```c
 string path = "profiles/MyMod/Players/player.json";
-int lastSlash = path.LastIndexOf("/"); // 23
+int lastSlash = path.LastIndexOf("/"); // 22
 ```
 
 ### Contains
@@ -188,7 +188,7 @@ s.TrimInPlace();
 Print(s); // "Hello World"
 ```
 
-There is also `Trim()` which returns a new trimmed string (available in some engine versions):
+There is also `Trim()`, which returns a new trimmed string and leaves the original unchanged (`proto string Trim();` in enstring.c):
 
 ```c
 string raw = "  padded  ";
@@ -250,7 +250,7 @@ vector pos = s.ToVector(); // Vector(100.5, 0, 200.3)
 
 ## String Comparison
 
-Strings are compared by value using standard operators. Comparison is **case-sensitive** and follows lexicographic (dictionary) order.
+Strings are compared by value using `==` and `!=`. Comparison is **case-sensitive**.
 
 ```c
 string a = "Apple";
@@ -259,9 +259,21 @@ string c = "Apple";
 
 bool equal    = (a == c);  // true
 bool notEqual = (a != b);  // true
-bool less     = (a < b);   // true  ("Apple" < "Banana" lexicographically)
-bool greater  = (b > a);   // true
 ```
+
+> **Do not use `<` / `>` / `<=` / `>=` to order strings.** They are not documented as a supported string operation, and the entire vanilla script dump (2,800+ files) never uses them on a `string` -- not once. What they actually do is unverified and may not be lexicographic comparison at all; treat the result as undefined and do not rely on it, even if it happens to "work" in a quick test. If you need to compare two strings for sorting, convert both to arrays and compare element-by-element, or key your sort on a numeric/derived value instead.
+>
+> This also applies to comparing individual characters (there is no `char` type -- `string.Get(i)` returns a one-character `string`). Comparing "digit-ness" or "letter-ness" with `ch >= "0" && ch <= "9"` inherits the same problem. Use `ToAscii()` instead, which converts a string's first character to its ASCII code and is a documented, `proto native` API:
+>
+> ```c
+> protected bool IsDigit(string ch)
+> {
+>     int code = ch.ToAscii();
+>     return (code >= 48 && code <= 57);   // '0'..'9'
+> }
+> ```
+>
+> General rule for any Enforce Script API or operator you are unsure about: grep the vanilla dump for a real, first-party use of it. Zero hits across thousands of engine files is strong evidence the thing does not behave the way you expect.
 
 ### Case-insensitive comparison
 
@@ -420,9 +432,10 @@ string SanitizeForLog(string input)
 ```c
 string GetFileName(string path)
 {
+    // Engine paths ($profile:, $mission:) use forward slashes by convention.
+    // Escaped backslashes are legal in string literals (see 1.12 Gotchas);
+    // they are simply not the delimiter these prefixes use.
     int lastSlash = path.LastIndexOf("/");
-    if (lastSlash == -1)
-        lastSlash = path.LastIndexOf("\\");
 
     if (lastSlash >= 0 && lastSlash < path.Length() - 1)
     {
@@ -446,16 +459,14 @@ string GetFileName(string path)
 
 ---
 
-## Observed in Real Mods
+## Common Patterns in Practice
 
-> Patterns confirmed by studying professional DayZ mod source code.
-
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| `Split(" ", parts)` for chat command parsing | VPP / COT | All chat command systems split by space, then switch on `parts.Get(0)` |
-| `string.Format` with `[TAG]` prefix | Expansion / Dabs | Log messages always use `string.Format("[%1] %2", tag, msg)` rather than concatenation |
-| `"$profile:ModName/"` path convention | COT / Expansion | File paths built with `+` use forward slashes and `$profile:` prefix to avoid backslash issues |
-| `ToLower()` before command matching | VPP Admin | User input is lowered before `switch`/comparison to handle mixed-case input |
+| Pattern | Detail |
+|---------|--------|
+| `Split(" ", parts)` for chat command parsing | Admin and chat-command systems conventionally split the message by space, then switch on `parts.Get(0)` to dispatch the command |
+| `string.Format` with `[TAG]` prefix | Log messages conventionally use `string.Format("[%1] %2", tag, msg)` rather than concatenation, so every line carries a searchable mod tag |
+| `"$profile:ModName/"` path convention | The engine documents `$profile`, `$saves`, and `$mission` as filesystem prefixes for `OpenFile` (see `1_core/proto/ensystem.c`), and vanilla itself defines profile paths this way in `3_game/constants.c` (`"$profile:missionlist.json"`, `"$profile:ScriptConsole/"`). Mod paths follow suit: forward slashes and the `$profile:` prefix, avoiding backslash issues |
+| `ToLower()` before command matching | User input is lowered before `switch`/comparison so mixed-case input (`!Heal`, `!HEAL`) still matches |
 
 ---
 
@@ -464,8 +475,8 @@ string GetFileName(string path)
 | Concept | Theory | Reality |
 |---------|--------|---------|
 | `ToLower()` / `Replace()` return value | Expected to return a new string (like C#) | They modify in place. `ToLower()` and `ToUpper()` return `int` (length), `Replace()` returns `int` (count) -- a constant source of bugs |
-| `string.Format` placeholders | `%d`, `%f`, `%s` like C printf | Only `%1` through `%9` work; C-style specifiers are silently ignored |
-| Backslash `\\` in strings | Standard escape character | Can break DayZ's CParser in JSON contexts -- prefer forward slashes for paths |
+| `string.Format` placeholders | `%d`, `%f`, `%s` like C printf | Positional only. The declaration takes nine optional parameters and the engine's own example uses `%1`/`%2`/`%3` (`1_core/proto/enstring.c:515-526`), so `%1`..`%9` is the whole vocabulary. What a C-style specifier renders as is not documented -- do not write one |
+| Backslash `\\` in strings | Standard escape character | Standard here too. Bohemia lists `\n \r \t \\ \"` as the supported escapes, and vanilla ships `"DZ\\plants"` in `3_game/objectspawner.c:4`. Forward slashes remain the convention for engine resource paths, but that is style, not a parser limit |
 
 ---
 
@@ -491,10 +502,10 @@ string GetFileName(string path)
 int len = s.Length();
 
 // Search
-int idx = s.IndexOf("sub");
-int idx = s.IndexOfFrom(startIdx, "sub");
-int idx = s.LastIndexOf("sub");
-bool has = s.Contains("sub");
+int idx     = s.IndexOf("sub");
+int idxFrom = s.IndexOfFrom(startIdx, "sub");
+int lastIdx = s.LastIndexOf("sub");
+bool has    = s.Contains("sub");
 
 // Extract
 string sub = s.Substring(start, length);
@@ -520,11 +531,8 @@ int n    = s.ToInt();
 float f  = s.ToFloat();
 vector v = s.ToVector();
 
-// Comparison (case-sensitive, lexicographic)
+// Comparison (case-sensitive)
 bool eq = (a == b);
-bool lt = (a < b);
+// Do not use <, >, <=, >= on strings -- undocumented, unused by vanilla, undefined result.
+// For character checks, use ToAscii() instead.
 ```
-
----
-
-[<< 1.5: Control Flow](05-control-flow.md) | [Home](../README.md) | [1.7: Math & Vectors >>](07-math-vectors.md)

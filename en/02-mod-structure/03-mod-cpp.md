@@ -1,6 +1,5 @@
-# Chapter 2.3: mod.cpp & Workshop
+# mod.cpp & Workshop
 
-[Home](../README.md) | [<< Previous: config.cpp Deep Dive](02-config-cpp.md) | **mod.cpp & Workshop** | [Next: Minimum Viable Mod >>](04-minimum-viable-mod.md)
 
 ---
 
@@ -17,7 +16,7 @@
 - [Client Mod vs Server Mod](#client-mod-vs-server-mod)
 - [Workshop Metadata](#workshop-metadata)
 - [Required vs Optional Fields](#required-vs-optional-fields)
-- [Real Examples](#real-examples)
+- [Worked Examples](#worked-examples)
 - [Tips and Best Practices](#tips-and-best-practices)
 
 ---
@@ -67,6 +66,8 @@ The `@` prefix on the folder name is convention for Steam Workshop mods but not 
 | `type` | string | `"mod"` or `"servermod"` | No |
 | `extra` | int | Reserved field (always 0) | No |
 
+> **What Bohemia documents.** The [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page lists ten `mod.cpp` keys -- `name`, `picture`, `logoSmall`, `logo`, `logoOver`, `tooltip`, `overview`, `action`, `author`, `version` -- and describes the file as holding "information for mod presentation". The rest of the table above (`tooltipOwned`, `actionURL`, `authorID`, `type`, `extra`) is community convention seen in published mods; it does no harm, but do not expect documented behaviour from it. In particular `type` is documented under `CfgMods` in a PBO's `config.cpp`, not here.
+
 ---
 
 ## Field Details
@@ -76,13 +77,13 @@ The `@` prefix on the folder name is convention for Steam Workshop mods but not 
 The display name shown in the DayZ launcher mod list and in-game mod screen.
 
 ```cpp
-name = "My Framework";
+name = "Lantern Core";
 ```
 
 You can use string table references for localization:
 
 ```cpp
-name = "$STR_DF_NAME";    // Resolves via stringtable.csv
+name = "$STR_LNT_MOD_NAME";    // Resolves via stringtable.csv
 ```
 
 ### picture
@@ -124,8 +125,8 @@ logoOver = "MyMod/GUI/images/logo_hover.edds";
 Short text shown when hovering over the mod in the launcher. `tooltipOwned` is shown when the mod is installed (downloaded from Workshop).
 
 ```cpp
-tooltip = "MyMod Core - Admin Panel & Framework";
-tooltipOwned = "My Framework - Central Admin Panel & Shared Library";
+tooltip = "Lantern Core - Admin Panel & Framework";
+tooltipOwned = "Lantern Core - Central Admin Panel & Shared Library";
 ```
 
 ### overview
@@ -133,7 +134,7 @@ tooltipOwned = "My Framework - Central Admin Panel & Shared Library";
 A longer description displayed in the mod details panel. This is your "about" text.
 
 ```cpp
-overview = "My Framework provides a centralized admin panel and shared library for all framework mods. Manage configurations, permissions, and mod integration from a single in-game interface.";
+overview = "Lantern Core provides a centralized admin panel and shared library for the Lantern mod family. Manage configurations, permissions, and mod integration from a single in-game interface.";
 ```
 
 ### action / actionURL
@@ -251,9 +252,10 @@ This keeps server-side logic private (never sent to clients) and reduces client 
 When you publish to Steam Workshop, the DayZ tools auto-generate a `meta.cpp` file:
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // Steam Workshop item ID
-timestamp = 1711000000;       // Unix timestamp of last update
+protocol = 1;
+publishedid = 2900000000;            // Steam Workshop item ID
+name = "My Mod";                     // Workshop item name
+timestamp = 5249975085759540888;     // Internal 64-bit value, NOT a Unix timestamp
 ```
 
 Do not edit `meta.cpp` manually. It is managed by the publishing tools.
@@ -322,87 +324,100 @@ type = "mod";
 
 ---
 
-## Real Examples
+## Worked Examples
 
-### Framework Mod (Client Mod)
+The examples below use the wiki's constructed **Lantern** mod family (by the fictional team Northlight). Each one demonstrates a different field subset you will encounter in published mods.
+
+### Lantern Missions (Development Stage)
+
+A mod still in development: image fields left empty, branding deferred until the code works.
 
 ```cpp
-name = "My Framework";
+name = "Lantern Missions";
 picture = "";
 actionURL = "";
-tooltipOwned = "My Framework - Central Admin Panel & Shared Library";
-overview = "My Framework provides a centralized admin panel and shared library for all framework mods. Manage configurations, permissions, and mod integration from a single in-game interface.";
-author = "Documentation Team";
-version = "1.0.0";
+tooltipOwned = "Lantern Missions - Dynamic Mission Framework";
+overview = "Lantern Missions adds dynamic, admin-configurable missions on top of Lantern Core.";
+author = "Northlight";
+version = "0.3.0";
 ```
 
-### Framework Server Mod (Minimal)
+### Lantern Missions Server (Minimal Server Mod)
+
+The server half of a split mod. Players never see it in the launcher, so metadata stays minimal.
 
 ```cpp
-name = "My Framework Server";
-author = "Documentation Team";
-version = "1.0.0";
+name = "Lantern Missions Server";
+author = "Northlight";
+version = "0.3.0";
 extra = 0;
+type = "servermod";
+```
+
+### Lantern Core (Full-Featured)
+
+A flagship client mod using every presentation field: all four image slots, tooltip, overview, a community link, and author metadata.
+
+```cpp
+name = "Lantern Core";
+picture = "Lantern_Core/GUI/images/lantern_logo_large.edds";
+logo = "Lantern_Core/GUI/images/lantern_logo.edds";
+logoSmall = "Lantern_Core/GUI/images/lantern_logo_small.edds";
+logoOver = "Lantern_Core/GUI/images/lantern_logo_hover.edds";
+tooltip = "Lantern Core - Admin Panel & Shared Library";
+overview = "Lantern Core provides a centralized admin panel and shared library for the Lantern mod family. Manage configurations, permissions, and mod integration from a single in-game interface.";
+action = "https://github.com/northlight/lantern";
+author = "Northlight";
+authorID = "76561198000000000";
+version = "1.2.0";
 type = "mod";
 ```
 
-### Community Framework
+### Lantern Server Tools (Optional Fields Omitted)
+
+This one deliberately omits `name`, `author`, and `version` to show which fields are truly optional -- everything except the visuals here could be dropped too.
 
 ```cpp
-name = "Community Framework";
-picture = "JM/CF/GUI/textures/cf_icon.edds";
-logo = "JM/CF/GUI/textures/cf_icon.edds";
-logoSmall = "JM/CF/GUI/textures/cf_icon.edds";
-logoOver = "JM/CF/GUI/textures/cf_icon.edds";
-tooltip = "Community Framework";
-overview = "This is a Community Framework for DayZ SA. One notable feature is it aims to resolve the issue of conflicting RPC type ID's and mods.";
-action = "https://github.com/Arkensor/DayZ-CommunityFramework";
-author = "CF Mod Team";
-authorID = "76561198103677868";
-version = "1.5.8";
+picture = "Lantern_Admin/data/lantern_admin_logo.edds";
+logoSmall = "Lantern_Admin/data/lantern_admin_logo_small.edds";
+logo = "Lantern_Admin/data/lantern_admin_logo.edds";
+logoOver = "Lantern_Admin/data/lantern_admin_logo.edds";
+tooltip = "Tools for administrating your DayZ server";
+overview = "Lantern Server Tools bundles moderation and diagnostics utilities for server owners.";
+action = "https://discord.gg/northlight";
 ```
 
-### VPP Admin Tools
+Note: with `name` omitted, the mod still works, but the launcher falls back to the folder name (e.g. `@Lantern_Admin`) as the display text.
+
+### Lantern UI Kit (With Localization)
+
+Every text field is a `$STR_` stringtable reference, so the launcher listing itself is translated. The keys must exist in the mod's **stringtable.csv** -- see [Stringtable & Localization](../05-config-files/01-stringtable.md).
 
 ```cpp
-picture = "VPPAdminTools/data/vpp_logo_m.paa";
-logoSmall = "VPPAdminTools/data/vpp_logo_ss.paa";
-logo = "VPPAdminTools/data/vpp_logo_s.paa";
-logoOver = "VPPAdminTools/data/vpp_logo_s.paa";
-tooltip = "Tools helping in administrative DayZ server tasks";
-overview = "V++ Admin Tools built for the DayZ community servers!";
-action = "https://discord.dayzvpp.com";
-```
-
-Note: VPP omits `name` and `author` -- it still works, but the mod name defaults to the folder name in the launcher.
-
-### DabsFramework (With Localization)
-
-```cpp
-name = "$STR_DF_NAME";
-picture = "DabsFramework/gui/images/dabs_framework_logo.paa";
-logo = "DabsFramework/gui/images/dabs_framework_logo.paa";
-logoSmall = "DabsFramework/gui/images/dabs_framework_logo.paa";
-logoOver = "DabsFramework/gui/images/dabs_framework_logo.paa";
-tooltip = "$STR_DF_TOOLTIP";
-overview = "$STR_DF_DESCRIPTION";
-action = "https://dab.dev";
-author = "$STR_DF_AUTHOR";
-authorID = "76561198247958888";
+name = "$STR_LNT_UIKIT_NAME";
+picture = "Lantern_UIKit/gui/images/lantern_uikit_logo.edds";
+logo = "Lantern_UIKit/gui/images/lantern_uikit_logo.edds";
+logoSmall = "Lantern_UIKit/gui/images/lantern_uikit_logo.edds";
+logoOver = "Lantern_UIKit/gui/images/lantern_uikit_logo.edds";
+tooltip = "$STR_LNT_UIKIT_TOOLTIP";
+overview = "$STR_LNT_UIKIT_DESCRIPTION";
+action = "https://github.com/northlight/lantern";
+author = "$STR_LNT_UIKIT_AUTHOR";
+authorID = "76561198000000000";
 version = "1.0";
 ```
 
-DabsFramework uses `$STR_` string table references for all text fields, enabling multi-language support for the mod listing itself.
+Using `$STR_` references for all text fields enables multi-language support for the mod listing itself.
 
-### AI Mod (Client Mod with Script Modules in mod.cpp)
+### Lantern AI (Script Modules in mod.cpp)
 
 ```cpp
-name = "My AI Mod";
+name = "Lantern AI";
 picture = "";
 actionURL = "";
-tooltipOwned = "My AI Mod - Intelligent Bot Framework for DayZ";
-overview = "Advanced AI bot framework with human-like perception, combat tactics, and developer API";
-author = "YourName";
+tooltipOwned = "Lantern AI - Intelligent Bot Framework for DayZ";
+overview = "AI bot framework with human-like perception, combat tactics, and a developer API";
+author = "Northlight";
 version = "1.0.0";
 type = "mod";
 dependencies[] = {"Game", "World", "Mission"};
@@ -411,22 +426,22 @@ class Defs
     class gameScriptModule
     {
         value = "";
-        files[] = {"MyMod_AI/Scripts/3_Game"};
+        files[] = {"Lantern_AI/Scripts/3_Game"};
     };
     class worldScriptModule
     {
         value = "";
-        files[] = {"MyMod_AI/Scripts/4_World"};
+        files[] = {"Lantern_AI/Scripts/4_World"};
     };
     class missionScriptModule
     {
         value = "";
-        files[] = {"MyMod_AI/Scripts/5_Mission"};
+        files[] = {"Lantern_AI/Scripts/5_Mission"};
     };
 };
 ```
 
-Note: This mod places script module definitions in `mod.cpp` rather than `config.cpp`. Both locations work -- the engine reads both files. However, the standard convention is to put `CfgMods` and script module definitions in `config.cpp`. Placing them in `mod.cpp` is an alternative approach used by some mods.
+Note: a `class Defs` block like this does appear in published mods' `mod.cpp` files, always alongside the same script module paths declared in `Scripts/config.cpp` under `CfgMods` (see [config.cpp Deep Dive](02-config-cpp.md)). It has no documented effect there. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page describes `mod.cpp` as an "optional config file, holds information for mod presentation" and lists only presentation keys for it, while placing `class defs` -- and the script module classes inside it -- under `CfgMods` in a PBO's `config.cpp`. Treat a `class Defs` block in `mod.cpp` as inert leftover rather than a second valid location, and declare your script modules in `config.cpp`.
 
 ---
 
@@ -475,15 +490,15 @@ type = "servermod";
 
 ---
 
-## Observed in Real Mods
+## Patterns Observed in Published Mods
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Localized `name` field | DabsFramework | Uses `$STR_DF_NAME` stringtable reference for multi-language mod listing |
-| Script modules in mod.cpp | Some AI mods | Place `class Defs` with script module paths directly in mod.cpp instead of config.cpp |
-| Missing `name` field | VPP Admin Tools | Omits `name` entirely; launcher falls back to folder name as display text |
-| All image fields identical | Community Framework | Sets `logo`, `logoSmall`, and `logoOver` to the same `.edds` file |
-| Empty image paths | Many early-stage mods | Leave `picture=""` during development; add branding before Workshop publish |
+| Pattern | Detail |
+|---------|--------|
+| Localized `name` field | A `$STR_` stringtable reference in `name` (and `tooltip`/`overview`) makes the launcher listing itself multi-language |
+| Script modules in mod.cpp | Some published mods carry a `class Defs` block with script module paths in `mod.cpp` in addition to the declaration in `config.cpp`'s `CfgMods`. Only the `config.cpp` one is documented; treat the `mod.cpp` copy as inert leftover (see note above) |
+| Missing `name` field | Some mods omit `name` entirely; the launcher falls back to the folder name as display text |
+| All image fields identical | Setting `logo`, `logoSmall`, and `logoOver` to the same `.edds` file is common when only one logo asset exists |
+| Empty image paths | Early-stage mods leave `picture=""` during development and add branding before Workshop publish |
 
 ---
 
@@ -503,8 +518,3 @@ type = "servermod";
 
 - **Multi-Mod:** `mod.cpp` has no effect on load order or dependencies. Two mods with identical field values will not conflict -- only `CfgPatches` class names in `config.cpp` can collide.
 - **Performance:** `mod.cpp` is read once at startup. Image files referenced here are loaded into memory for the launcher UI but have no in-game performance impact.
-
----
-
-**Previous:** [Chapter 2.2: config.cpp Deep Dive](02-config-cpp.md)
-**Next:** [Chapter 2.4: Your First Mod -- Minimum Viable](04-minimum-viable-mod.md)

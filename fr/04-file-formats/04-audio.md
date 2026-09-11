@@ -1,6 +1,5 @@
 # Chapitre 4.4 : Audio (.ogg, .wss)
 
-[Accueil](../README.md) | [<< Précédent : Matériaux](03-materials.md) | **Audio** | [Suivant : Flux de travail DayZ Tools >>](05-dayz-tools.md)
 
 ---
 
@@ -129,7 +128,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // Mise à l'échelle du volume (appliquée en plus du volume du shader)
         frequencyFactor = 1.0;       // Mise à l'échelle de la fréquence
-        volumeCurve = "InverseSquare"; // Nom de courbe d'atténuation prédéfinie
+        volumeCurve = "InverseSquare2Curve"; // Nom de classe de courbe d'atténuation CfgSoundCurves
         spatial = 1;                  // 1 = positionnel 3D, 0 = 2D (HUD/menu)
         doppler = 0;                  // 1 = activer l'effet Doppler
         loop = 0;                     // 1 = boucle continue
@@ -145,11 +144,11 @@ class CfgSoundSets
 | `volumeFactor` | float | Multiplicateur de volume supplémentaire appliqué en plus du volume du shader. |
 | `frequencyFactor` | float | Multiplicateur de fréquence/hauteur supplémentaire. |
 | `frequencyRandomizer` | float | Variation aléatoire de la hauteur (0.0 = aucune, 0.1 = +/- 10%). |
-| `volumeCurve` | string | Courbe d'atténuation nommée : `"InverseSquare"`, `"Linear"`, `"Logarithmic"`. |
+| `volumeCurve` | string | Nom d'une classe de courbe d'atténuation définie sous `CfgSoundCurves` (ex : `"InverseSquare2Curve"`, `"LinearCurve"`, `"defaultAmpAttenuationCurve"`). |
 | `spatial` | int | `1` pour l'audio positionnel 3D, `0` pour le 2D (interface, musique). |
 | `doppler` | int | `1` pour activer le décalage de hauteur Doppler pour les sources en mouvement. |
 | `loop` | int | `1` pour la boucle continue, `0` pour un coup unique. |
-| `distanceFilter` | int | `1` pour appliquer un filtre passe-bas à distance (sons lointains étouffés). |
+| `distanceFilter` | string | Nom d'une classe de filtre d'atténuation de distance/fréquence à appliquer à distance (ex : `"defaultDistanceFreqAttenuationFilter"`), étouffant les sons lointains. |
 | `occlusionFactor` | float | Combien les murs/le terrain étouffent le son (0.0 à 1.0). |
 | `obstructionFactor` | float | Combien les obstacles entre la source et l'auditeur affectent le son. |
 
@@ -221,7 +220,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -350,15 +349,15 @@ rangeCurve[] =
 
 Le moteur interpole linéairement entre les points définis. Vous pouvez créer n'importe quelle courbe d'atténuation en ajoutant plus de points de contrôle.
 
-### Courbes de volume prédéfinies
+### Classes de courbe de volume
 
-Les SoundSets peuvent référencer des courbes nommées via la propriété `volumeCurve` :
+Les SoundSets référencent des classes de courbe d'atténuation via la propriété `volumeCurve`. Les noms de courbes sont des noms de classes définis sous `class CfgSoundCurves` (les sons DZ vanilla en définissent de nombreux), et les mods peuvent soit référencer une classe existante, soit définir la leur. Il n'existe pas de préréglages bruts littéralement nommés `"InverseSquare"`, `"Linear"` ou `"Logarithmic"`. Les classes de courbe vanilla courantes incluent :
 
-| Nom de la courbe | Comportement |
+| Classe de courbe | Comportement |
 |------------|----------|
-| `"InverseSquare"` | Atténuation réaliste (volume = 1/distance^2). Son naturel. |
-| `"Linear"` | Atténuation uniforme du maximum à zéro sur la portée. |
-| `"Logarithmic"` | Fort de près, chute rapidement à moyenne distance, puis s'atténue lentement. |
+| `"InverseSquare2Curve"` | Atténuation réaliste (le volume diminue à peu près avec le carré de la distance). Son naturel. |
+| `"LinearCurve"` | Atténuation uniforme du maximum à zéro sur la portée. |
+| `"defaultAmpAttenuationCurve"` | Fort de près, chute rapidement à moyenne distance, puis s'atténue lentement. |
 
 ### Exemples pratiques d'atténuation
 
@@ -503,14 +502,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **Étape 4 : Référencer depuis la config de l'arme/objet**
 
-Pour les armes, le SoundSet est référencé dans la classe de configuration de l'arme :
+Pour les armes, les SoundSets de tir sont référencés avec un tableau `soundSetShot[]` à l'intérieur de la classe de mode de tir de l'arme. Utilisez `soundSetShotExt[]` pour les variantes avec silencieux :
 
 ```cpp
 class CfgWeapons
@@ -519,12 +518,9 @@ class CfgWeapons
     {
         // ... autre config ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };
@@ -658,7 +654,7 @@ frequencyRandomizer = 0.05;    // +/- 5% de variation de hauteur
 | Patron | Mod | Détail |
 |---------|-----|--------|
 | Sons de notification personnalisés via les SoundSets | Expansion (module Notification) | Définit plusieurs `CfgSoundSets` pour différents types de notifications (succès, avertissement, erreur) avec `spatial = 0` |
-| Sons de clic d'interface avec lecture en cache | VPP Admin Tools | Utilise `SEffectManager.PlaySoundCachedParams()` pour les clics de boutons afin d'éviter de re-parser la config à chaque fois |
+| Sons de clic d'interface via la scène sonore 2D | VPP Admin Tools | Joue les sons d'interface avec `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` (voir `VPPNotificationUI.c`) |
 | Audio d'arme multicouche (tir + traînée + claquement) | Packs d'armes communautaires (RFCP, MuchStuffPack) | Chaque arme définit 3 à 5 SoundSets séparés par événement de tir pour le tir rapproché, le grondement distant, le claquement supersonique |
 | `frequencyRandomizer` pour la variation des pas | DayZ Vanilla | Utilise une randomisation de hauteur de 0.05-0.08 sur les SoundSets de pas pour éviter la répétition robotique |
 

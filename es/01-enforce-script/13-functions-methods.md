@@ -1,6 +1,5 @@
 # Capítulo 1.13: Funciones y Métodos
 
-[Inicio](../README.md) | [<< Anterior: Gotchas](12-gotchas.md) | **Functions & Methods**
 
 ---
 
@@ -560,7 +559,7 @@ You call them like any other method. The key rule: **never try to override or re
 // Calling proto native methods — no different from script methods
 Object obj = GetGame().CreateObject("AKM", pos, false, false, true);
 vector position = obj.GetPosition();
-string typeName = obj.GetType();     // owned string — returned to you
+string typeName = obj.GetType();     // wrapper de script sobre g_Game.ObjectGetType()
 obj.SetPosition(newPos);             // native void — no return
 ```
 
@@ -767,17 +766,19 @@ class Calculator
 DayZ vanilla and mods follow a naming convention where an extended version of a method appends `Ex` to the name:
 
 ```c
-// From vanilla scripts — base version vs extended version
-void ExplosionEffects(Object source, Object directHit, int componentIndex);
+// De DayZGame — versión base vs versión extendida
+void ExplosionEffects(Object source, Object directHit, int componentIndex, string surface,
+    vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater,
+    string ammoType);
 void ExplosionEffectsEx(Object source, Object directHit, int componentIndex,
     float energyFactor, float explosionFactor, HitInfo hitInfo);
 
-// From EffectManager
-static void EffectUnregister(Effect effect);
+// De SEffectManager
+static void EffectUnregister(int id);
 static void EffectUnregisterEx(Effect effect);
 
-// From EntityAI
-void SplitIntoStackMax(EntityAI destination_entity, int slot_id);
+// La base está en ItemBase; la variante Ex está declarada en EntityAI
+void SplitIntoStackMax(EntityAI destination_entity, int slot_id, PlayerBase player);
 void SplitIntoStackMaxEx(EntityAI destination_entity, int slot_id);
 ```
 
@@ -1141,11 +1142,3 @@ class MyMission extends MissionServer
 | Kill thread | `KillThread(owner, "FnName")` | Stops a running coroutine |
 | Deferred call | `CallLater(Fn, delay, repeat)` | Preferred over threads |
 | `Ex()` convention | `void FnEx(...)` | Extended version of `Fn` |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.12 Gotchas](12-gotchas.md) | [Part 1: Enforce Script](../README.md) | -- |

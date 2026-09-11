@@ -1,6 +1,5 @@
-# Chapter 4.8: Building Modeling -- Doors & Ladders
+# Building Modeling -- Doors & Ladders
 
-[Home](../README.md) | [<< Previous: Workbench Guide](07-workbench-guide.md) | **Building Modeling**
 
 ---
 
@@ -24,8 +23,8 @@ This chapter covers the complete workflow for adding interactive doors and climb
 - [Overview](#introduction)
 - [Door Configuration](#door-configuration)
   - [Model Setup](#model-setup-for-doors)
-  - [model.cfg -- Skeletons and Animations](#modelcfg----skeletons-and-animations)
-  - [Game Config (config.cpp)](#game-config-configcpp)
+  - [model.cfg -- Skeletons and Animations](#model-cfg-skeletons-and-animations)
+  - [Game Config (config.cpp)](#game-config-config-cpp)
   - [Double Doors](#double-doors)
   - [Shifting Doors](#shifting-doors)
   - [Bounding Sphere Issues](#bounding-sphere-issues)
@@ -64,7 +63,7 @@ A door in the P3D model must include the following:
 
 #### Recommended Door Dimensions
 
-Almost all doors in vanilla DayZ are **120 x 220 cm** (width x height). Using these standard dimensions ensures animations look correct and characters fit through openings naturally. Model your doors **closed by default** and animate them to the open position -- Bohemia plans to support doors opening in both directions in the future.
+Almost all doors in vanilla DayZ are **120 x 220 cm** (width x height). Using these standard dimensions ensures animations look correct and characters fit through openings naturally. Model your doors **closed by default** and animate them to the open position.
 
 ### model.cfg -- Skeletons and Animations
 
@@ -443,7 +442,7 @@ A critical requirement is that **named selections must be consistent across all 
 
 ## Best Practices
 
-1. **Model doors closed by default.** Animate from closed to open. Bohemia plans to support opening doors in both directions, so starting from closed is future-proof.
+1. **Model doors closed by default.** Animate from closed to open. Keep the initial phase consistent with the model.
 
 2. **Use standard door dimensions.** Stick to 120 x 220 cm for door openings unless you have a specific design reason not to. This matches vanilla buildings and ensures character animations look correct.
 
@@ -496,8 +495,8 @@ A critical requirement is that **named selections must be consistent across all 
 
 - [Bohemia Interactive -- Doors on buildings](https://community.bistudio.com/wiki/DayZ:Doors_on_buildings) (official BI documentation)
 - [Bohemia Interactive -- Ladders on buildings](https://community.bistudio.com/wiki/DayZ:Ladders_on_buildings) (official BI documentation)
-- [DayZ Samples -- Test_Building](https://github.com/BohemiaInteractive/DayZ-Samples/tree/master/Test_Building) (working door sample)
-- [DayZ Samples -- Test_Ladders](https://github.com/BohemiaInteractive/DayZ-Samples/tree/master/Test_Ladders) (working ladder sample)
+- [DayZ Samples -- Test_Building](https://github.com/BohemiaInteractive/DayZ-Samples/tree/da5e5437c9502620d9853fb6eed14701135ab2ea/Test_Building) (working door sample)
+- [DayZ Samples -- Test_Ladders](https://github.com/BohemiaInteractive/DayZ-Samples/tree/da5e5437c9502620d9853fb6eed14701135ab2ea/Test_Ladders) (working ladder sample)
 - [Chapter 4.2: 3D Models](02-models.md) -- LOD system, named selections, `model.cfg` fundamentals
 
 ---

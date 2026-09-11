@@ -1,26 +1,25 @@
-# Chapter 9.4: Loot Economy Deep Dive
+# Loot Economy Deep Dive
 
-[Home](../README.md) | [<< Previous: serverDZ.cfg Reference](03-server-cfg.md) | **Loot Economy Deep Dive**
-
----
-
-> **Summary:** The Central Economy (CE) is the system that controls every item spawn in DayZ -- from a can of beans on a shelf to an AKM in a military barracks. This chapter explains the full spawn cycle, documents every field in `types.xml`, `globals.xml`, `events.xml`, and `cfgspawnabletypes.xml` with real examples from the vanilla server files, and covers the most common economy mistakes.
+> **Summary:** The Central Economy (CE) is the system that controls every item spawn in DayZ -- from a can of beans on a shelf to an AKM in a military barracks. This chapter is the reference for the loot-side CE files: the full spawn cycle, every field in `types.xml`, `globals.xml`, `cfgspawnabletypes.xml`, `cfgrandompresets.xml`, `cfgeconomycore.xml`, and `cfglimitsdefinition.xml`, with real values from the vanilla server files, plus the most common economy mistakes. Dynamic events (`events.xml`) are covered in [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md).
 
 ---
 
 ## Table of Contents
 
 - [How the Central Economy Works](#how-the-central-economy-works)
+- [The Economy File Set](#the-economy-file-set)
 - [The Spawn Cycle](#the-spawn-cycle)
 - [types.xml -- Item Spawn Definitions](#typesxml----item-spawn-definitions)
-- [Real types.xml Examples](#real-typesxml-examples)
-- [types.xml Field Reference](#typesxml-field-reference)
 - [globals.xml -- Economy Parameters](#globalsxml----economy-parameters)
 - [events.xml -- Dynamic Events](#eventsxml----dynamic-events)
 - [cfgspawnabletypes.xml -- Attachments and Cargo](#cfgspawnabletypesxml----attachments-and-cargo)
-- [cfgspawnabletypes.xml Expansion (1.28+)](#cfgspawnabletypesxml-expansion-128)
+- [cfgrandompresets.xml -- Reusable Loot Pools](#cfgrandompresetsxml----reusable-loot-pools)
+- [cfgeconomycore.xml -- Root Configuration](#cfgeconomycorexml----root-configuration)
+- [cfglimitsdefinition.xml -- Flag Definitions](#cfglimitsdefinitionxml----flag-definitions)
 - [The Nominal/Restock Relationship](#the-nominalrestock-relationship)
+- [Adding Modded Items to the Economy](#adding-modded-items-to-the-economy)
 - [Common Economy Mistakes](#common-economy-mistakes)
+- [Best Practices](#best-practices)
 
 ---
 
@@ -38,13 +37,36 @@ Key concepts:
 - **Restock** -- minimum time (in seconds) before the CE can respawn an item after it was taken/destroyed
 - **Flags** -- what counts toward the total (on map, in cargo, in player inventory, in stashes)
 
+The CE runs entirely on the server. Clients have no visibility into CE state, and none of the economy XML files are distributed to clients. Mod code can query and nudge the CE from script -- see [Central Economy Script API](../06-engine-api/10-central-economy.md).
+
+---
+
+## The Economy File Set
+
+All CE files live in the mission folder (e.g., `mpmissions/dayzOffline.chernarusplus/`). The `db/` files are the core database; the `cfg*` files sit at the mission root.
+
+| File | Purpose | Documented In |
+|------|---------|---------------|
+| `db/types.xml` | Every spawnable item's parameters | this chapter |
+| `db/globals.xml` | Global CE parameters (timers, limits) | this chapter |
+| `db/events.xml` | Dynamic event definitions (vehicles, crashes, infected, animals) | [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md) |
+| `db/economy.xml` | Subsystem toggle switches | this chapter (see cfgeconomycore) |
+| `db/messages.xml` | Scheduled server messages / restart warnings | [Server Configuration](03-server-cfg.md) |
+| `cfgeconomycore.xml` | Root classes, defaults, CE logging, custom file registration | this chapter |
+| `cfgspawnabletypes.xml` | Per-item attachment, cargo, and spawn-damage rules | this chapter |
+| `cfgrandompresets.xml` | Reusable random loot pools | this chapter |
+| `cfglimitsdefinition.xml` | All valid category, usage, tag, and value flag names | this chapter |
+| `cfgeventspawns.xml` | World coordinates for event spawn positions | [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md) |
+| `cfgplayerspawnpoints.xml` | Fresh spawn locations | [Player Spawning](06-player-spawning.md) |
+| `cfgignorelist.xml` | Items excluded from the economy | this chapter |
+
 ---
 
 ## The Spawn Cycle
 
 ```mermaid
 flowchart TD
-    A["CE Loop Tick<br/>(every ~30 seconds)"] --> B["For each item type<br/>in types.xml"]
+    A["CE Loop Tick"] --> B["For each item type<br/>in types.xml"]
     B --> C{"Count current<br/>instances on map"}
     C --> D{"Current count<br/>≥ nominal?"}
     D -- Yes --> E["Skip — enough exist"]
@@ -179,10 +201,6 @@ Bandages are very common (40 nominal). They spawn in Medic buildings (hospitals,
 
 `nominal=0` and `min=0` means the CE will never spawn this item. `crafted=1` indicates it can only be obtained through crafting (painting a weapon). It still has a lifetime so persisted instances eventually clean up.
 
----
-
-## types.xml Field Reference
-
 ### Core Fields
 
 | Field | Type | Range | Description |
@@ -194,7 +212,7 @@ Bandages are very common (40 nominal). They spawn in Medic buildings (hospitals,
 | `restock` | int | seconds | Minimum cooldown before the CE can spawn a replacement. 0 = immediate. |
 | `quantmin` | int | -1 to 100 | Minimum quantity percentage when spawned (ammo %, liquid %). -1 = not applicable. |
 | `quantmax` | int | -1 to 100 | Maximum quantity percentage when spawned. -1 = not applicable. |
-| `cost` | int | 0+ | Priority weight for spawn selection. Currently all vanilla items use 100. |
+| `cost` | int | 0+ | Priority weight used during respawn/cleanup. Almost all vanilla items use 100, but a few use higher values (e.g. `Mag_SVD_10Rnd` uses 1000). |
 
 ### Flags
 
@@ -205,13 +223,13 @@ Bandages are very common (40 nominal). They spawn in Medic buildings (hospitals,
 | Flag | Values | Description |
 |------|--------|-------------|
 | `count_in_map` | 0, 1 | Count items lying on the ground or in building spawn points. **Almost always 1.** |
-| `count_in_cargo` | 0, 1 | Count items inside other containers (backpacks, tents). |
-| `count_in_hoarder` | 0, 1 | Count items in stashes, barrels, buried containers, tents. |
+| `count_in_cargo` | 0, 1 | Count items inside other containers (backpacks, vehicle cargo). |
+| `count_in_hoarder` | 0, 1 | Count items inside hoarder containers -- stashes, barrels, tents, buried containers (see the `<hoarder/>` tag in cfgspawnabletypes.xml below). |
 | `count_in_player` | 0, 1 | Count items in player inventory (on body or in hands). |
 | `crafted` | 0, 1 | When 1, this item is only obtainable through crafting, not CE spawning. |
 | `deloot` | 0, 1 | Dynamic Event loot. When 1, the item only spawns at dynamic event locations (helicrashes, etc.). |
 
-**Flag strategy matters.** If `count_in_player=1`, every AKM a player is carrying counts toward the nominal. This means picking up an AKM would not trigger a respawn because the count did not change. Most vanilla items use `count_in_player=0` so that player-held items do not block respawns.
+**Flag strategy matters.** If `count_in_player=1`, every AKM a player is carrying counts toward the nominal. This means picking up an AKM would not trigger a respawn because the count did not change. Most vanilla items use `count_in_player=0` so that player-held items do not block respawns. The same logic applies to `count_in_hoarder`: with it set to 0, rare items squirreled away in barrels and buried stashes stop counting toward nominal, and the CE keeps spawning fresh copies into the world.
 
 ### Tags
 
@@ -222,17 +240,11 @@ Bandages are very common (40 nominal). They spawn in Medic buildings (hospitals,
 | `<value name="..."/>` | Map tier zone where this item can spawn | `cfglimitsdefinition.xml` |
 | `<tag name="..."/>` | Spawn position type within a building | `cfglimitsdefinition.xml` |
 
-**Valid categories:** `tools`, `containers`, `clothes`, `food`, `weapons`, `books`, `explosives`, `lootdispatch`
-
-**Valid usage flags:** `Military`, `Police`, `Medic`, `Firefighter`, `Industrial`, `Farm`, `Coast`, `Town`, `Village`, `Hunting`, `Office`, `School`, `Prison`, `Lunapark`, `SeasonalEvent`, `ContaminatedArea`, `Historical`
-
-**Valid value flags:** `Tier1`, `Tier2`, `Tier3`, `Tier4`, `Unique`
-
-**Valid tags:** `floor`, `shelves`, `ground`
-
 An item can have **multiple** `<usage>` and `<value>` tags. Multiple usages mean it can spawn in any of those building types. Multiple values mean it can spawn in any of those tiers.
 
 If you omit `<value>` entirely, the item spawns in **all** tiers. If you omit `<usage>`, the item has no valid spawn location and will **not spawn**.
+
+The full lists of valid names live in `cfglimitsdefinition.xml` -- see [below](#cfglimitsdefinitionxml----flag-definitions).
 
 ---
 
@@ -275,7 +287,7 @@ This file controls global CE behavior. Every parameter from the vanilla file:
 </variables>
 ```
 
-The `type` attribute indicates data type: `0` = integer, `1` = float.
+The `type` attribute indicates data type: `0` = integer, `1` = float, `2` = string. Server mods can also read these values (and custom variables you add) from script via `GetCEApi().GetCEGlobalInt()` -- see [Central Economy Script API](../06-engine-api/10-central-economy.md#reading-globalsxml-from-script).
 
 ### Complete Parameter Reference
 
@@ -303,7 +315,7 @@ The `type` attribute indicates data type: `0` = integer, `1` = float.
 | **RespawnLimit** | int | 20 | Maximum number of items the CE will respawn per cycle. |
 | **RespawnTypes** | int | 12 | Maximum number of different item types processed per respawn cycle. |
 | **RestartSpawn** | int | 0 | When 1, re-randomize all loot positions on server restart. When 0, load from persistence. |
-| **SpawnInitial** | int | 1200 | Number of items to spawn during the initial economy population on first start. |
+| **SpawnInitial** | int | 1200 | Number of spawn attempts (tests) allowed during the initial economy population -- not a count of items spawned. The amount of loot placed on first start is governed by `InitialSpawn`. |
 | **TimeHopping** | int | 60 | Cooldown in seconds preventing a player from reconnecting to the same server (anti-server-hop). |
 | **TimeLogin** | int | 15 | Login countdown timer in seconds (the "Please wait" timer when connecting). |
 | **TimeLogout** | int | 15 | Logout countdown timer in seconds. Player remains in the world during this time. |
@@ -337,85 +349,7 @@ The `type` attribute indicates data type: `0` = integer, `1` = float.
 
 ## events.xml -- Dynamic Events
 
-Events define spawns for entities that need special handling: animals, vehicles, and helicopter crashes. Unlike `types.xml` items which spawn inside buildings, events spawn at predefined world positions listed in `cfgeventspawns.xml`.
-
-### Real Vehicle Event Example
-
-```xml
-<event name="VehicleCivilianSedan">
-    <nominal>8</nominal>
-    <min>5</min>
-    <max>11</max>
-    <lifetime>300</lifetime>
-    <restock>0</restock>
-    <saferadius>500</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
-    <flags deletable="0" init_random="0" remove_damaged="1"/>
-    <position>fixed</position>
-    <limit>mixed</limit>
-    <active>1</active>
-    <children>
-        <child lootmax="0" lootmin="0" max="5" min="3" type="CivilianSedan"/>
-        <child lootmax="0" lootmin="0" max="5" min="3" type="CivilianSedan_Black"/>
-        <child lootmax="0" lootmin="0" max="5" min="3" type="CivilianSedan_Wine"/>
-    </children>
-</event>
-```
-
-### Real Animal Event Example
-
-```xml
-<event name="AnimalBear">
-    <nominal>0</nominal>
-    <min>2</min>
-    <max>2</max>
-    <lifetime>180</lifetime>
-    <restock>0</restock>
-    <saferadius>200</saferadius>
-    <distanceradius>0</distanceradius>
-    <cleanupradius>0</cleanupradius>
-    <flags deletable="0" init_random="0" remove_damaged="1"/>
-    <position>fixed</position>
-    <limit>custom</limit>
-    <active>1</active>
-    <children>
-        <child lootmax="0" lootmin="0" max="1" min="1" type="Animal_UrsusArctos"/>
-    </children>
-</event>
-```
-
-### Event Field Reference
-
-| Field | Description |
-|-------|-------------|
-| `name` | Event identifier. Must match an entry in `cfgeventspawns.xml` for `position="fixed"` events. |
-| `nominal` | Target number of active event groups on the map. |
-| `min` | Minimum group members per spawn point. |
-| `max` | Maximum group members per spawn point. |
-| `lifetime` | Seconds before the event is cleaned up and respawned. For vehicles, this is the respawn check interval, not the vehicle's persistence lifetime. |
-| `restock` | Minimum seconds between respawns. |
-| `saferadius` | Minimum distance in meters from a player for the event to spawn. |
-| `distanceradius` | Minimum distance between two instances of the same event. |
-| `cleanupradius` | Distance from any player below which the event will NOT be cleaned up. |
-| `deletable` | Whether the event can be deleted by the CE (0 = no). |
-| `init_random` | Randomize initial positions (0 = use fixed positions). |
-| `remove_damaged` | Remove the event entity if it becomes damaged/ruined (1 = yes). |
-| `position` | `"fixed"` = use positions from `cfgeventspawns.xml`. `"player"` = spawn near players. |
-| `limit` | `"child"` = limit per child type. `"mixed"` = limit across all children. `"custom"` = special behavior. |
-| `active` | 1 = enabled, 0 = disabled. |
-
-### Children
-
-Each `<child>` element defines a variant that can spawn:
-
-| Attribute | Description |
-|-----------|-------------|
-| `type` | Class name of the entity to spawn. |
-| `min` | Minimum instances of this variant (for `limit="child"`). |
-| `max` | Maximum instances of this variant (for `limit="child"`). |
-| `lootmin` | Minimum number of loot items spawned inside/on the entity. |
-| `lootmax` | Maximum number of loot items spawned inside/on the entity. |
+Vehicles, helicopter crashes, animals, infected zones, and other dynamic events do **not** spawn through `types.xml`. They are configured in `db/events.xml` together with `cfgeventspawns.xml` (positions) and `cfgeventgroups.xml` (grouped formations). The full field reference with real vanilla values is in [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md).
 
 ---
 
@@ -428,7 +362,7 @@ This file defines what attachments, cargo, and damage state an item has when it 
 ```xml
 <type name="AKM">
     <damage min="0.45" max="0.85" />
-    <attachments chance="1.00">
+    <attachments chance="0.25">
         <item name="AK_PlasticBttstck" chance="1.00" />
     </attachments>
     <attachments chance="1.00">
@@ -441,7 +375,7 @@ This file defines what attachments, cargo, and damage state an item has when it 
     <attachments chance="0.05">
         <item name="AK_Suppressor" chance="1.00" />
     </attachments>
-    <attachments chance="0.30">
+    <attachments chance="0.1">
         <item name="Mag_AKM_30Rnd" chance="1.00" />
     </attachments>
 </type>
@@ -450,10 +384,10 @@ This file defines what attachments, cargo, and damage state an item has when it 
 Reading this entry:
 
 1. The AKM spawns with damage between 45-85% (worn to badly damaged)
-2. It **always** (100%) gets a plastic buttstock and handguard
-3. 50% chance of an optic slot being filled -- if it is, 30% chance for Kashtan, 20% for PSO-11
+2. It **always** (100%) gets a plastic handguard, but only a 25% chance of a buttstock
+3. 50% chance of the optic slot being rolled -- if it is, 30% chance for Kashtan, 20% for PSO-11
 4. 5% chance of a suppressor
-5. 30% chance of a loaded magazine
+5. 10% chance of a loaded magazine
 
 Each `<attachments>` block represents one attachment slot. The `chance` on the block is the probability of that slot being populated at all. The `chance` on each `<item>` within is relative selection weight -- the CE picks one item from the list using these as weights.
 
@@ -472,7 +406,7 @@ Each `<attachments>` block represents one attachment slot. The `chance` on the b
         <item name="BUISOptic" chance="0.50" />
         <item name="M4_CarryHandleOptic" chance="1.00" />
     </attachments>
-    <attachments chance="0.30">
+    <attachments chance="0.1">
         <item name="Mag_CMAG_40Rnd" chance="0.15" />
         <item name="Mag_CMAG_10Rnd" chance="0.50" />
         <item name="Mag_CMAG_20Rnd" chance="0.70" />
@@ -507,7 +441,7 @@ Each `<attachments>` block represents one attachment slot. The `chance` on the b
 
 The `preset` attribute references a loot pool defined in `cfgrandompresets.xml`. Each `<cargo>` line is one roll -- this backpack gets 3 rolls from the `mixArmy` pool. The pool's own `chance` value determines if each roll actually produces an item.
 
-### Hoarder-Only Items
+### Hoarder Containers
 
 ```xml
 <type name="Barrel_Blue">
@@ -518,7 +452,7 @@ The `preset` attribute references a loot pool defined in `cfgrandompresets.xml`.
 </type>
 ```
 
-The `<hoarder />` tag marks items as hoarder containers. The CE counts items inside these separately using the `count_in_hoarder` flag from `types.xml`.
+The `<hoarder />` tag marks storage containers -- in vanilla: the four barrel colors, all tents, `SeaChest`, `SmallProtectorCase`, `WoodenCrate`, and `UndergroundStash`. Items stored inside a hoarder container are counted by the CE **only** for types whose `types.xml` entry sets `count_in_hoarder="1"`. For everything else, stashed items silently leave the economy: the CE no longer sees them and keeps spawning fresh copies into the world. This counting behavior is the entire meaning of the tag -- it is how the economy decides whether hoarded loot suppresses respawns or not.
 
 ### Spawn Damage Override
 
@@ -532,94 +466,171 @@ Forces bandages to always spawn in Pristine condition, overriding the global `Lo
 
 ---
 
-## cfgspawnabletypes.xml Expansion (1.28+)
+## cfgrandompresets.xml -- Reusable Loot Pools
 
-DayZ 1.28 significantly expanded what `cfgspawnabletypes.xml` can do. You can now spawn weapons fully loaded with attachments, cargo, and even chambered rounds.
-
-### quantmin / quantmax for Stack Sizes
-
-Control how full stackable items spawn (0-100%):
+Defines named `cargo` and `attachments` pools that `cfgspawnabletypes.xml` references via the `preset` attribute. A real vanilla example:
 
 ```xml
-<type name="Ammo_556x45">
-    <cargo>
-        <item name="Ammo_556x45" quantmin="50" quantmax="100" />
+<randompresets>
+    <cargo chance="0.15" name="foodHermit">
+        <item name="TunaCan" chance="0.11" />
+        <item name="SardinesCan" chance="0.11" />
+        <item name="Apple" chance="0.07" />
     </cargo>
-</type>
+</randompresets>
 ```
 
-The `quantmin` and `quantmax` attributes on nested `<item>` elements work the same as in `types.xml` -- they set the percentage range for quantity-based items like ammunition and liquids. A value of `50` means the item spawns at least half full.
+How a roll works:
 
-### Nested Item Cargo and Attachments
+1. A `<cargo preset="foodHermit"/>` line in `cfgspawnabletypes.xml` triggers one roll.
+2. The pool's own `chance` (here 0.15) decides whether the roll produces anything at all.
+3. If it does, one item is picked from the list using the per-item `chance` values as relative weights.
 
-Items spawned inside other items can themselves have attachments and cargo:
+Because presets are shared, one edit rebalances every container that references the pool. Vanilla uses this heavily: `mixArmy`, `foodVillage`, `toolsTools`, and dozens of other pools feed backpacks, wrecks, and infected inventories.
+
+---
+
+## cfgeconomycore.xml -- Root Configuration
+
+Root-level CE configuration at the mission root. It defines the **root classes** the economy recognizes, default toggles (including CE logging), and optionally registers custom economy files. The vanilla Chernarus file:
 
 ```xml
-<type name="M4A1">
-    <attachments>
-        <item name="M4_RISHndgrd" />
-        <item name="M68Optic" />
-    </attachments>
-    <cargo>
-        <item name="Mag_STANAG_30Rnd" quantmin="50" quantmax="100" />
-    </cargo>
-</type>
+<economycore>
+    <classes>
+        <rootclass name="DefaultWeapon" />
+        <rootclass name="DefaultMagazine" />
+        <rootclass name="Inventory_Base" />
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no" />
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no" />
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no" />
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no" />
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no" />
+    </classes>
+    <defaults>
+        <default name="dyn_radius" value="30" />
+        <default name="dyn_smin" value="0" />
+        <default name="dyn_smax" value="0" />
+        <default name="dyn_dmin" value="1" />
+        <default name="dyn_dmax" value="5" />
+        <default name="log_ce_loop" value="false"/>
+        <default name="log_ce_dynamicevent" value="false"/>
+        <default name="log_ce_vehicle" value="false"/>
+        <default name="log_ce_lootspawn" value="false"/>
+        <default name="log_ce_lootcleanup" value="false"/>
+        <default name="log_ce_lootrespawn" value="false"/>
+        <default name="log_ce_statistics" value="false"/>
+        <default name="log_ce_zombie" value="false"/>
+        <default name="log_storageinfo" value="false"/>
+        <default name="log_hivewarning" value="true"/>
+        <default name="log_missionfilewarning" value="true"/>
+        <default name="save_events_startup" value="true"/>
+        <default name="save_types_startup" value="true"/>
+    </defaults>
+</economycore>
 ```
 
-This spawns an M4A1 with a RIS handguard and M68 optic attached, plus a STANAG magazine in its cargo that is 50-100% full. Before 1.28, cargo items could not have their own quantity set inline.
+Notes:
 
-### Nested Damage min/max
+- **Root classes** tell the CE which config base classes it should track. Character-like roots need `act="character"`, movable vehicles need `act="car"`.
+- The `log_ce_*` defaults switch on per-subsystem CE logging -- invaluable when debugging why an item does not spawn.
+- The core CE files (`types.xml`, `events.xml`, `globals.xml`) live in `db/` by built-in convention; vanilla does not point at them from here.
 
-Control the damage state of nested items independently from the parent:
+### Registering Custom Economy Files
+
+The `<ce>` element (supported since game update 1.08) registers **additional** CE files so mods and admins can append to the economy without editing the vanilla files:
 
 ```xml
-<type name="AKM">
-    <attachments>
-        <item name="AK_Bayonet">
-            <damage min="0.0" max="0.3" />
-        </item>
-    </attachments>
-</type>
+<economycore>
+    <!-- classes and defaults as above -->
+    <ce folder="custom">
+        <file name="np_types.xml" type="types" />
+        <file name="np_spawnabletypes.xml" type="spawnabletypes" />
+    </ce>
+</economycore>
 ```
 
-The bayonet spawns between Pristine and Worn condition, regardless of the AKM's own damage state. This lets you ensure that valuable attachments spawn in better condition than the weapon itself.
+- `folder` names a directory inside the mission folder holding your custom XML.
+- Each `<file>` entry appends to (or overrides matching entries of) the corresponding vanilla file. Valid `type` values: `types`, `spawnabletypes`, `globals`, `economy`, `events`, `messages`.
+- Multiple `<ce>` blocks are allowed, so each mod can ship its own folder of economy files.
 
-### Weapons with Chambered Rounds (1.28+)
+This is the cleanest way to add modded items to the economy -- your additions survive vanilla mission updates because the stock files stay untouched.
 
-Weapons can now spawn with a bullet chambered and bullets in the internal magazine:
+---
+
+## cfglimitsdefinition.xml -- Flag Definitions
+
+Defines every valid `category`, `tag`, `usage`, and `value` name that `types.xml` may reference. The complete vanilla Chernarus file:
 
 ```xml
-<type name="Mosin9130">
-    <!-- Weapon spawns with rounds in internal magazine -->
-</type>
+<lists>
+    <categories>
+        <category name="tools"/>
+        <category name="containers"/>
+        <category name="clothes"/>
+        <category name="lootdispatch"/>
+        <category name="food"/>
+        <category name="weapons"/>
+        <category name="books"/>
+        <category name="explosives"/>
+    </categories>
+    <tags>
+        <tag name="floor"/>
+        <tag name="shelves"/>
+        <tag name="ground"/>
+    </tags>
+    <usageflags>
+        <usage name="Military"/>
+        <usage name="Police"/>
+        <usage name="Medic"/>
+        <usage name="Firefighter"/>
+        <usage name="Industrial"/>
+        <usage name="Farm"/>
+        <usage name="Coast"/>
+        <usage name="Town"/>
+        <usage name="Village"/>
+        <usage name="Hunting"/>
+        <usage name="Office"/>
+        <usage name="School"/>
+        <usage name="Prison"/>
+        <usage name="Lunapark"/>
+        <usage name="SeasonalEvent"/>
+        <usage name="ContaminatedArea"/>
+        <usage name="Historical"/>
+    </usageflags>
+    <valueflags>
+        <value name="Tier1"/>
+        <value name="Tier2"/>
+        <value name="Tier3"/>
+        <value name="Tier4"/>
+        <value name="Unique"/>
+    </valueflags>
+</lists>
 ```
 
-This is configured via `cfgspawnabletypes.xml` in combination with `randompresets.xml`. The preset system handles the round type and count, while the spawnable type entry ties the weapon to the preset.
+Using a name in `types.xml` that is not defined here causes the entry to be rejected (watch the server log for CE warnings).
 
-### Nested Presets via equip="true"
+### User Flag Groups -- cfglimitsdefinitionuser.xml
 
-Reference preset loadouts for spawned items using the `equip` attribute:
+`cfglimitsdefinitionuser.xml` defines **named combinations** of usage/value flags, so common groupings get one label:
 
 ```xml
-<type name="M4A1">
-    <attachments preset="M4Preset" equip="true" />
-</type>
+<user_lists>
+    <usageflags>
+        <user name="TownVillage">
+            <usage name="Town" />
+            <usage name="Village" />
+        </user>
+    </usageflags>
+    <valueflags>
+        <user name="Tier12">
+            <value name="Tier1" />
+            <value name="Tier2" />
+        </user>
+    </valueflags>
+</user_lists>
 ```
 
-When `equip="true"` is set, the preset is applied as a full equipment loadout on the spawned item rather than selecting a single random item from the preset pool. This is useful for defining complete weapon configurations as reusable presets.
-
-### randompresets.xml Now Appendable
-
-Starting in 1.28, `randompresets.xml` can be appended via `cfgeconomycore.xml`, letting mods add presets without overwriting vanilla:
-
-```xml
-<!-- In cfgeconomycore.xml -->
-<ce folder="db">
-    <file name="my_presets.xml" type="randompresets" />
-</ce>
-```
-
-This is a significant improvement for mod compatibility. Previously, any mod that needed custom random presets had to replace the entire `randompresets.xml` file, causing conflicts when multiple mods were loaded. Now each mod can ship its own preset file and register it through `cfgeconomycore.xml`.
+A `types.xml` entry can then use `<usage user="TownVillage"/>` instead of listing both flags. Mods that introduce new usage or value flags register them in these files (append via the same mechanism described for custom economy files above, or edit the mission copy).
 
 ---
 
@@ -663,6 +674,28 @@ IF (current_count < min) AND (time_since_last_spawn > restock):
 
 ---
 
+## Adding Modded Items to the Economy
+
+The full workflow for making a custom item spawn naturally:
+
+1. **Define the item class** in your mod's `config.cpp` under `CfgVehicles` (see [config.cpp Structure](../02-mod-structure/02-config-cpp.md)).
+2. **Add a `<type>` entry** with `nominal`, `min`, `lifetime`, `usage`, and `value` -- ideally in a custom file registered through `cfgeconomycore.xml` rather than by editing the vanilla `types.xml`.
+3. **Optionally add attachment/cargo rules** in a custom `spawnabletypes` file.
+4. **If you need new usage/value flags**, define them in `cfglimitsdefinition.xml` / `cfglimitsdefinitionuser.xml`.
+5. **Restart the server** -- CE changes only take effect on restart.
+
+**Disabling an unwanted item** works the other way around -- set its counts to zero:
+
+```xml
+<type name="UnwantedItem">
+    <nominal>0</nominal>
+    <min>0</min>
+    <!-- rest of the entry unchanged -->
+</type>
+```
+
+---
+
 ## Common Economy Mistakes
 
 ### Item Has a types.xml Entry But Does Not Spawn
@@ -699,9 +732,9 @@ Check your `<value>` tags. If an item only has `<value name="Tier4"/>`, it will 
 
 ### Modded Items Not Spawning
 
-When adding items from a mod to `types.xml`:
+When adding items from a mod to the economy:
 
-1. Make sure the mod is loaded (listed in `-mod=` parameter)
+1. Make sure the mod is loaded (listed in the `-mod=` parameter)
 2. Verify the class name is **exactly** correct (case-sensitive)
 3. Add the item's category/usage/value tags -- just having a `types.xml` entry is not enough
 4. If the mod adds new usage or value tags, add them to `cfglimitsdefinitionuser.xml`
@@ -724,4 +757,13 @@ After editing economy files, do one of:
 
 ---
 
-**Previous:** [serverDZ.cfg Reference](03-server-cfg.md) | [Home](../README.md) | **Next:** [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md)
+## Best Practices
+
+- **Set `count_in_hoarder="1"` for high-value items.** Without this flag, players can hoard rare weapons in stashes without reducing the world spawn count, effectively multiplying the item's presence on the server.
+- **Keep `restock` at 0 for most items.** Non-zero restock values delay respawning after an item is picked up. Use it only for items that should not immediately reappear (e.g., rare military gear).
+- **Register custom files through `cfgeconomycore.xml`** instead of editing `types.xml` directly. Your changes survive vanilla mission updates and stay diffable per mod.
+- **Test nominal/min ratios on a live server with players.** Static testing does not reveal real CE behavior. Items interact with player movement patterns, container storage, and cleanup timers in ways that are only visible under real load.
+- **Always define new items in both `config.cpp` and the economy files.** A config entry without a types entry means the item never spawns naturally. A types entry without a config class causes CE errors in the log.
+- **Use `cfgspawnabletypes.xml` to create weapon variety.** Instead of spawning naked weapons, define attachment presets so players find weapons with random stocks, handguards, and magazines -- this dramatically improves loot quality perception.
+- **Watch collisions between mods.** If two loaded economy files define the same `<type name="">`, the last one loaded wins. Use unique class names, and merge community-server economy files deliberately.
+- **Keep nominals realistic.** High `nominal` values (200+) across many types strain the CE's periodic scans, which scale with the total tracked entity count -- 5-20 for weapons and 20-100 for common items is the vanilla ballpark.

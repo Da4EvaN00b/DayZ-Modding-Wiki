@@ -1,6 +1,5 @@
 # Enforce Script Cheat Sheet
 
-[Home](./README.md) | **Cheat Sheet**
 
 ---
 
@@ -30,7 +29,7 @@
 | Method | Returns | Notes |
 |--------|---------|-------|
 | `Insert(item)` | `int` (index) | Append |
-| `InsertAt(item, idx)` | `void` | Insert at position |
+| `InsertAt(item, idx)` | `int` (count) | Insert at position |
 | `Get(idx)` / `arr[idx]` | `T` | Access by index |
 | `Set(idx, item)` | `void` | Replace at index |
 | `Find(item)` | `int` | Index or -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Reverse |
 | `GetRandomElement()` | `T` | Random pick |
 | `InsertAll(other)` | `void` | Append all from other |
-| `Copy(other)` | `void` | Replace with copy |
+| `Copy(other)` | `int` (count) | Replace with copy |
 | `Resize(n)` | `void` | Resize (fills defaults) |
 | `Reserve(n)` | `void` | Pre-allocate capacity |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifies in-place, returns count |
 | `s.ToLower()` | `int` (length) | **In-place!** |
 | `s.ToUpper()` | `int` (length) | **In-place!** |
-| `s.TrimInPlace()` | `void` | **In-place!** |
+| `s.TrimInPlace()` | `int` (length) | **In-place!** |
 | `s.Split(delim, out arr)` | `void` | Splits into TStringArray |
 | `s.Get(idx)` | `string` | Single char |
 | `s.Set(idx, ch)` | `void` | Replace char |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Check IsAlive (Requires EntityAI)
+### Check IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() is defined on base Object (returns !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Foreach Map Iteration
@@ -247,24 +246,20 @@ flags = flags & ~FLAG_B;          // remove
 
 ## What Does NOT Exist
 
+The ten you hit most. The full list lives in [1.12 Gotchas](01-enforce-script/12-gotchas.md), which also corrects two claims that circulate widely but are false: `\\` and `\"` *are* supported escape sequences, and method overloading *does* compile.
+
 | Missing Feature | Workaround |
 |----------------|------------|
 | Ternary `? :` | `if/else` |
 | `do...while` | `while(true) { ... break; }` |
 | `try/catch` | Guard clauses + early return |
 | Multiple inheritance | Single + composition |
-| Operator overloading | Named methods (except `[]` via Get/Set) |
 | Lambdas | Named methods |
 | `nullptr` | `null` / `NULL` |
-| `\\` / `\"` in strings | Avoid (CParser breaks) |
+| Variadic params (`params`, `...`) | Do not exist — Bohemia's syntax reference states function parameters are "fixed and typed (cannot be changed during run-time, no variadic parameters)"; use `string.Format` (max 9 args, `enstring.c:526`) or pass an `array<T>` |
 | `#include` | config.cpp `files[]` |
-| Namespaces | Name prefixes (`MyMod_`, `VPP_`) |
-| Interfaces / abstract | Empty base methods |
-| switch fall-through | Works like C/C++ — use `break` |
+| Namespaces | Name prefixes (`LNT_`, `YourTag_`) |
 | `#define` values | Use `const` |
-| Default param expressions | Literals/NULL only |
-| Variadic params | `string.Format` or arrays |
-| Variable redeclaration in else-if | Unique names per branch |
 
 ---
 
@@ -290,37 +285,40 @@ root.Show(false);
 
 ## RPC Pattern
 
-**Register (server):**
-```c
-// In 3_Game or 4_World init:
-GetGame().RPCSingleParam(null, MY_RPC_ID, null, true, identity);  // Engine RPC
+The engine RPC is `ScriptRPC`: build it, `Write()` each value in order, then `Send()`. Called on the client it runs on the server; called on the server it runs on the target's clients.
 
-// Or with string-routed RPC (MyRPC / CF):
-GetRPCManager().AddRPC("MyMod", "RPC_Handler", this, 2);  // CF
-MyRPC.Register("MyMod", "MyRoute", this, MyRPCSide.SERVER);  // MyMod
+**Define an ID** (a plain constant avoids clashing with engine `ERPCs`):
+```c
+const int RPC_LNT_SYNC = 12000;
 ```
 
-**Send (client to server):**
+**Send:**
 ```c
-Param2<string, int> data = new Param2<string, int>("itemName", 5);
-GetGame().RPCSingleParam(null, MY_RPC_ID, data, true);
+// Send from one side; identity = a specific client, or null for all clients.
+ScriptRPC rpc = new ScriptRPC();
+rpc.Write("itemName");
+rpc.Write(5);
+rpc.Send(target, RPC_LNT_SYNC, true, identity);  // guaranteed = true
 ```
 
-**Receive (server handler):**
+**Receive** — override `OnRPC` on the target entity (e.g. `modded class PlayerBase`):
 ```c
-void RPC_Handler(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
+override void OnRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
 {
-    if (type != CallType.Server) return;
-    if (!sender) return;
+    super.OnRPC(sender, rpc_type, ctx);
 
-    Param2<string, int> data;
-    if (!ctx.Read(data)) return;
-
-    string itemName = data.param1;
-    int quantity = data.param2;
-    // Process...
+    if (rpc_type == RPC_LNT_SYNC)
+    {
+        string itemName;
+        int quantity;
+        if (!ctx.Read(itemName)) return;
+        if (!ctx.Read(quantity)) return;
+        // Process...
+    }
 }
 ```
+
+For a string-routed RPC router (register handlers by name instead of numeric IDs), see [7.3 RPC Patterns](07-patterns/03-rpc-patterns.md) — that chapter builds `LNT_RPC` end to end.
 
 ---
 
@@ -343,9 +341,16 @@ string stack; DumpStackString(stack);             // Get call stack (out param)
 bool exists = FileExist("$profile:MyMod/config.json");
 MakeDirectory("$profile:MyMod");
 
-// JSON
+// JSON (preferred: returns bool + error message)
 MyConfig cfg = new MyConfig();
-JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);  // Returns VOID!
+string jsonErr;
+bool ok = JsonFileLoader<MyConfig>.LoadFile(path, cfg, jsonErr);
+JsonFileLoader<MyConfig>.SaveFile(path, cfg, jsonErr);
+
+// Older API still seen in mods -- deprecated (jsonfileloader.c:99), returns VOID.
+// Silent on a missing file or a failed open; a parse failure only reaches the RPT
+// via ErrorEx (:129) -- either way the caller is never told.
+JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);
 JsonFileLoader<MyConfig>.JsonSaveFile(path, cfg);
 
 // Raw file
@@ -383,7 +388,7 @@ GetGame()                          // CGame instance
 GetGame().GetPlayer()              // Local player (CLIENT only, null on server!)
 GetGame().GetPlayers(out arr)      // All players (server)
 GetGame().GetWorld()               // World instance
-GetGame().GetTickTime()            // Server time (float)
+GetGame().GetTickTime()            // Seconds since game start (float, client + server)
 GetGame().GetWorkspace()           // UI workspace
 GetGame().SurfaceY(x, z)          // Terrain height
 GetGame().IsServer()               // true on server

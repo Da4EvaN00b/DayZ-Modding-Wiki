@@ -1,6 +1,5 @@
-# Chapter 6.11: Mission Hooks
+# Mission Hooks
 
-[Home](../README.md) | [<< Previous: Central Economy](10-central-economy.md) | **Mission Hooks** | [Next: Action System >>](12-action-system.md)
 
 ---
 
@@ -8,7 +7,7 @@
 
 Every DayZ mod needs an entry point --- a place where it initializes managers, registers RPC handlers, hooks into player connections, and cleans up on shutdown. That entry point is the **Mission** class. The engine creates exactly one Mission instance when a scenario loads: `MissionServer` on a dedicated server, `MissionGameplay` on a client, or both on a listen server. These classes provide lifecycle hooks that fire in a guaranteed order, giving mods a reliable place to inject behavior.
 
-This chapter covers the full Mission class hierarchy, every hookable method, the correct `modded class` pattern for extending them, and real-world examples from vanilla DayZ, COT, and Expansion.
+This chapter covers the full Mission class hierarchy, every hookable method, the correct `modded class` pattern for extending them, and worked examples grounded in the vanilla mission classes.
 
 ---
 
@@ -39,8 +38,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) loop"]
+    E --> G["OnUpdate(timeslice) loop"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["Destructor: ~MissionServer()"]
@@ -58,8 +56,7 @@ flowchart TD
     A["Engine creates MissionGameplay"] --> B["Constructor: MissionGameplay()"]
     B --> C["OnInit() — HUD, chat, action menu"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) loop"]
+    D --> F["OnUpdate(timeslice) loop"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["Destructor: ~MissionGameplay()"]
@@ -82,7 +79,6 @@ The `Mission` base class defines every hookable method. All are virtual with emp
 |--------|-----------|---------------|
 | `OnInit` | `void OnInit()` | After constructor, before mission starts. Primary setup point. |
 | `OnMissionStart` | `void OnMissionStart()` | After OnInit. The mission world is active. |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | After OnMissionStart. All vanilla systems are initialized. |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | Server: after gameplay data (cfggameplay.json) is loaded. |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | Every frame. `timeslice` is seconds since last frame (typically 0.016-0.033). |
 | `OnMissionFinish` | `void OnMissionFinish()` | On shutdown or disconnect. Clean up everything here. |
@@ -111,7 +107,7 @@ The `Mission` base class defines every hookable method. All are virtual with emp
 | `IsPaused` | `bool IsPaused()` | Whether the game is paused (single player / listen server). |
 | `IsServer` | `bool IsServer()` | `true` for MissionServer, `false` for MissionGameplay. |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | `true` for MissionGameplay, `false` for MissionServer. |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | Re-enable player input after disabling. |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | Re-enable player input after disabling. (Deprecated in vanilla.) |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | Disable player input (e.g., `INPUT_EXCLUDE_ALL`). |
 | `IsControlDisabled` | `bool IsControlDisabled()` | Whether player controls are currently disabled. |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | Returns the current input exclusion mode. |
@@ -190,7 +186,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // Vanilla forwards to Hud.KeyPress(key)
-    // key values are KeyCode constants (e.g., KeyCode.KC_F1 = 59)
+    // key values are KeyCode constants (e.g., KeyCode.KC_F1 = 58)
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +197,11 @@ override void OnKeyRelease(int key)
 
 ### Event Hook
 
-Vanilla `MissionGameplay.OnEvent()` handles `ChatMessageEventTypeID` (adds to chat widget), `ChatChannelEventTypeID` (updates channel indicator), `WindowsResizeEventTypeID` (rebuilds menus/HUD), `SetFreeCameraEventTypeID` (debug camera), and `VONStateEventTypeID` (voice state). Override it with the same `switch` pattern and always call `super.OnEvent()`.
+Vanilla `MissionGameplay.OnEvent()` handles `ChatMessageEventTypeID` (adds to chat widget), `ChatChannelEventTypeID` (updates channel indicator), `WindowsResizeEventTypeID` (rebuilds menus/HUD), `SetFreeCameraEventTypeID` (debug camera), and `NetworkInputBufferEventTypeID` (network input buffer). Override it with the same `switch` pattern and always call `super.OnEvent()`.
 
 ### Input Control
 
-`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSuppress)` removes it. These map to exclude groups defined in `specific.xml`. Override them if your mod needs custom input exclusion behavior (as Expansion does for its menus).
+`PlayerControlDisable(int mode)` activates an input exclude group (e.g., `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` removes it. These map to exclude groups defined in `specific.xml`. Both are marked `//!deprecated` in vanilla; `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()` are the current API. Override them if your mod needs custom input exclusion behavior (as large UI mods do to lock out gameplay input while a full-screen menu is open).
 
 ---
 
@@ -493,8 +489,7 @@ modded class MissionServer
 | Create HUD elements | `OnInit()` | `MissionGameplay` |
 | Clean up on server shutdown | `OnMissionFinish()` | `MissionServer` |
 | Clean up on client disconnect | `OnMissionFinish()` | `MissionGameplay` |
-| Run code once after all systems loaded | `OnMissionLoaded()` | Either |
-| Disable/enable player input | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| Disable/enable player input | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +500,6 @@ modded class MissionServer
 | Constructor | Yes | Yes | Different class on each side |
 | `OnInit()` | Yes | Yes | |
 | `OnMissionStart()` | Yes | Yes | |
-| `OnMissionLoaded()` | Yes | Yes | |
 | `OnGameplayDataHandlerLoad()` | Yes | No | cfggameplay.json loaded |
 | `OnUpdate(timeslice)` | Yes | Yes | Both run their own frame loop |
 | `OnMissionFinish()` | Yes | Yes | |
@@ -555,7 +549,7 @@ All event constants are defined in `3_Game/gameplay.c` and dispatched through `O
 
 ---
 
-## Real-World Examples
+## Worked Examples
 
 ### Example 1: Server Manager Initialization
 
@@ -717,7 +711,7 @@ modded class MissionGameplay
 
 ### Example 4: Chat Command Interception (Server-Side)
 
-Intercepting player connections to implement a ban system. This pattern is used by COT.
+Intercepting player connections to implement a ban system. This is a common pattern in admin mods.
 
 ```c
 modded class MissionServer
@@ -781,19 +775,86 @@ modded class MissionServer
 
 ### Pattern: Delegate to a Central Manager
 
-Both COT and Expansion follow the same pattern: their mission hooks are thin wrappers that delegate to a singleton manager. COT creates `g_cotBase = new CommunityOnlineTools` in the constructor, then calls `g_cotBase.OnStart()` / `OnUpdate()` / `OnFinish()` from the corresponding hooks. Expansion does the same with `GetDayZExpansion().OnStart()` / `OnLoaded()` / `OnFinish()`. Your mod should follow this pattern --- keep mission hook code thin and push logic into dedicated manager classes.
+Keep your mission hooks thin. Instead of piling logic into `MissionServer`, route each hook to a single long-lived manager and let that manager own the systems. The mission override becomes a three-line bridge --- start, tick, finish --- and everything else lives in code you can test and reuse without the mission class in scope.
+
+The Lantern examples in this wiki use `LanternCore`, a global singleton entry point (see [Singletons](../07-patterns/01-singletons.md)) that in turn drives an `LNT_ModuleManager` (see [Module Systems](../07-patterns/02-module-systems.md)). The mission hooks only ever touch the singleton:
+
+```c
+// Lantern_Core/Scripts/5_Mission/LNT_MissionServer.c
+modded class MissionServer
+{
+    override void OnInit()
+    {
+        super.OnInit();
+        // Build the singleton once, then hand it the lifecycle.
+        LanternCore.GetInstance().OnStart();
+    }
+
+    override void OnUpdate(float timeslice)
+    {
+        super.OnUpdate(timeslice);
+        LanternCore.GetInstance().OnUpdate(timeslice);
+    }
+
+    override void OnMissionFinish()
+    {
+        LanternCore.GetInstance().OnFinish();
+        super.OnMissionFinish();
+    }
+}
+```
+
+The singleton keeps a private constructor and hands out one shared instance, so `OnStart()`, `OnUpdate()`, and `OnFinish()` all operate on the same object no matter which hook calls in:
+
+```c
+// Lantern_Core/Scripts/3_Game/LanternCore.c
+class LanternCore
+{
+    private static ref LanternCore s_Instance;
+    private ref LNT_ModuleManager m_Modules;
+
+    static LanternCore GetInstance()
+    {
+        if (!s_Instance)
+            s_Instance = new LanternCore();
+        return s_Instance;
+    }
+
+    void OnStart()
+    {
+        m_Modules = new LNT_ModuleManager();
+        m_Modules.InitAll();   // load configs, spawn systems, register RPCs
+    }
+
+    void OnUpdate(float timeslice)
+    {
+        if (m_Modules)
+            m_Modules.UpdateAll(timeslice);
+    }
+
+    void OnFinish()
+    {
+        if (m_Modules)
+        {
+            m_Modules.ShutdownAll();   // save state, remove handlers, null refs
+            m_Modules = null;
+        }
+    }
+}
+```
+
+Now adding a new gameplay system never touches the mission class again --- you register a module with `LNT_ModuleManager` and the existing `OnStart` / `OnUpdate` / `OnFinish` fan-out reaches it for free. The full `LanternCore` singleton and `LNT_ModuleManager` are built step by step in Part 7.
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | Hook | When | Use For |
 |------|------|---------|
 | `OnInit()` | First. Script modules loaded, world not yet active. | Creating managers, registering RPCs, loading configs. |
 | `OnMissionStart()` | Second. World is active, entities can be spawned. | Spawning entities, starting gameplay systems, creating triggers. |
-| `OnMissionLoaded()` | Third. All vanilla systems fully initialized. | Cross-mod queries, finalization that depends on everything being ready. |
 
-Always call `super` on all three. Use `OnInit` as your primary initialization point. Use `OnMissionLoaded` only when you need to guarantee other mods have already initialized.
+Always call `super` on both. Use `OnInit` as your primary initialization point, and `OnMissionStart` for anything that needs the world to be active (spawning entities, creating triggers).
 
 ---
 
@@ -884,6 +945,37 @@ override void InvokeOnDisconnect(PlayerBase player)
 }
 ```
 
+### 7. Assuming InvokeOnConnect Fires Once Per Player
+
+`MissionServer.InvokeOnConnect()` runs **twice** for every single player connection, not once. Looking at the `OnEvent` table above: vanilla calls it from both the `ClientNewEventTypeID` arm (new character) and the `ClientReadyEventTypeID` arm (existing character loaded) -- and on a normal reconnect, **both** fire in sequence for the same player. Most tutorials and most instincts treat it as a single "player joined" hook, and code that is not idempotent breaks silently:
+
+```c
+// WRONG -- runs on EVERY InvokeOnConnect call, i.e. twice per connect
+override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
+{
+    super.InvokeOnConnect(player, identity);
+    if (!identity) return;
+    LoadPlayerData(identity.GetPlainId());   // reloads from disk and OVERWRITES the cache
+                                               // the SECOND time, discarding anything the
+                                               // first call's listeners already wrote into it
+}
+```
+
+If the second invocation re-reads a file and replaces whatever is already cached, it silently throws away every write that happened between the two calls -- a "welcome bonus," a loaded stat, anything another system populated in response to the first call. The same applies to any other non-idempotent side effect placed in this hook: a webhook post, a one-shot grant, an analytics event -- all of them fire twice.
+
+**Fix:** make the operation idempotent (skip the work if it already happened), or move the side effect to a hook that genuinely fires once, such as your own event fired only after the first successful load:
+
+```c
+override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
+{
+    super.InvokeOnConnect(player, identity);
+    if (!identity) return;
+    string uid = identity.GetPlainId();
+    if (IsAlreadyLoaded(uid)) return;   // guard makes the double-fire harmless
+    LoadPlayerData(uid);
+}
+```
+
 ---
 
 ## Summary
@@ -893,7 +985,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Mission hierarchy | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | Server class | `MissionServer` --- handles player connections, spawns, tick scheduling |
 | Client class | `MissionGameplay` --- handles HUD, input, chat, menus |
-| Lifecycle order | Constructor > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > `OnUpdate()` loop > `OnMissionFinish()` > Destructor |
+| Lifecycle order | Constructor > `OnInit()` > `OnMissionStart()` > `OnUpdate()` loop > `OnMissionFinish()` > Destructor |
 | Player join (server) | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | Player leave (server) | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | Hooking pattern | `modded class MissionServer/MissionGameplay` with `override` and `super` calls |
@@ -910,7 +1002,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 ## Best Practices
 
 - **Always call `super` as the first line in every Mission override.** This is the single most common DayZ modding mistake. Forgetting `super.OnInit()` silently breaks vanilla initialization and every other mod in the chain.
-- **Keep mission hook code thin --- delegate to manager classes.** Create a singleton manager (e.g., `MyModManager`) and call `manager.Init()` / `manager.Update()` / `manager.Cleanup()` from the hooks. This mirrors the pattern used by COT and Expansion.
+- **Keep mission hook code thin --- delegate to manager classes.** Create a singleton manager (e.g., a `LanternCore`-style entry point) and call `manager.OnStart()` / `manager.OnUpdate()` / `manager.OnFinish()` from the hooks, so the mission override stays a three-line bridge.
 - **Use timer accumulators in `OnUpdate()` for any work that does not need to run every frame.** `OnUpdate` fires 15-60+ times per second. Running database queries, file I/O, or player iteration at frame rate wastes server CPU.
 - **Register RPCs and event handlers in `OnInit()`, not in the constructor.** The constructor runs before all script modules are loaded. The networking layer is not ready until `OnInit()`.
 - **Always clean up in `OnMissionFinish()`.** Destroy widgets, remove `CallLater` registrations, unregister RPC handlers, and null manager references. Failure to clean up causes stale references across mission reloads.
@@ -928,18 +1020,14 @@ override void InvokeOnDisconnect(PlayerBase player)
 
 ---
 
-## Observed in Real Mods
+## Common Hook Patterns
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These are the recurring ways server and admin mods extend the mission classes. Each maps to a vanilla hook you can read for yourself in the script dump.
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Thin `modded class MissionServer.OnInit()` delegating to singleton manager | COT | `CommunityOnlineTools` init in MissionServer |
-| `InvokeOnConnect` override to load per-player JSON data | Expansion | Player settings sync on connect |
-| `StartingEquipSetup` override for custom starter kits | Multiple community mods | MissionServer starter kit hooks |
-| `OnEvent` interception before `super` to block banned players | COT | Ban system in MissionServer |
-| `OnMissionFinish` cleanup with widget `Unlink()` and null assignments | Expansion | HUD and menu cleanup |
-
----
-
-[Home](../README.md) | [<< Previous: Central Economy](10-central-economy.md) | **Mission Hooks** | [Next: Action System >>](12-action-system.md)
+| Pattern | Hook | Vanilla reference |
+|---------|------|-------------------|
+| Thin `modded class MissionServer.OnInit()` delegating to a singleton manager | `OnInit()` | `5_Mission/mission/missionserver.c` (base `OnInit`) |
+| `InvokeOnConnect` override to load per-player JSON data | `InvokeOnConnect(PlayerBase, PlayerIdentity)` | `missionserver.c:422` |
+| Custom starter kits without touching character creation | `StartingEquipSetup(PlayerBase, bool)` | `missionserver.c:527` (empty in vanilla) |
+| `OnEvent` interception before `super` to block banned players | `OnEvent(EventType, Param)` | `missionserver.c:299` |
+| `OnMissionFinish` cleanup with widget `Unlink()` and null assignments | `OnMissionFinish()` | `missiongameplay.c` (menu/HUD teardown) |

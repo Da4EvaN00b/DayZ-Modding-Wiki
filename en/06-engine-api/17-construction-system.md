@@ -1,6 +1,5 @@
-# Chapter 6.17: Construction System
+# Construction System
 
-[Home](../README.md) | [<< Previous: Crafting System](16-crafting-system.md) | **Construction System** | [Next: Animation System >>](18-animation-system.md)
 
 ---
 
@@ -14,7 +13,7 @@ The system lives primarily in three files:
 - `4_World/classes/basebuilding/construction.c` --- the construction manager
 - `4_World/classes/basebuilding/constructionpart.c` --- individual part representation
 
-Construction actions are in `4_World/classes/useractionscomponent/actions/continuous/` and construction data management is handled by `constructionactiondata.c`.
+Build, dismantle, and destroy actions are in `4_World/classes/useractionscomponent/actions/continuous/`; `ActionBuildShelter` is in `actions/interact/` and construction data management is handled by `constructionactiondata.c`.
 
 ---
 
@@ -127,10 +126,13 @@ flowchart TD
     D --> E[Progress bar animation]
     E --> F[BuildPartServer executes]
     F --> G[TakeMaterialsServer]
-    G --> H[SetPartBuilt - update bitmask]
-    H --> I[SynchronizeBaseState]
-    I --> J[OnPartBuiltServer event]
-    J --> K[OnStoreSave - persist]
+    G --> H[DestroyCollisionTrigger]
+    H --> I[OnPartBuiltServer]
+    I --> J[Set base state and create kit if foundation]
+    J --> K[Register part and action sync bits]
+    K --> L[SynchronizeBaseState]
+    L --> M[Update server part state, navmesh and visuals]
+    N[Later storage callback: OnStoreSave] --> O[Persist masks and base state]
 ```
 
 ### Checking Eligibility
@@ -148,15 +150,23 @@ Tool matching uses bitmask AND: a tool with `build_action_type = 6` (110) can bu
 
 ### Material Checking
 
-Each material entry in config specifies `type`, `slot_name`, `quantity`, and `lockable`. `HasMaterials()` checks that each slot has an attachment with at least the required quantity. For repairs, quantity is reduced to 15% (`REPAIR_MATERIAL_PERCENTAGE = 0.15`), minimum 1.
+Each material entry in config specifies `type`, `slot_name`, `quantity`, and `lockable`. `HasMaterials()` checks that each slot has an attachment with at least the required quantity. For repairs, quantity is reduced to 15% (`REPAIR_MATERIAL_PERCENTAGE = 0.15`), rounded down with a minimum of 1.
 
 ### Executing the Build
 
-```
+Inside `Construction` (logging omitted):
+
+```c
 void BuildPartServer(notnull Man player, string part_name, int action_id)
 {
-    // Reset damage zone health to max
-    GetParent().SetHealthMax(damage_zone);
+    // Resolve the component to its damage zone before resetting health.
+    string damage_zone;
+    if (DamageSystem.GetDamageZoneFromComponentName(GetParent(), part_name, damage_zone))
+    {
+        GetParent().SetAllowDamage(true);
+        GetParent().SetHealthMax(damage_zone);
+        GetParent().ProcessInvulnerabilityCheck(GetParent().GetInvulnerabilityTypeString());
+    }
     // Consume/lock materials
     TakeMaterialsServer(part_name);
     // Destroy collision check trigger
@@ -221,7 +231,7 @@ bool CanDismantlePart(string part_name, ItemBase tool)
     // Part must be built, have no dependent parts, and tool must match dismantle_action_type
 ```
 
-`DismantlePartServer()` calls `ReceiveMaterialsServer()` which spawns material piles. Material return is reduced by damage level: `qty_coef = 1 - (healthLevel * 0.2) - 0.2`. A fully healthy part returns 80%; each damage level costs 20% more.
+`DismantlePartServer()` calls `ReceiveMaterialsServer()` which spawns material piles. Material return is reduced by damage level: `qty_coef = 1 - (healthLevel * 0.2) - 0.2`. For non-lockable materials, a pristine part uses an 80% coefficient, reduced by 20 percentage points per damage level; the resulting quantity is rounded down and clamped to at least 1. Lockable attachments are unlocked instead, and dropped when dismantling a base part.
 
 Dismantling the base part triggers `DestroyConstruction()` (deletes the entire entity) after a 200ms delay.
 
@@ -232,7 +242,7 @@ bool CanDestroyPart(string part_name)
     // Part must be built and have no dependent parts (no tool check)
 ```
 
-`DestroyPartServer()` destroys lockable materials (deletes them), drops remaining attachments, sets the damage zone health to zero, and calls `DestroyConnectedParts()` which recursively destroys any built parts that depend on the destroyed one.
+`DestroyPartServer()` destroys lockable materials (deletes them), drops remaining attachments, notifies the parent through `OnPartDestroyedServer()`, and sets the damage zone health to zero if needed. The ruined-health callback in `BaseBuildingBase.EEHealthLevelChanged()` calls `DestroyConnectedParts()` to destroy dependent built parts.
 
 Exception: gate parts are not cascade-destroyed if either `wall_base_down` or `wall_base_up` is still built.
 
@@ -253,13 +263,13 @@ Animation varies by tool type:
 | SledgeHammer | `CMD_ACTIONFB_MINEROCK` |
 | All others | `CMD_ACTIONFB_ASSEMBLE` |
 
-On completion, calls `BuildPartServer()` and damages the tool (`UADamageApplied.BUILD`). Both `ActionConditionContinue()` and `OnFinishProgressServer()` perform collision checks via `IsCollidingEx()` to prevent building through players or geometry.
+On completion, calls `BuildPartServer()` and damages the tool (`UADamageApplied.BUILD`). The server checks `IsCollidingEx()` in both `ActionConditionContinue()` and `OnFinishProgressServer()`; the acting player is explicitly excluded from those checks. Collision behavior also depends on the configured geometry and gameplay settings.
 
 ### ActionDismantlePart
 
 Full-body continuous action. Duration: `UATimeSpent.BASEBUILDING_DECONSTRUCT_SLOW`. Additional conditions beyond `CanDismantlePart()`:
 
-- Part cannot be on a locked gate (combination lock or flag attached)
+- Target cannot have an attachment in `Att_CombinationLock` or `Material_FPole_Flag`
 - Gate parts cannot be dismantled while the gate is opened
 - Camera direction and player position checks prevent dismantling from the wrong side
 - Player cannot be prone
@@ -298,9 +308,11 @@ The `OnUpdateActions()` callback is registered with `ActionVariantManager` and f
 
 ## Creating Custom Buildable Objects
 
+These are configuration and script fragments for a custom object, not a complete packaged mod. Supply the model, kit, damage configuration, animation definitions, and addon registration before using them. API/member excerpts elsewhere in this chapter describe existing vanilla classes; do not redeclare those classes.
+
 ### 1. Entity Class
 
-```
+```c
 class MyWall extends BaseBuildingBase
 {
     override string GetConstructionKitType() { return "MyWallKit"; }
@@ -316,7 +328,7 @@ class MyWall extends BaseBuildingBase
 
 ### 2. config.cpp
 
-Define `Construction` with parts and materials, `GUIInventoryAttachmentsProps` for material attachment slots, and `DamageSystem` with zones matching part names:
+Define `Construction` with parts and materials, `GUIInventoryAttachmentsProps` for material attachment slots, and `DamageSystem` with zones matching part names. The forward-declared `BaseBuildingBase` below is a config inheritance dependency: supply that config class in a required addon or replace it with the appropriate configured base. Defining a script class with that name does not define a `CfgVehicles` class:
 
 ```cpp
 class CfgVehicles
@@ -375,7 +387,7 @@ class CfgVehicles
             class GlobalHealth { class Health { hitpoints = 1000; }; };
             class DamageZones
             {
-                class wall_base  // must match part_name
+                class wall_base  // matches the part name for the ruined-health callback
                 {
                     class Health { hitpoints = 500; transferToGlobalCoef = 0; };
                     componentNames[] = { "wall_base" };
@@ -391,10 +403,10 @@ class CfgVehicles
 
 The p3d model must have:
 - **Named selections** matching each `part_name` (toggled via `SetAnimationPhase`: 0=visible, 1=hidden)
-- **Animation sources** for each selection (type `user`, range 0-1)
+- **Animation definitions** in `model.cfg` linked to matching user sources in the vehicle config; use hide animations that show parts at phase 0 and hide them at phase 1
 - **Proxy physics** geometry per part (separate named physics components)
-- **Memory points** `<part_name>_min` / `<part_name>_max` for collision boxes
-- **`kit_spawn_position`** memory point
+- **Memory points** matching the two names in each part's `collision_data[]` (the example uses `<part_name>_min` / `<part_name>_max`)
+- **`kit_spawn_position`** memory point if you use the custom override above; its fallback is the object position
 - **Component names** in geometry LOD matching part names (for `GetActionComponentName()`)
 - **`Deployed`** selection for the unbuilt state
 
@@ -435,7 +447,7 @@ The most common structure. Kit: `FenceKit`. Features a gate system with three st
 
 ### Watchtower
 
-Multi-level tower. Kit: `WatchtowerKit`. Up to 3 floors with walls and roofs per level. Constants: `MAX_WATCHTOWER_FLOORS = 3`, `MAX_WATCHTOWER_WALLS = 3`. Has a `MAX_FLOOR_VERTICAL_DISTANCE = 0.5` check preventing attachment of items from too far below the target floor.
+Multi-level tower. Kit: `WatchtowerKit`. Up to 3 floors with walls and roofs per level. Constants: `MAX_WATCHTOWER_FLOORS = 3`, `MAX_WATCHTOWER_WALLS = 3`. Has a `MAX_FLOOR_VERTICAL_DISTANCE = 0.5` check rejecting attachment when the absolute vertical difference from the target floor exceeds that limit.
 
 ### ShelterSite
 
@@ -445,42 +457,48 @@ Temporary construction site. Kit: `ShelterKit`. Three mutually exclusive build o
 
 ## Damage and Raiding
 
-Each construction part maps to a **damage zone** whose name matches the part name (case-insensitive). When a part is built, its health is set to maximum. When a damage zone reaches `STATE_RUINED`, `EEHealthLevelChanged()` triggers automatic destruction:
+Building health resets resolve a part component through the zone's `componentNames[]`. Keep the zone name equal to the lowercase construction part name as well: `EEHealthLevelChanged()` lowercases the zone name and looks up that part directly. When a part is built, its health is set to maximum. When a damage zone reaches `STATE_RUINED`, `EEHealthLevelChanged()` triggers automatic destruction:
 
 ```
 if (newLevel == GameConstants.STATE_RUINED)
 {
-    construction.DestroyPartServer(null, part_name, AT_DESTROY_PART);
-    construction.DestroyConnectedParts(part_name);
+    ConstructionPart part = construction.GetConstructionPart(part_name);
+    if (part && construction.IsPartConstructed(part_name))
+    {
+        construction.DestroyPartServer(null, part_name, AT_DESTROY_PART);
+        construction.DestroyConnectedParts(part_name);
+    }
 }
 ```
 
 This is the raiding mechanism: explosives and weapons deal damage to damage zones until they reach ruined state. Barbed wire attachments have special handling --- when their zone is ruined, the wire's mounted state is cleared.
 
-Server admins can make bases indestructible via the `"disableBaseDamage"` invulnerability type in `cfgGameplay.json`.
+Server admins can make bases indestructible with `GeneralData.disableBaseDamage` in `cfgGameplay.json` when gameplay-file loading is enabled in the server configuration.
 
-Repair uses `TakeMaterialsServer(part_name, true)`, requiring only 15% of original materials.
+Repair uses `TakeMaterialsServer(part_name, true)`, applying a 15% material coefficient before rounding down and enforcing a minimum quantity of 1.
 
 ---
 
 ## Best Practices
 
-1. **Part IDs must be unique** within an object (1-93 range). Gaps are allowed but waste capacity.
-2. **Always define `collision_data` memory points** to prevent building through geometry.
+1. **Part IDs must be unique** within an object (1-93 range). Gaps are allowed; no ID may exceed 93.
+2. **Define the memory points named in `collision_data`** so construction collision checks can use the intended bounds.
 3. **Use `required_parts`** to enforce build order (foundation before walls).
 4. **Use `conflicted_parts`** for mutually exclusive options (wall vs gate on same section).
-5. **Match damage zone names to part names** exactly (case-insensitive) or health/damage will not work.
-6. **Enable debug logging** via `LogManager.IsBaseBuildingLogEnable()` for diagnostics --- the vanilla code has extensive `[bsb]` prefixed debug output.
-7. **Stay under 93 parts** per object. Complex structures should be split into multiple placeable objects.
+5. **Map part components in `DamageZones.componentNames[]`**, and match the zone name to the lowercase part name for automatic destruction.
+6. **Check whether debug logging is enabled** with `LogManager.IsBaseBuildingLogEnable()` for diagnostics --- the vanilla code has extensive `[bsb]` prefixed debug output.
+7. **Use at most 93 parts** per object. Complex structures should be split into multiple placeable objects.
 
 ---
 
-## Observed in Real Mods
+## Common Modding Extension Points
 
-- **DayZ Expansion** extends `BaseBuildingBase` with custom floors, walls, and ramps using dozens of parts per object.
-- **Raid mods** override `EEHealthLevelChanged()` or adjust `DamageZones` hitpoints to tune raid difficulty.
-- **BuildAnywhere** mods override `IsCollidingEx()` to return `false`, disabling placement collision.
-- **Advanced BB mods** use `modded BaseBuildingBase` to inject custom persistence, logging, or anti-grief checks into build/dismantle events.
+These are the seams the vanilla construction classes expose for `modded` overrides:
+
+- **Custom part types** --- extend `BaseBuildingBase` and register additional parts in the object's `Construction` config to add floors, walls, ramps, or other placeable sections (dozens of parts per object are possible within the 93-part limit).
+- **Raid tuning** --- override `EEHealthLevelChanged()` in `basebuildingbase.c` or adjust per-part `DamageZones` hitpoints to change how much damage a part absorbs before it reaches `STATE_RUINED`.
+- **Placement rules** --- override `Construction.IsCollidingEx()` (`construction.c`) to change or disable the placement collision check that blocks building through geometry.
+- **Build/dismantle hooks** --- use `modded BaseBuildingBase` to inject custom persistence, logging, or anti-grief checks into the build and dismantle events without replacing the base class.
 
 ---
 
@@ -490,10 +508,10 @@ Repair uses `TakeMaterialsServer(part_name, true)`, requiring only 15% of origin
 |---------|-------------|-----|
 | Part ID exceeds 93 | State never syncs/persists | Keep IDs in 1-93 range |
 | Missing model selection | Part builds but is invisible | Add named selection matching `part_name` |
-| Damage zone name mismatch | Health never set, part undamageable | Use identical names |
+| Damage zone/component mapping mismatch | Health reset or ruined-part lookup can address the wrong part | Configure `componentNames[]` and match the lowercase zone name to the part |
 | No `required_parts` | Walls buildable without foundation | Define dependencies |
-| Missing `GetConstructionKitType()` | Empty string causes errors | Override and return kit class |
-| Missing collision memory points | Build checks fail silently | Add `_min` / `_max` points |
+| Missing `GetConstructionKitType()` override | No valid kit class for kit creation | Return your configured kit class |
+| Missing collision memory points | Collision bounds cannot be populated as intended | Supply both points named in `collision_data[]` |
 
 ---
 

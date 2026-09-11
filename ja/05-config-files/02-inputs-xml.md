@@ -1,6 +1,5 @@
 # Chapter 5.2: inputs.xml --- カスタムキーバインド
 
-[ホーム](../README.md) | [<< 前: stringtable.csv](01-stringtable.md) | **inputs.xml** | [次: Credits.json >>](03-credits-json.md)
 
 ---
 
@@ -38,7 +37,7 @@ Modでプレイヤーにキーを押す必要がある場合 --- メニューを
 
 ## ファイルの場所
 
-`inputs.xml`はScriptsディレクトリの`data`サブフォルダ内に配置します：
+`inputs.xml`はMODのPBO内のどこにでも配置できます。一般的なレイアウトは、Scriptsディレクトリの`data`サブフォルダです：
 
 ```
 @MyMod/
@@ -52,7 +51,7 @@ Modでプレイヤーにキーを押す必要がある場合 --- メニューを
         5_Mission/
 ```
 
-一部のModでは`Scripts/`フォルダに直接配置しています。どちらの場所でも動作します。エンジンがファイルを自動的に検出するため、config.cppでの登録は不要です。
+ファイルの場所は慣例で固定されているわけではなく、エンジンはこれを自動検出しません。`config.cpp`の`CfgMods`ブロックの`inputs`プロパティでファイルを指定して登録する必要があります。例：`inputs = "MyMod/Scripts/data/inputs.xml";`。パスは任意です --- エンジンは指定された場所からファイルを読み込みます。
 
 ---
 
@@ -296,7 +295,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-`LocalPress("name", false)`の`false`パラメータは、チェックが入力イベントを消費すべきでないことを示します。
+`LocalPress("name", false)`の`false`パラメータは`check_focus`引数です。`false`を渡すと、ゲームウィンドウがフォーカスされていない場合でも入力が評価されます。`true`（デフォルト）の場合、フォーカスされていないゲームは`false`を返します。これは入力の消費を制御するものではありません。
 
 ---
 
@@ -338,7 +337,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **ダブルタップアクション：**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +409,12 @@ RemoveActiveInputExcludes({"inventory"});
 | 文字 | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | 数字（上段） | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | ファンクションキー | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| 修飾キー | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| ナビゲーション | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| 修飾キー | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu`（左Alt）, `kRMenu`（右Alt） |
+| ナビゲーション | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior`（Page Up）, `kNext`（Page Down） |
 | 編集 | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| テンキー | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| テンキー | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd`（テンキー +）, `kSubstract`（テンキー -、エンジンのスペルに注意）, `kMultiply`（テンキー *）, `kDivide`（テンキー /）, `kDecimal`（テンキー .） |
 | 記号 | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| ロック | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| ロック | `kCapital`（Caps Lock）, `kNumlock`（小文字の`l`に注意）, `kScrollLock` |
 
 ### マウスボタン
 
@@ -424,15 +423,18 @@ RemoveActiveInputExcludes({"inventory"});
 | `mBLeft` | 左マウスボタン |
 | `mBRight` | 右マウスボタン |
 | `mBMiddle` | 中マウスボタン（スクロールホイールクリック） |
-| `mBExtra1` | マウスボタン4（サイドボタン戻る） |
-| `mBExtra2` | マウスボタン5（サイドボタン進む） |
+| `mB4` | マウスボタン4（サイドボタン戻る） |
+| `mB5` | マウスボタン5（サイドボタン進む） |
+| `mB6`, `mB7`, `mB8` | 追加のマウスボタン |
 
-### マウス軸
+### マウス移動とホイール
 
-| 名前 | 軸 |
-|------|------|
-| `mAxisX` | マウス水平移動 |
-| `mAxisY` | マウス垂直移動 |
+| 名前 | 方向 |
+|------|-----------|
+| `mLeft` | マウスを左に移動 |
+| `mRight` | マウスを右に移動 |
+| `mUp` | マウスを上に移動 |
+| `mDown` | マウスを下に移動 |
 | `mWheelUp` | スクロールホイール上 |
 | `mWheelDown` | スクロールホイール下 |
 
@@ -440,7 +442,7 @@ RemoveActiveInputExcludes({"inventory"});
 
 - **キーボード**：`k`プレフィックス + キー名（例：`kT`、`kF5`、`kLControl`）
 - **マウスボタン**：`mB`プレフィックス + ボタン名（例：`mBLeft`、`mBRight`）
-- **マウス軸**：`m`プレフィックス + 軸名（例：`mAxisX`、`mWheelUp`）
+- **マウス移動/ホイール**：`m`プレフィックス + 方向名（例：`mLeft`、`mWheelUp`）
 
 ---
 

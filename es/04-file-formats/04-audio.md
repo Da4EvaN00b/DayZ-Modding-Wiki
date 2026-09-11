@@ -1,6 +1,5 @@
 # Capítulo 4.4: Audio (.ogg, .wss)
 
-[Inicio](../README.md) | [<< Anterior: Materials](03-materials.md) | **Audio** | [Siguiente: DayZ Tools Workflow >>](05-dayz-tools.md)
 
 ---
 
@@ -129,7 +128,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // Volume scaling (applied on top of shader volume)
         frequencyFactor = 1.0;       // Frequency scaling
-        volumeCurve = "InverseSquare"; // Predefined attenuation curve name
+        volumeCurve = "InverseSquare2Curve"; // CfgSoundCurves attenuation curve class name
         spatial = 1;                  // 1 = 3D positional, 0 = 2D (HUD/menu)
         doppler = 0;                  // 1 = enable Doppler effect
         loop = 0;                     // 1 = loop continuously
@@ -145,11 +144,11 @@ class CfgSoundSets
 | `volumeFactor` | float | Additional volume multiplier applied on top of shader volume. |
 | `frequencyFactor` | float | Additional frequency/pitch multiplier. |
 | `frequencyRandomizer` | float | Random pitch variation (0.0 = none, 0.1 = +/- 10%). |
-| `volumeCurve` | string | Named attenuation curve: `"InverseSquare"`, `"Linear"`, `"Logarithmic"`. |
+| `volumeCurve` | string | Name of an attenuation curve class defined under `CfgSoundCurves` (e.g. `"InverseSquare2Curve"`, `"LinearCurve"`, `"defaultAmpAttenuationCurve"`). |
 | `spatial` | int | `1` for 3D positional audio, `0` for 2D (UI, music). |
 | `doppler` | int | `1` to enable Doppler pitch shift for moving sources. |
 | `loop` | int | `1` for continuous looping, `0` for one-shot. |
-| `distanceFilter` | int | `1` to apply low-pass filter at distance (muffled far-away sounds). |
+| `distanceFilter` | string | Name of a distance/frequency attenuation filter class to apply at range (e.g. `"defaultDistanceFreqAttenuationFilter"`), muffling far-away sounds. |
 | `occlusionFactor` | float | How much walls/terrain muffle the sound (0.0 to 1.0). |
 | `obstructionFactor` | float | How much obstacles between source and listener affect the sound. |
 
@@ -221,7 +220,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -350,15 +349,15 @@ rangeCurve[] =
 
 The engine interpolates linearly between defined points. You can create any falloff curve by adding more control points.
 
-### Predefined Volume Curves
+### Volume Curve Classes
 
-SoundSets can reference named curves via the `volumeCurve` property:
+SoundSets reference attenuation curve classes via the `volumeCurve` property. The curve names are class names defined under `class CfgSoundCurves` (vanilla DZ sounds define many), and mods can either reference an existing one or define their own. There are no bare presets literally named `"InverseSquare"`, `"Linear"`, or `"Logarithmic"`. Common vanilla curve classes include:
 
-| Curve Name | Behavior |
+| Curve Class | Behavior |
 |------------|----------|
-| `"InverseSquare"` | Realistic falloff (volume = 1/distance^2). Natural-sounding. |
-| `"Linear"` | Even falloff from max to zero over the range. |
-| `"Logarithmic"` | Loud up close, drops quickly at medium distance, then tapers slowly. |
+| `"InverseSquare2Curve"` | Realistic falloff (volume drops roughly with the square of distance). Natural-sounding. |
+| `"LinearCurve"` | Even falloff from max to zero over the range. |
+| `"defaultAmpAttenuationCurve"` | Loud up close, drops quickly at medium distance, then tapers slowly. |
 
 ### Practical Attenuation Examples
 
@@ -503,14 +502,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **Step 4: Reference from weapon/item config**
 
-For weapons, the SoundSet is referenced in the weapon's config class:
+For weapons, fire SoundSets are referenced with a `soundSetShot[]` array inside the weapon's firing mode class. Use `soundSetShotExt[]` for suppressed variants:
 
 ```cpp
 class CfgWeapons
@@ -519,12 +518,9 @@ class CfgWeapons
     {
         // ... other config ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };
@@ -658,7 +654,7 @@ frequencyRandomizer = 0.05;    // +/- 5% pitch variation
 | Patrón | Mod | Detalle |
 |---------|-----|--------|
 | Custom notification sounds via SoundSets | Expansion (Notification module) | Defines multiple `CfgSoundSets` for different notification types (success, warning, error) with `spatial = 0` |
-| UI click sounds with cached playback | VPP Admin Tools | Uses `SEffectManager.PlaySoundCachedParams()` for button clicks to avoid re-parsing config each time |
+| UI click sounds via the 2D sound scene | VPP Admin Tools | Plays UI sounds with `SoundParams` + `SoundObjectBuilder` + `GetGame().GetSoundScene().Play2D()` (see `VPPNotificationUI.c`) |
 | Multi-layer weapon audio (shot + tail + crack) | Community weapon packs (RFCP, MuchStuffPack) | Each weapon defines 3-5 separate SoundSets per fire event for close shot, distant rumble, supersonic crack |
 | `frequencyRandomizer` for footstep variation | Vanilla DayZ | Uses 0.05-0.08 pitch randomization on footstep SoundSets to prevent robotic repetition |
 

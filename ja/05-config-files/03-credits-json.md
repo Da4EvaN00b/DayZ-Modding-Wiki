@@ -1,6 +1,5 @@
 # Chapter 5.3: Credits.json
 
-[Home](../README.md) | [<< Previous: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Next: ImageSet Format >>](04-imagesets.md)
 
 ---
 
@@ -23,9 +22,9 @@
 
 ## 概要
 
-プレイヤーがDayZランチャーまたはゲーム内のModメニューであなたのModを選択すると、エンジンはModのPBO内にある `Credits.json` ファイルを探します。見つかった場合、クレジットは部門とセクションに整理されたスクロール表示で表示されます --- 映画のクレジットに似ています。
+プレイヤーがあなたのModのクレジットを表示すると、エンジンは `config.cpp` の `CfgMods` ブロックにある `creditsJson` キーで宣言したパスのファイルを読み込みます（例：`creditsJson = "MyMod/Scripts/Data/Credits.json";`）。クレジットはその後、部門とセクションに整理されたスクロール表示で表示されます --- 映画のクレジットに似ています。
 
-このファイルは任意です。存在しない場合、そのModのクレジットセクションは表示されません。しかし、含めることは良い慣行です：チームの作業を認め、Modにプロフェッショナルな外観を与えます。
+このファイルは任意です。`creditsJson` キーを宣言しない場合、ファイルは読み込まれず、そのModのクレジットは表示されません。しかし、含めることは良い慣行です：チームの作業を認め、Modにプロフェッショナルな外観を与えます。
 
 ---
 
@@ -43,7 +42,7 @@
         Credits.json         <-- こちらも有効 (DabsFramework, Colorful-UI)
 ```
 
-どちらの場所でも動作します。エンジンはPBOの内容を `Credits.json` という名前のファイルでスキャンします（一部のプラットフォームでは大文字小文字が区別されます）。
+このファイルはPBO内のどこにでも配置できます。重要なのは、`CfgMods` ブロックの `creditsJson` の値が、その正確なパスを指していることです（一部のプラットフォームでは大文字小文字が区別されます）。
 
 ---
 
@@ -53,14 +52,13 @@
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -72,8 +70,9 @@
 
 | フィールド | 型 | 必須 | 説明 |
 |-------|------|----------|-------------|
-| `Header` | string | いいえ | クレジットの上部に表示されるメインタイトル。省略すると、ヘッダーは表示されません。 |
 | `Departments` | array | はい | 部門オブジェクトの配列 |
+
+バニラのパーサー（`JsonDataCredits`）は `Departments` 配列のみを認識します。トップレベルの `Header` フィールドは存在しません --- 追加した `Header` キーは黙って無視されます。クレジットの上部にタイトルを表示するには、代わりに最初の `DepartmentName` を使用してください。
 
 ### 部門オブジェクト
 
@@ -84,23 +83,12 @@
 
 ### セクションオブジェクト
 
-名前のリスト表示には2つのバリアントが実際に使用されています。エンジンは両方をサポートします。
-
-**バリアント1: `Names` 配列** (MyMod Coreで使用)
-
-| フィールド | 型 | 必須 | 説明 |
-|-------|------|----------|-------------|
-| `SectionName` | string | はい | 部門内のサブヘッダー |
-| `Names` | 文字列の配列 | はい | 貢献者名のリスト |
-
-**バリアント2: `SectionLines` 配列** (COT, Expansion, DabsFrameworkで使用)
-
 | フィールド | 型 | 必須 | 説明 |
 |-------|------|----------|-------------|
 | `SectionName` | string | はい | 部門内のサブヘッダー |
 | `SectionLines` | 文字列の配列 | はい | 貢献者名またはテキスト行のリスト |
 
-`Names` と `SectionLines` は同じ目的を果たします。お好みの方を使用してください --- エンジンは同じように描画します。
+バニラのセクションクラス（`JsonDataCreditsSection`）は `SectionName` と `SectionLines` のみを認識します。一部のModが `Names` キーを使用しているのを見かけるかもしれませんが、エンジンは決してそれを読み取りません --- `Names` 配列は黙って無視され、何も描画されません。名前のリストには常に `SectionLines` を使用してください。
 
 ---
 
@@ -110,12 +98,10 @@
 
 ```
 ╔══════════════════════════════════╗
-║         MY MOD NAME              ║  <-- Header (大きく、中央揃え)
-║                                  ║
 ║     DEPARTMENT NAME              ║  <-- DepartmentName (中くらい、中央揃え)
 ║                                  ║
 ║     Section Name                 ║  <-- SectionName (小さく、中央揃え)
-║     Person 1                     ║  <-- Names/SectionLines (リスト)
+║     Person 1                     ║  <-- SectionLines (リスト)
 ║     Person 2                     ║
 ║     Person 3                     ║
 ║                                  ║
@@ -128,10 +114,9 @@
 ╚══════════════════════════════════╝
 ```
 
-- `Header` は上部に一度表示されます
 - 各 `DepartmentName` は主要なセクション区切りとして機能します
 - 各 `SectionName` はサブ見出しとして機能します
-- 名前はクレジットビューで縦にスクロールします
+- `SectionLines` はクレジットビューで縦にスクロールします
 
 ### スペーシングのための空文字列
 
@@ -181,14 +166,13 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -200,22 +184,21 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -231,26 +214,25 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +241,7 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -267,7 +249,7 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +258,7 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +275,17 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
 
 ### MyMod Core
 
-`Names` バリアントを使用した最小限ながら完全なクレジットファイルです：
+最小限ながら完全なクレジットファイルです：
 
 ```json
 {
-    "Header": "MyMod Core",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyMod Core",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["Documentation Team"]
+                    "SectionLines": ["Documentation Team"]
                 }
             ]
         }
@@ -355,7 +336,7 @@ Expansionでは空の `DepartmentName` と `SectionName` 文字列、さらに `
 }
 ```
 
-注目点：COTは `Header` フィールドを完全に省略しています。Mod名は他のメタデータ（config.cpp `CfgMods`）から取得されます。
+注目点：COTは最初の `DepartmentName`（"Community Online Tools"）をタイトルとして使用しています。Mod名は他のメタデータ（config.cpp `CfgMods`）からも取得されます。
 
 ### DabsFramework
 
@@ -413,19 +394,18 @@ Expansionは Credits.json の最も洗練された使用方法を示していま
 
 ファイル名は正確に `Credits.json`（大文字のC）でなければなりません。大文字小文字を区別するファイルシステムでは、`credits.json` や `CREDITS.JSON` は見つかりません。
 
-### NamesとSectionLinesの混在
+### `Names` キーの使用
 
-1つのセクション内では、どちらか一方を使用してください：
+一部のModは `Names` 配列を記述しますが、エンジンは決してそれを読み取りません。解析されるのは `SectionLines` のみです：
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-これは曖昧です。1つの形式を選び、ファイル全体で一貫して使用してください。
+この例では、"Dev1" はゲーム内に決して表示されません --- セクションは空のまま描画されます。貢献者は常に `SectionLines` の下に列挙してください。
 
 ### エンコーディングの問題
 
@@ -436,9 +416,9 @@ Expansionは Credits.json の最も洗練された使用方法を示していま
 ## ベストプラクティス
 
 - PBOにパッキングする前に、外部ツールでJSONを検証してください --- エンジンは不正なJSONに対して有用なエラーメッセージを提供しません。
-- 一貫性のために `SectionLines` バリアントを使用してください。これはCOT、Expansion、DabsFrameworkで使用されている形式です。
+- すべての名前リストに `SectionLines` を使用してください。これはエンジンが読み取る唯一のフィールドであり、COT、Expansion、DabsFrameworkで使用されている形式です。
 - Modがサードパーティのアセット（フォント、アイコン、サウンド）を帰属表示要件付きでバンドルしている場合は、「Legal Notices」部門を含めてください。
-- `Header` フィールドを `mod.cpp` と `config.cpp` のModの `name` と一致させ、一貫したアイデンティティを維持してください。
+- 最初の `DepartmentName` を `mod.cpp` と `config.cpp` のModの `name` と一致するタイトルとして使用し、一貫したアイデンティティを維持してください。
 - 視覚的スペーシングのために空の `DepartmentName` と `SectionName` 文字列は控えめに使用してください --- 使いすぎるとクレジットが断片的に見えます。
 
 ---

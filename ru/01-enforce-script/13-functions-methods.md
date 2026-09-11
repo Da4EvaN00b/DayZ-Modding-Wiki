@@ -1,6 +1,5 @@
 # Chapter 1.13: Functions & Methods
 
-[Home](../README.md) | [<< Previous: Gotchas](12-gotchas.md) | **Functions & Methods**
 
 ---
 
@@ -560,7 +559,7 @@ proto volatile void Idle();
 // Вызов методов proto native --- ничем не отличается от скриптовых методов
 Object obj = GetGame().CreateObject("AKM", pos, false, false, true);
 vector position = obj.GetPosition();
-string typeName = obj.GetType();     // owned string --- возвращается вам
+string typeName = obj.GetType();     // скриптовая обёртка над g_Game.ObjectGetType()
 obj.SetPosition(newPos);             // native void --- нет возвращаемого значения
 ```
 
@@ -767,17 +766,19 @@ class Calculator
 Ванильный DayZ и моды следуют соглашению об именовании, где расширенная версия метода добавляет `Ex` к имени:
 
 ```c
-// Из ванильных скриптов --- базовая версия и расширенная версия
-void ExplosionEffects(Object source, Object directHit, int componentIndex);
+// Из DayZGame --- базовая версия и расширенная версия
+void ExplosionEffects(Object source, Object directHit, int componentIndex, string surface,
+    vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater,
+    string ammoType);
 void ExplosionEffectsEx(Object source, Object directHit, int componentIndex,
     float energyFactor, float explosionFactor, HitInfo hitInfo);
 
-// Из EffectManager
-static void EffectUnregister(Effect effect);
+// Из SEffectManager
+static void EffectUnregister(int id);
 static void EffectUnregisterEx(Effect effect);
 
-// Из EntityAI
-void SplitIntoStackMax(EntityAI destination_entity, int slot_id);
+// Базовый метод объявлен в ItemBase; вариант Ex объявлен в EntityAI
+void SplitIntoStackMax(EntityAI destination_entity, int slot_id, PlayerBase player);
 void SplitIntoStackMaxEx(EntityAI destination_entity, int slot_id);
 ```
 
@@ -1140,11 +1141,3 @@ class MyMission extends MissionServer
 | Завершение потока | `KillThread(owner, "FnName")` | Останавливает работающую корутину |
 | Отложенный вызов | `CallLater(Fn, delay, repeat)` | Предпочтительнее потоков |
 | Соглашение `Ex()` | `void FnEx(...)` | Расширенная версия `Fn` |
-
----
-
-## Навигация
-
-| Назад | Вверх | Далее |
-|-------|-------|-------|
-| [1.12 Подводные камни](12-gotchas.md) | [Часть 1: Enforce Script](../README.md) | -- |

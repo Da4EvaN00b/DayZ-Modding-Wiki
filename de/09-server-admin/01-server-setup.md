@@ -1,6 +1,5 @@
 # Kapitel 9.1: Server-Einrichtung & Erster Start
 
-[Home](../README.md) | **Server-Einrichtung** | [Weiter: Verzeichnisstruktur >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Server-Logging aktivieren |
 | `-adminlog` | Admin-Aktionen protokollieren |
 | `-netlog` | Netzwerkereignisse protokollieren |
-| `-freezecheck` | Automatischer Neustart bei Freeze-Erkennung |
+| `-freezecheck` | Stoppt den Server und schreibt einen Crash-Dump, wenn er laenger als 5 Minuten eingefroren ist |
 
 ### Schritt 3: Auf Initialisierung warten
 
@@ -226,7 +225,7 @@ Oeffnen Sie Steam, gehen Sie zu **Ansicht > Spielserver > Favoriten**, klicken S
 
 ### Methode 4: Query-Port
 
-Verwenden Sie ein externes Tool wie https://www.battlemetrics.com/ oder das npm-Paket `gamedig`, um Port 27016 abzufragen (Steam Query Port = Spielport + 24714).
+Verwenden Sie ein externes Tool wie https://www.battlemetrics.com/ oder das npm-Paket `gamedig`, um den Steam Query Port abzufragen. Standardmaessig ist dies **2305 UDP** (konfigurierbar ueber `steamQueryPort` in `serverDZ.cfg`), nicht der Spielport.
 
 ---
 
@@ -300,7 +299,3 @@ Das ist normal. DayZ Server ist single-threaded. Fuehren Sie nicht mehrere Serve
 ```cpp
 template = "dayzOffline.chernarusplus";  // Muss mit dem mpmissions/-Ordnernamen uebereinstimmen
 ```
-
----
-
-**[Home](../README.md)** | **Weiter:** [Verzeichnisstruktur >>](02-directory-structure.md)

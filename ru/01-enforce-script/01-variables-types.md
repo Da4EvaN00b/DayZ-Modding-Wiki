@@ -1,6 +1,5 @@
 # Глава 1.1: Переменные и типы
 
-[Главная](../README.md) | **Переменные и типы** | [Следующая: Массивы, Map и Set >>](02-arrays-maps-sets.md)
 
 ---
 ---
@@ -310,8 +309,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Преобразование из других типов
-    string fromInt = "Score: " + 42;     // НЕ работает -- нужно преобразовать явно
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // работает -- оператор + приводит 42 к "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (явно, тот же результат)
 
     // Использование Format --- предпочтительный подход
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -472,7 +471,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Получить typename из строки
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Сравнение типов
     if (t == PlayerBase)
@@ -810,7 +809,3 @@ posB[1] = 99;             // Изменяется только posB
 | Область видимости | Переменные ограничены блоками `{}`; нет повторного объявления во вложенных/смежных блоках |
 | Преобразование | `float` в `int` усекает; используйте `.ToInt()`, `.ToFloat()`, `.ToVector()` для парсинга строк |
 | Форматирование | Всегда используйте `string.Format()` для построения строк из смешанных типов |
-
----
-
-[Главная](../README.md) | **Переменные и типы** | [Следующая: Массивы, Map и Set >>](02-arrays-maps-sets.md)

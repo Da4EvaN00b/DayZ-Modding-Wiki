@@ -1,6 +1,5 @@
 # Chapter 9.4 : Économie du loot en profondeur
 
-[Accueil](../README.md) | [<< Précédent : Référence serverDZ.cfg](03-server-cfg.md) | **Économie du loot en profondeur**
 
 ---
 
@@ -194,7 +193,7 @@ Les bandages sont très courants (40 nominal). Ils apparaissent dans les bâtime
 | `restock` | int | secondes | Délai minimum avant que le CE puisse faire apparaître un remplacement. 0 = immédiat. |
 | `quantmin` | int | -1 à 100 | Pourcentage de quantité minimum à l'apparition (% munitions, % liquide). -1 = non applicable. |
 | `quantmax` | int | -1 à 100 | Pourcentage de quantité maximum à l'apparition. -1 = non applicable. |
-| `cost` | int | 0+ | Poids de priorité pour la sélection d'apparition. Actuellement tous les objets vanilla utilisent 100. |
+| `cost` | int | 0+ | Poids de priorité utilisé lors du respawn/nettoyage. Presque tous les objets vanilla utilisent 100, mais quelques-uns utilisent des valeurs plus élevées (par ex. `Mag_SVD_10Rnd` utilise 1000). |
 
 ### Flags
 
@@ -721,7 +720,3 @@ Après la modification des fichiers d'économie, faites l'une de ces actions :
 - Supprimez `storage_1/` pour un wipe complet et un nouveau départ de l'économie
 - Mettez `RestartSpawn` à `1` dans `globals.xml` pour un redémarrage afin de re-randomiser le loot, puis remettez-le à `0`
 - Attendez que les durées de vie des objets expirent naturellement (peut prendre des heures)
-
----
-
-**Précédent :** [Référence serverDZ.cfg](03-server-cfg.md) | [Accueil](../README.md) | **Suivant :** [Apparition des véhicules et événements dynamiques](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Глава 2.1: 5-уровневая иерархия скриптов
 
-[Главная](../README.md) | **5-уровневая иерархия скриптов** | [Следующая: Подробный разбор config.cpp >>](02-config-cpp.md)
 
 ---
 
@@ -185,9 +184,9 @@ enum MyLogLevel
 **DabsFramework** --- один из немногих модов, использующих этот уровень:
 
 ```c
-// 2_GameLib/DabsFramework/MVC/ScriptView.c
-// Низкоуровневая инфраструктура привязки представлений
-class ScriptView : ScriptedWidgetEventHandler
+// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
+// Низкоуровневая инфраструктура привязки атрибутов
+class ConfigEntryAttribute : AttributeBase
 {
     // ...
 };
@@ -244,17 +243,6 @@ class JMRPCData
     static const int WEATHER_SET  = 0x1001;
     static const int PLAYER_HEAL  = 0x1002;
     // ...
-};
-```
-
-**VPP Admin Tools** регистрирует свои чат-команды:
-
-```c
-// 3_Game/VPPAdminTools/ChatCommands/ChatCommandBase.c
-class ChatCommandBase
-{
-    string GetCommand();
-    bool Execute(PlayerIdentity sender, array<string> args);
 };
 ```
 

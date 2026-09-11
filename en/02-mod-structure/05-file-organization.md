@@ -1,10 +1,9 @@
-# Chapter 2.5: File Organization Best Practices
+# File Organization Best Practices
 
-[Home](../README.md) | [<< Previous: Minimum Viable Mod](04-minimum-viable-mod.md) | **File Organization** | [Next: Server vs Client Architecture >>](06-server-client-split.md)
 
 ---
 
-> **Summary:** How you organize files determines whether your mod is maintainable at 10 files or 1,000. This chapter covers the canonical directory structure, naming conventions, content vs script vs framework mods, client-server splits, and lessons from professional DayZ mods.
+> **Summary:** How you organize files determines whether your mod is maintainable at 10 files or 1,000. This chapter covers the canonical directory structure, naming conventions, content vs script vs framework mods, client-server splits, and complete worked example layouts.
 
 ---
 
@@ -16,7 +15,7 @@
 - [Client-Server Split Mods](#client-server-split-mods)
 - [What Goes Where](#what-goes-where)
 - [PBO Naming and @mod Folder Naming](#pbo-naming-and-mod-folder-naming)
-- [Real Examples from Professional Mods](#real-examples-from-professional-mods)
+- [Worked Example Layouts](#worked-example-layouts)
 - [Anti-Patterns](#anti-patterns)
 
 ---
@@ -28,7 +27,10 @@ This is the standard layout used by professional DayZ mods. Not every folder is 
 ```
 MyMod/                                    <-- Project root (development)
   mod.cpp                                 <-- Launcher metadata
-  stringtable.csv                         <-- Localization (at mod root, NOT in Scripts/)
+  stringtable.csv                         <-- Localization; shown at the dev-tree root for
+                                               convenience, but it must end up at the ROOT OF A
+                                               PACKED PBO beside that PBO's config.cpp
+                                               (see "Anti-Patterns" below)
 
   Scripts/                                <-- Script PBO root
     config.cpp                            <-- CfgPatches + CfgMods + script module defs
@@ -105,51 +107,51 @@ MyMod/                                    <-- Project root (development)
 
 ### Mod/Project Names
 
-Use PascalCase with a clear prefix:
+Use PascalCase with a clear prefix. The examples below use the wiki's fictional **Lantern** framework family and the fictional **NightPatrol** content mod:
 
 ```
-MyFramework          <-- Framework, prefix: MyFW_
-MyMod_Missions      <-- Feature mod
-MyMod_Weapons       <-- Content mod
-VPPAdminTools        <-- Some mods skip underscores
-DabsFramework        <-- PascalCase without separator
+Lantern_Core         <-- Framework package, class prefix: LNT_
+Lantern_Missions     <-- Feature mod built on the framework
+Lantern_Admin        <-- Admin tool built on the framework
+NightPatrol          <-- Content mod, class prefix: NP_ (skips the underscore in the mod name)
 ```
 
 ### Class Names
 
-Use a short prefix unique to your mod, followed by an underscore and the class purpose:
+Use a short prefix unique to your mod, followed by an underscore and the class purpose. Three styles you will encounter:
 
 ```c
-// MyMod pattern: MyMod_[Subsystem]_[Name]
-class MyLog             // Core logging
-class MyRPC             // Core RPC
-class MyW_Config        // Weapons config
-class MyM_MissionBase   // Missions base
+// Framework prefix style: LNT_[Name]
+// Every class in the Lantern framework carries the same short tag.
+class LNT_ModuleWorld {}
+class LNT_EventArgs {}
+class LNT_Log {}
 
-// CF pattern: CF_[Name]
-class CF_ModuleWorld
-class CF_EventArgs
+// Content-mod short-tag style: NP_[Name]
+// A two-letter tag keeps long item class names readable.
+class NP_PatrolFlashlight {}
+class NP_SignalFlare {}
 
-// COT pattern: JM_COT_[Name]
-class JM_COT_Menu
-
-// VPP pattern: [Name] (no prefix)
-class ChatCommandBase
-class WebhookManager
+// Unprefixed manager-noun style: [Name]Manager
+// Some mods skip the prefix entirely. Readable, but risky:
+// another mod defining the same name collides at compile time.
+class ChatCommandManager {}
+class WebhookManager {}
 ```
 
 **Rules:**
 - Prefix prevents collisions with other mods
 - Keep it short (2-4 characters)
 - Be consistent within your mod
+- Avoid the unprefixed style unless your class names are already highly specific
 
 ### File Names
 
 Name each file after the primary class it contains:
 
 ```
-MyLog.c            <-- Contains class MyLog
-MyRPC.c            <-- Contains class MyRPC
+LNT_Log.c            <-- Contains class LNT_Log
+LNT_RPC.c            <-- Contains class LNT_RPC
 MyModConfig.c        <-- Contains class MyModConfig
 ActionMyCustom.c     <-- Contains class ActionMyCustom
 ```
@@ -172,11 +174,11 @@ mymod_settings_dialog.layout
 // Member variables: m_ prefix
 protected int m_Count;
 protected ref array<string> m_Items;
-protected ref MyConfig m_Config;
+protected ref LNT_ConfigBase m_Config;
 
 // Static variables: s_ prefix
 static int s_InstanceCount;
-static ref MyLog s_Logger;
+static ref LNT_Log s_Logger;
 
 // Constants: ALL_CAPS
 const int MAX_PLAYERS = 60;
@@ -189,7 +191,7 @@ string playerName = identity.GetName();
 float deltaTime = timeArgs.DeltaTime;
 
 // Parameters: camelCase (no prefix)
-void SetConfig(MyConfig config, bool forceReload)
+void SetConfig(LNT_ConfigBase config, bool forceReload)
 ```
 
 ---
@@ -266,14 +268,14 @@ MyAdminTools/
 - Heavy on `Scripts/` (most code in 3_Game, 4_World, 5_Mission)
 - GUI layouts and imagesets for UI
 - Little or no `Data/` (no 3D models)
-- Usually depends on a framework (CF, DabsFramework, or a custom framework)
+- Usually depends on a framework (a shared library such as the wiki's Lantern example, or a custom one)
 
 ### 3. Framework Mod
 
 Provides shared infrastructure for other mods -- logging, RPC, configuration, UI systems.
 
 ```
-MyFramework/
+Lantern_Core/
   mod.cpp
   stringtable.csv
   Scripts/
@@ -281,36 +283,36 @@ MyFramework/
     Data/
       Credits.json
     1_Core/                     <-- Frameworks often use 1_Core
-      MyFramework/
-        Constants.c
-        LogLevel.c
+      Lantern/
+        LNT_Constants.c
+        LNT_LogLevel.c
     3_Game/
-      MyFramework/
+      Lantern/
         Config/
-          ConfigManager.c
-          ConfigBase.c
+          LNT_ConfigManager.c
+          LNT_ConfigBase.c
         RPC/
-          RPCManager.c
+          LNT_RPC.c
         Events/
-          EventBus.c
+          LNT_EventBus.c
         Logging/
-          Logger.c
+          LNT_Log.c
         Permissions/
-          PermissionManager.c
+          LNT_Permissions.c
         UI/
-          ViewBase.c
-          DialogBase.c
+          LNT_ViewBase.c
+          LNT_DialogBase.c
     4_World/
-      MyFramework/
+      Lantern/
         Module/
-          ModuleManager.c
-          ModuleBase.c
+          LNT_ModuleManager.c
+          LNT_ModuleBase.c
         Player/
-          PlayerData.c
+          LNT_PlayerData.c
     5_Mission/
-      MyFramework/
-        MissionHooks.c
-        ModRegistration.c
+      Lantern/
+        LNT_MissionHooks.c
+        LNT_ModRegistration.c
   GUI/
     config.cpp
     layouts/
@@ -388,27 +390,29 @@ class CfgPatches
 };
 ```
 
-### Real Example: Missions Client-Server Split
+### Worked Example: Missions Client-Server Split
+
+Using the wiki's fictional Lantern mod family:
 
 ```
-MyMod_Missions/
-  MyMod_Missions/                        <-- Client (-mod=)
+Lantern_Missions/
+  Lantern_Missions/                       <-- Client (-mod=)
     mod.cpp                               type = "mod"
     Scripts/
-      config.cpp                          requiredAddons: MyMod_Core_Scripts
-      3_Game/MyMod_Missions/             Shared enums, config, RPC IDs
-      4_World/MyMod_Missions/            Mission markers (client rendering)
-      5_Mission/MyMod_Missions/          Mission UI, radio HUD
+      config.cpp                          requiredAddons: Lantern_Core_Scripts
+      3_Game/Lantern_Missions/            Shared enums, config, RPC IDs
+      4_World/Lantern_Missions/           Mission markers (client rendering)
+      5_Mission/Lantern_Missions/         Mission UI, radio HUD
     GUI/layouts/                          Mission panel layouts
     Sounds/                               Radio beep sounds
 
-  MyMod_MissionsServer/                 <-- Server (-servermod=)
+  Lantern_MissionsServer/                 <-- Server (-servermod=)
     mod.cpp                               type = "servermod"
     Scripts/
-      config.cpp                          requiredAddons: MyMod_Scripts, MyMod_Core_Scripts
-      3_Game/MyMod_MissionsServer/       Server config extensions
-      4_World/MyMod_MissionsServer/      Mission spawner, loot manager
-      5_Mission/MyMod_MissionsServer/    Server mission lifecycle
+      config.cpp                          requiredAddons: Lantern_Missions_Scripts, Lantern_Core_Scripts
+      3_Game/Lantern_MissionsServer/      Server config extensions
+      4_World/Lantern_MissionsServer/     Mission spawner, loot manager
+      5_Mission/Lantern_MissionsServer/   Server mission lifecycle
 ```
 
 ---
@@ -527,7 +531,7 @@ Large mods split into multiple PBOs for several reasons:
 @MyMod_Weapons/
   Addons/
     MyMod_Weapons_Scripts.pbo    <-- Script behavior
-    MyMod_Weapons_Data.pbo       <-- 268 weapon models, textures, configs
+    MyMod_Weapons_Data.pbo       <-- Weapon models, textures, configs
 ```
 
 Each PBO has its own `config.cpp` with its own `CfgPatches` entry. The `requiredAddons` between them controls the load order:
@@ -554,48 +558,43 @@ class CfgPatches
 
 ---
 
-## Real Examples from Professional Mods
+## Worked Example Layouts
 
-### Framework Mod Example
+The trees below are constructed teaching examples built around the wiki's fictional **Lantern** mod family (the framework whose code is developed in Part 7) and the fictional **NightPatrol** content mod. Each one condenses a layout pattern commonly seen in large published mods.
+
+### Framework Mod: Lantern_Core
+
+A full-featured framework uses every script layer and splits each layer into subsystem folders:
 
 ```
-MyFramework/
-  MyFramework/                            <-- Client package
+Lantern_Core/
+  Lantern_Core/                           <-- Client package
     mod.cpp
     stringtable.csv
     GUI/
       config.cpp
       fonts/
-      icons/                              <-- 5 icon weight imagesets
+      icons/                              <-- Icon weight imagesets
       imagesets/
       layouts/
-        dialogs/
-        options/
-        prefabs/
-        MyMod/loading/hints/
-        MyFramework/AdminPanel/
-        MyFramework/Dialogs/
-        MyFramework/Modules/
-        MyFramework/Options/
-        MyFramework/Prefabs/
-        MyFramework/Tooltip/
+        Lantern/AdminPanel/
+        Lantern/Dialogs/
+        Lantern/Modules/
+        Lantern/Options/
+        Lantern/Prefabs/
+        Lantern/Tooltip/
       looknfeel/
       sounds/
     Scripts/
       config.cpp
       Inputs.xml
-      1_Core/MyMod/                      <-- Log levels, constants
-      2_GameLib/MyMod/UI/                <-- MVC attribute system
-      3_Game/MyMod/                      <-- 15+ subsystem folders
-        Animation/
-        Branding/
+      1_Core/Lantern/                     <-- Log levels, constants
+      2_GameLib/Lantern/UI/               <-- MVC attribute system
+      3_Game/Lantern/                     <-- One folder per subsystem
         Chat/
-        Collections/
         Config/
         Core/
         Events/
-        Hints/
-        Killfeed/
         Logging/
         Module/
         MVC/
@@ -607,26 +606,28 @@ MyFramework/
         Theme/
         Timer/
         UI/
-      4_World/MyMod/                     <-- Player data, world managers
-      5_Mission/MyMod/                   <-- Admin panel, mod registration
+      4_World/Lantern/                    <-- Player data, world managers
+      5_Mission/Lantern/                  <-- Admin panel, mod registration
 
-  MyFramework_Server/                     <-- Server package
+  Lantern_Core_Server/                    <-- Server package
     mod.cpp
     Scripts/
       config.cpp
       ...
 ```
 
-### Community Online Tools (COT) -- Admin Tool
+### Admin Tool: Lantern_Admin -- Umbrella Directory + Common Folder
+
+Some teams wrap every mod they ship inside a single top-level "umbrella" directory named after the team. All internal paths then start with the team name, which guarantees no path collision with any other mod. Here the fictional Northlight team packs its `Lantern_Admin` tool under `Northlight/Admin/`:
 
 ```
-JM/COT/
+Northlight/Admin/                         <-- Umbrella dir: team name wraps the mod folder
   mod.cpp
   GUI/
     config.cpp
     layouts/
       cursors/
-      uiactions/
+      dialogs/
       vehicles/
     textures/
   Objects/Debug/
@@ -642,65 +643,63 @@ JM/COT/
     3_Game/
     4_World/
     5_Mission/
-  languagecore/
-    config.cpp                            <-- String table config
+  Language/
+    config.cpp                            <-- Dedicated string table PBO
 ```
 
-Note the `Common/` folder pattern: included in every script module via `files[]`, allowing shared types across all layers.
+Note the `Common/` folder pattern: it is listed in every script module's `files[]` in `config.cpp`, so its types compile into all layers -- a way to share utility classes without duplicating them per layer.
 
-### Content Mod Example
+### Content Mod: NightPatrol Weapon Pack
 
 ```
-MyMod_Weapons/
-  MyMod_Weapons/
+NightPatrol/
+  NightPatrol/
     mod.cpp
     Data/
-      config.cpp                          <-- Merged config: 268 weapon definitions
-      Ammo/                               <-- Organized by source/caliber
-        BC/12.7x55/
-        BC/338/
-        BC/50Cal/
-        GCGN/3006/
-        GCGN/300AAC/
+      config.cpp                          <-- CfgWeapons, CfgMagazines, CfgAmmo definitions
+      Ammo/                               <-- Organized by caliber
+        556x45/
+        762x39/
+        9x19/
       Attachments/                        <-- Scopes, suppressors, grips
       Magazines/
-      Weapons/                            <-- Weapon models organized by source
+      Weapons/                            <-- One folder per weapon model
     Scripts/
       config.cpp                          <-- Script module definitions
-      3_Game/                             <-- Weapon config, stat system
-      4_World/                            <-- Weapon behavior overrides
-      5_Mission/                          <-- Registration, UI
+      3_Game/NightPatrol/                 <-- Weapon config, stat constants
+      4_World/NightPatrol/                <-- Weapon behavior overrides
+      5_Mission/NightPatrol/              <-- Registration, UI
 ```
 
 Content mods have a massive `Data/` directory and relatively small `Scripts/`.
 
-### DabsFramework -- UI Framework
+### UI Kit: Lantern_UI -- and a files[] Casing Trap
 
 ```
-DabsFramework/
+Lantern_UI/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
-      brands.imageset
-      light.imageset
-      regular.imageset
-      solid.imageset
-      thin.imageset
+      lnt_brands.imageset
+      lnt_light.imageset
+      lnt_regular.imageset
+      lnt_solid.imageset
+      lnt_thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
-    2_GameLib/                            <-- One of few mods using layer 2
+    1_Core/
+    2_GameLib/                            <-- One of the few uses of layer 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Note: DabsFramework uses lowercase folder names (`scripts/`, `gui/`). This works because Windows is case-insensitive, but may cause issues on Linux. The convention is to use the canonical casing (`Scripts/`, `GUI/`).
+A casing trap seen in published mods: the physical folders use canonical casing (`Scripts/`, `GUI/`, `1_Core/`), but the `config.cpp` `files[]` paths reference them in lowercase (`Lantern_UI/scripts/1_core`, `Lantern_UI/gui/...`). The mismatch works because Windows is case-insensitive, but it can break on Linux servers, which are case-sensitive. Keep your `files[]` paths matching the actual folder casing exactly.
 
 ---
 
@@ -728,7 +727,7 @@ Scripts/
       MyItem.c              <-- Extends ItemBase (belongs in 4_World)
 ```
 
-**Fix:** Follow the layer rules from Chapter 2.1. Move entity code to `4_World` and UI code to `5_Mission`.
+**Fix:** Follow the layer rules from [The Five Script Layers](01-five-layers.md). Move entity code to `4_World` and UI code to `5_Mission`.
 
 ### 3. No Mod Subdirectory in Script Layers
 
@@ -749,22 +748,17 @@ Scripts/
       RPCs.c
 ```
 
-### 4. stringtable.csv Inside Scripts/
+### 4. Placing stringtable.csv Somewhere It Won't Be Packed
 
-```
-Scripts/
-  stringtable.csv           <-- WRONG LOCATION
-  config.cpp
-```
+`stringtable.csv` belongs at the **root of a packed PBO, beside that PBO's `config.cpp`**. Bohemia's own `Test_Stringtable` sample ships exactly that and nothing else -- the addon source folder contains two files, `config.cpp` and `stringtable.csv`, side by side, with no `mod.cpp` anywhere in the sample. The general Real Virtuality documentation says the same thing in older words: the stringtable "must be located in the primary folder of the mission/addon/campaign."
 
-**Fix:** `stringtable.csv` goes at the mod root (next to `mod.cpp`):
+Published mods vary in where they keep the file in their *development* tree -- some at the project root next to `mod.cpp`, some already at `Scripts/stringtable.csv` -- and that is fine, because only the packed result matters. The trap is shipping it at the mod root of the final `@MyMod/` distribution folder: that location sits outside `Addons/` and is never inside a PBO, so nothing reads it. Pick one PBO (commonly Scripts) to own the file, make sure your build step packs it at that PBO's root, and confirm with a test string in-game.
 
 ```
 MyMod/
-  mod.cpp
-  stringtable.csv           <-- Correct
   Scripts/
-    config.cpp
+    config.cpp               <-- PBO root
+    stringtable.csv          <-- Beside it, exactly as Bohemia's Test_Stringtable sample ships
 ```
 
 ### 5. Mixed Assets and Scripts in One PBO
@@ -827,7 +821,7 @@ MyModPanel.c
 Before publishing your mod, verify:
 
 - [ ] `mod.cpp` is at the mod root (next to `Addons/` or `Scripts/`)
-- [ ] `stringtable.csv` is at the mod root (NOT inside `Scripts/`)
+- [ ] `stringtable.csv` is packed at a PBO root beside that PBO's `config.cpp` (not left only in the unpacked dev-tree "mod root" next to `mod.cpp`) -- verify the localized strings show up in-game
 - [ ] `config.cpp` exists in every PBO root
 - [ ] `requiredAddons[]` lists ALL dependencies
 - [ ] Script module `files[]` paths match the actual directory structure
@@ -839,15 +833,15 @@ Before publishing your mod, verify:
 
 ---
 
-## Observed in Real Mods
+## Patterns Observed in Published Mods
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Deep subsystem folders in `3_Game` | StarDZ Core | 15+ folders under `3_Game/` (Config, RPC, Events, Logging, Permissions, etc.) |
-| `Common/` shared folder | COT | Included in every script module's `files[]` to provide cross-layer utility types |
-| Lowercase folder names | DabsFramework | Uses `scripts/`, `gui/` instead of `Scripts/`, `GUI/` -- works on Windows but risks issues on Linux |
-| Separate GUI PBO | Expansion, COT | GUI resources (layouts, imagesets, styles) packed into a dedicated PBO with its own config.cpp |
-| Minimal Scripts for content mods | Weapon packs | `Data/` directory dominates; `Scripts/` has only a thin config.cpp and optional behavior overrides |
+| Pattern | Detail |
+|---------|--------|
+| Deep subsystem folders in `3_Game` | Large framework mods commonly have 15+ folders under `3_Game/` (Config, RPC, Events, Logging, Permissions, etc.) |
+| `Common/` shared folder | Included in every script module's `files[]` to provide cross-layer utility types |
+| Lowercase paths in `files[]` | Physical folders are `Scripts/`, `GUI/`, but `config.cpp` `files[]` reference them as lowercase (`scripts/`, `gui/`, `1_core`) -- works on Windows but risks issues on Linux |
+| Separate GUI PBO | Common in large mods: GUI resources (layouts, imagesets, styles) packed into a dedicated PBO with its own config.cpp |
+| Minimal Scripts for content mods | In weapon packs the `Data/` directory dominates; `Scripts/` has only a thin config.cpp and optional behavior overrides |
 
 ---
 
@@ -858,7 +852,7 @@ Before publishing your mod, verify:
 | One class per file | Each `.c` file contains one class | Small helper classes and enums are often co-located with their parent class for convenience |
 | Separate PBOs for Scripts/Data/GUI | Clean separation by concern | Small mods often merge everything into a single PBO to simplify distribution |
 | Mod subfolder prevents collisions | `3_Game/MyMod/` namespaces files | True, but class names still collide globally -- the subfolder only prevents file-level conflicts |
-| `stringtable.csv` at mod root | Engine finds it automatically | Must be at the PBO root that gets loaded; placing it inside `Scripts/` causes it to be silently ignored |
+| `stringtable.csv` at mod root | Engine finds it automatically | The documented layout is the root of a packed PBO, beside that PBO's `config.cpp`, as Bohemia's `Test_Stringtable` sample ships it. The dev-tree "mod root" next to `mod.cpp` is outside `Addons/` and is never packed by itself, so a file left only there is never read |
 | ServerFiles/ ships with the mod | Server admins copy types.xml | Many mod authors forget to include ServerFiles, forcing admins to create types.xml entries manually |
 
 ---
@@ -866,9 +860,4 @@ Before publishing your mod, verify:
 ## Compatibility & Impact
 
 - **Multi-Mod:** File organization itself does not cause conflicts. However, two mods placing files with the same path inside their PBOs (e.g., both using `3_Game/Config.c` without a mod subfolder) will collide at the engine level, causing one to silently override the other.
-- **Performance:** Directory depth and file count have no measurable impact on script compilation time. The engine recursively scans all listed `files[]` directories regardless of nesting.
-
----
-
-**Previous:** [Chapter 2.4: Your First Mod -- Minimum Viable](04-minimum-viable-mod.md)
-**Next:** [Chapter 2.6: Server vs Client Architecture](06-server-client-split.md)
+- **Performance:** The engine recursively scans all listed `files[]` directories regardless of nesting depth. No published benchmark quantifies compile-time cost by directory depth, so treat "nesting is free" as a reasonable expectation rather than a measured fact; total script volume, not folder depth, is what drives compile time in practice. Organize for readability.

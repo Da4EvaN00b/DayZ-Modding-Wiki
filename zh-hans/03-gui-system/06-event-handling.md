@@ -1,6 +1,5 @@
 # 第 3.6 章：事件处理
 
-[首页](../README.md) | [<< 上一章：编程式控件创建](05-programmatic-widgets.md) | **事件处理** | [下一章：样式、字体与图像 >>](07-styles-fonts.md)
 
 ---
 
@@ -65,6 +64,7 @@ class ScriptedWidgetEventHandler
     // 其他
     bool OnUpdate(Widget w);
     bool OnModalResult(Widget w, int x, int y, int code, int result);
+    bool OnEvent(EventType eventType, Widget target, int parameter0, int parameter1);
 }
 ```
 

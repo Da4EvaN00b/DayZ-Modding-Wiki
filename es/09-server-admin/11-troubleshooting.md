@@ -1,6 +1,5 @@
 # Capitulo 9.11: Solucion de Problemas del Servidor
 
-[Inicio](../README.md) | [<< Anterior: Gestion de Mods](10-mod-management.md) | [Siguiente: Temas Avanzados >>](12-advanced.md)
 
 ---
 
@@ -60,7 +59,7 @@ DayZ requiere estos puertos redirigidos y abiertos en tu firewall:
 |------|----------|---------|
 | 2302 | UDP | Trafico del juego |
 | 2303 | UDP | Red de Steam |
-| 2304 | UDP | Consulta de Steam (interno) |
+| 2304 | UDP | Puerto de conexion del cliente (`clientPort`) |
 | 27016 | UDP | Consulta del navegador de servidores de Steam |
 
 Si cambiaste el puerto base con `-port=`, todos los demas puertos se desplazan con el mismo offset.
@@ -124,7 +123,7 @@ Si usas un archivo de types personalizado (por ejemplo, **types_custom.xml**), a
 
 ### Etiquetas de category, usage o value incorrectas
 
-Cada etiqueta `<category>`, `<usage>` y `<value>` en tu types.xml debe coincidir con un nombre definido en **cfglimitsdefinition.xml**. Un error tipografico como `usage name="Military"` (M mayuscula) cuando la definicion dice `military` (minuscula) previene silenciosamente que el item spawnee.
+Cada etiqueta `<category>`, `<usage>` y `<value>` en tu types.xml debe coincidir con un nombre definido en **cfglimitsdefinition.xml**. Un error tipografico como `usage name="military"` (minuscula) cuando la definicion dice `Military` (M mayuscula) previene silenciosamente que el item spawnee.
 
 ### Nominal puesto en cero
 
@@ -212,7 +211,7 @@ Los inventarios y posiciones de jugadores se almacenan en `storage_1/players/`. 
 
 Los servidores DayZ apuntan a 30+ FPS para jugabilidad fluida. Causas comunes de FPS bajo del servidor:
 
-- **Demasiados zombis** -- reduce `ZombieMaxCount` en **globals.xml** (predeterminado 800, prueba 400-600)
+- **Demasiados zombis** -- reduce `ZombieMaxCount` en **globals.xml** (predeterminado 1000, prueba 400-600)
 - **Demasiados animales** -- reduce `AnimalMaxCount` (predeterminado 200, prueba 100)
 - **Exceso de loot** -- baja los valores de `nominal` en tu types.xml
 - **Demasiados objetos de base** -- bases grandes con cientos de items estresan la persistencia
@@ -266,7 +265,3 @@ Cuando algo sale mal, trabaja a traves de esta lista en orden:
 ```
 
 El paso 8 es la tecnica mas poderosa. Si el servidor funciona vanilla pero se rompe con mods, puedes aislar el mod problematico a traves de busqueda binaria -- agrega la mitad de tus mods, prueba, luego reduce.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Gestion de Mods](10-mod-management.md) | [Siguiente: Temas Avanzados >>](12-advanced.md)

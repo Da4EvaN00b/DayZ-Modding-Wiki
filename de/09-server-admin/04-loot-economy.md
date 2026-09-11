@@ -1,6 +1,5 @@
 # Kapitel 9.4: Loot-Wirtschaft im Detail
 
-[Home](../README.md) | [<< Zurueck: serverDZ.cfg-Referenz](03-server-cfg.md) | **Loot-Wirtschaft im Detail**
 
 ---
 
@@ -194,7 +193,7 @@ Bandagen sind sehr haeufig (40 nominal). Sie spawnen in Medic-Gebaeuden (Kranken
 | `restock` | int | Sekunden | Minimale Abklingzeit, bevor die CE Ersatz spawnen kann. 0 = sofort. |
 | `quantmin` | int | -1 bis 100 | Minimaler Mengenprozentsatz beim Spawn (Munitions-%, Fluessigkeits-%). -1 = nicht anwendbar. |
 | `quantmax` | int | -1 bis 100 | Maximaler Mengenprozentsatz beim Spawn. -1 = nicht anwendbar. |
-| `cost` | int | 0+ | Prioritaetsgewicht fuer die Spawn-Auswahl. Derzeit verwenden alle Vanilla-Items 100. |
+| `cost` | int | 0+ | Prioritaetsgewicht, das beim Respawn/Cleanup verwendet wird. Fast alle Vanilla-Items verwenden 100, aber einige verwenden hoehere Werte (z. B. verwendet `Mag_SVD_10Rnd` 1000). |
 
 ### Flags
 
@@ -721,7 +720,3 @@ Nach dem Bearbeiten von Wirtschaftsdateien fuehren Sie eine der folgenden Massna
 - `storage_1/` loeschen fuer einen vollstaendigen Wipe und frischen Wirtschaftsstart
 - `RestartSpawn` in `globals.xml` fuer einen Neustart auf `1` setzen, um Loot neu zu verteilen, dann zurueck auf `0` setzen
 - Warten, bis Item-Lebensdauern natuerlich ablaufen (kann Stunden dauern)
-
----
-
-**Zurueck:** [serverDZ.cfg-Referenz](03-server-cfg.md) | [Home](../README.md) | **Weiter:** [Fahrzeug- & Dynamic-Event-Spawning](05-vehicle-spawning.md)

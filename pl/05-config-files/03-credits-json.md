@@ -1,6 +1,5 @@
 # Rozdział 5.3: Credits.json
 
-[Strona główna](../README.md) | [<< Poprzedni: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Następny: Format ImageSet >>](04-imagesets.md)
 
 ---
 
@@ -23,9 +22,9 @@
 
 ## Przegląd
 
-Gdy gracz wybierze twojego moda w launcherze DayZ lub w menu modów w grze, silnik szuka pliku `Credits.json` wewnątrz PBO twojego moda. Jeśli go znajdzie, napisy końcowe są wyświetlane w przewijanym widoku podzielonym na działy i sekcje --- podobnie do napisów filmowych.
+Gdy gracz przegląda napisy końcowe twojego moda, silnik ładuje plik, którego ścieżkę deklarujesz w kluczu `creditsJson` w bloku `CfgMods` w pliku `config.cpp` (na przykład `creditsJson = "MyMod/Scripts/Data/Credits.json";`). Napisy końcowe są następnie wyświetlane w przewijanym widoku podzielonym na działy i sekcje --- podobnie do napisów filmowych.
 
-Plik jest opcjonalny. Jeśli go nie ma, dla twojego moda nie pojawia się sekcja napisów końcowych. Ale dołączenie go jest dobrą praktyką: uznaje pracę twojego zespołu i nadaje modowi profesjonalny wygląd.
+Plik jest opcjonalny. Jeśli nie zadeklarujesz klucza `creditsJson`, plik nigdy nie zostanie załadowany i dla twojego moda nie pojawią się żadne napisy końcowe. Ale dołączenie go jest dobrą praktyką: uznaje pracę twojego zespołu i nadaje modowi profesjonalny wygląd.
 
 ---
 
@@ -43,7 +42,7 @@ Umieść `Credits.json` wewnątrz podfolderu `Data` katalogu Scripts lub bezpoś
         Credits.json         <-- Również prawidłowe (DabsFramework, Colorful-UI)
 ```
 
-Obie lokalizacje działają. Silnik przeszukuje zawartość PBO w poszukiwaniu pliku o nazwie `Credits.json` (wielkość liter ma znaczenie na niektórych platformach).
+Plik może znajdować się w dowolnym miejscu w PBO. Liczy się to, że wartość `creditsJson` w bloku `CfgMods` wskazuje na jego dokładną ścieżkę (wielkość liter ma znaczenie na niektórych platformach).
 
 ---
 
@@ -53,14 +52,13 @@ Plik używa prostej struktury JSON z trzema poziomami hierarchii:
 
 ```json
 {
-    "Header": "Nazwa mojego moda",
     "Departments": [
         {
             "DepartmentName": "Tytuł działu",
             "Sections": [
                 {
                     "SectionName": "Tytuł sekcji",
-                    "Names": ["Osoba 1", "Osoba 2"]
+                    "SectionLines": ["Osoba 1", "Osoba 2"]
                 }
             ]
         }
@@ -72,8 +70,9 @@ Plik używa prostej struktury JSON z trzema poziomami hierarchii:
 
 | Pole | Typ | Wymagane | Opis |
 |------|-----|----------|------|
-| `Header` | string | Nie | Główny tytuł wyświetlany na górze napisów. Jeśli pominięty, nagłówek się nie pojawia. |
 | `Departments` | tablica | Tak | Tablica obiektów działów |
+
+Parser z waniliowej gry (`JsonDataCredits`) rozpoznaje tylko tablicę `Departments`. Nie istnieje pole `Header` najwyższego poziomu --- każdy dodany przez ciebie klucz `Header` jest po cichu ignorowany. Aby pokazać tytuł na górze napisów końcowych, użyj zamiast tego pierwszego `DepartmentName`.
 
 ### Obiekt działu
 
@@ -84,23 +83,12 @@ Plik używa prostej struktury JSON z trzema poziomami hierarchii:
 
 ### Obiekt sekcji
 
-W praktyce istnieją dwa warianty do wymieniania nazwisk. Silnik obsługuje oba.
-
-**Wariant 1: tablica `Names`** (używany przez MyMod Core)
-
-| Pole | Typ | Wymagane | Opis |
-|------|-----|----------|------|
-| `SectionName` | string | Tak | Pod-nagłówek w dziale |
-| `Names` | tablica stringów | Tak | Lista nazwisk współpracowników |
-
-**Wariant 2: tablica `SectionLines`** (używany przez COT, Expansion, DabsFramework)
-
 | Pole | Typ | Wymagane | Opis |
 |------|-----|----------|------|
 | `SectionName` | string | Tak | Pod-nagłówek w dziale |
 | `SectionLines` | tablica stringów | Tak | Lista nazwisk współpracowników lub linii tekstu |
 
-Zarówno `Names`, jak i `SectionLines` służą temu samemu celowi. Używaj tego, co wolisz --- silnik renderuje je identycznie.
+Waniliowa klasa sekcji (`JsonDataCreditsSection`) rozpoznaje tylko `SectionName` i `SectionLines`. Możesz zobaczyć, że niektóre mody używają klucza `Names`, ale silnik nigdy go nie odczytuje --- tablica `Names` jest po cichu ignorowana i niczego nie renderuje. Zawsze używaj `SectionLines` dla listy nazwisk.
 
 ---
 
@@ -110,12 +98,10 @@ Wyświetlanie napisów końcowych podąża za taką hierarchią wizualną:
 
 ```
 ╔══════════════════════════════════╗
-║       NAZWA MOJEGO MODA          ║  <-- Header (duży, wyśrodkowany)
-║                                  ║
 ║     NAZWA DZIAŁU                 ║  <-- DepartmentName (średni, wyśrodkowany)
 ║                                  ║
 ║     Nazwa sekcji                 ║  <-- SectionName (mały, wyśrodkowany)
-║     Osoba 1                      ║  <-- Names/SectionLines (lista)
+║     Osoba 1                      ║  <-- SectionLines (lista)
 ║     Osoba 2                      ║
 ║     Osoba 3                      ║
 ║                                  ║
@@ -128,10 +114,9 @@ Wyświetlanie napisów końcowych podąża za taką hierarchią wizualną:
 ╚══════════════════════════════════╝
 ```
 
-- `Header` pojawia się raz na górze
 - Każdy `DepartmentName` działa jako główny separator sekcji
 - Każdy `SectionName` działa jako pod-nagłówek
-- Nazwiska przewijają się pionowo w widoku napisów
+- `SectionLines` przewijają się pionowo w widoku napisów
 
 ### Puste ciągi dla odstępów
 
@@ -181,14 +166,13 @@ Nazwy działów mogą również używać referencji do stringtable:
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["TwojaNazwa"]
+                    "SectionLines": ["TwojaNazwa"]
                 }
             ]
         }
@@ -200,22 +184,21 @@ Nazwy działów mogą również używać referencji do stringtable:
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (francuski)",
                         "Translator2 (niemiecki)",
                         "Translator3 (rosyjski)"
@@ -231,26 +214,25 @@ Nazwy działów mogą również używać referencji do stringtable:
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +241,7 @@ Nazwy działów mogą również używać referencji do stringtable:
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (czeski)",
                         "Translator2 (niemiecki)",
                         "Translator3 (rosyjski)"
@@ -267,7 +249,7 @@ Nazwy działów mogą również używać referencji do stringtable:
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +258,7 @@ Nazwy działów mogą również używać referencji do stringtable:
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +275,17 @@ Nazwy działów mogą również używać referencji do stringtable:
 
 ### MyMod Core
 
-Minimalny, ale kompletny plik napisów końcowych używający wariantu `Names`:
+Minimalny, ale kompletny plik napisów końcowych:
 
 ```json
 {
-    "Header": "MyMod Core",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyMod Core",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["Documentation Team"]
+                    "SectionLines": ["Documentation Team"]
                 }
             ]
         }
@@ -355,7 +336,7 @@ Używa wariantu `SectionLines` z wieloma sekcjami i podziękowaniami:
 }
 ```
 
-Warto zauważyć: COT pomija pole `Header` całkowicie. Nazwa moda pochodzi z innych metadanych (config.cpp `CfgMods`).
+Warto zauważyć: COT używa pierwszego `DepartmentName` ("Community Online Tools") jako swojego tytułu. Nazwa moda pochodzi również z innych metadanych (config.cpp `CfgMods`).
 
 ### DabsFramework
 
@@ -413,19 +394,18 @@ Użyj walidatora JSON przed publikacją.
 
 Plik musi mieć dokładną nazwę `Credits.json` (wielkie C). W systemach plików rozróżniających wielkość liter `credits.json` lub `CREDITS.JSON` nie zostaną znalezione.
 
-### Mieszanie Names i SectionLines
+### Używanie klucza `Names`
 
-W jednej sekcji używaj jednego lub drugiego:
+Niektóre mody zapisują tablicę `Names`, ale silnik nigdy jej nie odczytuje. Tylko `SectionLines` jest parsowany:
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-To jest niejednoznaczne. Wybierz jeden format i używaj go konsekwentnie w całym pliku.
+W tym przykładzie "Dev1" nigdy nie pojawia się w grze --- sekcja renderuje się pusta. Zawsze wymieniaj współpracowników w `SectionLines`.
 
 ### Problemy z kodowaniem
 
@@ -436,9 +416,9 @@ Zapisz plik jako UTF-8. Znaki spoza ASCII (nazwy z akcentami, znaki CJK) wymagaj
 ## Dobre praktyki
 
 - Waliduj JSON zewnętrznym narzędziem przed spakowaniem do PBO -- silnik nie daje użytecznego komunikatu o błędzie dla zniekształconego JSON.
-- Używaj wariantu `SectionLines` dla spójności, ponieważ jest to format używany przez COT, Expansion i DabsFramework.
+- Używaj `SectionLines` dla każdej listy nazwisk. Jest to jedyne pole odczytywane przez silnik oraz format używany przez COT, Expansion i DabsFramework.
 - Dołącz dział "Legal Notices", jeśli twój mod zawiera zasoby stron trzecich (czcionki, ikony, dźwięki) z wymaganiami atrybucji.
-- Utrzymuj pole `Header` zgodne z `name` twojego moda w `mod.cpp` i `config.cpp` dla spójnej tożsamości.
+- Używaj pierwszego `DepartmentName` jako tytułu zgodnego z `name` twojego moda w `mod.cpp` i `config.cpp` dla spójnej tożsamości.
 - Używaj pustych ciągów `DepartmentName` i `SectionName` oszczędnie dla wizualnych odstępów -- nadużywanie sprawia, że napisy wyglądają na rozczłonkowane.
 
 ---

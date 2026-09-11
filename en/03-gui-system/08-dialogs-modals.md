@@ -1,10 +1,27 @@
-# Chapter 3.8: Dialogs & Modals
+# Dialogs & Modals
 
-[Home](../README.md) | [<< Previous: Styles, Fonts & Images](07-styles-fonts.md) | **Dialogs & Modals** | [Next: Real Mod UI Patterns >>](09-real-mod-patterns.md)
+> **Summary:** Dialogs are temporary overlay windows that demand user interaction -- confirmation prompts, alert messages, input forms, and settings panels. DayZ exposes four ways to build them; this chapter covers all four, their focus management, layout structure, and common pitfalls.
 
 ---
 
-Dialogs are temporary overlay windows that demand user interaction -- confirmation prompts, alert messages, input forms, and settings panels. This chapter covers the built-in dialog system, manual dialog patterns, layout structure, focus management, and common pitfalls.
+## Table of Contents
+
+- [Modal vs. Modeless](#modal-vs-modeless)
+- [The four dialog systems](#the-four-dialog-systems)
+- [`UIScriptedMenu` -- the built-in menu stack](#uiscriptedmenu-the-built-in-system)
+- [Built-in `ShowDialog` (native message boxes)](#built-in-showdialog-native-message-boxes)
+- [Manual dialog pattern (`ScriptedWidgetEventHandler`)](#manual-dialog-pattern-without-uiscriptedmenu)
+  - [Popup via `OnWidgetScriptInit`](#popup-via-onwidgetscriptinit)
+- [Dialog layout structure](#dialog-layout-structure)
+- [Confirmation dialog pattern](#confirmation-dialog-pattern)
+- [Input dialog pattern](#input-dialog-pattern)
+- [Focus management (the golden rule)](#focus-management)
+- [Z-order and layering](#z-order-and-layering)
+- [Common patterns](#common-patterns)
+- [`UIScriptedWindow` -- floating windows](#uiscriptedwindow-floating-windows)
+- [Common mistakes](#common-mistakes)
+- [Summary](#summary)
+- [Next Steps](#next-steps)
 
 ---
 
@@ -16,6 +33,21 @@ There are two fundamental types of dialog:
 - **Modeless** -- Allows the user to interact with content behind the dialog while it remains open. Examples: info panels, settings windows, tool palettes.
 
 In DayZ, the distinction is controlled by whether you lock game input when the dialog opens. A modal dialog calls `ChangeGameFocus(1)` and shows the cursor; a modeless dialog may skip this or use a toggle approach.
+
+---
+
+## The four dialog systems
+
+DayZ gives you four distinct ways to put a dialog on screen. Pick by how much control you need:
+
+| System | Base | Focus handled for you? | Best for |
+|--------|------|------------------------|----------|
+| `UIScriptedMenu` | engine menu stack | Yes (`super.OnShow()`/`super.OnHide()`) | Full-screen menus and major dialogs |
+| `ShowDialog()` | native message box | Yes | Simple Yes/No/OK prompts, no layout file |
+| `ScriptedWidgetEventHandler` | raw widget tree | No -- you balance it yourself | In-panel popups, custom-styled dialogs |
+| `UIScriptedWindow` | floating window | Via parent menu | Tool windows alongside an open menu |
+
+The rest of this chapter walks through each, then covers the concerns they share: layout structure, focus management, and z-order.
 
 ---
 
@@ -250,8 +282,12 @@ class SimplePopup : ScriptedWidgetEventHandler
 
     void Show(string message)
     {
+        if (m_Root)
+            return;
         m_Root = GetGame().GetWorkspace().CreateWidgets(
             "MyMod/GUI/layouts/simple_popup.layout");
+        if (!m_Root)
+            return;
         m_Root.SetHandler(this);
 
         m_BtnOk     = ButtonWidget.Cast(m_Root.FindAnyWidget("BtnOk"));
@@ -267,6 +303,8 @@ class SimplePopup : ScriptedWidgetEventHandler
 
     void Hide()
     {
+        if (!m_Root)
+            return;
         if (m_Root)
         {
             m_Root.Unlink();
@@ -308,12 +346,12 @@ class SimplePopup : ScriptedWidgetEventHandler
 }
 ```
 
-### VPP-Style Popup (OnWidgetScriptInit Pattern)
+### Popup via OnWidgetScriptInit
 
-VPP Admin Tools and other mods use `OnWidgetScriptInit()` to initialize popups. The widget is created by a parent, and the script class is attached via `scriptclass` in the layout file:
+`OnWidgetScriptInit()` is a common way to initialize a popup: the widget is created by a parent, and the script class is bound to it through the `scriptclass` attribute in the layout file. The engine calls `OnWidgetScriptInit()` on that class as soon as the widget exists, giving you a natural place to cache child references:
 
 ```c
-class MyPopup : ScriptedWidgetEventHandler
+class LNT_Popup : ScriptedWidgetEventHandler
 {
     protected Widget       m_Root;
     protected ButtonWidget m_BtnClose;
@@ -333,7 +371,7 @@ class MyPopup : ScriptedWidgetEventHandler
         m_Root.SetSort(1024, true);
     }
 
-    void ~MyPopup()
+    void ~LNT_Popup()
     {
         if (m_Root)
             m_Root.Unlink();
@@ -386,81 +424,87 @@ A dialog layout typically has three layers: a full-screen root for click interce
 ### Layout File Example
 
 ```
-FrameWidgetClass "DialogRoot" {
-    size 1 1 0 0        // Full screen (proportional)
-    halign center_ref
-    valign center_ref
-
-    // Semi-transparent background overlay
-    ImageWidgetClass "Overlay" {
-        size 1 1 0 0
-        halign center_ref
-        valign center_ref
-        color 0 0 0 180
+FrameWidgetClass DialogRoot {
+ size 1 1
+ hexactsize 0
+ vexactsize 0
+ {
+  PanelWidgetClass Overlay {
+   size 1 1
+   hexactsize 0
+   vexactsize 0
+   style rover_sim_colorable
+   color 0 0 0 0.7
+  }
+  FrameWidgetClass DialogPanel {
+   size 500 300
+   halign center_ref
+   valign center_ref
+   hexactsize 1
+   vexactsize 1
+   {
+    TextWidgetClass TitleText {
+     size 1 30
+     hexactsize 0
+     vexactsize 1
+     text "Dialog Title"
+     font "gui/fonts/MetronBook22"
     }
-
-    // Centered dialog panel
-    FrameWidgetClass "DialogPanel" {
-        halign center
-        valign center
-        hexactsize 1
-        vexactsize 1
-        hexactpos  1
-        vexactpos  1
-        size 0 0 500 300   // 500x300 pixel dialog
-
-        // Title bar
-        TextWidgetClass "TitleText" {
-            size 1 0 0 30
-            text "Dialog Title"
-            font "gui/fonts/MetronBook24"
-        }
-
-        // Content area
-        MultilineTextWidgetClass "ContentText" {
-            position 0 0 0 35
-            size 1 0 0 200
-        }
-
-        // Button row at bottom
-        FrameWidgetClass "ButtonRow" {
-            valign bottom
-            size 1 0 0 40
-
-            ButtonWidgetClass "BtnConfirm" {
-                halign left
-                size 0 0 120 35
-                text "Confirm"
-            }
-
-            ButtonWidgetClass "BtnCancel" {
-                halign right
-                size 0 0 120 35
-                text "Cancel"
-            }
-        }
+    MultilineTextWidgetClass ContentText {
+     position 0 35
+     size 1 200
+     hexactpos 1
+     vexactpos 1
+     hexactsize 0
+     vexactsize 1
     }
+    FrameWidgetClass ButtonRow {
+     size 1 40
+     valign bottom_ref
+     hexactsize 0
+     vexactsize 1
+     {
+      ButtonWidgetClass BtnConfirm {
+       size 120 35
+       hexactsize 1
+       vexactsize 1
+       text "Confirm"
+      }
+      ButtonWidgetClass BtnCancel {
+       size 120 35
+       halign right_ref
+       hexactsize 1
+       vexactsize 1
+       text "Cancel"
+      }
+     }
+    }
+   }
+  }
+ }
 }
 ```
 
 ### Key Layout Principles
 
 1. **Full-screen root** -- The outermost widget covers the entire screen so clicks outside the dialog are intercepted.
-2. **Semi-transparent overlay** -- An `ImageWidget` or panel with alpha (e.g., `color 0 0 0 180`) dims the background, visually indicating a modal state.
-3. **Centered panel** -- Use `halign center` and `valign center` with exact pixel sizes for predictable dimensions.
+2. **Semi-transparent overlay** -- An `ImageWidget` or panel with alpha (e.g., `color 0 0 0 0.7`) dims the background, visually indicating a modal state.
+3. **Centered panel** -- Use `halign center_ref` and `valign center_ref` with exact pixel sizes for predictable dimensions.
 4. **Button alignment** -- Place buttons in a horizontal container at the bottom of the dialog panel.
 
 ---
 
 ## Confirmation Dialog Pattern
 
-A reusable confirmation dialog accepts a title, message, and callback. This is the most common dialog pattern in DayZ mods.
+This standalone example accepts a title, message and callback. Supply `confirm_dialog.layout` with `TitleText`, `ContentText`, `BtnYes` and `BtnNo`; rename the generic layout buttons above accordingly. Do not use its cursor cleanup unchanged inside a parent menu that owns the cursor.
 
 ### Implementation
 
 ```c
 class ConfirmDialog : ScriptedWidgetEventHandler
 {
+    protected bool m_HasFocus;
+    protected bool m_Closing;
     protected Widget          m_Root;
     protected TextWidget      m_TitleText;
     protected MultilineTextWidget m_ContentText;
@@ -495,20 +539,34 @@ class ConfirmDialog : ScriptedWidgetEventHandler
         // Ensure dialog renders above other UI
         m_Root.SetSort(1024, true);
 
+        m_HasFocus = true;
         GetGame().GetInput().ChangeGameFocus(1);
         GetGame().GetUIManager().ShowUICursor(true);
     }
 
+    protected void ReleaseFocus()
+    {
+        if (!m_HasFocus)
+            return;
+        m_HasFocus = false;
+        GetGame().GetInput().ChangeGameFocus(-1);
+        GetGame().GetUIManager().ShowUICursor(false);
+    }
+
     void ~ConfirmDialog()
     {
+        GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(DestroyDialog);
+        ReleaseFocus();
         if (m_Root)
             m_Root.Unlink();
     }
 
     protected void SendResult(bool confirmed)
     {
-        GetGame().GetInput().ChangeGameFocus(-1);
-        GetGame().GetUIManager().ShowUICursor(false);
+        if (m_Closing)
+            return;
+        m_Closing = true;
+        ReleaseFocus();
 
         // Call the callback function on the target object
         GetGame().GameScript.CallFunction(
@@ -566,17 +624,19 @@ void OnDeleteConfirmed(bool confirmed)
 }
 ```
 
-The callback uses `GameScript.CallFunction()` which invokes a function by name on the target object. This is the standard way DayZ mods implement dialog callbacks since Enforce Script does not support closures or delegates.
+The callback uses `GameScript.CallFunction()` which invokes a function by name on the target object. This is one callback-routing option; other APIs use `func` callbacks or `ScriptInvoker`. Keep the target alive until the dialog finishes.
 
 ---
 
 ## Input Dialog Pattern
 
-An input dialog adds an `EditBoxWidget` for text entry with validation.
+An input dialog adds an `EditBoxWidget` for text entry with validation. Supply `input_dialog.layout` with `TitleText`, `InputBox`, `BtnOk`, `BtnCancel` and `ErrorText`. As with the confirmation example, the code assumes a standalone dialog owns cursor visibility.
 
 ```c
 class InputDialog : ScriptedWidgetEventHandler
 {
+    protected bool m_HasFocus;
+    protected bool m_Closing;
     protected Widget         m_Root;
     protected TextWidget     m_TitleText;
     protected EditBoxWidget  m_InputBox;
@@ -613,22 +673,36 @@ class InputDialog : ScriptedWidgetEventHandler
         m_ErrorText.Show(false);
 
         m_Root.SetSort(1024, true);
+        m_HasFocus = true;
         GetGame().GetInput().ChangeGameFocus(1);
         GetGame().GetUIManager().ShowUICursor(true);
     }
 
+    protected void ReleaseFocus()
+    {
+        if (!m_HasFocus)
+            return;
+        m_HasFocus = false;
+        GetGame().GetInput().ChangeGameFocus(-1);
+        GetGame().GetUIManager().ShowUICursor(false);
+    }
+
     void ~InputDialog()
     {
+        GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(DeleteSelf);
+        ReleaseFocus();
         if (m_Root)
             m_Root.Unlink();
     }
 
     override bool OnClick(Widget w, int x, int y, int button)
     {
+        if (m_Closing)
+            return true;
         if (w == m_BtnOk)
         {
             string text = m_InputBox.GetText();
-            text.Trim();
+            text.TrimInPlace();
 
             if (text == "")
             {
@@ -637,8 +711,8 @@ class InputDialog : ScriptedWidgetEventHandler
                 return true;
             }
 
-            GetGame().GetInput().ChangeGameFocus(-1);
-            GetGame().GetUIManager().ShowUICursor(false);
+            m_Closing = true;
+            ReleaseFocus();
 
             // Send result as Param2: OK status + text
             GetGame().GameScript.CallFunctionParams(
@@ -652,8 +726,8 @@ class InputDialog : ScriptedWidgetEventHandler
 
         if (w == m_BtnCancel)
         {
-            GetGame().GetInput().ChangeGameFocus(-1);
-            GetGame().GetUIManager().ShowUICursor(false);
+            m_Closing = true;
+            ReleaseFocus();
 
             GetGame().GameScript.CallFunctionParams(
                 m_CallbackTarget, m_CallbackFunc, null,
@@ -737,6 +811,50 @@ GetGame().GetUIManager().ShowUICursor(false);
 | Forgot `ShowUICursor(false)` | Mouse cursor stays visible permanently |
 | Called `ShowUICursor(false)` when parent menu is still open | Cursor disappears while parent menu is still active |
 
+### Stacking Dialogs Safely
+
+Open dialog A (`+1`), open dialog B (`+1`), then close B (`-1`): input correctly stays locked for A. Each dialog must remember whether it acquired focus so destruction cannot release it twice. Cursor visibility needs a shared owner too: a child must not hide the cursor while its parent still needs it. The following guard demonstrates a standalone dialog; use the menu stack or coordinate cursor ownership for nested dialogs.
+
+```c
+class SafeDialog : ScriptedWidgetEventHandler
+{
+    protected Widget m_Root;
+    protected bool   m_HasFocus;
+
+    void LockFocus()
+    {
+        if (!m_HasFocus)
+        {
+            GetGame().GetInput().ChangeGameFocus(1);
+            GetGame().GetUIManager().ShowUICursor(true);
+            m_HasFocus = true;
+        }
+    }
+
+    void UnlockFocus()
+    {
+        if (m_HasFocus)
+        {
+            GetGame().GetInput().ChangeGameFocus(-1);
+            GetGame().GetUIManager().ShowUICursor(false);
+            m_HasFocus = false;
+        }
+    }
+
+    void ~SafeDialog()
+    {
+        UnlockFocus();
+        if (m_Root)
+        {
+            m_Root.Unlink();
+            m_Root = null;
+        }
+    }
+}
+```
+
+This is the single place in the chapter where the unbalanced-focus pitfall is worked through in full; the [Common Mistakes](#common-mistakes) list below points back here rather than repeating it.
+
 ---
 
 ## Z-Order and Layering
@@ -750,14 +868,15 @@ When a dialog opens on top of existing UI, it must render above everything else.
 m_Root.SetSort(1024, true);
 ```
 
-The `SetSort()` method sets the rendering priority. Higher values render on top. The second parameter (`immedUpdate`) controls whether to immediately update rendering -- it is NOT a recursive flag. Signature: `proto native void SetSort(int sort, bool immedUpdate = true)`. VPP Admin Tools use `SetSort(1024, true)` for all dialog boxes.
+The `SetSort()` method sets the rendering priority. Higher values render on top. The second parameter (`immedUpdate`) controls whether to immediately update rendering -- it is NOT a recursive flag. Signature: `proto native void SetSort(int sort, bool immedUpdate = true)`. A common convention is to reserve a high sort value (e.g. `1024`) for dialog boxes so they always sit above regular UI.
 
 ### Layout Priority (Static)
 
 In layout files, you can set priority directly:
 
 ```
-FrameWidget "DialogRoot" {
+FrameWidgetClass DialogRoot {
+    priority 999
     // Higher values render on top
     // Normal UI: 0-100
     // Overlay:   998
@@ -780,6 +899,14 @@ FrameWidget "DialogRoot" {
 ```c
 class TogglePanel : ScriptedWidgetEventHandler
 {
+    void ~TogglePanel()
+    {
+        if (m_IsVisible)
+            Hide();
+        if (m_Root)
+            m_Root.Unlink();
+    }
+
     protected Widget m_Root;
     protected bool   m_IsVisible;
 
@@ -819,6 +946,8 @@ class TogglePanel : ScriptedWidgetEventHandler
 ```
 
 ### ESC to Close
+
+Closing on the Back/ESC action follows the same key-handling rules as any other widget input -- see [3.6 Event Handling](06-event-handling.md) for how `OnKeyDown`, the `UAUIBack` input action, and the per-frame `Update()` poll differ. The two shapes a dialog uses:
 
 ```c
 // Inside Update() of a UIScriptedMenu:
@@ -904,7 +1033,7 @@ void OnDialogResult(int result, string text)
 }
 ```
 
-This is the same pattern VPP Admin Tools uses for its `VPPDialogBox` callback system.
+Because Enforce Script has no closures or delegates, routing the result back by function name -- the target object plus a method name string -- is the standard way to give a reusable dialog a callback. Any admin-tool style dialog box that needs to hand a result back to an arbitrary caller uses this same name-based routing.
 
 ---
 
@@ -912,12 +1041,13 @@ This is the same pattern VPP Admin Tools uses for its `VPPDialogBox` callback sy
 
 DayZ has a second built-in system: `UIScriptedWindow`, for floating windows that exist alongside a `UIScriptedMenu`. Unlike `UIScriptedMenu`, windows are tracked in a static map and their events are routed through the active menu.
 
+The base class stores the window id through its own `UIScriptedWindow(int id)` constructor. Because Enforce Script has no explicit base-constructor call (no `super(args)`) and constructor signatures must stay compatible down the hierarchy, your subclass declares **no constructor of its own** -- the base constructor runs automatically with the id. Declaring your own `MyWindow(int id)` constructor would fail with `Overloaded function 'MyWindow' not compatible`. See [Constructor Rules](../01-enforce-script/03-classes-inheritance.md#constructor-rules-unique-to-enforce-script).
+
 ```c
 class MyWindow extends UIScriptedWindow
 {
-    void MyWindow(int id) : UIScriptedWindow(id)
-    {
-    }
+    // No constructor here. The inherited UIScriptedWindow(int id)
+    // constructor runs automatically and stores m_Id for you.
 
     override Widget Init()
     {
@@ -930,6 +1060,23 @@ class MyWindow extends UIScriptedWindow
     {
         // Handle clicks
         return false;
+    }
+}
+```
+
+The engine builds your window through the mission's `CreateScriptedWindow(int id)` hook, which is where the `id` reaches the base constructor:
+
+```c
+modded class MissionGameplay
+{
+    override UIScriptedWindow CreateScriptedWindow(int id)
+    {
+        if (id == MY_WINDOW_ID)
+        {
+            return new MyWindow(id);
+        }
+
+        return super.CreateScriptedWindow(id);
     }
 }
 ```
@@ -953,30 +1100,9 @@ In practice, most mod developers use `ScriptedWidgetEventHandler`-based popups r
 
 ## Common Mistakes
 
-### 1. Not Restoring Game Focus on Close
+The single most common failure -- leaving game input locked after a dialog closes because a `ChangeGameFocus(1)` was never balanced -- is covered in full under [Focus Management](#focus-management), including the `SafeDialog` guard for overlapping dialogs. The mistakes below are the other recurring ones.
 
-**The problem:** Player cannot move, shoot, or interact after the dialog closes.
-
-```c
-// WRONG -- no focus restoration
-void CloseDialog()
-{
-    m_Root.Unlink();
-    m_Root = null;
-    // Focus counter is still incremented!
-}
-
-// CORRECT -- always decrement
-void CloseDialog()
-{
-    m_Root.Unlink();
-    m_Root = null;
-    GetGame().GetInput().ChangeGameFocus(-1);
-    GetGame().GetUIManager().ShowUICursor(false);
-}
-```
-
-### 2. Not Unlinking Widgets on Close
+### 1. Not Unlinking Widgets on Close
 
 **The problem:** Widget tree stays in memory, events keep firing, memory leaks accumulate.
 
@@ -1000,7 +1126,7 @@ void Hide()
 
 If you need to show/hide the same dialog repeatedly, keeping the widget and using `Show(true/false)` is fine -- just ensure you `Unlink()` in the destructor.
 
-### 3. Dialog Renders Behind Other UI
+### 2. Dialog Renders Behind Other UI
 
 **The problem:** Dialog is invisible or partially hidden because other widgets have higher rendering priority.
 
@@ -1010,50 +1136,7 @@ If you need to show/hide the same dialog repeatedly, keeping the widget and usin
 m_Root.SetSort(1024, true);
 ```
 
-### 4. Multiple Dialogs Stacking Focus Changes
-
-**The problem:** Opening dialog A (+1), then dialog B (+1), then closing B (-1) -- focus counter is still 1, so input is still locked even though the user sees no dialog.
-
-**The fix:** Track whether each dialog instance has locked focus, and only decrement if it did:
-
-```c
-class SafeDialog : ScriptedWidgetEventHandler
-{
-    protected bool m_HasFocus;
-
-    void LockFocus()
-    {
-        if (!m_HasFocus)
-        {
-            GetGame().GetInput().ChangeGameFocus(1);
-            GetGame().GetUIManager().ShowUICursor(true);
-            m_HasFocus = true;
-        }
-    }
-
-    void UnlockFocus()
-    {
-        if (m_HasFocus)
-        {
-            GetGame().GetInput().ChangeGameFocus(-1);
-            GetGame().GetUIManager().ShowUICursor(false);
-            m_HasFocus = false;
-        }
-    }
-
-    void ~SafeDialog()
-    {
-        UnlockFocus();
-        if (m_Root)
-        {
-            m_Root.Unlink();
-            m_Root = null;
-        }
-    }
-}
-```
-
-### 5. Calling Close() or Delete in the Constructor
+### 3. Calling Close() or Delete in the Constructor
 
 **The problem:** Calling `Close()` or `delete this` during construction causes crashes or undefined behavior because the object is not fully initialized.
 
@@ -1078,7 +1161,7 @@ void DeferredClose()
 }
 ```
 
-### 6. Not Checking for Null Before Widget Operations
+### 4. Not Checking for Null Before Widget Operations
 
 **The problem:** Crash when accessing a widget that was already destroyed or never created.
 

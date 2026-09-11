@@ -1,6 +1,5 @@
 # Chapitre 4.7 : Guide Workbench
 
-[Accueil](../README.md) | [<< Précédent : PBO Packing](06-pbo-packing.md) | **Guide Workbench** | [Suivant : Modélisation de bâtiments >>](08-building-modeling.md)
 
 ---
 
@@ -242,7 +241,7 @@ ScriptModulePathClass {
 
 Certains frameworks remplacent les points d'entrée (CF utilise `"CF_CreateGame"`).
 
-**imageSets / widgetStyles** -- Requis pour la prévisualisation des layouts. Sans les jeux d'images vanilla, les fichiers layout affichent des images manquantes. Incluez toujours les 14 jeux d'images vanilla standard listés dans l'exemple ci-dessus.
+**imageSets / widgetStyles** -- Requis pour la prévisualisation des layouts. Sans les jeux d'images vanilla, les fichiers layout affichent des images manquantes. Incluez les jeux d'images vanilla référencés par vos layouts ; la liste exacte varie (le `dayz.gproj` par défaut en fournit environ une douzaine, par exemple `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), puis ajoutez les vôtres.
 
 ### Résolution du préfixe de chemin
 
@@ -500,7 +499,7 @@ Quand connecté à DayZDiag, Workbench peut profiler l'exécution des scripts.
 
 ### Profileur de scripts en jeu (Menu Diag)
 
-En plus du profileur de Workbench, `DayZDiag_x64.exe` possède un profileur de scripts intégré accessible via le Menu Diag (sous Statistics). Il affiche des listes top-20 pour le temps par classe, le temps par fonction, les allocations de classes, le compteur par fonction et le nombre d'instances de classes. Utilisez le paramètre de lancement `-profile` pour activer le profilage dès le démarrage. Le profileur ne mesure que Enforce Script -- les méthodes proto (moteur) ne sont pas mesurées comme des entrées séparées, mais leur temps d'exécution est inclus dans le temps total de la méthode script qui les appelle. Voir `EnProfiler.c` dans les scripts vanilla pour l'API programmatique (`EnProfiler.Enable`, `EnProfiler.SetModule`, constantes de flags).
+En plus du profileur de Workbench, `DayZDiag_x64.exe` possède un profileur de scripts intégré accessible via le Menu Diag (sous Statistics). Il affiche des listes top-20 pour le temps par classe, le temps par fonction, les allocations de classes et le compteur par fonction, ainsi qu'une liste top-40 pour le nombre d'instances de classes (Class count). Utilisez le paramètre de lancement `-profile` pour activer le profilage dès le démarrage. Le profileur ne mesure que Enforce Script -- les méthodes proto (moteur) ne sont pas mesurées comme des entrées séparées, mais leur temps d'exécution est inclus dans le temps total de la méthode script qui les appelle. Voir `EnProfiler.c` dans les scripts vanilla pour l'API programmatique (`EnProfiler.Enable`, `EnProfiler.SetModule`, constantes de flags).
 
 ### Goulots d'étranglement courants
 

@@ -1,6 +1,5 @@
-# Chapter 7.6: Event-Driven Architecture
+# Event-Driven Architecture
 
-[Home](../README.md) | [<< Previous: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Next: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -16,7 +15,7 @@ DayZ provides `ScriptInvoker` as its built-in event primitive. On top of it, pro
 
 - [ScriptInvoker Pattern](#scriptinvoker-pattern)
 - [EventBus Pattern (String-Routed Topics)](#eventbus-pattern-string-routed-topics)
-- [CF_EventHandler Pattern](#cf_eventhandler-pattern)
+- [Typed Event-Args Handlers](#typed-event-args-handlers)
 - [When to Use Events vs Direct Calls](#when-to-use-events-vs-direct-calls)
 - [Memory Leak Prevention](#memory-leak-prevention)
 - [Advanced: Custom Event Data](#advanced-custom-event-data)
@@ -80,6 +79,7 @@ class WeatherUI
 | `Insert(func)` | Add a callback to the subscriber list |
 | `Remove(func)` | Remove a specific callback |
 | `Invoke(...)` | Call all subscribed callbacks with the given arguments |
+| `Count(func)` | How many times that callback is currently registered -- useful for catching an accidental double `Insert()` |
 | `Clear()` | Remove all subscribers |
 
 ### Event-Driven Pattern
@@ -107,16 +107,18 @@ graph TB
 
 ### How Insert/Remove Work
 
-`Insert` adds a function reference to an internal list. `Remove` searches the list and removes the matching entry. If you call `Insert` twice with the same function, it will be called twice on every `Invoke`. If you call `Remove` once, it removes one entry.
+`Insert` adds a function reference to an internal list. `Remove` searches the list and removes matching entries. If you call `Insert` twice with the same function, it will be called twice on every `Invoke`. By default `Remove(fn)` uses `EScriptInvokerRemoveFlags.ALL`, so it removes every matching entry. To remove only the most recent single entry, call `Remove(fn, EScriptInvokerRemoveFlags.NONE)`.
 
 ```c
 // Subscribing the same handler twice is a bug:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Now called 2x per Invoke
 
-// One Remove only removes one entry:
+// The default ALL flag removes every matching entry:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Still called 1x per Invoke — the second Insert is still there
+// Called 0x per Invoke — both Inserts are gone.
+// To leave one entry, pass NONE:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Typed Signatures
@@ -135,14 +137,14 @@ If a subscriber has the wrong signature, the behavior is undefined at runtime --
 Many vanilla DayZ classes expose `ScriptInvoker` events:
 
 ```c
-// UIScriptedMenu has OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer exposes a ScriptInvoker via GetOnDeathStart()
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Subscribe
 
-// MissionBase has event hooks
-class MissionBase
+// The Mission base class has event hooks (virtual methods, not ScriptInvokers).
+// Declared in 3_game/gameplay.c:702-713 and inherited by MissionBase,
+// MissionServer and MissionGameplay.
+class Mission
 {
     void OnUpdate(float timeslice);
     void OnEvent(EventType eventTypeId, Param params);
@@ -157,12 +159,14 @@ You can subscribe to these vanilla events from modded classes to react to engine
 
 A `ScriptInvoker` is a single event channel. An EventBus is a collection of named channels, providing a central hub where any module can publish or subscribe to events by topic name.
 
+The `LNT_EventBus` used throughout this section is the example bus we build in this chapter — the complete code is shown below, so you can drop it into a minimal mod and run it as-is. `LNT_` is the class prefix of *Lantern*, the wiki's constructed teaching framework; `LNT_ServerModule` and `LNT_Log` are its base module and logger.
+
 ### Custom EventBus Pattern
 
 This pattern implements the EventBus as a static class with named `ScriptInvoker` fields for well-known events, plus a generic `OnCustomEvent` channel for ad-hoc topics:
 
 ```c
-class MyEventBus
+class LNT_EventBus
 {
     // Well-known lifecycle events
     static ref ScriptInvoker OnPlayerConnected;      // void(PlayerIdentity)
@@ -170,20 +174,56 @@ class MyEventBus
     static ref ScriptInvoker OnPlayerReady;           // void(PlayerBase, PlayerIdentity)
     static ref ScriptInvoker OnConfigChanged;         // void(string modId, string field, string value)
     static ref ScriptInvoker OnAdminPanelToggled;     // void(bool opened)
-    static ref ScriptInvoker OnMissionStarted;        // void(MyInstance)
-    static ref ScriptInvoker OnMissionCompleted;      // void(MyInstance, int reason)
+    static ref ScriptInvoker OnMissionStarted;        // void(int missionId)
+    static ref ScriptInvoker OnMissionCompleted;      // void(int missionId, int reason)
     static ref ScriptInvoker OnAdminDataSynced;       // void()
 
     // Generic custom event channel
     static ref ScriptInvoker OnCustomEvent;           // void(string eventName, Param params)
 
-    static void Init() { ... }   // Creates all invokers
-    static void Cleanup() { ... } // Nulls all invokers
+    protected static bool s_Initialized;
+
+    // Creates all invokers. Safe to call more than once.
+    static void Init()
+    {
+        if (s_Initialized)
+            return;
+
+        OnPlayerConnected    = new ScriptInvoker();
+        OnPlayerDisconnected = new ScriptInvoker();
+        OnPlayerReady        = new ScriptInvoker();
+        OnConfigChanged      = new ScriptInvoker();
+        OnAdminPanelToggled  = new ScriptInvoker();
+        OnMissionStarted     = new ScriptInvoker();
+        OnMissionCompleted   = new ScriptInvoker();
+        OnAdminDataSynced    = new ScriptInvoker();
+        OnCustomEvent        = new ScriptInvoker();
+
+        s_Initialized = true;
+    }
+
+    // Nulls all invokers, dropping every subscriber reference at once.
+    static void Cleanup()
+    {
+        OnPlayerConnected    = null;
+        OnPlayerDisconnected = null;
+        OnPlayerReady        = null;
+        OnConfigChanged      = null;
+        OnAdminPanelToggled  = null;
+        OnMissionStarted     = null;
+        OnMissionCompleted   = null;
+        OnAdminDataSynced    = null;
+        OnCustomEvent        = null;
+
+        s_Initialized = false;
+    }
 
     // Helper to fire a custom event
     static void Fire(string eventName, Param params)
     {
-        if (!OnCustomEvent) Init();
+        if (!OnCustomEvent)
+            Init();
+
         OnCustomEvent.Invoke(eventName, params);
     }
 };
@@ -192,41 +232,41 @@ class MyEventBus
 ### Subscribing to the EventBus
 
 ```c
-class MyMissionModule : MyServerModule
+class LNT_MissionModule : LNT_ServerModule
 {
     override void OnInit()
     {
         super.OnInit();
 
         // Subscribe to player lifecycle
-        MyEventBus.OnPlayerConnected.Insert(OnPlayerJoined);
-        MyEventBus.OnPlayerDisconnected.Insert(OnPlayerLeft);
+        LNT_EventBus.OnPlayerConnected.Insert(OnPlayerJoined);
+        LNT_EventBus.OnPlayerDisconnected.Insert(OnPlayerLeft);
 
         // Subscribe to config changes
-        MyEventBus.OnConfigChanged.Insert(OnConfigChanged);
+        LNT_EventBus.OnConfigChanged.Insert(OnConfigChanged);
     }
 
     override void OnMissionFinish()
     {
         // Always unsubscribe on shutdown
-        MyEventBus.OnPlayerConnected.Remove(OnPlayerJoined);
-        MyEventBus.OnPlayerDisconnected.Remove(OnPlayerLeft);
-        MyEventBus.OnConfigChanged.Remove(OnConfigChanged);
+        LNT_EventBus.OnPlayerConnected.Remove(OnPlayerJoined);
+        LNT_EventBus.OnPlayerDisconnected.Remove(OnPlayerLeft);
+        LNT_EventBus.OnConfigChanged.Remove(OnConfigChanged);
     }
 
     void OnPlayerJoined(PlayerIdentity identity)
     {
-        MyLog.Info("Missions", "Player joined: " + identity.GetName());
+        LNT_Log.Info("Missions", "Player joined: " + identity.GetName());
     }
 
     void OnPlayerLeft(PlayerIdentity identity)
     {
-        MyLog.Info("Missions", "Player left: " + identity.GetName());
+        LNT_Log.Info("Missions", "Player left: " + identity.GetName());
     }
 
     void OnConfigChanged(string modId, string field, string value)
     {
-        if (modId == "MyMod_Missions")
+        if (modId == "Lantern_Missions")
         {
             // Reload our config
             ReloadSettings();
@@ -241,10 +281,10 @@ For one-off or mod-specific events that do not warrant a dedicated `ScriptInvoke
 
 ```c
 // Publisher (e.g., in the loot system):
-MyEventBus.Fire("LootRespawned", new Param1<int>(spawnedCount));
+LNT_EventBus.Fire("LootRespawned", new Param1<int>(spawnedCount));
 
 // Subscriber (e.g., in a logging module):
-MyEventBus.OnCustomEvent.Insert(OnCustomEvent);
+LNT_EventBus.OnCustomEvent.Insert(OnCustomEvent);
 
 void OnCustomEvent(string eventName, Param params)
 {
@@ -253,7 +293,7 @@ void OnCustomEvent(string eventName, Param params)
         Param1<int> data;
         if (Class.CastTo(data, params))
         {
-            MyLog.Info("Loot", "Respawned " + data.param1.ToString() + " items");
+            LNT_Log.Info("Loot", "Respawned " + data.param1.ToString() + " items");
         }
     }
 }
@@ -270,51 +310,122 @@ Named fields are type-safe by convention and discoverable by reading the class. 
 
 ---
 
-## CF_EventHandler Pattern
+## Typed Event-Args Handlers
 
-Community Framework provides `CF_EventHandler` as a more structured event system with type-safe event args.
+A `ScriptInvoker` carries whatever arguments you `Invoke()` it with, and its signature lives only in a comment. A second pattern trades that raw flexibility for *typed payloads*: instead of firing loose arguments, you fire a single object whose class **is** the event, and subscribers are routed to it by that class. Every event's data lives in a named class you can extend, and adding a field to an event never changes any call signature.
+
+The `LNT_` code below is an original, self-contained implementation you can drop into a minimal mod. Several established DayZ frameworks ship an equivalent typed-args dispatcher; the concept here is the same and depends on nothing but vanilla types.
 
 ### Concept
 
+Define a base args class and one subclass per event. The dispatcher keys a `ScriptInvoker` channel by the args type name, so a handler subscribes to a *type*, not a string:
+
 ```c
-// CF event handler pattern (simplified):
-class CF_EventArgs
+// Base class for all typed event arguments.
+class LNT_EventArgs
 {
-    // Base class for all event arguments
 };
 
-class CF_EventPlayerArgs : CF_EventArgs
+// A typed payload — carries the data for a player lifecycle event.
+class LNT_PlayerEventArgs : LNT_EventArgs
 {
-    PlayerIdentity Identity;
     PlayerBase Player;
+    PlayerIdentity Identity;
 };
 
-// Modules override event handler methods:
-class MyModule : CF_ModuleWorld
+// Routes events to handlers by the runtime type of the args object.
+class LNT_TypedEventManager
 {
-    override void OnEvent(Class sender, CF_EventArgs args)
+    // One channel per event-args type, keyed by type name.
+    protected ref map<string, ref ScriptInvoker> m_Channels;
+
+    void LNT_TypedEventManager()
     {
-        // Handle generic events
+        m_Channels = new map<string, ref ScriptInvoker>();
     }
 
-    override void OnClientReady(Class sender, CF_EventArgs args)
+    // Subscribe a handler to every event carrying args of the given type.
+    // Handler signature: void(LNT_EventArgs)
+    void Subscribe(typename argsType, func handler)
     {
-        // Client is ready, UI can be created
+        string key = argsType.ToString();
+        ScriptInvoker channel = m_Channels.Get(key);
+        if (!channel)
+        {
+            channel = new ScriptInvoker();
+            m_Channels.Set(key, channel);
+        }
+        channel.Insert(handler);
+    }
+
+    void Unsubscribe(typename argsType, func handler)
+    {
+        ScriptInvoker channel = m_Channels.Get(argsType.ToString());
+        if (channel)
+            channel.Remove(handler);
+    }
+
+    // Raise an event — routed by the runtime type of the args object.
+    void Raise(LNT_EventArgs args)
+    {
+        ScriptInvoker channel = m_Channels.Get(args.Type().ToString());
+        if (channel)
+            channel.Invoke(args);
     }
 };
 ```
 
+A subscriber declares a handler that takes the base args type and casts to the concrete one:
+
+```c
+class LNT_JoinAnnouncer
+{
+    protected ref LNT_TypedEventManager m_Events;
+
+    void Init(LNT_TypedEventManager events)
+    {
+        m_Events = events;
+        m_Events.Subscribe(LNT_PlayerEventArgs, OnPlayerReady);
+    }
+
+    void Cleanup()
+    {
+        if (m_Events)
+            m_Events.Unsubscribe(LNT_PlayerEventArgs, OnPlayerReady);
+    }
+
+    // Signature: void(LNT_EventArgs)
+    void OnPlayerReady(LNT_EventArgs args)
+    {
+        LNT_PlayerEventArgs playerArgs;
+        if (Class.CastTo(playerArgs, args))
+        {
+            Print("Ready: " + playerArgs.Identity.GetName());
+        }
+    }
+};
+```
+
+The producer fills an args object and raises it — it never names any subscriber:
+
+```c
+LNT_PlayerEventArgs args = new LNT_PlayerEventArgs();
+args.Player = player;
+args.Identity = player.GetIdentity();
+events.Raise(args);
+```
+
 ### Key Differences from ScriptInvoker
 
-| Feature | ScriptInvoker | CF_EventHandler |
+| Feature | Bare `ScriptInvoker` | Typed Args Manager |
 |---------|--------------|-----------------|
-| **Type safety** | Convention only | Typed EventArgs classes |
-| **Discovery** | Read comments | Override named methods |
-| **Subscription** | `Insert()` / `Remove()` | Override virtual methods |
-| **Custom data** | Param wrappers | Custom EventArgs subclasses |
-| **Cleanup** | Manual `Remove()` | Automatic (method override, no registration) |
+| **Type safety** | Convention only (comment) | One class per event; cast on receive |
+| **Discovery** | Read comments | Read the args class fields |
+| **Subscription** | `Insert()` / `Remove()` on a channel | `Subscribe()` / `Unsubscribe()` by type |
+| **Custom data** | Param wrappers | A dedicated args subclass |
+| **Adding a field** | Changes every `Invoke`/handler signature | Add a field to the args class; signatures unchanged |
 
-CF's approach eliminates the need to manually subscribe and unsubscribe --- you simply override the handler method. This removes an entire class of bugs (forgotten `Remove()` calls) at the cost of requiring CF as a dependency.
+The typed-args approach still requires you to unsubscribe (see [Memory Leak Prevention](#memory-leak-prevention)), but it makes each event's payload a real, extensible type instead of an untyped argument list.
 
 ---
 
@@ -371,17 +482,17 @@ The single most dangerous aspect of event-driven architecture in Enforce Script 
 ### Pattern: Subscribe in OnInit, Unsubscribe in OnMissionFinish
 
 ```c
-class MyModule : MyServerModule
+class LNT_Module : LNT_ServerModule
 {
     override void OnInit()
     {
         super.OnInit();
-        MyEventBus.OnPlayerConnected.Insert(HandlePlayerConnect);
+        LNT_EventBus.OnPlayerConnected.Insert(HandlePlayerConnect);
     }
 
     override void OnMissionFinish()
     {
-        MyEventBus.OnPlayerConnected.Remove(HandlePlayerConnect);
+        LNT_EventBus.OnPlayerConnected.Remove(HandlePlayerConnect);
         // Then call super or do other cleanup
     }
 
@@ -398,16 +509,16 @@ class PlayerTracker : Managed
 {
     void PlayerTracker()
     {
-        MyEventBus.OnPlayerConnected.Insert(OnPlayerConnected);
-        MyEventBus.OnPlayerDisconnected.Insert(OnPlayerDisconnected);
+        LNT_EventBus.OnPlayerConnected.Insert(OnPlayerConnected);
+        LNT_EventBus.OnPlayerDisconnected.Insert(OnPlayerDisconnected);
     }
 
     void ~PlayerTracker()
     {
-        if (MyEventBus.OnPlayerConnected)
-            MyEventBus.OnPlayerConnected.Remove(OnPlayerConnected);
-        if (MyEventBus.OnPlayerDisconnected)
-            MyEventBus.OnPlayerDisconnected.Remove(OnPlayerDisconnected);
+        if (LNT_EventBus.OnPlayerConnected)
+            LNT_EventBus.OnPlayerConnected.Remove(OnPlayerConnected);
+        if (LNT_EventBus.OnPlayerDisconnected)
+            LNT_EventBus.OnPlayerDisconnected.Remove(OnPlayerDisconnected);
     }
 
     void OnPlayerConnected(PlayerIdentity identity) { ... }
@@ -415,11 +526,11 @@ class PlayerTracker : Managed
 };
 ```
 
-**Note the null checks in the destructor.** During shutdown, `MyEventBus.Cleanup()` may have already run, setting all invokers to `null`. Calling `Remove()` on a `null` invoker crashes.
+**Note the null checks in the destructor.** During shutdown, `LNT_EventBus.Cleanup()` may have already run, setting all invokers to `null`. Calling `Remove()` on a `null` invoker crashes.
 
 ### Pattern: EventBus Cleanup Nulls Everything
 
-The `MyEventBus.Cleanup()` method sets all invokers to `null`, which drops all subscriber references at once. This is the nuclear option --- it guarantees no stale subscribers survive across mission restarts:
+The `LNT_EventBus.Cleanup()` method sets all invokers to `null`, which drops all subscriber references at once. This is the nuclear option --- it guarantees no stale subscribers survive across mission restarts:
 
 ```c
 static void Cleanup()
@@ -432,19 +543,30 @@ static void Cleanup()
 }
 ```
 
-This is called from `MyFramework.ShutdownAll()` during `OnMissionFinish`. Modules should still `Remove()` their own subscriptions for correctness, but the EventBus cleanup acts as a safety net.
+This is called from `LanternCore.ShutdownAll()` during `OnMissionFinish`. Modules should still `Remove()` their own subscriptions for correctness, but the EventBus cleanup acts as a safety net.
 
-### Anti-Pattern: Anonymous Functions
+### No Anonymous Functions
+
+Enforce Script has no anonymous-function (lambda) syntax at all. The
+following does **not** compile --- the CParser rejects it. It is shown
+only to make the point that the construct does not exist:
 
 ```c
-// BAD: You cannot Remove an anonymous function
-MyEventBus.OnPlayerConnected.Insert(function(PlayerIdentity id) {
-    Print("Connected: " + id.GetName());
-});
-// How do you Remove this? You cannot reference it.
+// INVALID PSEUDOCODE --- Enforce has no lambdas, this will not compile:
+// LNT_EventBus.OnPlayerConnected.Insert(function(PlayerIdentity id) { ... });
 ```
 
-Always use named methods so you can unsubscribe later.
+Because there is no way to write an inline handler, every callback must
+be a **named method** you pass by reference. That is also what lets you
+unsubscribe later --- you hand the same method to `Remove()`:
+
+```c
+// Subscribe with a named method...
+LNT_EventBus.OnPlayerConnected.Insert(OnPlayerConnected);
+
+// ...and unsubscribe by passing the exact same method reference:
+LNT_EventBus.OnPlayerConnected.Remove(OnPlayerConnected);
+```
 
 ---
 
@@ -454,12 +576,12 @@ For events that carry complex payloads, use `Param` wrappers:
 
 ### Param Classes
 
-DayZ provides `Param1<T>` through `Param4<T1, T2, T3, T4>` for wrapping typed data:
+DayZ provides `Param1<T1>` through `Param10<T1 ... T10>`, all extending `Param` (`1_core/param.c`), for wrapping typed data:
 
 ```c
 // Firing with structured data:
 Param2<string, int> data = new Param2<string, int>("AK74", 5);
-MyEventBus.Fire("ItemSpawned", data);
+LNT_EventBus.Fire("ItemSpawned", data);
 
 // Receiving:
 void OnCustomEvent(string eventName, Param params)
@@ -545,11 +667,7 @@ OnKillEvent.Invoke(killData);
 | Mistake | Impact | Fix |
 |---------|--------|-----|
 | Subscribing with `Insert()` but never calling `Remove()` | Memory leak: the invoker holds a reference to the dead object; on `Invoke()`, calls into freed memory (crash) or no-ops with wasted iteration | Pair every `Insert()` with a `Remove()` in `OnMissionFinish` or the destructor |
-| Calling `Remove()` on a null EventBus invoker during shutdown | `MyEventBus.Cleanup()` may have already nulled the invoker; calling `.Remove()` on null crashes | Always null-check the invoker before `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Double `Insert()` of the same handler | Handler is called twice per `Invoke()`; one `Remove()` only removes one entry, leaving a stale subscription | Check before inserting, or ensure `Insert()` is only called once (e.g., in `OnInit` with a guard flag) |
+| Calling `Remove()` on a null EventBus invoker during shutdown | `LNT_EventBus.Cleanup()` may have already nulled the invoker; calling `.Remove()` on null crashes | Always null-check the invoker before `Remove()`: `if (LNT_EventBus.OnPlayerConnected) LNT_EventBus.OnPlayerConnected.Remove(handler);` |
+| Double `Insert()` of the same handler | Handler is called twice per `Invoke()`; a default `Remove()` (flag `ALL`) clears every entry at once, removing all subscriptions | Check before inserting, or ensure `Insert()` is only called once (e.g., in `OnInit` with a guard flag) |
 | Using anonymous/lambda functions as handlers | Cannot be removed because there is no reference to pass to `Remove()` | Always use named methods as event handlers |
 | Firing events with mismatched argument signatures | Subscribers receive garbage data or crash at runtime; no compile-time check | Document the expected signature above every `ScriptInvoker` declaration and match it exactly in all handlers |
-
----
-
-[Home](../README.md) | [<< Previous: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Next: Performance Optimization >>](07-performance.md)

@@ -1,6 +1,5 @@
 # 第5.2章：inputs.xml --- 自定义按键绑定
 
-[首页](../README.md) | [<< 上一章：stringtable.csv](01-stringtable.md) | **inputs.xml** | [下一章：Credits.json >>](03-credits-json.md)
 
 ---
 
@@ -38,7 +37,7 @@
 
 ## 文件位置
 
-将 `inputs.xml` 放在 Scripts 目录的 `data` 子文件夹中：
+你可以将 `inputs.xml` 放在模组 PBO 内的任何位置。常见的布局是放在 Scripts 目录的 `data` 子文件夹中：
 
 ```
 @MyMod/
@@ -52,7 +51,7 @@
         5_Mission/
 ```
 
-一些模组直接放在 `Scripts/` 文件夹中。两种位置都可以。引擎会自动发现该文件 --- 不需要在 config.cpp 中注册。
+该文件的位置并非由约定固定；引擎不会自动发现它。你必须通过将 `config.cpp` 的 `CfgMods` 块中的 `inputs` 属性指向该文件来注册它，例如 `inputs = "MyMod/Scripts/data/inputs.xml";`。路径是任意的 --- 引擎会从你指定的任何位置加载该文件。
 
 ---
 
@@ -296,7 +295,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-`LocalPress("name", false)` 中的 `false` 参数表示该检查不应消耗输入事件。
+`LocalPress("name", false)` 中的 `false` 参数是 `check_focus` 参数。传入 `false` 会在游戏窗口未获得焦点时也对输入进行求值；当它为 `true`（默认值）时，未获得焦点的游戏会返回 `false`。它并不控制输入消耗。
 
 ---
 
@@ -338,7 +337,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **双击动作：**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -410,12 +409,12 @@ RemoveActiveInputExcludes({"inventory"});
 | 字母 | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | 数字（顶行） | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | 功能键 | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| 修饰键 | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| 导航 | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| 修饰键 | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu`（左 Alt）, `kRMenu`（右 Alt） |
+| 导航 | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior`（Page Up）, `kNext`（Page Down） |
 | 编辑 | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| 数字键盘 | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| 数字键盘 | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd`（数字键盘 +）, `kSubstract`（数字键盘 -，注意引擎拼写）, `kMultiply`（数字键盘 *）, `kDivide`（数字键盘 /）, `kDecimal`（数字键盘 .） |
 | 标点符号 | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| 锁定键 | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| 锁定键 | `kCapital`（Caps Lock）, `kNumlock`（注意小写 `l`）, `kScrollLock` |
 
 ### 鼠标按钮
 
@@ -424,15 +423,18 @@ RemoveActiveInputExcludes({"inventory"});
 | `mBLeft` | 鼠标左键 |
 | `mBRight` | 鼠标右键 |
 | `mBMiddle` | 鼠标中键（滚轮点击） |
-| `mBExtra1` | 鼠标按钮 4（侧键后退） |
-| `mBExtra2` | 鼠标按钮 5（侧键前进） |
+| `mB4` | 鼠标按钮 4（侧键后退） |
+| `mB5` | 鼠标按钮 5（侧键前进） |
+| `mB6`, `mB7`, `mB8` | 额外的鼠标按钮 |
 
-### 鼠标轴
+### 鼠标移动和滚轮
 
-| 名称 | 轴 |
+| 名称 | 方向 |
 |------|------|
-| `mAxisX` | 鼠标水平移动 |
-| `mAxisY` | 鼠标垂直移动 |
+| `mLeft` | 鼠标向左移动 |
+| `mRight` | 鼠标向右移动 |
+| `mUp` | 鼠标向上移动 |
+| `mDown` | 鼠标向下移动 |
 | `mWheelUp` | 滚轮向上 |
 | `mWheelDown` | 滚轮向下 |
 
@@ -440,7 +442,7 @@ RemoveActiveInputExcludes({"inventory"});
 
 - **键盘**：`k` 前缀 + 键名（例如 `kT`、`kF5`、`kLControl`）
 - **鼠标按钮**：`mB` 前缀 + 按钮名（例如 `mBLeft`、`mBRight`）
-- **鼠标轴**：`m` 前缀 + 轴名（例如 `mAxisX`、`mWheelUp`）
+- **鼠标移动/滚轮**：`m` 前缀 + 方向名（例如 `mLeft`、`mWheelUp`）
 
 ---
 
@@ -626,7 +628,7 @@ RemoveActiveInputExcludes({"inventory"});
 |------|------|------|
 | `visible="false"` 从控制菜单中隐藏 | 输入被注册但不可见 | 在某些 DayZ 版本中，隐藏输入仍然出现在 `<sorting>` 块列表中。从 `<sorting>` 中省略是隐藏输入的可靠方式 |
 | `LocalPress()` 每次按键按下触发一次 | 在按键被按下的帧上的单次触发 | 如果游戏卡顿（低帧率），`LocalPress()` 可能完全被错过。对于关键操作，也检查 `LocalValue() > 0` 作为后备 |
-| 通过嵌套 `<btn>` 实现修饰键组合 | 外层是修饰键，内层是触发键 | 修饰键本身也会在自己的输入上注册为按下（例如 `kLControl` 也是原版蹲下键）。玩家按住 Ctrl+点击 也会蹲下 |
+| 通过嵌套 `<btn>` 实现修饰键组合 | 外层是修饰键，内层是触发键 | 修饰键本身也会在自己的输入上注册为按下（例如 `kLControl` 是原版屏息键，绑定到 `UAHoldBreath`；原版蹲下/姿态键 `UAStance` 在 `kC` 上）。玩家按住 Ctrl+点击 也会触发屏息 |
 | `ForceDisable(true)` 抑制输入 | 输入被完全忽略 | `ForceDisable` 持续到被明确重新启用。如果你的模组崩溃或 UI 关闭时没有调用 `ForceDisable(false)`，输入会保持禁用状态直到游戏重启 |
 | 多个 `<btn>` 兄弟元素 | 两个按键触发同一动作 | 正常工作，但控制菜单只显示第一个按键。玩家可以看到并重新绑定第一个按键，但可能不知道第二个默认按键的存在 |
 

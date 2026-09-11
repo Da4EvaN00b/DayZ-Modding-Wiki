@@ -1,6 +1,5 @@
 # Chapter 9.5: Spawn pojazdow i zdarzen dynamicznych
 
-[Strona glowna](../README.md) | [<< Poprzedni: Ekonomia lootu](04-loot-economy.md) | [Dalej: Spawn graczy >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@ Pojazdy **nie** sa definiowane w `types.xml`. Jesli dodasz klase pojazdu do `typ
 
 CE odczytuje `events.xml`, wybiera zdarzenie wymagajace spawnu, wyszukuje pasujace pozycje w `cfgeventspawns.xml`, losowo wybiera taka, ktora spelnia ograniczenia `saferadius` i `distanceradius`, a nastepnie tworzy losowo wybrany obiekt potomny w tej pozycji.
 
-Wszystkie trzy pliki znajduja sie w `mpmissions/<twoja_misja>/db/`.
+`events.xml` znajduje sie w `mpmissions/<twoja_misja>/db/`, natomiast `cfgeventspawns.xml` i `cfgeventgroups.xml` znajduja sie w katalogu glownym misji (`mpmissions/<twoja_misja>/`).
 
 ---
 
@@ -167,17 +166,17 @@ Rozbicia helikopterow to zdarzenia dynamiczne, ktore tworza wrak z wojskowym loo
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ Konwoje wojskowe to statyczne grupy zniszczonych pojazdow, ktore pojawiaja sie z
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Konwoje dzialaja identycznie jak rozbicia helikopterow: tag `<secondary>` tworzy `InfectedArmy` wokol miejsca, a przedmioty lootu z `deloot="1"` pojawiaja sie na wrakach. Przy `nominal=5` do 5 miejsc konwojow istnieje na mapie jednoczesnie. Kazdy trwa 1800 sekund (30 minut) przed przeniesieniem na nowa lokalizacje.
+Konwoje dzialaja podobnie jak rozbicia helikopterow: tag `<secondary>` tworzy `InfectedArmy` wokol miejsca, a przedmioty lootu z `deloot="1"` pojawiaja sie na wrakach. W przeciwienstwie do rozbicia helikoptera zdarzenie konwoju ma pusty element `<children/>` -- jego zniszczone pojazdy sa zdefiniowane jako grupa w `cfgeventgroups.xml` i umieszczane za pomoca odwolan do grup w `cfgeventspawns.xml`. Przy `nominal=5` do 5 miejsc konwojow istnieje na mapie jednoczesnie. Kazdy trwa 1800 sekund (30 minut) przed przeniesieniem na nowa lokalizacje.
 
 ---
 
@@ -231,20 +228,21 @@ Zdarzenia radiowozow policyjnych tworza zniszczone pojazdy policyjne z zarazonym
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ Zdarzenia radiowozow policyjnych tworza zniszczone pojazdy policyjne z zarazonym
 Ten plik definiuje zdarzenia, w ktorych wiele obiektow pojawia sie razem z wzglednym przesunieciami pozycji. Najczestszym zastosowaniem sa porzucone pociagi.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Pierwszy potomny jest umieszczany w pozycji z `cfgeventspawns.xml`. Nastepne potomne sa przesuniete o ich wartosci `x`, `z`, `a` wzgledem tego punktu poczatkowego. W tym przykladzie wagony sa rozmieszczone co 15 metrow wzdluz osi z.
+Kazda grupa jest deklarowana za pomoca elementu `<group name="...">` wewnatrz glownego elementu pliku `<eventgroupdef>`, a jej wpisy `<child>` sa bezposrednimi potomkami `<group>` (nie ma tutaj otoki `<children>`). Pierwszy potomny jest umieszczany w pozycji z `cfgeventspawns.xml`. Nastepne potomne sa przesuniete o ich wartosci `x`, `z`, `y`, `a` wzgledem tego punktu poczatkowego.
 
 Kazdy `<child>` w grupie ma:
 
@@ -277,7 +273,11 @@ Kazdy `<child>` w grupie ma:
 | `type` | Nazwa klasy obiektu do stworzenia. |
 | `x` | Przesuniecie X w metrach od poczatku grupy. |
 | `z` | Przesuniecie Z w metrach od poczatku grupy. |
+| `y` | Przesuniecie Y (pionowe) w metrach od poczatku grupy. |
 | `a` | Przesuniecie kata w stopniach od poczatku grupy. |
+| `deloot` | Czy w tym potomnym moze pojawic sie loot zdarzenia dynamicznego (0 lub 1). |
+| `lootmin` | Minimalna liczba przedmiotow lootu tworzonych w tym potomnym. |
+| `lootmax` | Maksymalna liczba przedmiotow lootu tworzonych w tym potomnym. |
 
 Samo zdarzenie grupowe nadal potrzebuje odpowiadajacego wpisu w `events.xml` do kontroli wartosci nominal, lifetime i stanu aktywnosci.
 
@@ -343,7 +343,3 @@ Oto najczestsze problemy ze spawnem pojazdow spotykane przez administratorow ser
 **Problem:** Pojazd pojawia sie wcisniety w budynek lub zakopany w terenie.
 
 **Rozwiazanie:** Przejrzyj wspolrzedne `<pos>` w `cfgeventspawns.xml`. Przetestuj pozycje w grze uzywajac teleportacji administratora przed dodaniem ich do pliku. Pozycje powinny byc na plaskich drogach lub otwartym terenie, a kat (`a`) powinien byc wyrownany z kierunkiem drogi.
-
----
-
-[Strona glowna](../README.md) | [<< Poprzedni: Ekonomia lootu](04-loot-economy.md) | [Dalej: Spawn graczy >>](06-player-spawning.md)

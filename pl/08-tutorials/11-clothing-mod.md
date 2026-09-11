@@ -1,6 +1,5 @@
 # Rozdział 8.11: Tworzenie niestandardowej odzieży
 
-[Strona główna](../README.md) | [<< Poprzedni: Tworzenie niestandardowego pojazdu](10-vehicle-mod.md) | **Tworzenie niestandardowej odzieży** | [Następny: Budowanie systemu handlowego >>](12-trading-system.md)
 
 ---
 
@@ -198,9 +197,9 @@ class CfgVehicles
 | `visibilityModifier` | `0.7` | Widoczność gracza dla SI (niższe = trudniejszy do wykrycia). |
 | `absorbency` | `0.3` | Absorpcja wody (0 = wodoodporne, 1 = gąbka). Niższe jest lepsze dla ochrony przed deszczem. |
 
-**Waniliowe wartości referencyjne heatIsolation:** T-shirt 0.2, Bluza 0.5, Kurtka Gorka 0.7, Kurtka polowa 0.8, Płaszcz wełniany 0.9.
+**Waniliowe wartości referencyjne heatIsolation:** T-shirt 0.1, Bluza 0.6, Kurtka Gorka 0.4, Kurtka turystyczna 0.8, Płaszcz wełniany 0.9.
 
-**Naprawa:** `repairableWithKits[] = { 5, 2 }` wymienia typy zestawów (5=Zestaw do szycia, 2=Skórzany zestaw do szycia). `repairCosts[]` podaje zużyty materiał na naprawę, w odpowiedniej kolejności.
+**Naprawa:** `repairableWithKits[] = { 5, 2 }` wymienia typy zestawów (5=Taśma klejąca, 2=Zestaw do szycia). `repairCosts[]` podaje zużyty materiał na naprawę, w odpowiedniej kolejności.
 
 **Pancerz:** Wartość `damage` 0.8 oznacza, że gracz otrzymuje 80% przychodzących obrażeń (20% pochłoniętych). Niższe wartości = większa ochrona.
 
@@ -242,7 +241,7 @@ Aby uzyskać pełną kontrolę nad materiałem, utwórz pliki `.rvmat` i odwoła
 
 ## Krok 4: Dodanie miejsca na ładunek
 
-Rozszerzając `GorkaEJacket_ColorBase`, dziedziczysz automatycznie jego siatkę ładunku (4x3) i slot ekwipunku (`"Body"`). Właściwość `itemSize[] = { 3, 4 }` definiuje, jak duża jest kurtka przechowywana jako łup -- NIE jej pojemność ładunku.
+Rozszerzając `GorkaEJacket_ColorBase`, dziedziczysz automatycznie jego siatkę ładunku (`itemsCargoSize[] = { 6, 4 }`) i slot ekwipunku (`"Body"`). Właściwość `itemSize[] = { 3, 4 }` definiuje, jak duża jest kurtka przechowywana jako łup -- NIE jej pojemność ładunku.
 
 Typowe sloty odzieży: `"Body"` (kurtki), `"Legs"` (spodnie), `"Feet"` (buty), `"Headgear"` (czapki), `"Vest"` (rigsy), `"Gloves"`, `"Mask"`, `"Back"` (plecaki).
 

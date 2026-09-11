@@ -1,10 +1,6 @@
-# Chapter 1.10: Enums & Preprocessor
+# Enums & Preprocessor
 
-[Home](../README.md) | [<< Previous: Casting & Reflection](09-casting-reflection.md) | **Enums & Preprocessor** | [Next: Error Handling >>](11-error-handling.md)
-
----
-
-> **Goal:** Understand enum declarations, enum reflection tools, bitflag patterns, constants, and the preprocessor system for conditional compilation.
+> **Summary:** Understand enum declarations, enum reflection tools, bitflag patterns, constants, and the preprocessor system for conditional compilation.
 
 ---
 
@@ -30,9 +26,11 @@
   - [Optional Mod Dependencies](#optional-mod-dependencies)
   - [Debug-Only Diagnostics](#debug-only-diagnostics)
   - [Server vs Client Logic](#server-vs-client-logic)
+- [Best Practices](#best-practices)
+- [Observed in Practice](#observed-in-practice)
+- [Theory vs Practice](#theory-vs-practice)
 - [Common Mistakes](#common-mistakes)
 - [Summary](#summary)
-- [Navigation](#navigation)
 
 ---
 
@@ -333,6 +331,21 @@ DayZ provides these built-in defines based on build type and platform:
 | `PLATFORM_XBOX` | Xbox platform | Console-specific UI |
 | `PLATFORM_PS4` | PlayStation platform | Console-specific logic |
 | `BUILD_EXPERIMENTAL` | Experimental branch | Experimental features |
+| `DAYZ_1_29`, `DAYZ_1_30`, ... | The running game's major.minor version | Gating code on a specific game version |
+
+`1_core/defines.c` is a documentation-only file (`#ifdef DOXYGEN`) listing the symbols the C++ side injects. It records the version symbol as `DAYZ_X_XX` — "define filled in with the current Major and Minor version (e.g. `DAYZ_1_16`)" (`1_core/defines.c:12-14`). Vanilla gates on it directly:
+
+```c
+// 3_game/systems/dynamicmusicplayer/dynamicmusicplayerregistry.c:116
+#ifdef DAYZ_1_29 // Road to Badlands exclusive
+RegisterTrackMenu("Music_Menu_R2B_SoundSet", true);
+#else
+RegisterTrackMenu("Music_Menu_SoundSet", true);
+...
+#endif
+```
+
+The same file documents `BULDOZER`, `WORKBENCH`, `NO_GUI` / `NO_GUI_INGAME` (both "present for server builds"), `ENABLE_LOGGING`, `LOG_TO_FILE`, `LOG_TO_SCRIPT`, `LOG_TO_RPT`, `FEATURE_CURSOR` and `FEATURE_NETWORK_RECONCILIATION`, several of which it notes are toggled by launch parameters. This is not the only way to branch on version — a mod can equally read a version at runtime — but it is the mechanism vanilla itself uses.
 
 ```c
 void InitPlatform()
@@ -398,28 +411,34 @@ string GetSavePath()
 
 ### Optional Mod Dependencies
 
-This is the standard pattern for mods that optionally integrate with other mods:
+This is the standard pattern for a mod that optionally integrates with another mod. Here the fictional content mod **NightPatrol** (`NP_` prefix) detects whether the Lantern framework is loaded — Lantern Core publishes the `LANTERN_CORE` symbol via `defines[]` in its `config.cpp` — and routes its RPC through Lantern's string-based router when available, falling back to a raw engine RPC otherwise. (`LNT_RPC` is the wiki's example RPC router, built in [RPC Patterns](../07-patterns/03-rpc-patterns.md).)
 
 ```c
-class MyModManager
+class NP_PatrolManager
 {
+    // Engine RPC id used only when Lantern is not loaded
+    const int NP_RPC_REPORT_SIGHTING = 1000777;
+
     void Init()
     {
-        Print("[MyMod] Initializing...");
+        Print("[NightPatrol] Initializing...");
 
-        // Core features always available
-        LoadConfig();
-        RegisterRPCs();
-
-        // Optional integration with MyFramework
-        #ifdef MY_FRAMEWORK
-            Print("[MyMod] Framework detected — using unified logging");
-            RegisterWithCore();
+        #ifdef LANTERN_CORE
+            // Lantern Core is loaded — register with its string-routed RPC system
+            LNT_RPC.Register("NightPatrol", "RPC_ReportSighting", this);
         #endif
+        // Without Lantern, RPCs arrive through a modded OnRPC override instead
+        // (see RPC Patterns in Part 7)
+    }
 
-        // Optional integration with Community Framework
-        #ifdef JM_CommunityFramework
-            GetRPCManager().AddRPC("MyMod", "RPC_Handler", this, 2);
+    void ReportSighting(vector pos)
+    {
+        #ifdef LANTERN_CORE
+            LNT_RPC.Send("NightPatrol", "RPC_ReportSighting", new Param1<vector>(pos), true, null);
+        #else
+            ScriptRPC rpc = new ScriptRPC();
+            rpc.Write(pos);
+            rpc.Send(null, NP_RPC_REPORT_SIGHTING, true, null);
         #endif
     }
 }
@@ -435,8 +454,7 @@ void ProcessAI(DayZInfected zombie)
 
     // Heavy debug logging — only in diagnostic builds
     #ifdef DIAG_DEVELOPER
-        Print(string.Format("[AI] Zombie %1 at %2, HP: %3",
-            zombie.GetType(), pos.ToString(), health.ToString()));
+        Print(string.Format("[AI] Zombie %1 at %2, HP: %3", zombie.GetType(), pos.ToString(), health.ToString()));
 
         // Draw debug sphere (only works in diag builds)
         Debug.DrawSphere(pos, 1.0, Colors.RED, ShapeFlags.ONCE);
@@ -478,21 +496,19 @@ class MissionHandler
 - Add a `COUNT` sentinel value as the last enum entry to easily iterate or validate ranges (e.g., `for (int i = 0; i < EMode.COUNT; i++)`).
 - Use power-of-2 values for bitflag enums and combine them with `|`; test with `&`; remove with `& ~FLAG`.
 - Use `const` instead of `#define` for numeric constants -- Enforce Script `#define` only creates existence flags, not value macros.
-- Define a `defines[]` array in your mod's `config.cpp` to expose cross-mod detection symbols (e.g., `"STARDZ_CORE"`).
+- Define a `defines[]` array in your mod's `config.cpp` to expose cross-mod detection symbols (e.g., `"LANTERN_CORE"`).
 - Always validate enum values loaded from external data (configs, RPCs) -- Enforce Script accepts any `int` as an enum with no range check.
 
 ---
 
-## Observed in Real Mods
+## Observed in Practice
 
-> Patterns confirmed by studying professional DayZ mod source code.
-
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| `#ifdef` for optional mod integration | Expansion / COT | Checks `#ifdef JM_CF` or `#ifdef EXPANSIONMOD` before calling cross-mod APIs |
-| Bitflag enums for spawn options | Vanilla DayZ | `ECE_PLACE_ON_SURFACE`, `ECE_CREATEPHYSICS` etc. combined with `\|` for `CreateObjectEx` |
-| `typename.EnumToString` for logging | Expansion / Dabs | Damage states and event types are logged as readable strings instead of raw ints |
-| `defines[]` in config.cpp | StarDZ Core / Expansion | Each mod declares its own symbol so other mods can detect it with `#ifdef` |
+| Pattern | Detail |
+|---------|--------|
+| `#ifdef` for optional mod integration | Mods detect each other via the `defines[]` symbols each mod documents, and guard cross-mod API calls with `#ifdef` |
+| Bitflag enums for spawn options | Vanilla DayZ combines `ECE_PLACE_ON_SURFACE`, `ECE_CREATEPHYSICS` etc. with `\|` for `CreateObjectEx` |
+| `typename.EnumToString` for logging | Vanilla scripts log enum values as readable strings — e.g. `dayzplayer.c` logs `DayZPlayerInstanceType`, `effectmanager.c` logs `EffectType` |
+| `defines[]` in config.cpp | Common framework practice: each mod declares its own symbol so other mods can detect it with `#ifdef` |
 
 ---
 
@@ -539,8 +555,8 @@ int hp = MAX_HEALTH;
 ```c
 // CORRECT — nested ifdefs are fine
 #ifdef SERVER
-    #ifdef MY_FRAMEWORK
-        MyLog.Info("MyMod", "Server + Core");
+    #ifdef LANTERN_CORE
+        Print("Server with Lantern Core loaded");
     #endif
 #endif
 
@@ -591,7 +607,7 @@ switch (state)
 | Inherit | `enum EChild : EParent { D, E };` |
 | To string | `typename.EnumToString(EName, value)` |
 | From string | `int val = typename.StringToEnum(EName, "A")` |
-| Bitflag combine | `flags = A | B` |
+| Bitflag combine | `flags = A \| B` |
 | Bitflag test | `if (flags & A)` |
 
 ### Preprocessor
@@ -612,12 +628,5 @@ switch (state)
 | `DEVELOPER` | Developer build |
 | `DIAG_DEVELOPER` | Diagnostic build |
 | `PLATFORM_WINDOWS` | Windows OS |
+| `DAYZ_1_29` (`DAYZ_X_XX`) | Current game major.minor version |
 | Custom: `defines[]` | Your mod's config.cpp |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.9 Casting & Reflection](09-casting-reflection.md) | [Part 1: Enforce Script](../README.md) | [1.11 Error Handling](11-error-handling.md) |

@@ -1,6 +1,5 @@
 # Kapitola 3.6: Zpracování událostí
 
-[Domů](../README.md) | [<< Předchozí: Programatické vytváření widgetů](05-programmatic-widgets.md) | **Zpracování událostí** | [Další: Styly, písma a obrázky >>](07-styles-fonts.md)
 
 ---
 
@@ -65,6 +64,7 @@ class ScriptedWidgetEventHandler
     // Ostatní
     bool OnUpdate(Widget w);
     bool OnModalResult(Widget w, int x, int y, int code, int result);
+    bool OnEvent(EventType eventType, Widget target, int parameter0, int parameter1);
 }
 ```
 

@@ -1,6 +1,5 @@
 # 第1.2章: 配列、マップ、セット
 
-[ホーム](../README.md) | [<< 前へ: 変数と型](01-variables-types.md) | **配列、マップ、セット** | [次へ: クラスと継承 >>](03-classes-inheritance.md)
 
 ---
 
@@ -947,7 +946,3 @@ string GetFirstItem(array<string> items)
 | ランダム | `GetRandomElement()` | ランダムな値を返す |
 | foreach | `foreach (T val : arr)` | 値のみ |
 | foreach（インデックス付き） | `foreach (int i, T val : arr)` | インデックス + 値 |
-
----
-
-[ホーム](../README.md) | [<< 前へ: 変数と型](01-variables-types.md) | **配列、マップ、セット** | [次へ: クラスと継承 >>](03-classes-inheritance.md)

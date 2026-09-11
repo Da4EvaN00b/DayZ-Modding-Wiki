@@ -1,6 +1,5 @@
 # Chapter 9.11 : Dépannage du serveur
 
-[Accueil](../README.md) | [<< Précédent : Gestion des mods](10-mod-management.md) | [Suivant : Sujets avancés >>](12-advanced.md)
 
 ---
 
@@ -60,7 +59,7 @@ DayZ nécessite ces ports redirigés et ouverts dans votre pare-feu :
 |------|-----------|----------|
 | 2302 | UDP | Trafic de jeu |
 | 2303 | UDP | Réseau Steam |
-| 2304 | UDP | Requête Steam (interne) |
+| 2304 | UDP | Port de connexion client (`clientPort`) |
 | 27016 | UDP | Requête navigateur de serveurs Steam |
 
 Si vous avez changé le port de base avec `-port=`, tous les autres ports se décalent du même offset.
@@ -124,7 +123,7 @@ Si vous utilisez un fichier types personnalisé (par ex. **types_custom.xml**), 
 
 ### Mauvais tags de catégorie, d'usage ou de valeur
 
-Chaque tag `<category>`, `<usage>`, et `<value>` dans votre types.xml doit correspondre à un nom défini dans **cfglimitsdefinition.xml**. Une faute de frappe comme `usage name="Military"` (M majuscule) quand la définition dit `military` (minuscule) empêche silencieusement l'objet d'apparaître.
+Chaque tag `<category>`, `<usage>`, et `<value>` dans votre types.xml doit correspondre à un nom défini dans **cfglimitsdefinition.xml**. Une faute de frappe comme `usage name="military"` (minuscule) quand la définition dit `Military` (M majuscule) empêche silencieusement l'objet d'apparaître.
 
 ### Nominal à zéro
 
@@ -212,7 +211,7 @@ Les inventaires et positions des joueurs sont stockés dans `storage_1/players/`
 
 Les serveurs DayZ visent 30+ FPS pour un gameplay fluide. Causes courantes de FPS serveur bas :
 
-- **Trop de zombies** -- réduisez `ZombieMaxCount` dans **globals.xml** (par défaut 800, essayez 400-600)
+- **Trop de zombies** -- réduisez `ZombieMaxCount` dans **globals.xml** (par défaut 1000, essayez 400-600)
 - **Trop d'animaux** -- réduisez `AnimalMaxCount` (par défaut 200, essayez 100)
 - **Excès de loot** -- réduisez les valeurs `nominal` dans votre types.xml
 - **Trop d'objets de base** -- les grandes bases avec des centaines d'objets sollicitent la persistance
@@ -266,7 +265,3 @@ Quand quelque chose ne va pas, parcourez cette liste dans l'ordre :
 ```
 
 L'étape 8 est la technique la plus puissante. Si le serveur fonctionne en vanilla mais casse avec des mods, vous pouvez isoler le mod problématique par recherche binaire -- ajoutez la moitié de vos mods, testez, puis affinez.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Gestion des mods](10-mod-management.md) | [Suivant : Sujets avancés >>](12-advanced.md)

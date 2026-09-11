@@ -1,6 +1,5 @@
 # 第 7.6 章：事件驱动架构
 
-[首页](../README.md) | [<< 上一章：权限系统](05-permissions.md) | **事件驱动架构** | [下一章：性能优化 >>](07-performance.md)
 
 ---
 
@@ -107,16 +106,18 @@ graph TB
 
 ### Insert/Remove 的工作原理
 
-`Insert` 将函数引用添加到内部列表。`Remove` 搜索列表并移除匹配的条目。如果你对同一函数调用两次 `Insert`，它将在每次 `Invoke` 时被调用两次。如果调用一次 `Remove`，它只移除一个条目。
+`Insert` 将函数引用添加到内部列表。`Remove` 搜索列表并移除匹配的条目。如果你对同一函数调用两次 `Insert`，它将在每次 `Invoke` 时被调用两次。默认情况下 `Remove(fn)` 使用 `EScriptInvokerRemoveFlags.ALL`，因此它会移除每一个匹配的条目。若只想移除最近的单个条目，请调用 `Remove(fn, EScriptInvokerRemoveFlags.NONE)`。
 
 ```c
 // 两次订阅同一处理器是一个 bug：
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // 现在每次 Invoke 调用 2 次
 
-// 一次 Remove 只移除一个条目：
+// 默认的 ALL 标志会移除每一个匹配的条目：
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// 每次 Invoke 仍调用 1 次——第二个 Insert 仍然存在
+// 每次 Invoke 调用 0 次——两个 Insert 都已被移除。
+// 若要保留一个条目，请传入 NONE：
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### 类型化签名
@@ -135,13 +136,11 @@ ref ScriptInvoker OnWeatherChanged = new ScriptInvoker();
 许多原版 DayZ 类暴露了 `ScriptInvoker` 事件：
 
 ```c
-// UIScriptedMenu 有 OnVisibilityChanged
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// DayZPlayer 通过 GetOnDeathStart() 暴露一个 ScriptInvoker
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // 订阅
 
-// MissionBase 有事件钩子
+// MissionBase 有事件钩子（虚方法，而非 ScriptInvoker）
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,7 +545,7 @@ OnKillEvent.Invoke(killData);
 |------|------|------|
 | 使用 `Insert()` 订阅但从未调用 `Remove()` | 内存泄漏：invoker 持有对已死对象的引用；在 `Invoke()` 时，调用已释放的内存（崩溃）或空操作浪费迭代 | 在 `OnMissionFinish` 或析构函数中将每个 `Insert()` 与 `Remove()` 配对 |
 | 在关闭期间对空的 EventBus invoker 调用 `Remove()` | `MyEventBus.Cleanup()` 可能已经将 invoker 置空；对 null 调用 `.Remove()` 会崩溃 | 在 `Remove()` 之前始终对 invoker 进行空检查：`if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| 对同一处理器双重 `Insert()` | 处理器每次 `Invoke()` 被调用两次；一次 `Remove()` 只移除一个条目，留下过时的订阅 | 在插入前检查，或确保 `Insert()` 只调用一次（例如，在 `OnInit` 中使用保护标志） |
+| 对同一处理器双重 `Insert()` | 处理器每次 `Invoke()` 被调用两次；默认的 `Remove()`（标志 `ALL`）会一次性清除每一个条目，移除所有订阅 | 在插入前检查，或确保 `Insert()` 只调用一次（例如，在 `OnInit` 中使用保护标志） |
 | 使用匿名/Lambda 函数作为处理器 | 无法移除因为没有引用可以传递给 `Remove()` | 始终使用命名方法作为事件处理器 |
 | 使用不匹配的参数签名触发事件 | 订阅者接收垃圾数据或在运行时崩溃；没有编译时检查 | 在每个 `ScriptInvoker` 声明上方记录预期签名，并在所有处理器中精确匹配 |
 
@@ -559,7 +558,3 @@ OnKillEvent.Invoke(killData);
 | 使用 RBAC（基于角色的访问控制）和组继承 | 只有 CF/COT 支持三态权限；大多数 Mod 为了简单使用平面的每玩家授权 |
 | 权限应存储在数据库中 | 没有数据库访问；`$profile:` 中的 JSON 文件是唯一选择 |
 | 使用加密令牌进行授权 | Enforce Script 中没有加密库；信任基于引擎验证的 `PlayerIdentity.GetPlainId()`（Steam64 ID） |
-
----
-
-[<< 上一章：权限系统](05-permissions.md) | [首页](../README.md) | [下一章：性能优化 >>](07-performance.md)

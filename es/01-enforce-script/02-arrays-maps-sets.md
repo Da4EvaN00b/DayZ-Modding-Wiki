@@ -1,6 +1,5 @@
 # Capítulo 1.2: Arrays, Maps y Sets
 
-[Inicio](../README.md) | [<< Anterior: Variables & Types](01-variables-types.md) | **Arrays, Maps & Sets** | [Siguiente: Classes & Inheritance >>](03-classes-inheritance.md)
 
 ---
 
@@ -947,7 +946,3 @@ Create a class with two maps that allows lookup in both directions: given a play
 | Random | `GetRandomElement()` | Returns random value |
 | foreach | `foreach (T val : arr)` | Value only |
 | foreach indexed | `foreach (int i, T val : arr)` | Index + value |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Variables & Types](01-variables-types.md) | **Arrays, Maps & Sets** | [Siguiente: Classes & Inheritance >>](03-classes-inheritance.md)

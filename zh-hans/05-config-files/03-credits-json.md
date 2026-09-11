@@ -1,6 +1,5 @@
 # 第 5.3 章：Credits.json
 
-[首页](../README.md) | [<< 上一章：inputs.xml](02-inputs-xml.md) | **Credits.json** | [下一章：ImageSet 格式 >>](04-imagesets.md)
 
 ---
 
@@ -23,9 +22,9 @@
 
 ## 概述
 
-当玩家在 DayZ 启动器或游戏内 Mod 菜单中选择你的 Mod 时，引擎会在 Mod 的 PBO 内查找 `Credits.json` 文件。如果找到，制作人员名单将以按部门和分类组织的滚动视图显示——类似于电影片尾字幕。
+当玩家查看你的 Mod 的制作人员名单时，引擎会加载你在 `config.cpp` 的 `CfgMods` 块中通过 `creditsJson` 键声明的路径所指向的文件（例如 `creditsJson = "MyMod/Scripts/Data/Credits.json";`）。然后，制作人员名单将以按部门和分类组织的滚动视图显示——类似于电影片尾字幕。
 
-该文件是可选的。如果不存在，你的 Mod 不会显示制作人员分类。但包含一个是好的做法：它承认了团队的工作，并使你的 Mod 看起来更加专业。
+该文件是可选的。如果你不声明 `creditsJson` 键，该文件永远不会被加载，你的 Mod 不会显示任何制作人员名单。但包含一个是好的做法：它承认了团队的工作，并使你的 Mod 看起来更加专业。
 
 ---
 
@@ -43,7 +42,7 @@
         Credits.json         <-- 也有效（DabsFramework、Colorful-UI）
 ```
 
-两个位置都有效。引擎会扫描 PBO 内容以查找名为 `Credits.json` 的文件（在某些平台上区分大小写）。
+该文件可以位于 PBO 中的任何位置。关键在于你的 `CfgMods` 块中的 `creditsJson` 值要指向它的确切路径（在某些平台上区分大小写）。
 
 ---
 
@@ -53,14 +52,13 @@
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -72,8 +70,9 @@
 
 | 字段 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| `Header` | string | 否 | 显示在制作人员名单顶部的主标题。如果省略，则不显示标题。 |
 | `Departments` | array | 是 | 部门对象数组 |
+
+原版解析器（`JsonDataCredits`）只识别 `Departments` 数组。不存在顶级的 `Header` 字段——你添加的任何 `Header` 键都会被静默忽略。要在制作人员名单顶部显示标题，请改用第一个 `DepartmentName`。
 
 ### Department 对象
 
@@ -84,23 +83,12 @@
 
 ### Section 对象
 
-实际中存在两种列出名称的变体。引擎都支持。
-
-**变体 1：`Names` 数组**（MyMod Core 使用）
-
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `SectionName` | string | 是 | 部门内的子标题 |
-| `Names` | array of strings | 是 | 贡献者名称列表 |
-
-**变体 2：`SectionLines` 数组**（COT、Expansion、DabsFramework 使用）
-
 | 字段 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | `SectionName` | string | 是 | 部门内的子标题 |
 | `SectionLines` | array of strings | 是 | 贡献者名称或文本行列表 |
 
-`Names` 和 `SectionLines` 的作用相同。使用你喜欢的任一种——引擎的渲染方式完全相同。
+原版分类类（`JsonDataCreditsSection`）只识别 `SectionName` 和 `SectionLines`。你可能会看到一些 Mod 使用 `Names` 键，但引擎从不读取它——`Names` 数组会被静默忽略且不渲染任何内容。请始终使用 `SectionLines` 来列出名称。
 
 ---
 
@@ -110,12 +98,10 @@
 
 ```
 ╔══════════════════════════════════╗
-║         MY MOD NAME              ║  <-- Header（大号，居中）
-║                                  ║
 ║     DEPARTMENT NAME              ║  <-- DepartmentName（中号，居中）
 ║                                  ║
 ║     Section Name                 ║  <-- SectionName（小号，居中）
-║     Person 1                     ║  <-- Names/SectionLines（列表）
+║     Person 1                     ║  <-- SectionLines（列表）
 ║     Person 2                     ║
 ║     Person 3                     ║
 ║                                  ║
@@ -128,10 +114,9 @@
 ╚══════════════════════════════════╝
 ```
 
-- `Header` 在顶部显示一次
 - 每个 `DepartmentName` 作为主要分类分隔符
 - 每个 `SectionName` 作为子标题
-- 名称在制作人员视图中垂直滚动
+- `SectionLines` 在制作人员视图中垂直滚动
 
 ### 用空字符串控制间距
 
@@ -181,14 +166,13 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -200,22 +184,21 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -231,26 +214,25 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +241,7 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -267,7 +249,7 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +258,7 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +275,17 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
 
 ### MyMod Core
 
-一个使用 `Names` 变体的最小但完整的制作人员文件：
+一个最小但完整的制作人员文件：
 
 ```json
 {
-    "Header": "MyMod Core",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyMod Core",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["Documentation Team"]
+                    "SectionLines": ["Documentation Team"]
                 }
             ]
         }
@@ -355,7 +336,7 @@ Expansion 使用空的 `DepartmentName` 和 `SectionName` 字符串，以及 `Se
 }
 ```
 
-值得注意的是：COT 完全省略了 `Header` 字段。Mod 名称来自其他元数据（config.cpp `CfgMods`）。
+值得注意的是：COT 使用第一个 `DepartmentName`（"Community Online Tools"）作为其标题。Mod 名称也来自其他元数据（config.cpp `CfgMods`）。
 
 ### DabsFramework
 
@@ -413,19 +394,18 @@ Expansion 展示了 Credits.json 最复杂的用法，包括：
 
 文件必须准确命名为 `Credits.json`（大写 C）。在区分大小写的文件系统上，`credits.json` 或 `CREDITS.JSON` 将无法被找到。
 
-### 混用 Names 和 SectionLines
+### 使用 `Names` 键
 
-在单个 section 内，只使用其中一种：
+一些 Mod 会写 `Names` 数组，但引擎从不读取它。只有 `SectionLines` 会被解析：
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-这是模棱两可的。选择一种格式并在整个文件中一致使用。
+在此示例中，"Dev1" 永远不会在游戏内出现——该分类渲染为空。请始终在 `SectionLines` 下列出贡献者。
 
 ### 编码问题
 
@@ -436,9 +416,9 @@ Expansion 展示了 Credits.json 最复杂的用法，包括：
 ## 最佳实践
 
 - 在打包到 PBO 之前，使用外部工具验证你的 JSON——引擎对格式错误的 JSON 不会给出有用的错误消息。
-- 使用 `SectionLines` 变体以保持一致性，因为这是 COT、Expansion 和 DabsFramework 使用的格式。
+- 对每个名称列表都使用 `SectionLines`。这是引擎唯一会读取的字段，也是 COT、Expansion 和 DabsFramework 使用的格式。
 - 如果你的 Mod 捆绑了有署名要求的第三方资源（字体、图标、声音），请包含一个"法律声明"部门。
-- 保持 `Header` 字段与你的 Mod 在 `mod.cpp` 和 `config.cpp` 中的 `name` 一致，以维护统一的身份标识。
+- 使用第一个 `DepartmentName` 作为标题，与你的 Mod 在 `mod.cpp` 和 `config.cpp` 中的 `name` 一致，以维护统一的身份标识。
 - 谨慎使用空的 `DepartmentName` 和 `SectionName` 字符串来控制视觉间距——过度使用会使制作人员名单看起来支离破碎。
 
 ---

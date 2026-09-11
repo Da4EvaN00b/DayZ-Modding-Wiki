@@ -1,6 +1,5 @@
 # Chapitre 7.5 : Systèmes de permissions
 
-[Accueil](../README.md) | [<< Précédent : Persistance de configuration](04-config-persistence.md) | **Systèmes de permissions** | [Suivant : Architecture événementielle >>](06-events.md)
 
 ---
 
@@ -653,7 +652,3 @@ C'est un patron courant utilisé pour migrer depuis le tableau plat `AdminUIDs` 
 | Utiliser RBAC (contrôle d'accès basé sur les rôles) avec héritage de groupes | Seul CF/COT supporte les permissions à trois états ; la plupart des mods utilisent des attributions plates par joueur pour la simplicité |
 | Les permissions devraient être stockées dans une base de données | Pas d'accès base de données ; les fichiers JSON dans `$profile:` sont la seule option |
 | Utiliser des jetons cryptographiques pour l'autorisation | Pas de bibliothèques cryptographiques en Enforce Script ; la confiance est basée sur `PlayerIdentity.GetPlainId()` (Steam64 ID) vérifié par le moteur |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Persistance de configuration](04-config-persistence.md) | **Systèmes de permissions** | [Suivant : Architecture événementielle >>](06-events.md)

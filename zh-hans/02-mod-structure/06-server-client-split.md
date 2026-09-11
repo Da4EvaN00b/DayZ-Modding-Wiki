@@ -1,6 +1,5 @@
 # 第 2.6 章：服务器与客户端架构
 
-[首页](../README.md) | [<< 上一章：文件组织](05-file-organization.md) | **服务器与客户端架构**
 
 ---
 
@@ -172,7 +171,7 @@ void ShowNotification(string text)
         return;
 
     // 只有客户端可以显示 UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 ```
 

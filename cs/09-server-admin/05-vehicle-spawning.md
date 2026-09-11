@@ -1,6 +1,5 @@
 # Chapter 9.5: Spawnovani vozidel a dynamicke udalosti
 
-[Domu](../README.md) | [<< Predchozi: Lootova ekonomika](04-loot-economy.md) | [Dalsi: Spawnovani hracu >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@ Vozidla **nejsou** definovana v `types.xml`. Pokud pridáte tridu vozidla do `ty
 
 CE precte `events.xml`, vybere udalost, ktera potrebuje spawn, vyhledá odpovidajici pozice v `cfgeventspawns.xml`, vybere nahodne jednu, ktera splnuje omezeni `saferadius` a `distanceradius`, a pote spawnuje nahodne vybranou detskou entitu na teto pozici.
 
-Vsechny tri soubory se nachazi v `mpmissions/<vase_mise>/db/`.
+`events.xml` se nachazi v `mpmissions/<vase_mise>/db/`, zatimco `cfgeventspawns.xml` a `cfgeventgroups.xml` se nachazi v korenu mise (`mpmissions/<vase_mise>/`).
 
 ---
 
@@ -167,17 +166,17 @@ Helikopterove zriceniny jsou dynamicke udalosti, ktere spawnuji vrak s vojenskym
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ Vojenske konvoje jsou staticke skupiny zničených vozidel, ktere se spawnuji s 
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Konvoje funguji identicky jako helikopterove zriceniny: tag `<secondary>` spawnuje `InfectedArmy` kolem mista a lootove predmety s `deloot="1"` se objevi na vracich. S `nominal=5` muze na mape soucasne existovat az 5 mist konvoju. Kazdy trva 1800 sekund (30 minut) pred presunenim na novou lokaci.
+Konvoje funguji podobne jako helikopterove zriceniny: tag `<secondary>` spawnuje `InfectedArmy` kolem mista a lootove predmety s `deloot="1"` se objevi na vracich. Na rozdil od helikopterove zriceniny ma udalost konvoje prazdny element `<children/>` -- jeji znicena vozidla jsou definovana jako skupina v `cfgeventgroups.xml` a umistena pomoci skupinovych referenci v `cfgeventspawns.xml`. S `nominal=5` muze na mape soucasne existovat az 5 mist konvoju. Kazdy trva 1800 sekund (30 minut) pred presunenim na novou lokaci.
 
 ---
 
@@ -231,20 +228,21 @@ Udalosti policejnich aut spawnuji znicena policejni vozidla s nakazenymi policej
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ Udalosti policejnich aut spawnuji znicena policejni vozidla s nakazenymi policej
 Tento soubor definuje udalosti, kde se vice objektu spawnuje spolecne s relativnimi pozicnimi ofsety. Nejcastejsi pouziti jsou opustene vlaky.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Prvni dite je umisteno na pozici z `cfgeventspawns.xml`. Nasledujici deti jsou odsazeny svymi hodnotami `x`, `z`, `a` relativne k tomu puvodu. V tomto prikladu jsou vlakove vozy rozmisteny 15 metru od sebe podél osy z.
+Kazda skupina je deklarovana elementem `<group name="...">` uvnitr korenoveho `<eventgroupdef>` souboru a jeji zaznamy `<child>` jsou primymi detmi `<group>` (zde neni zadny obal `<children>`). Prvni dite je umisteno na pozici z `cfgeventspawns.xml`. Nasledujici deti jsou odsazeny svymi hodnotami `x`, `z`, `y`, `a` relativne k tomu puvodu.
 
 Kazdy `<child>` ve skupine ma:
 
@@ -277,7 +273,11 @@ Kazdy `<child>` ve skupine ma:
 | `type` | Nazev tridy objektu ke spawnu. |
 | `x` | Odsazeni X v metrech od puvodu skupiny. |
 | `z` | Odsazeni Z v metrech od puvodu skupiny. |
+| `y` | Odsazeni Y (vertikalni) v metrech od puvodu skupiny. |
 | `a` | Odsazeni uhlu ve stupnich od puvodu skupiny. |
+| `deloot` | Zda se v tomto diteti muze spawnovat loot dynamicke udalosti (0 nebo 1). |
+| `lootmin` | Minimalni pocet lootovych predmetu spawnovanych v tomto diteti. |
+| `lootmax` | Maximalni pocet lootovych predmetu spawnovanych v tomto diteti. |
 
 Skupinova udalost sama stale potrebuje odpovidajici zaznam v `events.xml` pro rizeni nominalnich poctu, zivotnosti a aktivniho stavu.
 
@@ -343,7 +343,3 @@ Toto jsou nejcastejsi problemy se spawnovanim vozidel, se kterymi se serverovi a
 **Problem:** Vozidlo se spawnuje zaborene do budovy nebo zahrabane v terenu.
 
 **Reseni:** Zkontrolujte souradnice `<pos>` v `cfgeventspawns.xml`. Otestujte pozice ve hre pomoci adminskehho teleportu pred jejich pridanim do souboru. Pozice by mely byt na rovných silnicich nebo otevrenem terenu a uhel (`a`) by mel byt zarovnan se smerem silnice.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Lootova ekonomika](04-loot-economy.md) | [Dalsi: Spawnovani hracu >>](06-player-spawning.md)

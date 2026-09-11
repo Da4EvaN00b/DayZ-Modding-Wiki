@@ -1,6 +1,5 @@
 # Rozdział 1.1: Zmienne i typy
 
-[Strona główna](../README.md) | **Zmienne i typy** | [Dalej: Tablice, mapy i zbiory >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -305,8 +304,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Konwersja z innych typów
-    string fromInt = "Score: " + 42;     // NIE działa -- trzeba jawnie skonwertować
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // działa -- operator + konwertuje 42 na "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (jawnie, ten sam wynik)
 
     // Użycie Format to preferowane podejście
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +463,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Uzyskaj typename z łańcucha
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Porównaj typy
     if (t == PlayerBase)
@@ -873,7 +872,3 @@ Napisz funkcję `vector SnapToGround(vector pos)`, która przyjmuje dowolną poz
 | Zasięg | Zmienne ograniczone do bloków `{}`; brak ponownej deklaracji w zagnieżdżonych/siostrzanych blokach |
 | Konwersja | `float` na `int` obcina; do parsowania łańcuchów użyj `.ToInt()`, `.ToFloat()`, `.ToVector()` |
 | Formatowanie | Zawsze używaj `string.Format()` do budowania łańcuchów z mieszanych typów |
-
----
-
-[Strona główna](../README.md) | **Zmienne i typy** | [Dalej: Tablice, mapy i zbiory >>](02-arrays-maps-sets.md)

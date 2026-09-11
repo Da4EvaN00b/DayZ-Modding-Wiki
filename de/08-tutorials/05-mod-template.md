@@ -1,6 +1,5 @@
 # Kapitel 8.5: Das DayZ Mod-Template verwenden
 
-[Startseite](../README.md) | [<< Zurück: Chat-Befehle hinzufügen](04-chat-commands.md) | **Das DayZ Mod-Template verwenden** | [Weiter: Debugging und Testen >>](06-debugging-testing.md)
 
 ---
 
@@ -180,7 +179,7 @@ Wenn Ihre Mod von einer anderen Mod abhängt, fügen Sie deren CfgPatches-Klasse
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Hängt von Community Framework ab
+    "JM_CF_Scripts"           // Hängt von Community Framework ab
 };
 ```
 
@@ -410,7 +409,3 @@ Mit Ihrer template-basierten Mod, die läuft, können Sie:
 4. **config.cpp im Detail studieren** -- Lesen Sie [Kapitel 2.2: config.cpp im Detail](../02-mod-structure/02-config-cpp.md), um jedes Feld zu verstehen.
 5. **mod.cpp-Optionen lernen** -- Lesen Sie [Kapitel 2.3: mod.cpp und Workshop](../02-mod-structure/03-mod-cpp.md) für Workshop-Veröffentlichung.
 6. **Abhängigkeiten hinzufügen** -- Wenn Ihre Mod Community Framework oder eine andere Mod verwendet, aktualisieren Sie `requiredAddons[]` und siehe [Kapitel 2.4: Ihre erste Mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Zurück:** [Kapitel 8.4: Chat-Befehle hinzufügen](04-chat-commands.md) | [Startseite](../README.md)

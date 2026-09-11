@@ -1,6 +1,5 @@
-# Chapter 7.2: Module / Plugin Systems
+# Module / Plugin Systems
 
-[Home](../README.md) | [<< Previous: Singleton Pattern](01-singletons.md) | **Module / Plugin Systems** | [Next: RPC Patterns >>](03-rpc-patterns.md)
 
 ---
 
@@ -347,7 +346,7 @@ Logging torna a depuração direta. Todo módulo deve fazer log quando inicializ
 | **Integração config** | Separada | Integrada no ConfigurablePlugin | Separada | Via MyConfigManager |
 | **Despacho de update** | Automático | Manager chama `OnUpdate` | Automático | Manager chama `OnUpdate` |
 | **Limpeza** | CF trata | Manual `OnDestroy` | CF trata | `MyModuleManager.Cleanup()` |
-| **Acesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Acesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Escolha a abordagem que corresponde ao perfil de dependências do seu mod. Se você já depende do CF, use `CF_ModuleCore`. Se quer zero dependências externas, construa seu próprio sistema seguindo o padrão MyMod ou VPP.
 
@@ -383,7 +382,3 @@ Escolha a abordagem que corresponde ao perfil de dependências do seu mod. Se vo
 | Módulos devem ser substituíveis a quente em runtime | DayZ não suporta hot-reload de scripts; módulos vivem por todo o ciclo de vida da missão |
 | Use interfaces para contratos de módulo | Enforce Script não tem palavra-chave `interface`; use métodos virtuais de classe base (`override`) ao invés |
 | Injeção de dependência desacopla módulos | Nenhum framework de DI existe; use lookups do manager e guards `#ifdef` para dependências cross-mod opcionais |
-
----
-
-[<< Anterior: Padrão Singleton](01-singletons.md) | [Início](../README.md) | [Próximo: Padrões RPC >>](03-rpc-patterns.md)

@@ -1,6 +1,5 @@
 # 7.4. fejezet: Konfiguráció perzisztencia
 
-[Kezdőlap](../README.md) | [<< Előző: RPC minták](03-rpc-patterns.md) | **Konfiguráció perzisztencia** | [Következő: Jogosultsági rendszerek >>](05-permissions.md)
 
 ---
 
@@ -121,7 +120,7 @@ Az eredményül kapott JSON így néz ki:
 | `string` | Szöveg |
 | `vector` | 3 számból álló tömb |
 | `array<T>` | JSON tömb |
-| `map<string, T>` | JSON objektum (csak szöveg kulcsokkal) |
+| `map<K, T>` | JSON objektum (`K` lehet `string`, `int` vagy `enum`; a JSON minden kulcsot szövegként jelenít meg) |
 | Beágyazott osztály | Beágyazott JSON objektum |
 
 ### Beágyazott objektumok
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Használj aszinkron fájl I/O-t a blokkolás elkerüléséhez | Az Enforce Scriptben nincs aszinkron fájl I/O; minden olvasás/írás szinkron. Indításkor töltsd be, időzítőkkel ments. |
 | Validáld a JSON-t sémával | Nem létezik JSON séma validáció; mezők validálása az `OnAfterLoad()`-ban vagy betöltés utáni őrfeltételekkel. |
 | Használj adatbázist strukturált adatokhoz | Nincs adatbázis-hozzáférés az Enforce Scriptből; JSON fájlok a `$profile:`-ban az egyetlen perzisztencia mechanizmus. |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: RPC minták](03-rpc-patterns.md) | **Konfiguráció perzisztencia** | [Következő: Jogosultsági rendszerek >>](05-permissions.md)

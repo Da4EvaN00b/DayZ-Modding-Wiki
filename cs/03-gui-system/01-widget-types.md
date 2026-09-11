@@ -1,6 +1,5 @@
 # Kapitola 3.1: Typy widgetů
 
-[Domů](../README.md) | **Typy widgetů** | [Další: Soubory layoutů >>](02-layout-files.md)
 
 ---
 
@@ -39,11 +38,13 @@ Kontejnerové widgety drží a organizují potomkovské widgety. Samy o sobě ne
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Proudové rozložení. Řadí potomky sekvenčně se zalamováním, odsazením a okraji. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Mřížkové rozložení. Řadí potomky do mřížky definované parametry `Columns` a `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Posuvný viewport. Umožňuje vertikální/horizontální posouvání obsahu potomků. |
-| `SpacerBaseWidget` | -- | Abstraktní základní třída pro `WrapSpacerWidget` a `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Abstraktní základní třída pro `SpacerWidget` a `ScrollWidget`. `WrapSpacerWidget` i `GridSpacerWidget` rozšiřují `SpacerWidget`. |
 
 ### FrameWidget
 
-Hlavní pracovní nástroj UI DayZ. Používejte `FrameWidget` jako výchozí kontejner, když potřebujete seskupit widgety dohromady. Nemá žádný vizuální vzhled -- je čistě strukturální.
+Hlavní pracovní nástroj UI DayZ. Používejte frame jako výchozí kontejner, když potřebujete seskupit widgety dohromady. Nemá žádný vizuální vzhled -- je čistě strukturální.
+
+> **Poznámka:** `FrameWidgetClass` je použitelná v `.layout` souborech a `FrameWidgetTypeID` existuje pro `CreateWidget()`, ale neexistuje žádná skriptová třída `FrameWidget`. Stejně jako u `PanelWidget` pracujte s frame jako se základním `Widget` -- nepřetypovávejte na `FrameWidget`.
 
 **Klíčové metody:**
 - Všechny základní metody `Widget` (pozice, velikost, barva, potomci, příznaky)
@@ -52,7 +53,7 @@ Hlavní pracovní nástroj UI DayZ. Používejte `FrameWidget` jako výchozí ko
 
 ```c
 // Nalezení frame widgetu podle názvu
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +315,8 @@ Horizontální posuvník pro číselné hodnoty.
 **Klíčové metody:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Vrací float (0-1)
+sw.SetMinMax(0, 100);       // Nastavení rozsahu hodnot (jinak výchozí rozsah)
+sw.GetCurrent();            // Vrací float v rámci nastaveného rozsahu min/max
 sw.SetCurrent(float val);   // Nastavení pozice
 ```
 

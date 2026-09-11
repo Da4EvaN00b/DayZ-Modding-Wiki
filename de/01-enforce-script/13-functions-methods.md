@@ -1,6 +1,5 @@
 # Kapitel 1.13: Funktionen & Methoden
 
-[Startseite](../README.md) | [<< Zurück: Fallstricke](12-gotchas.md) | **Funktionen & Methoden**
 
 ---
 
@@ -556,7 +555,7 @@ Sie rufen sie wie jede andere Methode auf. Die Schlüsselregel: **Versuchen Sie 
 // Proto-Native-Methoden aufrufen -- kein Unterschied zu Script-Methoden
 Object obj = GetGame().CreateObject("AKM", pos, false, false, true);
 vector position = obj.GetPosition();
-string typeName = obj.GetType();     // owned string -- wird Ihnen zurückgegeben
+string typeName = obj.GetType();     // Script-Wrapper über g_Game.ObjectGetType()
 obj.SetPosition(newPos);             // native void -- keine Rückgabe
 ```
 
@@ -763,13 +762,15 @@ class Calculator
 DayZ-Vanilla und Mods folgen einer Namenskonvention, bei der eine erweiterte Version einer Methode `Ex` an den Namen anhängt:
 
 ```c
-// Aus Vanilla-Scripts -- Basisversion vs. erweiterte Version
-void ExplosionEffects(Object source, Object directHit, int componentIndex);
+// Aus DayZGame -- Basisversion vs. erweiterte Version
+void ExplosionEffects(Object source, Object directHit, int componentIndex, string surface,
+    vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater,
+    string ammoType);
 void ExplosionEffectsEx(Object source, Object directHit, int componentIndex,
     float energyFactor, float explosionFactor, HitInfo hitInfo);
 
-// Aus EntityAI
-void SplitIntoStackMax(EntityAI destination_entity, int slot_id);
+// Basis liegt in ItemBase; die Ex-Variante ist in EntityAI deklariert
+void SplitIntoStackMax(EntityAI destination_entity, int slot_id, PlayerBase player);
 void SplitIntoStackMaxEx(EntityAI destination_entity, int slot_id);
 ```
 
@@ -1126,11 +1127,3 @@ class MyMission extends MissionServer
 | Thread beenden | `KillThread(owner, "FnName")` | Stoppt eine laufende Coroutine |
 | Verzögerter Aufruf | `CallLater(Fn, delay, repeat)` | Gegenüber Threads bevorzugt |
 | `Ex()`-Konvention | `void FnEx(...)` | Erweiterte Version von `Fn` |
-
----
-
-## Navigation
-
-| Zurück | Hoch | Weiter |
-|----------|----|------|
-| [1.12 Fallstricke](12-gotchas.md) | [Teil 1: Enforce Script](../README.md) | -- |

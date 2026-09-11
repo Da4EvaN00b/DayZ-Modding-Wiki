@@ -1,6 +1,5 @@
-# Chapter 3.4: Container Widgets
+# Container Widgets
 
-[Home](../README.md) | [<< Previous: Sizing & Positioning](03-sizing-positioning.md) | **Container Widgets** | [Next: Programmatic Widgets >>](05-programmatic-widgets.md)
 
 ---
 
@@ -464,11 +463,12 @@ FrameWidgetClass SettingsPanel {
   // Scrollable settings area
   ScrollWidgetClass SettingsScroll {
    position 0 30
-   size 1 0
+   size 1 0.7
    hexactpos 0
    vexactpos 1
    hexactsize 0
    vexactsize 0
+   clipchildren 1
    "Scrollbar V" 1
    {
     GridSpacerWidgetClass SettingsGrid {
@@ -484,7 +484,7 @@ FrameWidgetClass SettingsPanel {
   // Button bar at bottom
   FrameWidgetClass ButtonBar {
    size 1 40
-   halign left_ref
+   halign left
    valign bottom_ref
    hexactpos 0
    vexactpos 1
@@ -499,11 +499,11 @@ FrameWidgetClass SettingsPanel {
 
 ## Gotchas
 
-- You **must** call `Update()` manually on a `WrapSpacerWidget` after `CreateWidgets()` or `Unlink()`. The layout does not auto-recalculate. This is the most common spacer bug.
-- `"Size To Content V"` only works if children have explicit sizes (pixel height or known proportional parent). If children are also `Size To Content`, you get zero height.
+- You **must** call `Update()` manually on a `WrapSpacerWidget` after `CreateWidgets()` or `Unlink()`. Call it after a batch of changes when you need updated geometry immediately.
+- `"Size To Content V"` only works if children have explicit sizes (pixel height or known proportional parent). If children are also `Size To Content`, check that sizing has a finite parent constraint.
 - `GridSpacerWidget` overrides children's size attributes entirely. Setting `size` on a grid child has no effect.
 - After adding children to a `ScrollWidget`, you may need to defer `VScrollToPos()` by one frame (via `CallLater`) because the content height has not yet been recalculated.
-- A `WrapSpacer` inside a `WrapSpacer` works, but `Size To Content` on both levels can cause infinite layout loops that freeze the UI.
+- A `WrapSpacer` inside a `WrapSpacer` works, but `Size To Content` on both levels can create circular size dependencies; give at least one level an explicit size.
 - For lists with 100+ items, call `Update()` once after batch operations, not after each individual add.
 - If two mods inject children into the same vanilla `ScrollWidget` (via `modded class`), child ordering is unpredictable.
 - For high-volume lists, pre-create a pool of list-item widgets and show/hide them instead of creating/destroying, to avoid repeated `Update()` overhead.

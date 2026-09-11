@@ -1,6 +1,5 @@
-# Chapter 8.1: Your First Mod (Hello World)
+# Your First Mod (Hello World)
 
-[Home](../README.md) | **Your First Mod** | [Next: Creating a Custom Item >>](02-custom-item.md)
 
 ---
 

@@ -1,6 +1,5 @@
-# Chapter 3.3: Sizing & Positioning
+# Sizing & Positioning
 
-[Home](../README.md) | [<< Previous: Layout File Format](02-layout-files.md) | **Sizing & Positioning** | [Next: Container Widgets >>](04-containers.md)
 
 ---
 
@@ -118,10 +117,10 @@ The `halign` and `valign` attributes change the **reference point** for position
 
 | Value | Effect |
 |---|---|
-| `left_ref` (default) | Position is measured from parent's left edge |
+| `left` (default) | Position is measured from parent's left edge |
 | `center_ref` | Position is measured from parent's center |
 | `right_ref` | Position is measured from parent's right edge |
-| `top_ref` (default) | Position is measured from parent's top edge |
+| `top` (default) | Position is measured from parent's top edge |
 | `center_ref` | Position is measured from parent's center |
 | `bottom_ref` | Position is measured from parent's bottom edge |
 
@@ -130,13 +129,13 @@ The `halign` and `valign` attributes change the **reference point** for position
 ```mermaid
 graph TD
     subgraph "Parent Widget"
-        TL["halign left_ref<br/>valign top_ref<br/>↘ position from here"]
-        TC["halign center_ref<br/>valign top_ref"]
-        TR["halign right_ref<br/>valign top_ref<br/>↙ position from here"]
-        ML["halign left_ref<br/>valign center_ref"]
+        TL["halign left<br/>valign top<br/>↘ position from here"]
+        TC["halign center_ref<br/>valign top"]
+        TR["halign right_ref<br/>valign top<br/>↙ position from here"]
+        ML["halign left<br/>valign center_ref"]
         MC["halign center_ref<br/>valign center_ref<br/>↔ position from center"]
         MR["halign right_ref<br/>valign center_ref"]
-        BL["halign left_ref<br/>valign bottom_ref<br/>↗ position from here"]
+        BL["halign left<br/>valign bottom_ref<br/>↗ position from here"]
         BC["halign center_ref<br/>valign bottom_ref"]
         BR["halign right_ref<br/>valign bottom_ref<br/>↖ position from here"]
     end
@@ -172,7 +171,7 @@ ImageWidgetClass StatusIcon {
  position 5 5
  size 24 24
  halign right_ref
- valign top_ref
+ valign top
  hexactpos 1
  vexactpos 1
  hexactsize 1
@@ -187,7 +186,7 @@ ImageWidgetClass StatusIcon {
 FrameWidgetClass StatusBar {
  position 0 0
  size 1 30
- halign left_ref
+ halign left
  valign bottom_ref
  hexactpos 1
  vexactpos 1
@@ -340,7 +339,6 @@ Without `scaled`, pixel-sized widgets will be the same physical size regardless 
 Use `fixaspect` to maintain a widget's aspect ratio:
 
 - `fixaspect fixwidth` -- Height adjusts to maintain aspect ratio based on width
-- `fixaspect fixheight` -- Width adjusts to maintain aspect ratio based on height
 
 This is primarily useful for `ImageWidget` to prevent image distortion.
 
@@ -359,12 +357,12 @@ The `priority` attribute controls which widgets render on top when they overlap.
 | 998-999 | Modal dialogs, blocking overlays |
 
 ```
-FrameWidget myBackground {
+FrameWidgetClass myBackground {
     priority 1
     // ...
 }
 
-FrameWidget myDialog {
+FrameWidgetClass myDialog {
     priority 999
     // ...
 }
@@ -415,7 +413,7 @@ When a widget is not appearing where you expect:
 
 - **Multi-Mod:** Sizing and positioning are per-widget and cannot conflict between mods. However, mods that use full-screen overlays (`size 1 1` on root) with `priority 999` can block other mods' UI elements from receiving input.
 - **Performance:** Proportional sizing requires parent-relative recalculation each frame for animated or dynamic widgets. For static layouts, there is no measurable difference between proportional and pixel modes.
-- **Version:** The dual coordinate system (proportional vs pixel) has been stable since DayZ 0.63 Experimental. The `scaled` attribute behavior was refined in DayZ 1.14 to better respect the HUD Size slider.
+- **Layout attributes:** Vanilla layouts use `hexactpos`, `vexactpos`, `hexactsize`, `vexactsize` and `scaled`; choose these explicitly when mixing proportional and pixel dimensions.
 
 ---
 

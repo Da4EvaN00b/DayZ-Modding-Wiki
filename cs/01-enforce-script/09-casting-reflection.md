@@ -1,6 +1,5 @@
 # Chapter 1.9: Casting & Reflection
 
-[Domů](../README.md) | [<< Předchozí: Správa paměti](08-memory-management.md) | **Přetypování a reflexe** | [Další: Výčty a preprocesor >>](10-enums-preprocessor.md)
 
 ---
 
@@ -641,11 +640,3 @@ if (myObj.Type() == PlayerBase)  // true if myObj IS a PlayerBase
 | Variable type | `obj.Type().GetVariableType(i)` | `typename` |
 | Přečtěte property | `EnScript.GetClassVar(obj, name, 0, out val)` | `void` |
 | Zapište property | `EnScript.SetClassVar(obj, name, 0, val)` | `bool` |
-
----
-
-## Navigace
-
-| Previous | Up | Next |
-|----------|----|------|
-| [1.8 Memory Management](08-memory-management.md) | [Part 1: Enforce Script](../README.md) | [1.10 Enums & Preprocessor](10-enums-preprocessor.md) |

@@ -1,6 +1,5 @@
 # Capitolo 8.9: Template Professionale per Mod
 
-[Home](../README.md) | [<< Precedente: Costruire un Overlay HUD](08-hud-overlay.md) | **Template Professionale per Mod** | [Successivo: Creare un Veicolo Personalizzato >>](10-vehicle-mod.md)
 
 ---
 
@@ -856,36 +855,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Connessione giocatore - dispatch RPC del server
-    // Chiamato dal motore quando un client invia un RPC al server.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Gestisci solo il nostro ID RPC. Tutti gli altri RPC passano attraverso.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Leggi il nome della rotta (prima stringa scritta dal mittente).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Despaccia al gestore corretto in base al nome della rotta.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Aggiungi più rotte qui man mano che il tuo mod cresce:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Shutdown
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +877,47 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Dispatch RPC del server.
+// IMPORTANTE: OnRPC è un metodo di DayZGame, NON di MissionServer. La catena
+// di classi Mission non ha OnRPC, quindi devi moddare DayZGame per ricevere
+// gli RPC. Questo hook scatta sia sul client che sul server, quindi proteggi
+// con GetGame().IsServer().
+// ==========================================================================
+modded class DayZGame
+{
+    // Chiamato dal motore quando arriva un RPC. Sul server, è qui che
+    // despacciamo gli RPC inviati dai client.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Solo dispatch lato server.
+        if (!IsServer()) return;
+
+        // Gestisci solo il nostro ID RPC. Tutti gli altri RPC passano attraverso.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Leggi il nome della rotta (prima stringa scritta dal mittente).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // Despaccia al gestore corretto in base al nome della rotta.
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Aggiungi più rotte qui man mano che il tuo mod cresce:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -925,8 +935,10 @@ Questo si aggancia a `MissionGameplay` per l'inizializzazione lato client, la ge
 //
 // PERCHÉ MissionGameplay:
 //   Sul client, MissionGameplay è la classe missione attiva durante
-//   il gameplay. Riceve OnUpdate() ogni frame (per il polling dell'input)
-//   e OnRPC() per i messaggi in arrivo dal server.
+//   il gameplay. Riceve OnUpdate() ogni frame (per il polling dell'input).
+//   Gli RPC, invece, arrivano tramite DayZGame.OnRPC (non sulla missione),
+//   quindi la DayZGame moddata qui sotto inoltra i messaggi in arrivo a
+//   questa classe.
 //
 // NOTA SUI LISTEN SERVER:
 //   Su un listen server (host + gioca), SIA MissionServer che
@@ -976,15 +988,15 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // Ricevitore RPC: gestisce i messaggi dal server
+    // Ricevitore RPC: gestisce i messaggi dal server.
+    // Questo NON è un override del motore -- la callback effettiva del motore
+    // risiede su DayZGame (vedi la DayZGame moddata qui sotto). DayZGame.OnRPC
+    // raggiunge la missione attiva tramite GetGame().GetMission() e inoltra qui
+    // gli RPC del client così che questo metodo possa accedere ai membri di
+    // istanza come m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Gestisci solo il nostro ID RPC.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // Leggi il nome della rotta.
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1060,6 +1072,37 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Dispatch RPC del client.
+// IMPORTANTE: OnRPC è un metodo di DayZGame, NON di MissionGameplay. La catena
+// di classi Mission non ha OnRPC, quindi gli RPC vengono ricevuti moddando
+// DayZGame. Questo hook scatta sia sul client che sul server, quindi proteggi
+// con GetGame().IsClient(). Raggiungiamo la MissionGameplay attiva tramite
+// GetGame().GetMission() e inoltriamo al suo OnMyModRPC così che i membri del
+// pannello UI restino accessibili.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Solo dispatch lato client.
+        if (!IsClient()) return;
+
+        // Gestisci solo il nostro ID RPC.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Inoltra alla missione attiva così che i membri di istanza (il pannello
+        // UI) siano raggiungibili. Esegui il cast al nostro tipo MissionGameplay moddato.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1266,7 +1309,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1282,7 +1325,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1309,7 +1352,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1326,7 +1369,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1680,7 +1723,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }
@@ -1791,7 +1834,3 @@ Con questo template professionale in esecuzione, puoi:
 4. **Aggiungere un overlay HUD** -- Segui il [Capitolo 8.8: Costruire un Overlay HUD](08-hud-overlay.md) per elementi UI sempre visibili.
 5. **Pubblicare sul Workshop** -- Segui il [Capitolo 8.7: Pubblicazione sul Workshop](07-publishing-workshop.md) quando il tuo mod è pronto.
 6. **Imparare il debugging** -- Leggi il [Capitolo 8.6: Debugging e Testing](06-debugging-testing.md) per l'analisi dei log e la risoluzione dei problemi.
-
----
-
-**Precedente:** [Capitolo 8.8: Costruire un Overlay HUD](08-hud-overlay.md) | [Home](../README.md)

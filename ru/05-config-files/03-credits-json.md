@@ -1,6 +1,5 @@
 # Глава 5.3: Credits.json
 
-[Главная](../README.md) | [<< Назад: inputs.xml](02-inputs-xml.md) | **Credits.json** | [Далее: Формат ImageSet >>](04-imagesets.md)
 
 ---
 
@@ -23,9 +22,9 @@
 
 ## Обзор
 
-Когда игрок выбирает ваш мод в лаунчере DayZ или во внутриигровом меню модов, движок ищет файл `Credits.json` внутри PBO вашего мода. Если файл найден, титры отображаются в прокручиваемом виде, организованном по отделам и секциям --- аналогично титрам в кинофильмах.
+Когда игрок просматривает титры вашего мода, движок загружает файл, путь к которому вы указываете в ключе `creditsJson` блока `CfgMods` в `config.cpp` (например, `creditsJson = "MyMod/Scripts/Data/Credits.json";`). Затем титры отображаются в прокручиваемом виде, организованном по отделам и секциям --- аналогично титрам в кинофильмах.
 
-Файл необязателен. Если он отсутствует, раздел титров для вашего мода не отображается. Однако его включение является хорошей практикой: это признание работы вашей команды и придание моду профессионального вида.
+Файл необязателен. Если вы не указываете ключ `creditsJson`, файл никогда не загружается и титры для вашего мода не отображаются. Однако его включение является хорошей практикой: это признание работы вашей команды и придание моду профессионального вида.
 
 ---
 
@@ -43,7 +42,7 @@
         Credits.json         <-- Тоже допустимо (DabsFramework, Colorful-UI)
 ```
 
-Оба расположения работают. Движок сканирует содержимое PBO в поисках файла с именем `Credits.json` (регистр важен на некоторых платформах).
+Файл может находиться где угодно в PBO. Важно, чтобы значение `creditsJson` в блоке `CfgMods` указывало на его точный путь (регистр важен на некоторых платформах).
 
 ---
 
@@ -53,14 +52,13 @@
 
 ```json
 {
-    "Header": "My Mod Name",
     "Departments": [
         {
             "DepartmentName": "Department Title",
             "Sections": [
                 {
                     "SectionName": "Section Title",
-                    "Names": ["Person 1", "Person 2"]
+                    "SectionLines": ["Person 1", "Person 2"]
                 }
             ]
         }
@@ -72,8 +70,9 @@
 
 | Поле | Тип | Обязательное | Описание |
 |------|------|----------|-------------|
-| `Header` | string | Нет | Основной заголовок, отображаемый вверху титров. Если опущен, заголовок не показывается. |
 | `Departments` | array | Да | Массив объектов отделов |
+
+Парсер ванильного движка (`JsonDataCredits`) распознаёт только массив `Departments`. Поля верхнего уровня `Header` не существует --- любой ключ `Header`, который вы добавите, молча игнорируется. Чтобы показать заголовок вверху титров, используйте вместо этого первое `DepartmentName`.
 
 ### Объект отдела
 
@@ -84,23 +83,12 @@
 
 ### Объект секции
 
-В реальных модах существуют два варианта перечисления имён. Движок поддерживает оба.
-
-**Вариант 1: массив `Names`** (используется MyMod Core)
-
-| Поле | Тип | Обязательное | Описание |
-|------|------|----------|-------------|
-| `SectionName` | string | Да | Подзаголовок внутри отдела |
-| `Names` | array of strings | Да | Список имён контрибьюторов |
-
-**Вариант 2: массив `SectionLines`** (используется COT, Expansion, DabsFramework)
-
 | Поле | Тип | Обязательное | Описание |
 |------|------|----------|-------------|
 | `SectionName` | string | Да | Подзаголовок внутри отдела |
 | `SectionLines` | array of strings | Да | Список имён контрибьюторов или текстовых строк |
 
-И `Names`, и `SectionLines` выполняют одну и ту же функцию. Используйте тот, который предпочитаете --- движок отображает их одинаково.
+Ванильный класс секции (`JsonDataCreditsSection`) распознаёт только `SectionName` и `SectionLines`. Вы можете встретить моды, использующие ключ `Names`, но движок никогда его не читает --- массив `Names` молча игнорируется и ничего не отображает. Всегда используйте `SectionLines` для списка имён.
 
 ---
 
@@ -110,12 +98,10 @@
 
 ```
 ╔══════════════════════════════════╗
-║         MY MOD NAME              ║  <-- Header (крупный, по центру)
-║                                  ║
 ║     DEPARTMENT NAME              ║  <-- DepartmentName (средний, по центру)
 ║                                  ║
 ║     Section Name                 ║  <-- SectionName (мелкий, по центру)
-║     Person 1                     ║  <-- Names/SectionLines (список)
+║     Person 1                     ║  <-- SectionLines (список)
 ║     Person 2                     ║
 ║     Person 3                     ║
 ║                                  ║
@@ -128,10 +114,9 @@
 ╚══════════════════════════════════╝
 ```
 
-- `Header` отображается один раз вверху
 - Каждый `DepartmentName` выступает в роли основного разделителя секций
 - Каждый `SectionName` выступает в роли подзаголовка
-- Имена прокручиваются вертикально в виде титров
+- `SectionLines` прокручиваются вертикально в виде титров
 
 ### Пустые строки для отступов
 
@@ -181,14 +166,13 @@ Expansion использует пустые строки `DepartmentName` и `Se
 
 ```json
 {
-    "Header": "My Awesome Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Awesome Mod",
             "Sections": [
                 {
                     "SectionName": "Developer",
-                    "Names": ["YourName"]
+                    "SectionLines": ["YourName"]
                 }
             ]
         }
@@ -200,22 +184,21 @@ Expansion использует пустые строки `DepartmentName` и `Se
 
 ```json
 {
-    "Header": "My Mod",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "My Mod",
             "Sections": [
                 {
                     "SectionName": "Developers",
-                    "Names": ["Lead Dev", "Co-Developer"]
+                    "SectionLines": ["Lead Dev", "Co-Developer"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Modeler1", "Modeler2"]
+                    "SectionLines": ["Modeler1", "Modeler2"]
                 },
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (French)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -231,26 +214,25 @@ Expansion использует пустые строки `DepartmentName` и `Se
 
 ```json
 {
-    "Header": "My Big Mod",
     "Departments": [
         {
-            "DepartmentName": "Core Team",
+            "DepartmentName": "My Big Mod",
             "Sections": [
                 {
                     "SectionName": "Lead Developer",
-                    "Names": ["ProjectLead"]
+                    "SectionLines": ["ProjectLead"]
                 },
                 {
                     "SectionName": "Scripters",
-                    "Names": ["Dev1", "Dev2", "Dev3"]
+                    "SectionLines": ["Dev1", "Dev2", "Dev3"]
                 },
                 {
                     "SectionName": "3D Artists",
-                    "Names": ["Artist1", "Artist2"]
+                    "SectionLines": ["Artist1", "Artist2"]
                 },
                 {
                     "SectionName": "Mapping",
-                    "Names": ["Mapper1"]
+                    "SectionLines": ["Mapper1"]
                 }
             ]
         },
@@ -259,7 +241,7 @@ Expansion использует пустые строки `DepartmentName` и `Se
             "Sections": [
                 {
                     "SectionName": "Translators",
-                    "Names": [
+                    "SectionLines": [
                         "Translator1 (Czech)",
                         "Translator2 (German)",
                         "Translator3 (Russian)"
@@ -267,7 +249,7 @@ Expansion использует пустые строки `DepartmentName` и `Se
                 },
                 {
                     "SectionName": "Testers",
-                    "Names": ["Tester1", "Tester2", "Tester3"]
+                    "SectionLines": ["Tester1", "Tester2", "Tester3"]
                 }
             ]
         },
@@ -276,7 +258,7 @@ Expansion использует пустые строки `DepartmentName` и `Se
             "Sections": [
                 {
                     "SectionName": "Licenses",
-                    "Names": [
+                    "SectionLines": [
                         "Font Awesome - CC BY 4.0 License",
                         "Some assets licensed under ADPL-SA"
                     ]
@@ -293,18 +275,17 @@ Expansion использует пустые строки `DepartmentName` и `Se
 
 ### MyMod Core
 
-Минимальный, но полный файл титров, использующий вариант `Names`:
+Минимальный, но полный файл титров:
 
 ```json
 {
-    "Header": "MyMod Core",
     "Departments": [
         {
-            "DepartmentName": "Development",
+            "DepartmentName": "MyMod Core",
             "Sections": [
                 {
                     "SectionName": "Framework",
-                    "Names": ["Documentation Team"]
+                    "SectionLines": ["Documentation Team"]
                 }
             ]
         }
@@ -355,7 +336,7 @@ Expansion использует пустые строки `DepartmentName` и `Se
 }
 ```
 
-Примечание: COT полностью опускает поле `Header`. Название мода берётся из других метаданных (config.cpp `CfgMods`).
+Примечание: COT использует первое `DepartmentName` ("Community Online Tools") в качестве заголовка. Название мода также берётся из других метаданных (config.cpp `CfgMods`).
 
 ### DabsFramework
 
@@ -413,19 +394,18 @@ Expansion демонстрирует наиболее продвинутое и�
 
 Файл должен называться именно `Credits.json` (заглавная C). На файловых системах с учётом регистра `credits.json` или `CREDITS.JSON` не будут найдены.
 
-### Смешивание Names и SectionLines
+### Использование ключа `Names`
 
-В рамках одной секции используйте что-то одно:
+Некоторые моды записывают массив `Names`, но движок его никогда не читает. Парсится только `SectionLines`:
 
 ```json
 {
     "SectionName": "Developers",
-    "Names": ["Dev1"],
-    "SectionLines": ["Dev2"]
+    "Names": ["Dev1"]
 }
 ```
 
-Это неоднозначно. Выберите один формат и используйте его последовательно по всему файлу.
+В этом примере "Dev1" никогда не появляется в игре --- секция отображается пустой. Всегда указывайте контрибьюторов под `SectionLines`.
 
 ### Проблемы с кодировкой
 
@@ -436,9 +416,9 @@ Expansion демонстрирует наиболее продвинутое и�
 ## Лучшие практики
 
 - Проверяйте ваш JSON внешним инструментом перед упаковкой в PBO --- движок не выдаёт полезных сообщений об ошибках для некорректного JSON.
-- Используйте вариант `SectionLines` для единообразия, поскольку это формат, используемый COT, Expansion и DabsFramework.
+- Используйте `SectionLines` для каждого списка имён. Это единственное поле, которое читает движок, и это формат, используемый COT, Expansion и DabsFramework.
 - Включайте отдел "Legal Notices", если ваш мод содержит сторонние ассеты (шрифты, иконки, звуки) с требованиями указания авторства.
-- Значение поля `Header` должно совпадать с `name` вашего мода в `mod.cpp` и `config.cpp` для единообразной идентификации.
+- Используйте первое `DepartmentName` в качестве заголовка, совпадающего с `name` вашего мода в `mod.cpp` и `config.cpp` для единообразной идентификации.
 - Используйте пустые строки `DepartmentName` и `SectionName` умеренно для визуальных отступов --- чрезмерное использование делает титры фрагментированными.
 
 ---

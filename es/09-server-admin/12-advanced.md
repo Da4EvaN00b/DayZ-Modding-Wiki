@@ -1,6 +1,5 @@
 # Capitulo 9.12: Temas Avanzados del Servidor
 
-[Inicio](../README.md) | [<< Anterior: Solucion de Problemas](11-troubleshooting.md) | [Inicio de la Parte 9](01-server-setup.md)
 
 ---
 
@@ -45,16 +44,19 @@ Estructura vanilla:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +154,19 @@ El servidor carga y fusiona todos los archivos con `type="types"`.
 
 ## cfgenvironment.xml y territorios de animales
 
-El archivo **cfgenvironment.xml** en tu carpeta de mision enlaza a archivos de territorio en el subdirectorio `env/`:
+El archivo **cfgenvironment.xml** en tu carpeta de mision mapea archivos de territorio en el subdirectorio `env/` a comportamientos de animales. Cada grupo de animales es un elemento `<territory>` con un hijo `<file usable="..." />` (referenciado por nombre, sin el prefijo `env/` ni la extension `.xml`):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +228,7 @@ Los eventos dinamicos (choques de helicoptero, convoyes) se definen en **events.
 </event>
 ```
 
-**3. Agrega guardias infectados** (opcional) -- agrega elementos `<secondary type="ZmbM_PatrolNormal_Autumn" />` en tu definicion de evento.
+**3. Agrega guardias infectados** (opcional) -- agrega un elemento `<secondary>InfectedArmy</secondary>` a tu definicion de evento. El contenido referencia el nombre de otro evento en **events.xml**, que genera los infectados.
 
 **4. Spawns agrupados** (opcional) -- define clusters en **cfgeventgroups.xml** y referencia el nombre del grupo en tu evento.
 
@@ -265,14 +271,14 @@ Siempre haz copia de seguridad de `storage_1/` antes de cada reinicio. La persis
 
 El archivo **cfgweather.xml** en tu carpeta de mision controla los patrones climaticos. Cada mapa viene con sus propios valores predeterminados:
 
-Cada fenomeno tiene `min`, `max`, `duration_min` y `duration_max` (segundos):
+Cada fenomeno es un elemento anidado (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`) que contiene hijos `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` y `<changelimits min="" max="" />` (`rain` y `snowfall` tambien toman un elemento `<thresholds>`). El rango de valores de `<limits>` para cada fenomeno:
 
-| Fenomeno | Min predeterminado | Max predeterminado | Notas |
+| Fenomeno | Limits Min | Limits Max | Notas |
 |------------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Controla la densidad de nubes y la probabilidad de lluvia |
 | `rain` | 0.0 | 1.0 | Solo se activa por encima de un umbral de overcast. Pon max en `0.0` para que no llueva |
 | `fog` | 0.0 | 0.3 | Valores por encima de `0.5` producen visibilidad casi nula |
-| `wind_magnitude` | 0.0 | 18.0 | Afecta la balistica y el movimiento del jugador |
+| `windMagnitude` | 0.0 | 20.0 | Velocidad del viento en m/s; afecta la balistica y el movimiento del jugador |
 
 ---
 
@@ -293,7 +299,3 @@ El archivo **db/messages.xml** en tu carpeta de mision controla los mensajes pro
 - `shutdown` -- `1` para mensajes de secuencia de apagado, `0` para transmisiones regulares
 
 El sistema de mensajes no reinicia el servidor. Solo muestra avisos cuando un horario de reinicio esta configurado externamente.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Solucion de Problemas](11-troubleshooting.md) | [Inicio de la Parte 9](01-server-setup.md)

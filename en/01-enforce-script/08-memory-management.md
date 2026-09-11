@@ -1,6 +1,6 @@
-# Chapter 1.8: Memory Management
+# Memory Management
 
-[Home](../README.md) | [<< Previous: Math & Vectors](07-math-vectors.md) | **Memory Management** | [Next: Casting & Reflection >>](09-casting-reflection.md)
+> **Summary:** How Enforce Script's automatic reference counting works, when to use `ref` versus raw pointers, why reference cycles leak forever, and how the `Managed` base class makes weak references safe.
 
 ---
 
@@ -18,13 +18,22 @@ Enforce Script has three ways to hold a reference to an object:
 |-------------|---------|---------------------|-------------------|-------------|
 | **Raw pointer** | *(none)* | No (weak reference) | Only if class extends `Managed` | Back-references, observers, caches |
 | **Strong reference** | `ref` | Yes | Yes | Owned members, collections |
-| **Auto pointer** | `autoptr` | Yes, deleted at end of scope | Yes | Local variables |
+| **Auto pointer** | `autoptr` | Yes (strong reference) | Yes | Legacy keyword -- prefer `ref` |
 
 ### How ARC Works
 
 Every object has a **reference count** -- the number of strong references (`ref`, `autoptr`, local variables, function arguments) pointing to it. When the count drops to zero, the object is automatically destroyed and its destructor is called.
 
 **Weak references** (raw pointers) do NOT increase the reference count. They observe the object without keeping it alive.
+
+Several examples in this chapter use this minimal class -- define it once and every snippet below is runnable as-is:
+
+```c
+class MyClass : Managed
+{
+    int m_Value;
+}
+```
 
 ---
 
@@ -62,6 +71,8 @@ The safety of weak references depends on whether the object's class extends `Man
 
 - **Managed classes** (most DayZ gameplay classes): When the object is deleted, all weak references are automatically set to `null`. This is safe.
 - **Non-Managed classes** (plain `class` without inheriting `Managed`): When the object is deleted, weak references become **dangling pointers** -- they still hold the old memory address. Accessing them causes a crash.
+
+A note on sourcing: `Managed` itself is declared as an **empty marker class** in the vanilla script headers (`scripts/1_core/proto/enscript.c`) -- the auto-nulling of weak references is engine-side behavior described in Bohemia's Enforce Script documentation, not something you can read in the script sources. Treat it as a safety net, not as permission to skip null checks: **always null-check weak references before use**, whether or not the class is `Managed`.
 
 ```c
 // SAFE -- Managed class, weak refs are zeroed
@@ -103,7 +114,7 @@ void TestNonManaged()
 }
 ```
 
-> **Rule:** If you are writing your own classes, always extend `Managed` for safety. Most DayZ engine classes (EntityAI, ItemBase, PlayerBase, etc.) already inherit from `Managed`.
+> **Rule:** If you are writing your own script-only classes, always extend `Managed` for safety. Game entities are already covered *by inheritance* -- you never write `: Managed` on them yourself (that is why [Variables and Types](01-variables-types.md#the-managed-base-class) lists entity classes under "do not manually extend `Managed`"), because they inherit it through the engine hierarchy: the vanilla scripts declare `IEntity: Managed` (`scripts/1_core/proto/enentity.c`), and the full chain is `EntityAI -> Entity -> ObjectTyped -> Object -> IEntity -> Managed` (each link is verifiable in `scripts/3_game/entities/`). So `EntityAI`, `ItemBase`, `PlayerBase`, and every other game entity **is** a `Managed` class, and raw pointers to them are auto-nulled when the entity is deleted -- but you still null-check every use.
 
 ---
 
@@ -116,23 +127,36 @@ The `ref` keyword marks a variable as a **strong reference**. The object stays a
 Use `ref` for objects that your class **owns** and is responsible for creating and destroying.
 
 ```c
-class MissionManager
+class LNT_Mission : Managed
 {
-    protected ref array<ref MissionBase> m_ActiveMissions;
-    protected ref map<string, ref MissionConfig> m_Configs;
-    protected ref MyLog m_Logger;
+    protected string m_Name;
 
-    void MissionManager()
+    void LNT_Mission(string name)
     {
-        m_ActiveMissions = new array<ref MissionBase>;
-        m_Configs = new map<string, ref MissionConfig>;
-        m_Logger = new MyLog;
+        m_Name = name;
+    }
+}
+
+class LNT_MissionConfig : Managed
+{
+    string m_DisplayName;
+    float m_Reward;
+}
+
+class LNT_MissionManager : Managed
+{
+    protected ref array<ref LNT_Mission> m_ActiveMissions;
+    protected ref map<string, ref LNT_MissionConfig> m_Configs;
+
+    void LNT_MissionManager()
+    {
+        m_ActiveMissions = new array<ref LNT_Mission>;
+        m_Configs = new map<string, ref LNT_MissionConfig>;
     }
 
-    // No destructor needed! When MissionManager is deleted:
-    // 1. m_Logger ref is released -> MyLog is deleted
-    // 2. m_Configs ref is released -> map is deleted -> each MissionConfig is deleted
-    // 3. m_ActiveMissions ref is released -> array is deleted -> each MissionBase is deleted
+    // No destructor needed! When LNT_MissionManager is deleted:
+    // 1. m_Configs ref is released -> map is deleted -> each LNT_MissionConfig is deleted
+    // 2. m_ActiveMissions ref is released -> array is deleted -> each LNT_Mission is deleted
 }
 ```
 
@@ -141,7 +165,19 @@ class MissionManager
 When you store objects in an array or map and want the collection to own them, use `ref` on both the collection AND the elements:
 
 ```c
-class ZoneManager
+class SafeZone : Managed
+{
+    protected vector m_Center;
+    protected float m_Radius;
+
+    void SafeZone(vector center, float radius)
+    {
+        m_Center = center;
+        m_Radius = radius;
+    }
+}
+
+class ZoneManager : Managed
 {
     // The array is owned (ref), and each zone inside is owned (ref)
     protected ref array<ref SafeZone> m_Zones;
@@ -174,47 +210,50 @@ strongArray.Insert(new MyClass()); // Object lives as long as it's in the array
 
 ---
 
-## autoptr (Scoped Strong Reference)
+## autoptr (Legacy Strong Reference)
 
-`autoptr` is identical to `ref` but is intended for **local variables**. The object is automatically deleted when the variable goes out of scope (when the function returns).
+`autoptr` is an older keyword that also creates a **strong reference**. Its historical intent was a strong reference tied to the enclosing scope: when the variable goes out of scope (or the object holding it is destroyed), the reference is released and the object is freed if nothing else holds it. That is exactly the release point `ref` members and plain local variables already have, so in every situation you will encounter, `autoptr` behaves the same as a strong reference declared any other way.
 
 ```c
 void ProcessData()
 {
-    autoptr JsonSerializer serializer = new JsonSerializer;
+    autoptr JsonSerializer serializer = new JsonSerializer();
     // Use serializer...
 
-    // serializer is automatically deleted here when the function exits
+    // serializer is released here when the function exits --
+    // exactly like a plain local variable would be
 }
 ```
 
-### When to use autoptr
+The vanilla scripts use `autoptr` in only a handful of files -- for example, the private member maps in `scripts/3_game/analytics/scriptanalytics.c` -- and use `ref` everywhere else.
 
-In practice, **local variables are already strong references by default** in Enforce Script. The `autoptr` keyword makes this explicit and self-documenting. You can use either:
+### autoptr vs plain locals
+
+In practice, **local variables are already strong references by default** in Enforce Script. The `autoptr` keyword adds nothing:
 
 ```c
 void Example()
 {
     // These are functionally equivalent:
-    MyClass a = new MyClass();       // Local var = strong ref (implicit)
-    autoptr MyClass b = new MyClass(); // Local var = strong ref (explicit)
+    MyClass a = new MyClass();         // Local var = strong ref (implicit)
+    autoptr MyClass b = new MyClass(); // Local var = strong ref (explicit, legacy)
 
-    // Both a and b are deleted when this function exits
+    // Both a and b are released when this function exits
 }
 ```
 
-> **Convention in DayZ modding:** Most codebases use `ref` for class members and omit `autoptr` for locals (relying on the implicit strong reference behavior). The CLAUDE.md for this project notes: "**`autoptr` is NOT used** -- use explicit `ref`." Follow whichever convention your project establishes.
+> **Convention in DayZ modding:** Most codebases use `ref` for class members and plain declarations for locals. A widely followed community convention is to avoid `autoptr` entirely and use explicit `ref` -- it says the same thing with one consistent keyword. Follow whichever convention your project establishes, but be consistent.
 
 ---
 
 ## notnull Parameter Modifier
 
-The `notnull` modifier on a function parameter tells the compiler that null is not a valid argument. The compiler enforces this at call sites.
+The `notnull` modifier on a function parameter declares that null is never a valid argument. How it is enforced is not documented -- the keyword does not appear on Bohemia's Enforce Script syntax page -- so treat it as a contract the caller must honour rather than as a guarantee you can lean on inside the function.
 
 ```c
 void ProcessPlayer(notnull PlayerBase player)
 {
-    // No need to check for null -- the compiler guarantees it
+    // The caller is responsible for never passing null here
     string name = player.GetIdentity().GetName();
     Print("Processing: " + name);
 }
@@ -226,11 +265,11 @@ void CallExample(PlayerBase maybeNull)
         ProcessPlayer(maybeNull); // OK -- we checked first
     }
 
-    // ProcessPlayer(null); // COMPILE ERROR: cannot pass null to notnull parameter
+    // ProcessPlayer(null); // Never do this -- it violates the parameter's contract
 }
 ```
 
-Use `notnull` on parameters where null would always be a programming error. It catches bugs at compile time rather than causing crashes at runtime.
+Use `notnull` on parameters where null would always be a programming error: it documents the contract in the signature, and vanilla's own script relies on it (`array<T>.InsertAll` at `1_core/proto/enscript.c:449` dereferences its `notnull` parameter immediately). It is not a substitute for checking at the call site.
 
 ---
 
@@ -268,15 +307,15 @@ void CreateCycle()
 
 ### The fix: One side must be a raw (weak) reference
 
-Break the cycle by making one side a weak reference. The "child" should hold a weak reference to its "parent":
+Break the cycle by making one side a weak reference. The "child" should hold a weak reference to its "parent". Extend `Managed` so the child's raw back-pointer is nulled safely if the parent is ever deleted first:
 
 ```c
-class Parent
+class Parent : Managed
 {
     ref Child m_Child; // Strong -- parent OWNS the child
 }
 
-class Child
+class Child : Managed
 {
     Parent m_Parent; // Weak (raw) -- child OBSERVES the parent
 }
@@ -301,7 +340,7 @@ void NoCycle()
 A common pattern in DayZ UI code is a panel that holds widgets, where widgets need a reference back to the panel. The panel owns the widgets (strong ref), and widgets observe the panel (weak ref).
 
 ```c
-class AdminPanel
+class AdminPanel : Managed
 {
     protected ref array<ref AdminPanelTab> m_Tabs; // Owns the tabs
 
@@ -317,7 +356,7 @@ class AdminPanel
     }
 }
 
-class AdminPanelTab
+class AdminPanelTab : Managed
 {
     protected string m_Name;
     protected AdminPanel m_Owner; // WEAK -- avoids cycle
@@ -341,7 +380,7 @@ class AdminPanelTab
 sequenceDiagram
     participant Code as Your Code
     participant Obj as MyObject
-    participant GC as Garbage Collector
+    participant Eng as Engine (ARC)
 
     Code->>Obj: ref MyObject obj = new MyObject()
     Note over Obj: refcount = 1
@@ -355,8 +394,8 @@ sequenceDiagram
     Code->>Obj: obj = null
     Note over Obj: refcount = 0
 
-    Obj->>GC: ~MyObject() destructor called
-    GC->>GC: Memory freed
+    Obj->>Eng: ~MyObject() destructor called
+    Eng->>Eng: Memory freed
 ```
 
 ### Reference Cycle (Memory Leak)
@@ -427,12 +466,67 @@ This means:
 
 ---
 
+## static Fields Survive a Mission Restart
+
+A mission restart -- a player disconnecting to the main menu and reconnecting, or an admin running `#restart` -- is **not** a process restart. The script VM and every class it has loaded stay resident; only the `Mission` object is torn down and rebuilt. `static` field initializers run **once per game process launch**, not once per mission, so any `static` value your code changed during the previous mission is still sitting there when the next one starts:
+
+```c
+class MyLockCounter
+{
+    static int s_Count = 0;                 // initializer runs ONCE per process
+    static void Acquire() { s_Count++; if (s_Count == 1) DoTheRealWork(); }
+}
+// Mission A leaves s_Count at 1 (something forgot to release).
+// Player disconnects to the menu and reconnects -- the process never died.
+// Mission B: the first Acquire() takes s_Count from 1 to 2, so the "==1" branch
+// never runs. The bug appears on the mission AFTER the mistake was made.
+```
+
+The result is a bug that surfaces one mission later than its cause, and restarting the game to investigate makes it vanish -- which is exactly why it tends to get filed as "could not reproduce." Any mod-level singleton, counter, cache, or registry with mutable `static` state needs an explicit `Cleanup()` called from mission teardown (`MissionGameplay.OnMissionFinish()` client-side, `MissionServer.OnMissionFinish()` server-side):
+
+```c
+static void Cleanup()
+{
+    s_Count = 0;      // reset scalars unconditionally
+    s_Owners = null;   // null every static ref -- a live one is a GC root and leaks
+}                       // its whole object graph into the next mission
+```
+
+Reset the state **unconditionally**, not only inside a "recover gracefully" branch that itself bails out when there is no live mission -- that guard is true precisely during teardown, which is exactly when the reset needs to run.
+
+---
+
+## There Is No `Object.IsDeleted()` -- the Null Check *Is* the Lifetime Check
+
+Enforce Script has no built-in way to ask "has this object been removed from the world?" It is tempting to write one using `IsDamageDestroyed()`, since the name sounds close enough:
+
+```c
+// WRONG -- this answers a HEALTH question, not a LIFETIME question
+bool IsDeleted(EntityAI e) { return e.IsDamageDestroyed(); }
+```
+
+`IsDamageDestroyed()` is `true` for a **corpse** or a wrecked vehicle -- an object that still very much exists in the world. A guard written as `if (!thing.IsDeleted()) Delete(thing);` actually reads as "delete this only while it is still alive," which is backwards from what most callers intend, and both methods return an ordinary `bool` -- nothing about the mistake is visible at the call site or from the compiler.
+
+When the engine actually removes an entity, every **raw (non-`ref`)** reference to it goes `null` -- that null is the only honest "is this still around" signal script has:
+
+```c
+static void DespawnAndClean(EntityAI e)
+{
+    if (!e) return;             // already gone -- this IS the lifetime check
+    GetGame().ObjectDelete(e);
+}
+```
+
+Never pair `IsDeleted()`-style checks with `IsAlive()` on the same object expecting them to mean different things -- on a corpse, both answer the identical underlying fact (`IsAlive()` is itself defined as `!IsDamageDestroyed()`), so one of the branches becomes silently unreachable.
+
+---
+
 ## Real-World Example: Proper Manager Class
 
 Here is a complete example showing proper memory management patterns for a typical DayZ mod manager:
 
 ```c
-class MyZoneManager
+class MyZoneManager : Managed
 {
     // Singleton instance -- the only strong ref keeping this alive
     private static ref MyZoneManager s_Instance;
@@ -508,7 +602,7 @@ class MyZoneManager
     }
 }
 
-class MyZone
+class MyZone : Managed
 {
     protected string m_Name;
     protected vector m_Center;
@@ -531,7 +625,7 @@ class MyZone
     }
 }
 
-class MyZoneConfig
+class MyZoneConfig : Managed
 {
     protected string m_Name;
     protected vector m_Center;
@@ -587,16 +681,14 @@ When `DestroyInstance()` is called:
 
 ---
 
-## Observed in Real Mods
+## Ownership Patterns in Practice
 
-> Patterns confirmed by studying professional DayZ mod source code.
-
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Parent `ref` + child raw back-pointer | COT / Expansion UI | Panels own tabs with `ref`, tabs hold raw pointer to parent panel to avoid cycles |
-| `static ref` singleton + `Destroy()` nulling | Dabs / VPP | All singletons use `s_Instance = null` in a static `Destroy()` to trigger cleanup |
-| `ref array<ref T>` for managed collections | Expansion Market | Both the array and its elements are `ref` to ensure proper ownership |
-| Raw pointer for engine entities (players, items) | COT Admin | Player references stored as raw pointers since the engine manages entity lifetime |
+| Pattern | Where you see it | Detail |
+|---------|------------------|--------|
+| Parent `ref` + child raw back-pointer | UI code everywhere | A menu owns its tabs and handlers with `ref`; each tab holds a raw pointer back to its parent to avoid a cycle. Vanilla's `ScriptedWidgetEventHandler` is itself declared `: Managed` (`scripts/1_core/proto/enwidgets.c`), so raw back-pointers null out safely when the handler is deleted |
+| `static ref` singleton + shutdown nulling | Framework manager classes | Setting `s_Instance = null` in a static shutdown method releases the last strong reference and triggers the whole destructor chain (see [Singletons](../07-patterns/01-singletons.md)) |
+| `ref array<ref T>` for owned collections | Vanilla scripts throughout | Both the array and its elements are `ref` -- e.g. `private ref array<ref CallQueueContext> m_commands;` in `scripts/4_world/classes/contextmenu.c` |
+| Raw pointers for engine entities (players, items) | Any script referencing world objects | Entity lifetime belongs to the engine: entities are spawned by the game world and destroyed via `GetGame().ObjectDelete()`. Scripts hold raw pointers, and because entities inherit `Managed` through `IEntity` (`scripts/1_core/proto/enentity.c`), those pointers are nulled when the entity despawns -- but you still null-check every use |
 
 ---
 
@@ -604,7 +696,7 @@ When `DestroyInstance()` is called:
 
 | Concept | Theory | Reality |
 |---------|--------|---------|
-| `autoptr` for local variables | Should auto-delete at scope exit | Locals are already implicitly strong references; `autoptr` is rarely used in practice |
+| `autoptr` for local variables | Should auto-delete at scope exit | Locals are already implicitly strong references, so `autoptr` adds nothing; vanilla uses it in only a handful of files and most mod codebases avoid it entirely in favor of `ref` |
 | ARC handles all cleanup | Objects freed when refcount hits zero | Reference cycles are never collected -- they leak permanently until server restart |
 | `delete` for immediate cleanup | Destroys the object right away | Can null out references held by other systems unexpectedly -- prefer letting ARC handle it |
 
@@ -633,8 +725,8 @@ Is this a class member that this class CREATES and OWNS?
   -> NO: Is this a back-reference or external observation?
     -> YES: Use raw pointer (no keyword), always null-check
     -> NO: Is this a local variable in a function?
-      -> YES: Raw is fine (locals are implicitly strong)
-      -> Explicit autoptr is optional for clarity
+      -> YES: A plain declaration is fine (locals are implicitly strong)
+      -> The legacy autoptr keyword adds nothing here -- skip it
 
 Storing objects in a collection (array/map)?
   -> Objects OWNED by the collection: array<ref MyClass>
@@ -657,11 +749,11 @@ MyClass m_Observer;              // Does NOT keep object alive
 ref MyClass m_Owned;             // Object lives until ref is released
 ref array<ref MyClass> m_List;   // Array AND elements are strongly held
 
-// Auto pointer (scoped strong reference)
-autoptr MyClass local;           // Deleted when scope exits
+// Auto pointer (legacy strong reference -- prefer ref)
+autoptr MyClass local;           // Released when scope exits, same as a plain local
 
-// notnull (compile-time null guard)
-void Func(notnull MyClass obj);  // Compiler rejects null arguments
+// notnull (contract: never pass null; enforcement undocumented)
+void Func(notnull MyClass obj);  // Null-check at the call site
 
 // Manual delete (immediate, bypasses ARC)
 delete obj;                      // Destroys immediately, nulls all refs (Managed)
@@ -670,7 +762,3 @@ delete obj;                      // Destroys immediately, nulls all refs (Manage
 class Parent { ref Child m_Child; }      // Strong -- parent owns child
 class Child  { Parent m_Parent; }        // Weak   -- child observes parent
 ```
-
----
-
-[<< 1.7: Math & Vectors](07-math-vectors.md) | [Home](../README.md) | [1.9: Casting & Reflection >>](09-casting-reflection.md)

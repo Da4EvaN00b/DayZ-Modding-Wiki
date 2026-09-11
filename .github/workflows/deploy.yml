@@ -27,7 +27,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Pinned: 22.23.2 is the only Node version on which this site has
+          # completed a build. Node 24.14.0 OOM'd twice on this site (an 8 GiB
+          # and, separately, a 16 GiB old-space allowance; buildConcurrency 64;
+          # no GC plugin) -- a different Node MAJOR, not a same-major patch
+          # difference. Do not move off 22.23.2 without re-verifying a full
+          # build. Headroom is thin either way: peak sampled heapUsed on
+          # 22.23.2 was ~15.9 GB decimal (~14.8 GiB) against a measured V8 heap
+          # limit of ~16.05 GiB under the NODE_OPTIONS below -- roughly
+          # 1.2 GiB / ~8% headroom on heapUsed alone, and less once heapTotal
+          # overhead and external memory are counted.
+          node-version: 22.23.2
           cache: npm
 
       - name: Increase swap space
@@ -45,7 +55,14 @@ jobs:
       - name: Build VitePress
         run: npm run build
         env:
-          NODE_OPTIONS: '--max-old-space-size=16384'
+          # --expose-gc is the supported way for .vitepress/build-memory.mts to
+          # obtain gc(); the collection it enables released a measured 1382 MB
+          # at SSR buildStart on this site (Node 22.23.2). The plugin falls
+          # back to exposing gc() at runtime if the flag is absent -- this
+          # build has not been run without the flag on this Node version, so
+          # treat removal as unverified, not as a known OOM. Keep the swap step
+          # above: peak RSS exceeds the runner's physical memory.
+          NODE_OPTIONS: '--expose-gc --max-old-space-size=16384'
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

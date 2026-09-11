@@ -1,6 +1,5 @@
 # Kapitel 8.2: Ein eigenes Item erstellen
 
-[Startseite](../README.md) | [<< Zurück: Ihre erste Mod](01-first-mod.md) | **Ein eigenes Item erstellen** | [Weiter: Ein Admin-Panel bauen >>](03-admin-panel.md)
 
 ---
 
@@ -323,7 +322,7 @@ Für einen Standard-DayZ-Server befindet sich `types.xml` unter:
 ### Häufige usage- und value-Tags
 
 **Usage (wo es spawnt):**
-- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medical`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
+- `Town`, `Village`, `Farm`, `Industrial`, `Military`, `Hunting`, `Medic`, `Coast`, `Firefighter`, `Prison`, `Police`, `School`, `ContaminatedArea`
 
 **Value (Karten-Tier):**
 - `Tier1` -- Küste/Startgebiete

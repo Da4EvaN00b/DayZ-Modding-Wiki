@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawnovani hracu
 
-[Domu](../README.md) | [<< Predchozi: Spawnovani vozidel](05-vehicle-spawning.md) | [Dalsi: Persistence >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## Prehled cfgplayerspawnpoints.xml
 
-Tento soubor se nachazi ve slozce vasi mise (napr. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ma dve sekce, kazda s vlastnimi parametry a pozicnimi bublinami:
+Tento soubor se nachazi ve slozce vasi mise (napr. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ma tri sekce, kazda s vlastnimi parametry a pozicnimi bublinami:
 
 - **`<fresh>`** -- zcela nove postavy (prvni zivot nebo po smrti)
 - **`<hop>`** -- server hopperi (hrac mel postavu na jinem serveru)
+- **`<travel>`** -- spawny pri cestovani/teleportu po mape ve hre
 
 ---
 
@@ -77,12 +77,12 @@ Generator vytvari mrizku kandidatnich pozic kolem kazde bubliny:
 
 | Parametr | Hodnota | Vyznam |
 |-----------|-------|---------|
-| `grid_density` | 4 | Rozestup mezi body mrizky v metrech -- nizsi = vice kandidatu, vyssi zatez CPU |
-| `grid_width` | 200 | Mrizka se roztahuje 200 m na ose X kolem stredu kazde bubliny |
-| `grid_height` | 200 | Mrizka se roztahuje 200 m na ose Z kolem stredu kazde bubliny |
+| `grid_density` | 4 | Frekvence vzorkovani (pocet podrozdeleni) mrizky -- vyssi = vice kandidatu, vyssi zatez CPU. Rozestup mezi body = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Celkova sirka kandidatni mrizky v metrech (vystredena na bubline) -- roztahuje se ~100 m na kazdou stranu na ose X |
+| `grid_height` | 200 | Celkova vyska kandidatni mrizky v metrech (vystredena na bubline) -- roztahuje se ~100 m na kazdou stranu na ose Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Rozsah sklonu terenu ve stupnich -- odmita utesy a strme kopce |
 
-Kazda bublina dostane mrizku 200x200 m s bodem kazdych 4 m (~2 500 kandidatu). Engine filtruje podle sklonu a vzdalenosti od statickych objektu, pote aplikuje `spawn_params` pri spawnu.
+Kazda bublina dostane mrizku 200x200 m s kandidatnimi body rozmistenymi `grid_width` / `grid_density` = 200/4 = 50 m od sebe (radove ~16-25 kandidatu). Engine filtruje podle sklonu a vzdalenosti od statickych objektu, pote aplikuje `spawn_params` pri spawnu.
 
 #### Parametr `allow_in_water` (1.28+)
 
@@ -111,8 +111,8 @@ Ve výchozím nastavení engine odmítne jakoukoli kandidátní pozici, která s
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@ Ve výchozím nastavení engine odmítne jakoukoli kandidátní pozici, která s
 |-----------|-------|---------|
 | `enablegroups` | true | Pozicni bubliny jsou organizovany do pojmenovanych skupin |
 | `groups_as_regular` | true | Skupiny jsou zpracovavany jako bezne spawnovaci body (jakakoliv skupina muze byt vybrana) |
-| `lifetime` | 240 | Sekundy pred tim, nez se pouzity spawnovaci bod stane opet dostupnym |
-| `counter` | -1 | Pocet pouziti spawnovaciho bodu. -1 = neomezene |
+| `lifetime` | 120 | Sekundy, po ktere zustava spawnovaci skupina aktivni, nez system prepne na jinou skupinu. -1 = vypnuto |
+| `counter` | 2 | Pocet prihlaseni, po ktere zustava skupina aktivni, nez dojde k prepnuti (na skupinu). -1 = vypnuto |
 
-Pouzita pozice je zamcena na 240 sekund, coz zabranuje dvema hracum spawnit se na sobe.
+`lifetime` ridi, jak dlouho zustava spawnovaci skupina aktivni skupinou, nez system prepne na jinou skupinu; neni to zamek jednotlivych pozic. Rozestup mezi soucasnymi spawny je vynucovan parametrem `min_dist_player`.
 
 ---
 
@@ -192,7 +192,7 @@ Hop spawny jsou shovivavejsi na vzdalenost od hracu a pouzivaji mensi mrizky:
 
 <!-- Rozdily group_params hopu -->
 <enablegroups>false</enablegroups>        <!-- cerstvy: true -->
-<lifetime>360</lifetime>                  <!-- cerstvy: 240 -->
+<lifetime>360</lifetime>                  <!-- cerstvy: 120 -->
 ```
 
 Hop skupiny jsou rozlozeny **do vnitrozemí**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). S `enablegroups=false` engine zachazi se vsemi 50 pozicemi jako s plochou zasobou.
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Co kazdy hrac dostane: **BandageDressing** (rychly panel 3), nahodny **Chemlight** (rychly panel 2), nahodne ovoce -- 35 % Apple, 30 % Plum, 35 % Pear (rychly panel 1). `SetRandomHealth` nastavuje 45-65 % stav na vsech predmetech.
+Co kazdy hrac dostane: **BandageDressing** (rychly panel 2), nahodny **Chemlight** (rychly panel 1), nahodne ovoce -- 35 % Apple, 30 % Plum, 35 % Pear (rychly panel 3). `SetRandomHealth` nastavuje 45-65 % stav na vsech predmetech.
 
 ### Pridani vlastniho pocatecniho vybaveni
 
@@ -279,7 +279,7 @@ Kroky:
 4. Pouzijte `x` pro vychod-zapad a `z` pro sever-jih -- engine pocita Y (nadmorskou vysku) z terenu
 5. Restartujte server -- wipe persistence neni potreba
 
-Pro vyvazene spawnovani udrzujte alespon 4 pozice na skupinu, aby 240sekundovy zamek neblokoval vsechny pozice, kdyz zemre vice hracu soucasne.
+Pro vyvazene spawnovani udrzujte alespon 4 pozice na skupinu, aby jedna skupina mela dostatecny rozptyl pro splneni `min_dist_player`, kdyz zemre vice hracu soucasne.
 
 ---
 
@@ -291,7 +291,7 @@ Zamenili jste `z` (sever-jih) s Y (nadmorska vyska), nebo jste pouzili souradnic
 
 ### Nedostatek spawnovacich bodu
 
-S pouze 2-3 pozicemi zpusobi 240sekundovy zamek shlukovani. Vanilka pouziva 49 cerstvych pozic v 11 skupinach. Cilte na alespon 20 pozic ve 4+ skupinach.
+S pouze 2-3 pozicemi nemuze aktivni skupina rozptylit hrace a dochazi ke shlukovani. Vanilka pouziva 49 cerstvych pozic v 11 skupinach. Cilte na alespon 20 pozic ve 4+ skupinach.
 
 ### Zapomenuti na hop sekci
 
@@ -303,8 +303,4 @@ Generator odmita sklony nad 45 stupnu. Pokud jsou vsechny vlastni pozice na svaz
 
 ### Hraci se vzdy spawnuji na stejnem miste
 
-Skupiny s 1-2 pozicemi se zamknou 240sekundovym cooldownem. Pridejte vice pozic na skupinu.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Spawnovani vozidel](05-vehicle-spawning.md) | [Dalsi: Persistence >>](07-persistence.md)
+Skupiny s 1-2 pozicemi maji prilis malo kandidatu, aby engine mohl menit vybranou pozici. Pridejte vice pozic na skupinu.

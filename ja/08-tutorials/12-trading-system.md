@@ -1,6 +1,5 @@
 # Chapter 8.12: トレーディングシステムの構築
 
-[Home](../README.md) | [<< 前へ: カスタム衣類の作成](11-clothing-mod.md) | **トレーディングシステムの構築** | [次へ: 診断メニュー >>](13-diag-menu.md)
 
 ---
 
@@ -316,7 +315,7 @@ modded class PlayerBase
 
     protected void OnShopDataReq(PlayerIdentity requestor)
     {
-        PlayerBase player = PlayerBase.GetPlayerByUID(requestor.GetId());
+        PlayerBase player = PlayerBase.Cast(requestor.GetPlayer());
         if (!player) return;
         ShopDemoManager mgr = ShopDemoManager.Get();
         ShopConfig cfg = mgr.GetConfig();
@@ -342,7 +341,7 @@ modded class PlayerBase
     {
         Param2<string, int> d = new Param2<string, int>("", 0);
         if (!ctx.Read(d)) return;
-        PlayerBase p = PlayerBase.GetPlayerByUID(sender.GetId());
+        PlayerBase p = PlayerBase.Cast(sender.GetPlayer());
         if (p) ShopDemoManager.Get().HandleBuy(p, d.param1, d.param2);
     }
 
@@ -350,7 +349,7 @@ modded class PlayerBase
     {
         Param2<string, int> d = new Param2<string, int>("", 0);
         if (!ctx.Read(d)) return;
-        PlayerBase p = PlayerBase.GetPlayerByUID(sender.GetId());
+        PlayerBase p = PlayerBase.Cast(sender.GetPlayer());
         if (p) ShopDemoManager.Get().HandleSell(p, d.param1, d.param2);
     }
 };
@@ -595,9 +594,9 @@ modded class MissionGameplay
         if (key == KeyCode.KC_F6 && m_ShopDemoMenu) m_ShopDemoMenu.Toggle();
     }
 
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    // 下記の DayZGame.OnRPC オーバーライドから呼び出されます。MissionGameplay には独自の OnRPC はありません。
+    void HandleShopRPC(int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
         if (rpc_type == ShopDemoRPC.SHOP_DATA_RESPONSE)
         {
             Param2<int, string> d = new Param2<int, string>(0, "");
@@ -608,6 +607,20 @@ modded class MissionGameplay
             Param3<bool, string, int> r = new Param3<bool, string, int>(false, "", 0);
             if (ctx.Read(r) && m_ShopDemoMenu) m_ShopDemoMenu.OnTransactionResult(r.param1, r.param2, r.param3);
         }
+    }
+};
+
+// OnRPC(PlayerIdentity, Object, int, ParamsReadContext) は Mission 階層ではなく DayZGame に存在します。
+// サーバーは target=player で送信するため、DayZGame は target.OnRPC を PlayerBase へ転送します。
+// クライアントメニューに届けるには、DayZGame を直接フックしてミッションへルーティングします。
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+        if (rpc_type != ShopDemoRPC.SHOP_DATA_RESPONSE && rpc_type != ShopDemoRPC.TRANSACTION_RESULT) return;
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission) mission.HandleShopRPC(rpc_type, ctx);
     }
 };
 ```

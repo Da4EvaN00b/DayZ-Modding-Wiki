@@ -1,6 +1,5 @@
-# Chapter 1.1: Variables & Types
+# Variables & Types
 
-[Home](../README.md) | **Variables & Types** | [Next: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -303,8 +302,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Conversion from other types
-    string fromInt = "Score: " + 42;     // does NOT work -- must convert explicitly
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // funciona -- o operador + converte 42 para "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explícito, mesmo resultado)
 
     // Using Format is the preferred approach
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -462,7 +461,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Get typename from a string
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Compare types
     if (t == PlayerBase)
@@ -786,7 +785,3 @@ Escreva uma função `vector SnapToGround(vector pos)` que recebe qualquer posi�
 | Escopo | Variáveis com escopo em blocos `{}`; sem redeclaração em blocos aninhados/irmãos |
 | Conversão | `float` para `int` trunca; use `.ToInt()`, `.ToFloat()`, `.ToVector()` para parsing de string |
 | Formatação | Sempre use `string.Format()` para construir strings de tipos mistos |
-
----
-
-[Início](../README.md) | **Variáveis & Tipos** | [Próximo: Arrays, Maps & Sets >>](02-arrays-maps-sets.md)

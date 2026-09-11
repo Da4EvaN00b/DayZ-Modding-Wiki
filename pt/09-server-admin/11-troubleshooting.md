@@ -1,6 +1,5 @@
-# Chapter 9.11: Solucao de Problemas do Servidor
+# Solucao de Problemas do Servidor
 
-[Inicio](../README.md) | [<< Anterior: Gerenciamento de Mods](10-mod-management.md) | [Proximo: Topicos Avancados >>](12-advanced.md)
 
 ---
 
@@ -60,7 +59,7 @@ O DayZ requer estas portas redirecionadas e abertas no seu firewall:
 |------|----------|---------|
 | 2302 | UDP | Trafego do jogo |
 | 2303 | UDP | Rede Steam |
-| 2304 | UDP | Consulta Steam (interna) |
+| 2304 | UDP | Porta de conexao do cliente (`clientPort`) |
 | 27016 | UDP | Consulta do navegador de servidores Steam |
 
 Se voce mudou a porta base com `-port=`, todas as outras portas mudam pelo mesmo offset.
@@ -124,7 +123,7 @@ Se voce usa um arquivo de types customizado (ex.: **types_custom.xml**), adicion
 
 ### Tags de Category, Usage ou Value Erradas
 
-Toda tag `<category>`, `<usage>` e `<value>` no seu types.xml deve corresponder a um nome definido no **cfglimitsdefinition.xml**. Um erro de digitacao como `usage name="Military"` (M maiusculo) quando a definicao diz `military` (minusculo) silenciosamente impede o item de spawnar.
+Toda tag `<category>`, `<usage>` e `<value>` no seu types.xml deve corresponder a um nome definido no **cfglimitsdefinition.xml**. Um erro de digitacao como `usage name="military"` (minusculo) quando a definicao diz `Military` (M maiusculo) silenciosamente impede o item de spawnar.
 
 ### Nominal Definido como Zero
 
@@ -212,7 +211,7 @@ Inventarios e posicoes de jogadores sao armazenados em `storage_1/players/`. Se 
 
 Servidores DayZ miram 30+ FPS para gameplay suave. Causas comuns de FPS baixo no servidor:
 
-- **Muitos zumbis** -- reduza `ZombieMaxCount` no **globals.xml** (padrao 800, tente 400-600)
+- **Muitos zumbis** -- reduza `ZombieMaxCount` no **globals.xml** (padrao 1000, tente 400-600)
 - **Muitos animais** -- reduza `AnimalMaxCount` (padrao 200, tente 100)
 - **Loot excessivo** -- diminua valores de `nominal` no seu types.xml
 - **Muitos objetos de base** -- bases grandes com centenas de itens sobrecarregam a persistencia
@@ -266,7 +265,3 @@ Quando algo da errado, trabalhe por esta lista em ordem:
 ```
 
 O passo 8 e a tecnica mais poderosa. Se o servidor funciona vanilla mas quebra com mods, voce pode isolar o mod problematico atraves de busca binaria -- adicione metade dos seus mods, teste, e va estreitando.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Gerenciamento de Mods](10-mod-management.md) | [Proximo: Topicos Avancados >>](12-advanced.md)

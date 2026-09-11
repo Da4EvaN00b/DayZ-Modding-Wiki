@@ -1,6 +1,5 @@
 # Chapter 6.15: Sound System
 
-[Home](../README.md) | [<< Previous: Player System](14-player-system.md) | **Sound System** | [Next: Crafting System >>](16-crafting-system.md)
 
 ---
 
@@ -1060,7 +1059,3 @@ Available controller names include: `rain`, `night`, `meadow`, `trees`, `hills`,
 - **Multi-Mod:** CfgSoundShaders and CfgSoundSets class names share a global namespace across all loaded mods. Name collisions cause one mod's sounds to silently replace another's. Always use a unique mod prefix.
 - **Performance:** Each active `EffectSound` consumes an audio channel. The engine has a limited channel pool -- excessive simultaneous sounds (50+) can cause newer sounds to fail silently. Use `limitation` in CfgSoundShaders to cap concurrent instances of frequent sounds.
 - **Server/Client:** All sound playback is client-side only. The server has no audio output. Entity convenience methods (`PlaySoundSet`, `ОстановитьSoundSet`) include server guards internally, but direct `SEffectManager` calls do not.
-
----
-
-[Главная](../README.md) | [<< Previous: Player System](14-player-system.md) | **Sound System**

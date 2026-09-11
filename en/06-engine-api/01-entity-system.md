@@ -1,6 +1,5 @@
-# Chapter 6.1: Entity System
+# Entity System
 
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
 
 ---
 
@@ -93,10 +92,10 @@ The engine-native entity. All proto native methods --- you cannot see their impl
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `GetOrigin` | `proto native vector GetOrigin()` | World position of the entity |
+| `GetOrigin` | `proto native external vector GetOrigin()` | World position of the entity |
 | `SetOrigin` | `proto native external void SetOrigin(vector orig)` | Set world position |
-| `GetYawPitchRoll` | `proto native vector GetYawPitchRoll()` | Rotation as yaw/pitch/roll in degrees |
-| `GetTransform` | `proto native external void GetTransform(out vector mat[4])` | Full 4x3 transform matrix |
+| `GetYawPitchRoll` | `proto native external vector GetYawPitchRoll()` | Rotation as yaw/pitch/roll in degrees |
+| `GetTransform` | `proto external void GetTransform(out vector mat[])` | Full 4x3 transform matrix |
 | `SetTransform` | `proto native external void SetTransform(vector mat[4])` | Set full transform |
 
 ### Coordinate Conversion
@@ -112,8 +111,8 @@ The engine-native entity. All proto native methods --- you cannot see their impl
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `AddChild` | `proto native external void AddChild(IEntity child, int pivot, bool positionOnly = false)` | Attach child entity to a bone pivot |
-| `RemoveChild` | `proto native external void RemoveChild(IEntity child, bool keepTransform = false)` | Detach child entity |
+| `AddChild` | `proto native external bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Attach child entity to a bone pivot |
+| `RemoveChild` | `proto native external bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Detach child entity |
 | `GetParent` | `proto native IEntity GetParent()` | Parent entity (or null) |
 | `GetChildren` | `proto native IEntity GetChildren()` | First child entity |
 | `GetSibling` | `proto native IEntity GetSibling()` | Next sibling entity |
@@ -122,8 +121,8 @@ The engine-native entity. All proto native methods --- you cannot see their impl
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `SetEventMask` | `proto native external void SetEventMask(EntityEvent e)` | Enable event callbacks |
-| `ClearEventMask` | `proto native external void ClearEventMask(EntityEvent e)` | Disable event callbacks |
+| `SetEventMask` | `proto native external EntityEvent SetEventMask(EntityEvent e)` | Enable event callbacks |
+| `ClearEventMask` | `proto native external EntityEvent ClearEventMask(EntityEvent e)` | Disable event callbacks |
 | `SetFlags` | `proto native external EntityFlags SetFlags(EntityFlags flags, bool recursivelyApply)` | Set entity flags (VISIBLE, SOLID, etc.) |
 | `ClearFlags` | `proto native external EntityFlags ClearFlags(EntityFlags flags, bool recursivelyApply)` | Clear entity flags |
 
@@ -273,10 +272,10 @@ TStringArray GetHiddenSelectionsMaterials();
 ### Config Access (on the entity itself)
 
 ```c
-proto native bool   ConfigGetBool(string entryName);
-proto native int    ConfigGetInt(string entryName);
-proto native float  ConfigGetFloat(string entryName);
-proto native owned string ConfigGetString(string entryName);
+bool ConfigGetBool(string entryName);   // regular script method: returns ConfigGetInt(entryName) == 1
+proto int    ConfigGetInt(string entryName);
+proto float  ConfigGetFloat(string entryName);
+proto string ConfigGetString(string entryName);
 proto native void   ConfigGetTextArray(string entryName, out TStringArray values);
 proto native void   ConfigGetIntArray(string entryName, out TIntArray values);
 proto native void   ConfigGetFloatArray(string entryName, out TFloatArray values);
@@ -286,7 +285,7 @@ proto native bool   ConfigIsExisting(string entryName);
 ### Network ID
 
 ```c
-proto native int GetNetworkID(out int id_low, out int id_high);
+proto void GetNetworkID(out int lowBits, out int highBits);
 ```
 
 ### Deletion
@@ -804,7 +803,7 @@ Register variables in the constructor to automatically synchronize them between 
 ```c
 proto native void RegisterNetSyncVariableBool(string variableName);
 proto native void RegisterNetSyncVariableInt(string variableName, int minValue = 0, int maxValue = 0);
-proto native void RegisterNetSyncVariableFloat(string variableName, float minValue = 0, float maxValue = 0);
+proto native void RegisterNetSyncVariableFloat(string variableName, float minValue = 0, float maxValue = 0, int precision = 1);
 ```
 
 Override `OnVariablesSynchronized()` on the client to react to changes:
@@ -837,7 +836,7 @@ class MyItem extends ItemBase
 ### Energy Manager
 
 ```c
-proto native ComponentEnergyManager GetCompEM();
+ComponentEnergyManager GetCompEM();   // regular script method (returns m_EM or casts the energy manager component), not proto native
 ```
 
 Usage:
@@ -895,7 +894,7 @@ Base for all inventory items. `typedef ItemBase Inventory_Base;` is used through
 ### Quantity System
 
 ```c
-void  SetQuantity(float value, bool destroy_config = true, bool destroy_forced = false);
+bool  SetQuantity(float value, bool destroy_config = true, bool destroy_forced = false, bool allow_client = false, bool clamp_to_stack_max = true);
 float GetQuantity();
 int   GetQuantityMin();
 int   GetQuantityMax();
@@ -954,11 +953,12 @@ class MyItem extends ItemBase
 ### Sound
 
 ```c
-void PlaySoundSet(out EffectSound effect_sound, string sound_set,
-                  float fade_in, float fade_out);
-void PlaySoundSetLoop(out EffectSound effect_sound, string sound_set,
+// Inherited from Object.
+bool PlaySoundSet(out EffectSound effect_sound, string sound_set,
+                  float fade_in, float fade_out, bool loop = false);
+bool PlaySoundSetLoop(out EffectSound effect_sound, string sound_set,
                       float fade_in, float fade_out);
-void StopSoundSet(EffectSound effect_sound);
+bool StopSoundSet(out EffectSound effect_sound);
 ```
 
 ### Economy / Persistence
@@ -1291,7 +1291,7 @@ void Init()
 
 **File:** `4_World/entities/creatures/animals/`
 
-Base for all animal entities. Extends `DayZAnimal` which extends `EntityAI`.
+Base for all animal entities. Extends `DayZAnimal`, which extends `DayZCreatureAI` (ultimately descending from `EntityAI` via `DayZCreature`).
 
 Animals use the same health, position, and damage APIs as other entities. Their behavior is driven by the AI system and CE-configured territory files.
 
@@ -1535,6 +1535,20 @@ void DamageEntity(EntityAI target, float amount)
 - **Register net sync variables only in the constructor, never conditionally.** The registration order must be identical on server and client. Adding variables outside the constructor or behind `if` checks causes desync.
 - **Prefer `obj.Delete()` (deferred) over `GetGame().ObjectDelete()` (immediate).** Immediate deletion during iteration or event processing can cause null pointer crashes. Deferred deletion is safe in all contexts.
 - **Cast with `Class.CastTo()` instead of direct casts.** `Class.CastTo(result, source)` returns false on failure without crashing, while a direct cast to a wrong type produces undefined behavior.
+- **`GetHealth()` and `GetHealth01()` throw on a client -- they are not merely "server-authoritative," they are refused at the call site.** See the dedicated warning below; do not assume any health read is safe on both sides just because it compiled.
+
+> **`GetHealth()` / `GetHealth01()` are server-only at runtime, and nothing before runtime warns you.** Both are declared `proto native` with no client/server note in their doc comments, so they compile cleanly in client-side script (a 5_Mission UI panel, an inventory screen). Call either one from a client and it throws:
+> ```
+> SCRIPT    (E): Virtual Machine Exception
+> Reason: Object::GetHealth01 cannot be called on client.
+> ```
+> The exception aborts the rest of the enclosing function -- any code after the throwing line (including a loop that was supposed to fill a list) never runs, and nothing else in the log explains why a panel came up empty. This is easy to miss because `grep "SCRIPT (E)"` can return zero hits on a log full of them -- the real log line has extra padding (`SCRIPT    (E)`), so search with `SCRIPT +\(E\)` or similar.
+>
+> What **is** safe to read on a client:
+> - `GetHealthLevel(zone)` -- a coarse `0` (pristine) to `4` (ruined) bucket, not a percentage. Vanilla's own `carhud.c` and `iteminspectmenu` read this client-side.
+> - `IsDamageDestroyed()` -- also safe client-side, and it is what `IsAlive()` is defined as (`!IsDamageDestroyed()`).
+>
+> If your client UI needs a real percentage rather than a bucket, the server has to compute it and send it -- there is no client-safe way to get an exact float. Vanilla proves the split itself in `crafttannedleather.c`: the client-side `CanDo()` uses `GetHealthLevel()` with a comment explaining it is "necessary like this on CLIENT," while the server-side `Do()` uses `GetHealth01()`.
 
 ---
 
@@ -1542,8 +1556,4 @@ void DamageEntity(EntityAI target, float amount)
 
 - If two mods both `modded class ItemBase` and override `EEInit()`, only the last-loaded mod's code runs unless both call `super`. This is the most common source of mod conflicts.
 - `RegisterNetSyncVariable*()` adds network traffic per entity. Keep synced variable count under 8 per entity. Use RPCs for infrequent updates.
-- `SetHealth()`, `ProcessDirectDamage()`, and `Delete()` are server-authoritative. Calling them on the client causes desync. `GetHealth()`, `GetPosition()`, and type checks are safe on both sides.
-
----
-
-[Home](../README.md) | **Entity System** | [Next: Vehicles >>](02-vehicles.md)
+- `SetHealth()`, `ProcessDirectDamage()`, and `Delete()` are server-authoritative. Calling them on the client causes desync. `GetPosition()` and type checks are safe on both sides -- `GetHealth()`/`GetHealth01()` are not (see the warning above); use `GetHealthLevel()` or `IsDamageDestroyed()` client-side instead.

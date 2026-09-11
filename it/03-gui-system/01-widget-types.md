@@ -1,6 +1,5 @@
 # Capitolo 3.1: Tipi di Widget
 
-[Home](../README.md) | **Tipi di Widget** | [Successivo: File di Layout >>](02-layout-files.md)
 
 ---
 
@@ -39,11 +38,13 @@ I widget contenitore contengono e organizzano i widget figli. Non visualizzano c
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Layout a flusso. Dispone i figli sequenzialmente con a capo automatico, padding e margini. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Layout a griglia. Dispone i figli in una griglia definita da `Columns` e `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Viewport scorrevole. Abilita lo scorrimento verticale/orizzontale del contenuto figlio. |
-| `SpacerBaseWidget` | -- | Classe base astratta per `WrapSpacerWidget` e `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Classe base astratta per `SpacerWidget` e `ScrollWidget`. Sia `WrapSpacerWidget` che `GridSpacerWidget` estendono `SpacerWidget`. |
 
 ### FrameWidget
 
-Il cavallo di battaglia dell'interfaccia DayZ. Usa `FrameWidget` come contenitore predefinito quando devi raggruppare widget insieme. Non ha aspetto visivo -- è puramente strutturale.
+Il cavallo di battaglia dell'interfaccia DayZ. Usa un frame come contenitore predefinito quando devi raggruppare widget insieme. Non ha aspetto visivo -- è puramente strutturale.
+
+> **Nota:** `FrameWidgetClass` è utilizzabile nei file `.layout` e `FrameWidgetTypeID` esiste per `CreateWidget()`, ma non esiste una classe script `FrameWidget`. Come per `PanelWidget`, lavora con un frame come `Widget` di base -- non eseguire il cast a `FrameWidget`.
 
 **Metodi principali:**
 - Tutti i metodi base di `Widget` (posizione, dimensione, colore, figli, flag)
@@ -52,7 +53,7 @@ Il cavallo di battaglia dell'interfaccia DayZ. Usa `FrameWidget` come contenitor
 
 ```c
 // Trova un frame widget per nome
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -314,7 +315,8 @@ Un cursore orizzontale per valori numerici.
 **Metodi principali:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Restituisce float (0-1)
+sw.SetMinMax(0, 100);       // Configura l'intervallo di valori (altrimenti intervallo predefinito)
+sw.GetCurrent();            // Restituisce float entro l'intervallo min/max configurato
 sw.SetCurrent(float val);   // Imposta la posizione
 ```
 

@@ -1,6 +1,5 @@
-# Chapter 7.1: Singleton Pattern
+# Singleton Pattern
 
-[Home](../README.md) | **Singleton Pattern** | [Next: Module Systems >>](02-module-systems.md)
 
 ---
 
@@ -16,7 +15,7 @@ This chapter covers the canonical implementation, lifecycle management, when the
 - [Lazy vs Eager Initialization](#lazy-vs-eager-initialization)
 - [Lifecycle Management](#lifecycle-management)
 - [When to Use Singletons](#when-to-use-singletons)
-- [Real-World Examples](#real-world-examples)
+- [Singleton Variants in Practice](#singleton-variants-in-practice)
 - [Thread Safety Considerations](#thread-safety-considerations)
 - [Anti-Patterns](#anti-patterns)
 - [Alternative: Static-Only Classes](#alternative-static-only-classes)
@@ -91,7 +90,7 @@ class LootManager
 | `static` | Shared across all code --- no instance needed to access it |
 | `ref` | Strong reference --- keeps the object alive as long as `s_Instance` is non-null |
 
-Without `ref`, the instance would be a weak reference and could be garbage-collected while still in use.
+Enforce Script uses automatic reference counting, not a tracing garbage collector, and class members are weak references unless marked `ref`. Without `ref`, `s_Instance` would not keep the object alive: as soon as the last strong reference went away the object would be destroyed, and `s_Instance` would be set to `NULL` underneath you.
 
 ---
 
@@ -151,7 +150,13 @@ static void Create()
 
 ## Lifecycle Management
 
-The most common source of singleton bugs in DayZ is failing to clean up on mission end. DayZ servers can restart missions without restarting the process, which means static fields survive across mission restarts. If you do not null out `s_Instance` in `OnMissionFinish`, you carry stale references, dead objects, and orphaned callbacks into the next mission.
+The most common source of singleton bugs in DayZ is failing to clean up on mission end, and the mission lifecycle genuinely does cycle inside a single running process.
+
+The engine exposes `PlayMission`, `CreateMission` and `AbortMission` as `proto native` methods on `CGame` (`3_game/global/game.c:1102-1110`), and `DayZGame` drives them -- `PlayMission` at `dayzgame.c:2335`, `2353` and `2562`, `AbortMission` at `1693` and `2763` -- while tracking `MISSION_STATE_MAINMENU` / `MISSION_STATE_GAME` / `MISSION_STATE_FINNISH` on the game object that outlives every mission (`dayzgame.c:912-914`). Both vanilla missions tear themselves down in `OnMissionFinish()`: `MissionGameplay` destroys its menus, chat and HUD root (`5_mission/mission/missiongameplay.c:257`) and `MissionMainMenu` cleans up its menu (`missionmainmenu.c:93`). A client therefore moves between the main-menu mission and a gameplay mission without relaunching, and static fields -- which live as long as the process -- survive that transition. That is exactly the situation that strands a stale `s_Instance`, dead objects and orphaned callbacks.
+
+What stays open is the narrower question of dedicated servers: many hosts schedule a full process restart between sessions, and when the process dies, static state is wiped for you. Wiring `DestroyInstance()` into `OnMissionFinish` is correct either way -- it is the only thing that saves you when the process *does* keep running, and it costs nothing when it does not.
+
+> **What you are actually overriding.** Vanilla `MissionServer` has no `OnMissionFinish` of its own. The only overrides in the vanilla mission module are `MissionGameplay`'s and `MissionMainMenu`'s, and neither of those chains `super`; the base `Mission.OnMissionFinish()` is an empty body (`3_game/gameplay.c:702`). So a `modded class MissionServer` override is extending an inherited empty method, not wrapping vanilla server teardown -- which means nothing vanilla depends on your call to `super`, but every *other* mod that modded the same class does. Call it anyway.
 
 ### The Lifecycle Contract
 
@@ -210,18 +215,21 @@ modded class MissionServer
 
 ### Centralized Shutdown Pattern
 
-A framework mod can consolidate all singleton cleanup into `MyFramework.ShutdownAll()`, which is called from the modded `MissionServer.OnMissionFinish()`. This prevents the common mistake of forgetting one singleton:
+A framework mod can consolidate all singleton cleanup into a single entry point that is called from the modded `MissionServer.OnMissionFinish()`. This prevents the common mistake of forgetting one singleton. The example below uses **Lantern**, the constructed teaching framework used throughout Part 7 — `LanternCore` is its global entry point and the `LNT_` classes are its subsystems:
 
 ```c
-// Conceptual pattern (centralized shutdown):
-static void ShutdownAll()
+// LanternCore centralizes teardown for every Lantern subsystem:
+class LanternCore
 {
-    MyRPC.Cleanup();
-    MyEventBus.Cleanup();
-    MyModuleManager.Cleanup();
-    MyConfigManager.DestroyInstance();
-    MyPermissions.DestroyInstance();
-}
+    static void ShutdownAll()
+    {
+        LNT_RPC.Cleanup();
+        LNT_EventBus.Cleanup();
+        LNT_ModuleManager.Cleanup();
+        LNT_ConfigManager.DestroyInstance();
+        LNT_Permissions.DestroyInstance();
+    }
+};
 ```
 
 ---
@@ -249,52 +257,111 @@ static void ShutdownAll()
 
 ---
 
-## Real-World Examples
+## Singleton Variants in Practice
 
-### COT (Community Online Tools)
+There is no single "correct" singleton — the shape you pick depends on who owns the lifecycle. Three variants cover almost every case in DayZ. The first two use **Lantern**, the constructed teaching framework whose full code lives in the Part 7 chapters; the third is a genuine vanilla idiom you can lean on with no framework at all.
 
-COT uses a module-based singleton pattern through the CF framework. Each tool is a `JMModuleBase` singleton registered at startup:
+### Variant A: Manager-Owned Singleton
 
-```c
-// COT pattern: CF auto-instantiates modules declared in config.cpp
-class JM_COT_ESP : JMModuleBase
-{
-    // CF manages the singleton lifecycle
-    // Access via: JM_COT_ESP.Cast(GetModuleManager().GetModule(JM_COT_ESP));
-}
-```
-
-### VPP Admin Tools
-
-VPP uses explicit `GetInstance()` on manager classes:
+Instead of each subsystem storing its own `s_Instance`, a central module manager keeps the one instance and hands it out by type. The subsystem itself has no static accessor — you fetch it from the manager. This is how Lantern's module system works (see [Module Systems](02-module-systems.md)):
 
 ```c
-// VPP pattern (simplified)
-class VPPATBanManager
+// A Lantern module. It does NOT own a static instance —
+// the module manager constructs it and stores the single copy.
+class LNT_BountyModule : LNT_ModuleBase
 {
-    private static ref VPPATBanManager m_Instance;
+    protected ref map<string, int> m_Bounties;
 
-    static VPPATBanManager GetInstance()
+    void LNT_BountyModule()
     {
-        if (!m_Instance)
-            m_Instance = new VPPATBanManager();
-        return m_Instance;
+        m_Bounties = new map<string, int>();
+    }
+
+    void SetBounty(string playerId, int amount)
+    {
+        m_Bounties.Set(playerId, amount);
+    }
+
+    int GetBounty(string playerId)
+    {
+        int amount = 0;
+        m_Bounties.Find(playerId, amount);
+        return amount;
+    }
+};
+
+// Access it anywhere by asking the manager for its type:
+void ExampleUsage()
+{
+    LNT_BountyModule bounty = LNT_BountyModule.Cast(LNT_ModuleManager.GetModule("LNT_BountyModule"));
+    if (bounty)
+    {
+        bounty.SetBounty("76561198000000000", 500);
     }
 }
 ```
 
-### Expansion
+The single-instance guarantee lives in the manager's registry (one entry per type), so the module never needs `private static ref` at all. The trade-off is a lookup on every access instead of a direct static field.
 
-Expansion declares singletons for each subsystem and hooks into the mission lifecycle for cleanup:
+### Variant B: Classic `GetInstance` / `DestroyInstance`
+
+The self-contained static-ref singleton — the canonical form from the top of this chapter, applied to a real subsystem. Lantern's ban list uses it because it owns disk-backed state and wants explicit teardown:
 
 ```c
-// Expansion pattern (simplified)
-class ExpansionMarketModule : CF_ModuleWorld
+class LNT_BanManager
 {
-    // CF_ModuleWorld is itself a singleton managed by the CF module system
-    // ExpansionMarketModule.Cast(CF_ModuleCoreManager.Get(ExpansionMarketModule));
+    private static ref LNT_BanManager s_Instance;
+    protected ref array<string> m_BannedIds;
+
+    void LNT_BanManager()
+    {
+        m_BannedIds = new array<string>();
+    }
+
+    void ~LNT_BanManager()
+    {
+        if (m_BannedIds) m_BannedIds.Clear();
+        m_BannedIds = null;
+    }
+
+    static LNT_BanManager GetInstance()
+    {
+        if (!s_Instance)
+        {
+            s_Instance = new LNT_BanManager();
+        }
+        return s_Instance;
+    }
+
+    static void DestroyInstance()
+    {
+        s_Instance = null;
+    }
+
+    bool IsBanned(string playerId)
+    {
+        return m_BannedIds.Find(playerId) != -1;
+    }
+};
+```
+
+### Variant C: Vanilla Plugin Singletons
+
+DayZ's own engine ships a singleton-access idiom you can use without any framework: the **plugin system**. Vanilla registers each `PluginBase` subclass once in `PluginManager`, and the global `GetPlugin(typename)` function returns that single instance. `PluginAdminLog` — the server admin-log plugin — is a real example:
+
+```c
+// Fetch the one PluginAdminLog instance the engine created:
+void LogPlacement(PlayerBase player)
+{
+    PluginAdminLog adminLog = PluginAdminLog.Cast(GetPlugin(PluginAdminLog));
+    if (adminLog)
+    {
+        adminLog.DirectAdminLogPrint(player.GetType() + " placed an object");
+    }
 }
 ```
+
+`GetPlugin()` is defined in `pluginmanager.c` and returns `PluginBase`; you cast it to the concrete plugin type. The manager holds exactly one instance per registered `typename`, so this is a true singleton lookup — the same shape as Variant A, but provided by the engine. If you only need one long-lived server-side service, subclassing `PluginBase` gets you singleton lifecycle for free, with no static ref to manage.
 
 ---
 
@@ -457,7 +524,7 @@ Some "singletons" do not need an instance at all. If the class holds no instance
 
 ```c
 // No instance needed — all static
-class MyLog
+class LNT_Log
 {
     private static FileHandle s_LogFile;
     private static int s_LogLevel;
@@ -485,7 +552,7 @@ class MyLog
 };
 ```
 
-This is the approach used by `MyLog`, `MyRPC`, `MyEventBus`, and `MyModuleManager` in a framework mod. It is simpler, avoids the `GetInstance()` null-check overhead, and makes the intent clear: there is no instance, only shared state.
+This is the approach used by `LNT_Log`, `LNT_RPC`, `LNT_EventBus`, and `LNT_ModuleManager` in the Lantern framework. It is simpler, avoids the `GetInstance()` null-check overhead, and makes the intent clear: there is no instance, only shared state.
 
 **Use a static-only class when:**
 - All methods are stateless or operate on static fields
@@ -532,8 +599,4 @@ Before shipping a singleton, verify:
 - On listen servers, static fields are shared between client and server contexts. A server-only singleton must guard construction with `GetGame().IsServer()`.
 - Enforce Script has no dependency injection. Singletons are the standard approach.
 - RPC handlers must be registered before any client connects, so eager init in `OnInit()` is often necessary.
-- DayZ missions restart without restarting the server process. Singletons **must** be destroyed and recreated on each mission cycle.
-
----
-
-[Home](../README.md) | **Singleton Pattern** | [Next: Module Systems >>](02-module-systems.md)
+- Missions cycle within one process -- the client alone moves between the main-menu mission and a gameplay mission -- so singletons **must** be destroyed and recreated on each mission cycle. A server host that schedules a full process restart wipes static state anyway; `DestroyInstance()` in `OnMissionFinish` is what covers the case where it does not. See [Lifecycle Management](#lifecycle-management).

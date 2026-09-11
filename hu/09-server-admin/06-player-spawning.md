@@ -1,6 +1,5 @@
 # Chapter 9.6: Játékos spawnolás
 
-[Kezdőlap](../README.md) | [<< Előző: Jármű spawnolás](05-vehicle-spawning.md) | [Következő: Perzisztencia >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## cfgplayerspawnpoints.xml áttekintés
 
-Ez a fájl a küldetés mappádban található (pl. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Két szekcióval rendelkezik, mindegyik saját paraméterekkel és pozíció buborékokkal:
+Ez a fájl a küldetés mappádban található (pl. `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Három szekcióval rendelkezik, mindegyik saját paraméterekkel és pozíció buborékokkal:
 
 - **`<fresh>`** -- vadonatúj karakterek (első élet vagy halál után)
 - **`<hop>`** -- szerver hopperek (a játékosnak volt karaktere másik szerveren)
+- **`<travel>`** -- játékon belüli térkép utazás/teleport spawnok
 
 ---
 
@@ -77,12 +77,12 @@ A generátor egy jelölt pozíciók rácsot hoz létre minden buborék körül:
 
 | Paraméter | Érték | Jelentés |
 |-----------|-------|----------|
-| `grid_density` | 4 | Rácspont távolság méterben -- alacsonyabb = több jelölt, magasabb CPU költség |
-| `grid_width` | 200 | A rács 200 m-re nyúlik az X tengelyen minden buborék közép körül |
-| `grid_height` | 200 | A rács 200 m-re nyúlik a Z tengelyen minden buborék közép körül |
+| `grid_density` | 4 | A rács mintavételezési gyakorisága (felosztások száma) -- magasabb = több jelölt, magasabb CPU költség. Pontok közötti távolság = `grid_width` / `grid_density` |
+| `grid_width` | 200 | A jelölt rács teljes szélessége méterben (a buborékra központosítva) -- ~100 m-re nyúlik mindkét oldalra az X tengelyen |
+| `grid_height` | 200 | A jelölt rács teljes magassága méterben (a buborékra központosítva) -- ~100 m-re nyúlik mindkét oldalra a Z tengelyen |
 | `min_steepness` / `max_steepness` | -45 / 45 | Terep meredekség tartomány fokban -- sziklafalakat és meredek dombokat elutasít |
 
-Minden buborék egy 200x200 m-es rácsot kap 4 méterenként egy ponttal (~2500 jelölt). A motor szűr meredekség és statikus távolság alapján, majd spawn időben alkalmazza a `spawn_params` értékeit.
+Minden buborék egy 200x200 m-es rácsot kap, ahol a jelölt pontok `grid_width` / `grid_density` = 200/4 = 50 m-re vannak egymástól (nagyságrendileg ~16-25 jelölt). A motor szűr meredekség és statikus távolság alapján, majd spawn időben alkalmazza a `spawn_params` értékeit.
 
 #### `allow_in_water` paraméter (1.28+)
 
@@ -111,8 +111,8 @@ Alapértelmezetten a motor elutasít minden olyan jelölt pozíciót, ami vízbe
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@ Alapértelmezetten a motor elutasít minden olyan jelölt pozíciót, ami vízbe
 |-----------|-------|----------|
 | `enablegroups` | true | A pozíció buborékok elnevezett csoportokba vannak szervezve |
 | `groups_as_regular` | true | A csoportok normál spawn pontokként kezelendők (bármely csoport kiválasztható) |
-| `lifetime` | 240 | Másodpercek, mielőtt egy használt spawn pont újra elérhetővé válik |
-| `counter` | -1 | Ahányszor egy spawn pont használható. -1 = korlátlan |
+| `lifetime` | 120 | Másodpercek, ameddig egy spawn csoport aktív marad, mielőtt a rendszer másik csoportra vált. -1 = letiltva |
+| `counter` | 2 | A bejelentkezések száma, ameddig egy csoport aktív marad, mielőtt lecserélődik (csoportonként). -1 = letiltva |
 
-Egy használt pozíció 240 másodpercre zárolódik, megakadályozva, hogy két játékos egymásra spawnoljon.
+A `lifetime` azt szabályozza, hogy egy spawn csoport meddig marad az aktív csoport, mielőtt a rendszer másik csoportra vált; ez nem pozíciónkénti zárolás. Az egyidejű spawnok közötti távolságot a `min_dist_player` érvényesíti.
 
 ---
 
@@ -192,7 +192,7 @@ A hop spawnok engedékenyebbek a játékos távolságra vonatkozóan és kisebb 
 
 <!-- Hop group_params különbségek -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 A hop csoportok **a szárazföld belsejébe** vannak szétszórva: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Az `enablegroups=false` beállítással a motor az összes 50 pozíciót egyetlen készletként kezeli.
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Amit minden játékos kap: **BandageDressing** (gyorssáv 3), véletlenszerű **Chemlight** (gyorssáv 2), véletlenszerű gyümölcs -- 35% Apple, 30% Plum, 35% Pear (gyorssáv 1). A `SetRandomHealth` 45-65%-os állapotot állít be minden tárgyra.
+Amit minden játékos kap: **BandageDressing** (gyorssáv 2), véletlenszerű **Chemlight** (gyorssáv 1), véletlenszerű gyümölcs -- 35% Apple, 30% Plum, 35% Pear (gyorssáv 3). A `SetRandomHealth` 45-65%-os állapotot állít be minden tárgyra.
 
 ### Egyedi induló felszerelés hozzáadása
 
@@ -279,7 +279,7 @@ Lépések:
 4. Használd az `x`-et kelet-nyugathoz és a `z`-t észak-délhez -- a motor automatikusan kiszámítja az Y-t (magasság) a terepből
 5. Indítsd újra a szervert -- perzisztencia törlés nem szükséges
 
-Kiegyensúlyozott spawnoláshoz tarts fenn legalább 4 pozíciót csoportonként, hogy a 240 másodperces zárolás ne blokkolja az összes pozíciót, ha több játékos egyszerre hal meg.
+Kiegyensúlyozott spawnoláshoz tarts fenn legalább 4 pozíciót csoportonként, hogy egy csoport elegendő szétszórtsággal rendelkezzen a `min_dist_player` kielégítéséhez, ha több játékos egyszerre hal meg.
 
 ---
 
@@ -291,7 +291,7 @@ Felcserélted a `z`-t (észak-dél) az Y-nal (magasság), vagy a 0-15360 tartom�
 
 ### Nem elég spawn pont
 
-Mindössze 2-3 pozícióval a 240 másodperces zárolás csoportosulást okoz. A vanilla 49 friss pozíciót használ 11 csoportban. Tervezz legalább 20 pozíciót 4+ csoportban.
+Mindössze 2-3 pozícióval az aktív csoport nem tudja szétszórni a játékosokat, és csoportosulás keletkezik. A vanilla 49 friss pozíciót használ 11 csoportban. Tervezz legalább 20 pozíciót 4+ csoportban.
 
 ### Elfelejtett hop szekció
 
@@ -303,8 +303,4 @@ A generátor elutasítja a 45 foknál meredekebb lejtőket. Ha minden egyedi poz
 
 ### Játékosok mindig ugyanazon a helyen spawnolnak
 
-Az 1-2 pozíciós csoportok zárolódnak a 240 másodperces hűtéssel. Adj hozzá több pozíciót csoportonként.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Jármű spawnolás](05-vehicle-spawning.md) | [Következő: Perzisztencia >>](07-persistence.md)
+Az 1-2 pozíciós csoportoknak túl kevés jelöltjük van ahhoz, hogy a motor változtassa a kiválasztott pozíciót. Adj hozzá több pozíciót csoportonként.

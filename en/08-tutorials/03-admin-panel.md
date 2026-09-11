@@ -1,6 +1,5 @@
-# Chapter 8.3: Building an Admin Panel Module
+# Building an Admin Panel Module
 
-[Home](../README.md) | [<< Previous: Creating a Custom Item](02-custom-item.md) | **Building an Admin Panel** | [Next: Adding Chat Commands >>](04-chat-commands.md)
 
 ---
 
@@ -15,7 +14,7 @@
 - [Architecture Overview](#architecture-overview)
 - [Step 1: Create the Module Class](#step-1-create-the-module-class)
 - [Step 2: Create the Layout File](#step-2-create-the-layout-file)
-- [Step 3: Bind Widgets in OnActivated](#step-3-bind-widgets-in-onactivated)
+- [Step 3: Bind Widgets in Open()](#step-3-bind-widgets-in-open)
 - [Step 4: Handle Button Clicks](#step-4-handle-button-clicks)
 - [Step 5: Send an RPC to the Server](#step-5-send-an-rpc-to-the-server)
 - [Step 6: Handle the Server-Side Response](#step-6-handle-the-server-side-response)
@@ -62,6 +61,7 @@ AdminDemo/
         3_Game/
             AdminDemo/
                 AdminDemoRPC.c
+                AdminDemoConfig.c
         4_World/
             AdminDemo/
                 AdminDemoServer.c
@@ -117,6 +117,34 @@ class AdminDemoRPC
 ```
 
 These constants will be used by both the client (to send requests) and the server (to identify incoming requests and send responses).
+
+### Define the Admin Whitelist
+
+An admin panel must never trust the client. Any player can send an RPC with any ID -- the panel UI is only a convenience, and a modified client can fire `REQUEST_PLAYER_INFO` without ever opening it. The server is the only place a permission check is meaningful, so define the list of authorized admins now, also in `3_Game`, where the server handler can see it.
+
+### Create `Scripts/3_Game/AdminDemo/AdminDemoConfig.c`
+
+```c
+class AdminDemoConfig
+{
+    // Returns true only for the SteamID64s listed below.
+    // Replace these placeholders with your own admins' IDs.
+    static bool IsAdmin(PlayerIdentity identity)
+    {
+        if (!identity)
+            return false;
+
+        TStringArray admins = new TStringArray;
+        admins.Insert("76561198000000001");
+        admins.Insert("76561198000000002");
+
+        string uid = identity.GetPlainId();
+        return admins.Find(uid) != -1;
+    }
+};
+```
+
+`PlayerIdentity.GetPlainId()` returns the player's plaintext SteamID64 -- the 17-digit number you copy from a Steam profile or the server admin panel. (Its sibling `GetId()` returns a hashed form meant for logs and databases; use `GetPlainId()` when you are matching against ids a human typed into a whitelist.) `TStringArray.Find()` returns the index of a match or `-1` if the id is not in the list. For a real server you would load these ids from a JSON config instead of hard-coding them (see [Config and Persistence](../07-patterns/04-config-persistence.md)), but a static list keeps this tutorial self-contained and the gate is identical either way.
 
 ### Why 3_Game?
 
@@ -231,9 +259,9 @@ All sizes use proportional coordinates (0.0 to 1.0 relative to parent) because `
 
 ---
 
-## Step 3: Bind Widgets in OnActivated
+## Step 3: Bind Widgets in Open()
 
-Now create the client-side panel script that loads the layout and connects widgets to variables.
+Now create the client-side panel script that loads the layout and connects widgets to variables. The binding happens inside the panel's `Open()` method, which runs when the admin opens the panel (not on mission start), so the layout only exists in memory while the panel is visible.
 
 ### Create `Scripts/5_Mission/AdminDemo/AdminDemoPanel.c`
 
@@ -381,7 +409,7 @@ class AdminDemoPanel extends ScriptedWidgetEventHandler
     }
 
     // -------------------------------------------------------
-    // Called when server response arrives (from mission OnRPC)
+    // Called when server response arrives (from the DayZGame OnRPC handler)
     // -------------------------------------------------------
     void OnPlayerInfoReceived(int playerCount, string playerNames)
     {
@@ -531,10 +559,13 @@ modded class PlayerBase
 
         Print("[AdminDemo] Server received player info request from: " + requestor.GetName());
 
-        // --- Permission check (optional but recommended) ---
-        // In a real mod, check if the requestor is an admin:
-        // if (!IsAdmin(requestor))
-        //     return;
+        // --- Permission gate: reject anyone not on the admin whitelist ---
+        // This runs on the server, so a modified client cannot bypass it.
+        if (!AdminDemoConfig.IsAdmin(requestor))
+        {
+            Print("[AdminDemo] REJECTED: non-admin requested player info: " + requestor.GetName());
+            return;
+        }
 
         // --- Gather player data ---
         ref array<Man> players = new array<Man>;
@@ -565,24 +596,11 @@ modded class PlayerBase
         // --- Send response back to the requesting client ---
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // RPCSingleParam with the requestor's player object sends to that specific client
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
+        // target = null so the client's DayZGame.OnRPC runs its own switch;
+        // the recipient (requestor) restricts delivery to that one client.
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
 
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -597,13 +615,15 @@ modded class PlayerBase
 
 4. **Switch on `rpc_type`.** Match against your RPC ID constants.
 
-5. **Send the response.** Use `RPCSingleParam` with the fifth parameter (`recipient`) set to the requesting player's identity. This sends the response only to that specific client.
+5. **Gate on permission before doing any work.** `AdminDemoConfig.IsAdmin(requestor)` is the real access check. It runs on the server, so it cannot be bypassed by a modified client that fires the request RPC directly. Every server-side admin action must pass a gate like this -- the UI is not a security boundary.
+
+6. **Send the response.** Use `RPCSingleParam` with the fifth parameter (`recipient`) set to the requesting player's identity. This sends the response only to that specific client.
 
 ### RPCSingleParam Response Signature
 
 ```c
 GetGame().RPCSingleParam(
-    requestorPlayer,                        // Target object (the player)
+    null,                                   // Target object (null -> client DayZGame.OnRPC handles it)
     AdminDemoRPC.RESPONSE_PLAYER_INFO,      // RPC ID
     responseData,                           // Data payload
     true,                                   // Guaranteed delivery
@@ -611,7 +631,7 @@ GetGame().RPCSingleParam(
 );
 ```
 
-The fifth parameter `requestor` (a `PlayerIdentity`) is what makes this a targeted response. Without it, the RPC would go to all clients.
+The fifth parameter `requestor` (a `PlayerIdentity`) is what makes this a targeted response. Without it, the RPC would go to all clients. The first parameter is `null` because the response is handled by the client's `DayZGame.OnRPC` switch -- if you pass a target object instead, the engine forwards the RPC to that object's `OnRPC` (the 3-parameter form) and the `DayZGame` switch never runs.
 
 ---
 
@@ -620,6 +640,8 @@ The fifth parameter `requestor` (a `PlayerIdentity`) is what makes this a target
 Back on the client side, we need to intercept the server's response RPC and route it to the panel.
 
 ### Create `Scripts/5_Mission/AdminDemo/AdminDemoMission.c`
+
+The panel and its keyboard toggle live on the mission, but the RPC response is received on `DayZGame` -- the engine's actual catch-all RPC handler. We split the file into two `modded` classes accordingly.
 
 ```c
 modded class MissionGameplay
@@ -668,8 +690,19 @@ modded class MissionGameplay
         }
     }
 
+    // Expose the panel so the DayZGame RPC handler can reach it
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     // -------------------------------------------------------
-    // Receive server RPCs on the client side
+    // Receive server RPCs on the client side.
+    // DayZGame.OnRPC is the engine's catch-all handler; it
+    // only runs this switch for target-less RPCs (target = null).
     // -------------------------------------------------------
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
@@ -700,15 +733,16 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
 
 ### How Client-Side RPC Reception Works
 
-1. **`MissionGameplay.OnRPC()`** is a catch-all handler for RPCs received on the client. It fires for every incoming RPC.
+1. **`DayZGame.OnRPC()`** is the engine's catch-all handler for RPCs received on the client. It fires for every incoming RPC. The mission class (`MissionGameplay`) has no `OnRPC` method, so the receiver must mod `DayZGame`. Note that `DayZGame.OnRPC` only runs its own switch when the RPC has no target object; if a target is set, the engine forwards the RPC to `target.OnRPC(sender, rpc_type, ctx)` instead.
 
 2. **`ParamsReadContext ctx`** contains the serialized data sent by the server. You must deserialize it using `ctx.Read()` with a matching `Param` type.
 
@@ -811,316 +845,27 @@ class CfgMods
 
 ## Complete File Reference
 
-### Final Directory Structure
+Every file's full source appears inline in Steps 1 through 8 above -- the walkthrough is the reference, so nothing is duplicated here. This is the final layout of the six files you created:
 
 ```
 AdminDemo/
-    mod.cpp
+    mod.cpp                                          # Step 8
     GUI/
         layouts/
-            admin_player_info.layout
+            admin_player_info.layout                 # Step 2
     Scripts/
-        config.cpp
+        config.cpp                                   # Step 8
         3_Game/
             AdminDemo/
-                AdminDemoRPC.c
+                AdminDemoRPC.c                        # Step 1 (RPC IDs)
+                AdminDemoConfig.c                     # Step 1 (admin whitelist)
         4_World/
             AdminDemo/
-                AdminDemoServer.c
+                AdminDemoServer.c                    # Step 6 (server handler + gate)
         5_Mission/
             AdminDemo/
-                AdminDemoPanel.c
-                AdminDemoMission.c
-```
-
-### AdminDemo/Scripts/3_Game/AdminDemo/AdminDemoRPC.c
-
-```c
-class AdminDemoRPC
-{
-    static const int REQUEST_PLAYER_INFO  = 78001;
-    static const int RESPONSE_PLAYER_INFO = 78002;
-};
-```
-
-### AdminDemo/Scripts/4_World/AdminDemo/AdminDemoServer.c
-
-```c
-modded class PlayerBase
-{
-    override void OnRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, rpc_type, ctx);
-
-        if (!GetGame().IsServer())
-            return;
-
-        switch (rpc_type)
-        {
-            case AdminDemoRPC.REQUEST_PLAYER_INFO:
-                HandlePlayerInfoRequest(sender);
-                break;
-        }
-    }
-
-    protected void HandlePlayerInfoRequest(PlayerIdentity requestor)
-    {
-        if (!requestor)
-            return;
-
-        Print("[AdminDemo] Server received player info request from: " + requestor.GetName());
-
-        ref array<Man> players = new array<Man>;
-        GetGame().GetPlayers(players);
-
-        int playerCount = players.Count();
-        string playerNames = "";
-
-        for (int i = 0; i < playerCount; i++)
-        {
-            Man man = players.Get(i);
-            if (man)
-            {
-                PlayerIdentity identity = man.GetIdentity();
-                if (identity)
-                {
-                    if (playerNames != "")
-                        playerNames = playerNames + "\n";
-
-                    playerNames = playerNames + (i + 1).ToString() + ". " + identity.GetName();
-                }
-            }
-        }
-
-        if (playerNames == "")
-            playerNames = "(No players connected)";
-
-        Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
-
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
-    }
-};
-```
-
-### AdminDemo/Scripts/5_Mission/AdminDemo/AdminDemoPanel.c
-
-```c
-class AdminDemoPanel extends ScriptedWidgetEventHandler
-{
-    protected Widget m_Root;
-    protected ButtonWidget m_RefreshButton;
-    protected ButtonWidget m_CloseButton;
-    protected TextWidget m_PlayerCountText;
-    protected TextWidget m_PlayerListText;
-
-    protected bool m_IsOpen;
-
-    void AdminDemoPanel()
-    {
-        m_IsOpen = false;
-    }
-
-    void ~AdminDemoPanel()
-    {
-        Close();
-    }
-
-    void Open()
-    {
-        if (m_IsOpen)
-            return;
-
-        m_Root = GetGame().GetWorkspace().CreateWidgets("AdminDemo/GUI/layouts/admin_player_info.layout");
-        if (!m_Root)
-        {
-            Print("[AdminDemo] ERROR: Failed to load layout file!");
-            return;
-        }
-
-        m_RefreshButton   = ButtonWidget.Cast(m_Root.FindAnyWidget("RefreshButton"));
-        m_CloseButton     = ButtonWidget.Cast(m_Root.FindAnyWidget("CloseButton"));
-        m_PlayerCountText = TextWidget.Cast(m_Root.FindAnyWidget("PlayerCountText"));
-        m_PlayerListText  = TextWidget.Cast(m_Root.FindAnyWidget("PlayerListText"));
-
-        if (m_RefreshButton)
-            m_RefreshButton.SetHandler(this);
-
-        if (m_CloseButton)
-            m_CloseButton.SetHandler(this);
-
-        m_Root.Show(true);
-        m_IsOpen = true;
-
-        GetGame().GetMission().PlayerControlDisable(INPUT_EXCLUDE_ALL);
-        GetGame().GetUIManager().ShowUICursor(true);
-
-        Print("[AdminDemo] Panel opened.");
-    }
-
-    void Close()
-    {
-        if (!m_IsOpen)
-            return;
-
-        if (m_Root)
-        {
-            m_Root.Unlink();
-            m_Root = null;
-        }
-
-        m_IsOpen = false;
-
-        GetGame().GetMission().PlayerControlEnable(true);
-        GetGame().GetUIManager().ShowUICursor(false);
-
-        Print("[AdminDemo] Panel closed.");
-    }
-
-    bool IsOpen()
-    {
-        return m_IsOpen;
-    }
-
-    void Toggle()
-    {
-        if (m_IsOpen)
-            Close();
-        else
-            Open();
-    }
-
-    override bool OnClick(Widget w, int x, int y, int button)
-    {
-        if (w == m_RefreshButton)
-        {
-            OnRefreshClicked();
-            return true;
-        }
-
-        if (w == m_CloseButton)
-        {
-            Close();
-            return true;
-        }
-
-        return false;
-    }
-
-    protected void OnRefreshClicked()
-    {
-        Print("[AdminDemo] Refresh clicked, sending RPC to server...");
-
-        if (m_PlayerCountText)
-            m_PlayerCountText.SetText("Player Count: Loading...");
-
-        if (m_PlayerListText)
-            m_PlayerListText.SetText("Requesting data from server...");
-
-        Man player = GetGame().GetPlayer();
-        if (player)
-        {
-            Param1<bool> params = new Param1<bool>(true);
-            GetGame().RPCSingleParam(player, AdminDemoRPC.REQUEST_PLAYER_INFO, params, true);
-        }
-    }
-
-    void OnPlayerInfoReceived(int playerCount, string playerNames)
-    {
-        Print("[AdminDemo] Received player info: " + playerCount.ToString() + " players");
-
-        if (m_PlayerCountText)
-            m_PlayerCountText.SetText("Player Count: " + playerCount.ToString());
-
-        if (m_PlayerListText)
-            m_PlayerListText.SetText(playerNames);
-    }
-};
-```
-
-### AdminDemo/Scripts/5_Mission/AdminDemo/AdminDemoMission.c
-
-```c
-modded class MissionGameplay
-{
-    protected ref AdminDemoPanel m_AdminDemoPanel;
-
-    override void OnInit()
-    {
-        super.OnInit();
-
-        if (!m_AdminDemoPanel)
-            m_AdminDemoPanel = new AdminDemoPanel();
-
-        Print("[AdminDemo] Client mission initialized.");
-    }
-
-    override void OnMissionFinish()
-    {
-        if (m_AdminDemoPanel)
-        {
-            m_AdminDemoPanel.Close();
-            m_AdminDemoPanel = null;
-        }
-
-        super.OnMissionFinish();
-    }
-
-    override void OnKeyPress(int key)
-    {
-        super.OnKeyPress(key);
-
-        if (key == KeyCode.KC_F5)
-        {
-            if (m_AdminDemoPanel)
-                m_AdminDemoPanel.Toggle();
-        }
-    }
-
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        switch (rpc_type)
-        {
-            case AdminDemoRPC.RESPONSE_PLAYER_INFO:
-                HandlePlayerInfoResponse(ctx);
-                break;
-        }
-    }
-
-    protected void HandlePlayerInfoResponse(ParamsReadContext ctx)
-    {
-        Param2<int, string> data = new Param2<int, string>(0, "");
-        if (!ctx.Read(data))
-        {
-            Print("[AdminDemo] ERROR: Failed to read player info response!");
-            return;
-        }
-
-        int playerCount = data.param1;
-        string playerNames = data.param2;
-
-        Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
-
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
-    }
-};
+                AdminDemoPanel.c                     # Step 3 (panel + widgets)
+                AdminDemoMission.c                   # Step 7 (mission hooks + client receiver)
 ```
 
 ---
@@ -1146,13 +891,14 @@ Here is the exact sequence of events when the admin presses F5 and clicks Refres
 4. [SERVER] PlayerBase.OnRPC() fires
    --> rpc_type matches REQUEST_PLAYER_INFO
    --> HandlePlayerInfoRequest(sender) is called
+   --> AdminDemoConfig.IsAdmin(sender) gate: non-admins are rejected here
    --> Server iterates all connected players
    --> Builds player count and name list
    --> RPCSingleParam sends RESPONSE_PLAYER_INFO (78002) back to client
 
 5. [NETWORK] RPC travels from server to client
 
-6. [CLIENT] MissionGameplay.OnRPC() fires
+6. [CLIENT] DayZGame.OnRPC() fires (target is null, so its switch runs)
    --> rpc_type matches RESPONSE_PLAYER_INFO
    --> HandlePlayerInfoResponse(ctx) is called
    --> Data is deserialized from ParamsReadContext
@@ -1188,7 +934,7 @@ Total time: typically under 100ms on a local network.
 
 - **Check the recipient parameter:** The fifth parameter of `RPCSingleParam` must be the `PlayerIdentity` of the target client.
 - **Check Param type matching:** Server sends `Param2<int, string>`, client reads `Param2<int, string>`. A type mismatch causes `ctx.Read()` to fail.
-- **Check MissionGameplay.OnRPC override:** Make sure you call `super.OnRPC()` and the method signature is correct.
+- **Check DayZGame.OnRPC override:** Make sure you call `super.OnRPC()`, the method signature is correct, and the server sent the response with a `null` target (otherwise the engine routes it to the target's `OnRPC` and `DayZGame`'s switch never runs).
 
 ### UI Shows But Data Does Not Update
 
@@ -1201,9 +947,9 @@ Total time: typically under 100ms on a local network.
 ## Next Steps
 
 1. **[Chapter 8.4: Adding Chat Commands](04-chat-commands.md)** -- Create server-side chat commands for admin operations.
-2. **Add permissions** -- Check if the requesting player is an admin before processing RPCs.
-3. **Add more features** -- Extend the panel with tabs for weather control, player teleport, item spawning.
-4. **Use a framework** -- Frameworks like MyMod Core provide built-in RPC routing, config management, and admin panel infrastructure that eliminates much of this boilerplate.
+2. **Move the admin list into a config file** -- This tutorial hard-codes the whitelist in `AdminDemoConfig`. Load it from a JSON file instead so admins can be added without recompiling. See [Config and Persistence](../07-patterns/04-config-persistence.md), and [Permissions](../07-patterns/05-permissions.md) for role-based checks beyond a flat allow-list.
+3. **Add more features** -- Extend the panel with tabs for weather control, player teleport, item spawning. Gate each new server action behind the same `IsAdmin` check.
+4. **Use a framework** -- A framework like **Lantern Core** -- the teaching example built across [Part 7](../07-patterns/03-rpc-patterns.md) of this wiki -- wraps this boilerplate in a reusable RPC router, config manager, permission layer, and admin-panel base, so a new panel is a few lines instead of six files.
 5. **Style the UI** -- Learn about widget styles, imagesets, and fonts in [Chapter 3: GUI System](../03-gui-system/01-widget-types.md).
 
 ---
@@ -1237,10 +983,4 @@ In this tutorial you learned:
 - How to send RPCs from client to server and back using `RPCSingleParam` and `Param` classes
 - The full client-server-client roundtrip pattern used by every networked admin tool
 - How to register the panel in `MissionGameplay` with proper lifecycle management
-
-**Next:** [Chapter 8.4: Adding Chat Commands](04-chat-commands.md)
-
----
-
-**Previous:** [Chapter 8.2: Creating a Custom Item](02-custom-item.md)
-**Next:** [Chapter 8.4: Adding Chat Commands](04-chat-commands.md)
+- How to gate a server-side admin action behind a whitelist so a modified client cannot bypass it

@@ -1,6 +1,5 @@
 # 7.2. fejezet: Modul / Plugin rendszerek
 
-[Kezdőlap](../README.md) | [<< Előző: Singleton minta](01-singletons.md) | **Modul / Plugin rendszerek** | [Következő: RPC minták >>](03-rpc-patterns.md)
 
 ---
 
@@ -219,18 +218,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Regisztráció
 
-A VPP a pluginokat a modolt `MissionServer.OnInit()`-ben regisztrálja:
+A VPP a pluginokat a vanília `PluginManager.Init()` modolásával regisztrálja. A `RegisterPlugin` a plugin osztálynevét veszi át stringként, plusz a kliens/szerver flageket (nem vesz át `new` példányt):
 
 ```c
 // VPP minta
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+A menedzser maga példányosítja minden regisztrált plugint. Egy futó plugin máshonnan való lekéréséhez használd a `GetPluginManager().GetPluginByType(VPPESPPlugin)`-t vagy a globális `GetPlugin(VPPESPPlugin)`-t.
 
 ### Kulcsjellemzők
 
-- **Kézi regisztráció**: minden plugin kifejezetten `new`-val jön létre és regisztrálva van
+- **Kézi regisztráció**: minden plugin osztálynév szerint kerül regisztrálásra a `PluginManager.Init()`-ben; a menedzser példányosítja
 - **Konfiguráció integráció**: a `ConfigurablePlugin` egyesíti a konfigurációkezelést a modul életciklusával
 - **Önálló**: nincs CF függőség; a VPP plugin menedzsere a saját rendszere
 - **Egyértelmű tulajdonlás**: a plugin menedzser `ref`-et tart az összes pluginra, vezérelve azok élettartamát
@@ -532,7 +541,7 @@ override void OnMissionFinish()
 | **Konfiguráció integráció** | Külön | Beépítve a ConfigurablePlugin-be | Külön | MyConfigManager-en keresztül |
 | **Update diszpécselés** | Automatikus | A menedzser hívja az `OnUpdate`-et | Automatikus | A menedzser hívja az `OnUpdate`-et |
 | **Takarítás** | CF kezeli | Kézi `OnDestroy` | CF kezeli | `MyModuleManager.Cleanup()` |
-| **Mod-közi hozzáférés** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Mod-közi hozzáférés** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Válaszd azt a megközelítést, amely illeszkedik a modod függőségi profiljához. Ha már függsz a CF-től, használd a `CF_ModuleCore`-t. Ha nulla külső függőséget szeretnél, építsd meg a saját rendszered az egyéni menedzser vagy VPP minta alapján.
 
@@ -568,7 +577,3 @@ Válaszd azt a megközelítést, amely illeszkedik a modod függőségi profilj�
 | A moduloknak futásidőben cserélhetőnek kell lenniük | A DayZ nem támogatja a szkriptek menet közbeni újratöltését; a modulok a teljes küldetés életciklus alatt élnek |
 | Használj interfészeket a modul szerződésekhez | Az Enforce Scriptben nincs `interface` kulcsszó; használj alaposztály virtuális metódusokat (`override`) helyette |
 | A függőséginjektálás szétválasztja a modulokat | Nem létezik DI keretrendszer; használj menedzser kereséseket és `#ifdef` védelmeket az opcionális mod-közi függőségekhez |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Singleton minta](01-singletons.md) | **Modul / Plugin rendszerek** | [Következő: RPC minták >>](03-rpc-patterns.md)

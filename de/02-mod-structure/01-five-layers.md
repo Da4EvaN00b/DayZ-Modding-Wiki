@@ -1,6 +1,5 @@
 # Kapitel 2.1: Die 5-Schichten-Skript-Hierarchie
 
-[Startseite](../README.md) | **Die 5-Schichten-Skript-Hierarchie** | [Weiter: config.cpp im Detail >>](02-config-cpp.md)
 
 ---
 
@@ -172,9 +171,9 @@ Low-Level-Engine-Bibliotheksbindungen. Diese Schicht existiert in der Vanilla-Sk
 **DabsFramework** ist eine der wenigen Mods, die diese Schicht verwenden:
 
 ```c
-// 2_GameLib/DabsFramework/MVC/ScriptView.c
-// Low-Level-View-Binding-Infrastruktur
-class ScriptView : ScriptedWidgetEventHandler
+// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
+// Low-Level-Attribut-Binding-Infrastruktur
+class ConfigEntryAttribute : AttributeBase
 {
     // ...
 };
@@ -226,17 +225,6 @@ class JMRPCData
     static const int WEATHER_SET  = 0x1001;
     static const int PLAYER_HEAL  = 0x1002;
     // ...
-};
-```
-
-**VPP Admin Tools** registriert seine Chat-Befehle:
-
-```c
-// 3_Game/VPPAdminTools/ChatCommands/ChatCommandBase.c
-class ChatCommandBase
-{
-    string GetCommand();
-    bool Execute(PlayerIdentity sender, array<string> args);
 };
 ```
 

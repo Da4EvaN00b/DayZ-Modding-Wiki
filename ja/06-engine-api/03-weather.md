@@ -1,6 +1,5 @@
 # 第6.3章: 天候システム
 
-[ホーム](../README.md) | [<< 前へ: 車両](02-vehicles.md) | **天候** | [次へ: カメラ >>](04-cameras.md)
 
 ---
 
@@ -45,7 +44,7 @@ class WeatherPhenomenon
     // 現在の状態
     proto native float GetActual();          // 現在の補間値（ほとんどの場合 0.0 - 1.0）
     proto native float GetForecast();        // 補間先の目標値
-    proto native float GetDuration();        // 現在の予報が持続する時間（秒）
+    proto native float GetNextChange();      // 次の予報が計算されるまでの秒数
 
     // 予報の設定（サーバーのみ）
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +52,17 @@ class WeatherPhenomenon
     // time:     その値への補間にかかる秒数（0 = 即時）
     // minDuration: 自動変更前に値が保持される最小時間
 
-    // 制限
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // 制限（現在値は常に [fnMin, fnMax] の範囲内に保たれる）
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // 変化速度の制限（現象の変化速度の上限）
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // 予報時間の制限（次の予報が計算される秒数の範囲。デフォルトは 300-3600）
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // 変化量の制限
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // 予報変化量の制限（再計算ごとに予報値が変化できる量。デフォルトは 0-1）
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +173,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 天候の手動制御（自動天候ステートマシンを無効化）を行うには、以下を呼び出します。
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 `MissionWeather(true)` を呼び出すと、エンジンは自動天候遷移を停止し、スクリプト駆動の `Set()` 呼び出しのみが天候を制御します。
@@ -229,7 +229,7 @@ serverTimeAcceleration = 12;      // 実時間の12倍
 serverNightTimeAcceleration = 4;  // 夜間は4倍加速
 ```
 
-スクリプトでは現在の時間倍率を読み取ることはできますが、通常ランタイムでは変更できません。
+スクリプトでは、`GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)` を使ってランタイムで時間加速を変更できます（主にデバッグ用途）。`timeMultiplier` は 0-64 の加速値です（または `-1` で設定ファイルの値にリセット）。現在の倍率を取得するスクリプトのゲッターはありません。
 
 ---
 
@@ -240,7 +240,7 @@ serverNightTimeAcceleration = 4;  // 夜間は4倍加速
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +250,19 @@ class WorldData
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // スクリプトが現象の状態を変更した場合は true を返す。
+    // エンジンが計算した変化を適用させる場合は false を返す。
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // 雨が0.5を超えるのを防ぐ
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

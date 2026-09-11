@@ -1,6 +1,5 @@
 # Chapter 9.1: Konfiguracja serwera i pierwszy start
 
-[Strona glowna](../README.md) | **Konfiguracja serwera** | [Dalej: Struktura katalogow >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Wlaczenie logowania serwera |
 | `-adminlog` | Logowanie akcji administratora |
 | `-netlog` | Logowanie zdarzen sieciowych |
-| `-freezecheck` | Auto-restart po wykryciu zawieszenia |
+| `-freezecheck` | Zatrzymuje serwer i zapisuje zrzut awaryjny, gdy jest zawieszony przez ponad 5 minut |
 
 ### Krok 3: Oczekiwanie na inicjalizacje
 
@@ -226,7 +225,7 @@ Otworz Steam, przejdz do **Widok > Serwery gier > Ulubione**, kliknij **Dodaj se
 
 ### Metoda 4: Port zapytan
 
-Uzyj zewnetrznego narzedzia, takiego jak https://www.battlemetrics.com/ lub pakietu npm `gamedig`, aby odpytac port 27016 (port zapytan Steam = port gry + 24714).
+Uzyj zewnetrznego narzedzia, takiego jak https://www.battlemetrics.com/ lub pakietu npm `gamedig`, aby odpytac port zapytan Steam. Domyslnie jest to **2305 UDP** (konfigurowalny przez `steamQueryPort` w `serverDZ.cfg`), a nie port gry.
 
 ---
 
@@ -300,7 +299,3 @@ To jest normalne. Serwer DayZ jest jednowatkowy. Nie uruchamiaj wielu instancji 
 ```cpp
 template = "dayzOffline.chernarusplus";  // Musi odpowiadac nazwie folderu w mpmissions/
 ```
-
----
-
-**[Strona glowna](../README.md)** | **Dalej:** [Struktura katalogow >>](02-directory-structure.md)

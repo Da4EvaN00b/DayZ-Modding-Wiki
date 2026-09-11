@@ -1,6 +1,5 @@
 # Chapter 1.11: Error Handling
 
-[Home](../README.md) | [<< Previous: Enums & Preprocessor](10-enums-preprocessor.md) | **Error Handling** | [Next: Gotchas >>](12-gotchas.md)
 
 ---
 
@@ -790,11 +789,3 @@ override void OnUpdate(float timeslice)
 | notnull | Compiler controllo null | `void Fn(notnull Class obj)` |
 
 **La regola d'oro:** In Enforce Script, assume everything can be null and every operation can fail. Controlla first, act second, log always.
-
----
-
-## Navigazione
-
-| Precedente | Up | Successivo |
-|----------|----|------|
-| [1.10 Enums & Preprocessor](10-enums-preprocessor.md) | [Part 1: Enforce Script](../README.md) | [1.12 What Does NOT Exist](12-gotchas.md) |

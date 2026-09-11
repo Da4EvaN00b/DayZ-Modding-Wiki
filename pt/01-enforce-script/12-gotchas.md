@@ -1,6 +1,5 @@
-# Chapter 1.12: What Does NOT Exist (Gotchas)
+# What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -601,27 +600,27 @@ class EntityContainer<Class T>
 
 **O que voce escreveria:**
 ```c
-EDamageState state = (EDamageState)999;  // Expect error or exception
+DamageType type = (DamageType)999;  // Expect error or exception
 ```
 
 **O que acontece:** Sem erro. Qualquer valor `int` pode ser atribuido a uma variavel enum, mesmo valores fora do intervalo definido.
 
 **Solucao correta:** Valide manualmente:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // fallback
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // fallback
 }
 ```
 
@@ -1215,11 +1214,3 @@ Se voce e um desenvolvedor C++, aqui estao os maiores ajustes:
 | `IsClient()` durante carregamento | Retorna false | Use `IsDedicatedServer()` |
 | Erro de compilacao em arquivo errado | Local enganoso | Verifique arquivo parseado apos o reportado |
 | Arquivos `crash_*.log` | Nao sao crashes reais | Sao excecoes de script em tempo de execucao |
-
----
-
-## Navegacao
-
-| Anterior | Acima | Proximo |
-|----------|-------|---------|
-| [1.11 Tratamento de Erros](11-error-handling.md) | [Parte 1: Enforce Script](../README.md) | [Parte 2: Estrutura de Mods](../02-mod-structure/01-five-layers.md) |

@@ -1,6 +1,5 @@
 # 第7.4章：配置持久化
 
-[首页](../README.md) | [<< 上一章：RPC 模式](03-rpc-patterns.md) | **配置持久化** | [下一章：权限系统 >>](05-permissions.md)
 
 ---
 
@@ -121,7 +120,7 @@ class SettingsManager
 | `string` | 字符串 |
 | `vector` | 3 个数字的数组 |
 | `array<T>` | JSON 数组 |
-| `map<string, T>` | JSON 对象（仅字符串键） |
+| `map<K, T>` | JSON 对象（`K` 可以是 `string`、`int` 或 `enum`；JSON 将所有键渲染为字符串） |
 | 嵌套类 | 嵌套 JSON 对象 |
 
 ### 嵌套对象
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | 使用异步文件 I/O 以避免阻塞 | Enforce Script 没有异步文件 I/O；所有读/写都是同步的。在启动时加载，在计时器上保存。 |
 | 使用 schema 验证 JSON | 不存在 JSON schema 验证；在 `OnAfterLoad()` 中或加载后使用保护子句验证字段。 |
 | 使用数据库存储结构化数据 | Enforce Script 无法访问数据库；`$profile:` 中的 JSON 文件是唯一的持久化机制。 |
-
----
-
-[首页](../README.md) | [<< 上一章：RPC 模式](03-rpc-patterns.md) | **配置持久化** | [下一章：权限系统 >>](05-permissions.md)

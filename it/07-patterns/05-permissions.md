@@ -1,6 +1,5 @@
 # Capitolo 7.5: Sistemi di Permessi
 
-[Home](../README.md) | [<< Precedente: Persistenza Configurazione](04-config-persistence.md) | **Sistemi di Permessi** | [Successivo: Architettura Event-Driven >>](06-events.md)
 
 ---
 
@@ -650,7 +649,3 @@ Questo è un pattern comune usato per migrare dall'array flat `AdminUIDs` origin
 | Usa RBAC (controllo accesso basato su ruoli) con ereditarietà dei gruppi | Solo CF/COT supporta permessi a tre stati; la maggior parte dei mod usa concessioni flat per-giocatore per semplicità |
 | I permessi dovrebbero essere archiviati in un database | Nessun accesso database; i file JSON in `$profile:` sono l'unica opzione |
 | Usa token crittografici per l'autorizzazione | Nessuna libreria crittografica in Enforce Script; la fiducia si basa su `PlayerIdentity.GetPlainId()` (ID Steam64) verificato dal motore |
-
----
-
-[Home](../README.md) | [<< Precedente: Persistenza Configurazione](04-config-persistence.md) | **Sistemi di Permessi** | [Successivo: Architettura Event-Driven >>](06-events.md)

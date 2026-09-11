@@ -1,6 +1,5 @@
 # 第 6.11 章：任务钩子
 
-[首页](../README.md) | [<< 上一章：中央经济](10-central-economy.md) | **任务钩子** | [下一章：动作系统 >>](12-action-system.md)
 
 ---
 
@@ -39,8 +38,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) 循环"]
+    E --> G["OnUpdate(timeslice) 循环"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["析构函数：~MissionServer()"]
@@ -58,8 +56,7 @@ flowchart TD
     A["引擎创建 MissionGameplay"] --> B["构造函数：MissionGameplay()"]
     B --> C["OnInit()——HUD、聊天、动作菜单"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) 循环"]
+    D --> F["OnUpdate(timeslice) 循环"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["析构函数：~MissionGameplay()"]
@@ -82,7 +79,6 @@ flowchart TD
 |--------|-----------|---------------|
 | `OnInit` | `void OnInit()` | 构造函数之后，任务启动之前。主要设置点。 |
 | `OnMissionStart` | `void OnMissionStart()` | OnInit 之后。任务世界已激活。 |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | OnMissionStart 之后。所有原版系统已初始化。 |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | 服务器：游戏数据（cfggameplay.json）加载后。 |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | 每帧。`timeslice` 是自上一帧以来的秒数（通常 0.016-0.033）。 |
 | `OnMissionFinish` | `void OnMissionFinish()` | 关闭或断开连接时。在此清理所有内容。 |
@@ -111,7 +107,7 @@ flowchart TD
 | `IsPaused` | `bool IsPaused()` | 游戏是否暂停（单人/监听服务器）。 |
 | `IsServer` | `bool IsServer()` | MissionServer 为 `true`，MissionGameplay 为 `false`。 |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | MissionGameplay 为 `true`，MissionServer 为 `false`。 |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | 禁用后重新启用玩家输入。 |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | 禁用后重新启用玩家输入。（原版中已弃用。） |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | 禁用玩家输入（例如 `INPUT_EXCLUDE_ALL`）。 |
 | `IsControlDisabled` | `bool IsControlDisabled()` | 玩家控制是否当前被禁用。 |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | 返回当前输入排除模式。 |
@@ -190,7 +186,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // 原版转发到 Hud.KeyPress(key)
-    // key 值是 KeyCode 常量（例如 KeyCode.KC_F1 = 59）
+    // key 值是 KeyCode 常量（例如 KeyCode.KC_F1 = 58）
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +197,11 @@ override void OnKeyRelease(int key)
 
 ### 事件钩子
 
-原版 `MissionGameplay.OnEvent()` 处理 `ChatMessageEventTypeID`（添加到聊天控件）、`ChatChannelEventTypeID`（更新频道指示器）、`WindowsResizeEventTypeID`（重建菜单/HUD）、`SetFreeCameraEventTypeID`（调试相机）和 `VONStateEventTypeID`（语音状态）。使用相同的 `switch` 模式重写它并始终调用 `super.OnEvent()`。
+原版 `MissionGameplay.OnEvent()` 处理 `ChatMessageEventTypeID`（添加到聊天控件）、`ChatChannelEventTypeID`（更新频道指示器）、`WindowsResizeEventTypeID`（重建菜单/HUD）、`SetFreeCameraEventTypeID`（调试相机）和 `NetworkInputBufferEventTypeID`（网络输入缓冲区）。使用相同的 `switch` 模式重写它并始终调用 `super.OnEvent()`。
 
 ### 输入控制
 
-`PlayerControlDisable(int mode)` 激活输入排除组（例如 `INPUT_EXCLUDE_ALL`、`INPUT_EXCLUDE_INVENTORY`）。`PlayerControlEnable(bool bForceSuppress)` 移除它。这些映射到 `specific.xml` 中定义的排除组。如果你的模组需要自定义输入排除行为（如 Expansion 为其菜单所做的），请重写它们。
+`PlayerControlDisable(int mode)` 激活输入排除组（例如 `INPUT_EXCLUDE_ALL`、`INPUT_EXCLUDE_INVENTORY`）。`PlayerControlEnable(bool bForceSupress)` 移除它。这些映射到 `specific.xml` 中定义的排除组。两者在原版中都标记为 `//!deprecated`；当前 API 是 `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()`。如果你的模组需要自定义输入排除行为（如 Expansion 为其菜单所做的），请重写它们。
 
 ---
 
@@ -467,8 +463,7 @@ modded class MissionServer
 | 创建 HUD 元素 | `OnInit()` | `MissionGameplay` |
 | 服务器关闭时清理 | `OnMissionFinish()` | `MissionServer` |
 | 客户端断开时清理 | `OnMissionFinish()` | `MissionGameplay` |
-| 所有系统加载后运行一次代码 | `OnMissionLoaded()` | 两者均可 |
-| 禁用/启用玩家输入 | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| 禁用/启用玩家输入 | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -479,7 +474,6 @@ modded class MissionServer
 | 构造函数 | 是 | 是 | 每侧不同的类 |
 | `OnInit()` | 是 | 是 | |
 | `OnMissionStart()` | 是 | 是 | |
-| `OnMissionLoaded()` | 是 | 是 | |
 | `OnGameplayDataHandlerLoad()` | 是 | 否 | cfggameplay.json 已加载 |
 | `OnUpdate(timeslice)` | 是 | 是 | 两者运行自己的帧循环 |
 | `OnMissionFinish()` | 是 | 是 | |
@@ -503,15 +497,14 @@ modded class MissionServer
 
 ---
 
-## OnInit 与 OnMissionStart 与 OnMissionLoaded
+## OnInit 与 OnMissionStart
 
 | 钩子 | 时机 | 用途 |
 |------|------|---------|
 | `OnInit()` | 第一。脚本模块已加载，世界尚未激活。 | 创建管理器、注册 RPC、加载配置。 |
 | `OnMissionStart()` | 第二。世界已激活，可以生成实体。 | 生成实体、启动游戏系统、创建触发器。 |
-| `OnMissionLoaded()` | 第三。所有原版系统已完全初始化。 | 跨模组查询、依赖于所有内容就绪的最终化。 |
 
-始终在所有三个上调用 `super`。使用 `OnInit` 作为主要初始化点。仅当你需要保证其他模组已经初始化时才使用 `OnMissionLoaded`。
+始终在两者上都调用 `super`。使用 `OnInit` 作为主要初始化点，使用 `OnMissionStart` 处理任何需要世界处于激活状态的工作（生成实体、创建触发器）。
 
 ---
 
@@ -555,7 +548,7 @@ override void OnInit()                      override void OnInit()
 | Mission 层次结构 | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | 服务器类 | `MissionServer`——处理玩家连接、生成、定时调度 |
 | 客户端类 | `MissionGameplay`——处理 HUD、输入、聊天、菜单 |
-| 生命周期顺序 | 构造函数 > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > `OnUpdate()` 循环 > `OnMissionFinish()` > 析构函数 |
+| 生命周期顺序 | 构造函数 > `OnInit()` > `OnMissionStart()` > `OnUpdate()` 循环 > `OnMissionFinish()` > 析构函数 |
 | 玩家加入（服务器） | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | 玩家离开（服务器） | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | 钩入模式 | `modded class MissionServer/MissionGameplay` 配合 `override` 和 `super` 调用 |
@@ -585,7 +578,3 @@ override void OnInit()                      override void OnInit()
 | `StartingEquipSetup` 重写用于自定义初始装备 | 多个社区模组 | MissionServer 初始装备钩子 |
 | 在 `super` 之前的 `OnEvent` 拦截以阻止被封禁玩家 | COT | MissionServer 中的封禁系统 |
 | `OnMissionFinish` 清理配合控件 `Unlink()` 和置空赋值 | Expansion | HUD 和菜单清理 |
-
----
-
-[首页](../README.md) | [<< 上一章：中央经济](10-central-economy.md) | **任务钩子** | [下一章：动作系统 >>](12-action-system.md)

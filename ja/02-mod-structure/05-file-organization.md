@@ -1,6 +1,5 @@
 # 第2.5章: ファイル構成のベストプラクティス
 
-[ホーム](../README.md) | [<< 前へ: 最小限のMOD](04-minimum-viable-mod.md) | **ファイル構成** | [次へ: サーバーvsクライアントアーキテクチャ >>](06-server-client-split.md)
 
 ---
 
@@ -134,8 +133,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPPパターン: [名前]（プレフィックスなし）
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **ルール:**
@@ -532,7 +531,7 @@ JM/COT/
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -542,18 +541,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- レイヤー2を使用するまれなMODの1つ
     3_Game/
     4_World/
     5_Mission/
 ```
 
-注: DabsFrameworkは小文字のフォルダ名（`scripts/`、`gui/`）を使用します。これはWindowsでは大文字小文字を区別しないため動作しますが、Linuxでは問題を引き起こす可能性があります。規則では標準的な大文字（`Scripts/`、`GUI/`）を使用します。
+注: DabsFrameworkの物理フォルダは標準的な大文字（`Scripts/`、`GUI/`、`1_Core/`）を使用していますが、`config.cpp` の `files[]` パスはそれらを小文字（`DabsFramework/scripts/1_core`、`DabsFramework/gui/...`）で参照しています。この大文字小文字の不一致はWindowsでは大文字小文字を区別しないため動作しますが、Linuxでは問題を引き起こす可能性があります。`files[]` パスは実際のフォルダの大文字小文字と一致させてください。
 
 ---
 
@@ -672,7 +671,7 @@ MODを公開する前に確認してください:
 |---------|-----|--------|
 | `3_Game` の深いサブシステムフォルダ | StarDZ Core | `3_Game/` 下に15以上のフォルダ（Config、RPC、Events、Logging、Permissionsなど） |
 | `Common/` 共有フォルダ | COT | すべてのスクリプトモジュールの `files[]` に含まれ、レイヤー横断のユーティリティ型を提供 |
-| 小文字のフォルダ名 | DabsFramework | `Scripts/`、`GUI/` の代わりに `scripts/`、`gui/` を使用 -- Windowsでは動作するがLinuxでは問題のリスク |
+| `files[]` 内の小文字パス | DabsFramework | 物理フォルダは `Scripts/`、`GUI/` だが、`config.cpp` の `files[]` はそれらを小文字（`scripts/`、`gui/`、`1_core`）で参照 -- Windowsでは動作するがLinuxでは問題のリスク |
 | 別のGUI PBO | Expansion、COT | GUIリソース（レイアウト、imagesets、スタイル）を独自のconfig.cppを持つ専用PBOにパック |
 | コンテンツMODの最小限のScripts | 武器パック | `Data/` ディレクトリが支配的。`Scripts/` には薄いconfig.cppとオプションの動作オーバーライドのみ |
 

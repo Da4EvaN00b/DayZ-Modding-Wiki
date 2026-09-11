@@ -1,6 +1,5 @@
 # Chapitre 3.8 : Dialogues et fenêtres modales
 
-[Accueil](../README.md) | [<< Précédent : Styles, polices et images](07-styles-fonts.md) | **Dialogues et fenêtres modales** | [Suivant : Patrons d'UI de vrais mods >>](09-real-mod-patterns.md)
 
 ---
 
@@ -631,7 +630,7 @@ class InputDialog : ScriptedWidgetEventHandler
         if (w == m_BtnOk)
         {
             string text = m_InputBox.GetText();
-            text.Trim();
+            text.TrimInPlace();
 
             if (text == "")
             {

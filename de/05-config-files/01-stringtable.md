@@ -1,6 +1,5 @@
 # Chapter 5.1: stringtable.csv --- Localization
 
-[Home](../README.md) | **stringtable.csv** | [Next: inputs.xml >>](02-inputs-xml.md)
 
 ---
 
@@ -368,14 +367,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP uses a reduced column set (13 columns, no `hungarian` column) and does not prefix keys with `STR_`:
+VPP uses a reduced column set (14 columns, no `hungarian` column) and does not prefix keys with `STR_`:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-This demonstrates that the `STR_` prefix is a convention, not a requirement. However, omitting it means you cannot use the `#` prefix resolution in layout files. VPP references these keys only through script code. The `STR_` prefix is strongly recommended for all new mods.
+This demonstrates that the `STR_` prefix is a convention, not a requirement. The `#` prefix resolution in layout files works with any key in the stringtable --- it does not depend on the `STR_` prefix. VPP references these keys via the `loc` attribute in its inputs.xml (e.g. `loc="vpp_focus_on_game"`) as well as through script code. The `STR_` prefix is still strongly recommended for all new mods.
 
 ### MyMissions Mod
 

@@ -1,6 +1,5 @@
 # Kapitel 1.12: Was NICHT existiert (Fallstricke)
 
-[Startseite](../README.md) | [<< Zurück: Fehlerbehandlung](11-error-handling.md) | **Fallstricke** | [Weiter: Funktionen & Methoden >>](13-functions-methods.md)
 
 ---
 
@@ -595,27 +594,27 @@ class EntityContainer<Class T>
 
 **Was Sie schreiben würden:**
 ```c
-EDamageState state = (EDamageState)999;  // Fehler oder Ausnahme erwarten
+DamageType type = (DamageType)999;  // Fehler oder Ausnahme erwarten
 ```
 
 **Was passiert:** Kein Fehler. Jeder `int`-Wert kann einer Enum-Variable zugewiesen werden, auch Werte ausserhalb des definierten Bereichs.
 
 **Korrekte Lösung:** Manuell validieren:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Ungültiger Schadenszustand: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // Fallback
+    Print("Ungültiger Schadenstyp: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // Fallback
 }
 ```
 
@@ -1209,11 +1208,3 @@ Wenn Sie C++-Entwickler sind, hier die größten Umstellungen:
 | `IsClient()` während des Ladens | Gibt false zurück | `IsDedicatedServer()` verwenden |
 | Kompilierfehler falsche Datei | Irreführender Ort | Datei prüfen, die nach der gemeldeten geparst wird |
 | `crash_*.log`-Dateien | Keine echten Abstürze | Es sind Laufzeit-Script-Ausnahmen |
-
----
-
-## Navigation
-
-| Zurück | Hoch | Weiter |
-|----------|----|------|
-| [1.11 Fehlerbehandlung](11-error-handling.md) | [Teil 1: Enforce Script](../README.md) | [1.13 Funktionen & Methoden](13-functions-methods.md) |

@@ -1,6 +1,5 @@
 # 第 4.3 章：材质 (.rvmat)
 
-[首页](../README.md) | [<< 上一章：3D 模型](02-models.md) | **材质** | [下一章：音频 >>](04-audio.md)
 
 ---
 
@@ -83,9 +82,9 @@ class Stage1                               // 纹理阶段：法线贴图
     };
 };
 
-class Stage2                               // 纹理阶段：漫反射/颜色贴图
+class Stage2                               // 纹理阶段：细节贴图（基础 _co 颜色来自模型纹理 / hiddenSelectionsTextures[]，而非某个 Stage）
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -138,24 +137,29 @@ class Stage3                               // 纹理阶段：高光/金属贴图
 | **Super** | 标准不透明表面（武器、服装、物品） | 法线、漫反射、高光/金属 |
 | **Multi** | 多层地形和复杂表面 | 多个漫反射/法线对 |
 | **Glass** | 透明和半透明表面 | 带 Alpha 的漫反射 |
-| **Water** | 带反射和折射的水面 | 特殊水纹理 |
-| **Terrain** | 地形地面表面 | 卫星、遮罩、材质层 |
+| **CalmWater** | 带反射和折射的水面 | 特殊水纹理 |
+| **TerrainX** | 地形地面表面（像素着色器；对应的顶点着色器是 `Terrain`） | 卫星、遮罩、材质层 |
 | **NormalMap** | 简化的法线映射表面 | 法线、漫反射 |
-| **NormalMapSpecular** | 带高光的法线映射 | 法线、漫反射、高光 |
-| **Hair** | 角色头发渲染 | 带 Alpha 的漫反射，特殊半透明 |
+| **NormalMapSpecularMap** | 带高光的法线映射 | 法线、漫反射、高光 |
+| **SuperHair** | 角色头发渲染 | 带 Alpha 的漫反射，特殊半透明 |
 | **Skin** | 带次表面散射的角色皮肤 | 漫反射、法线、高光 |
-| **AlphaTest** | 硬边缘透明度（植被、栅栏） | 带 Alpha 的漫反射 |
-| **AlphaBlend** | 平滑透明度（玻璃、烟雾） | 带 Alpha 的漫反射 |
+| **AlphaShadow / AlphaNoShadow** | Alpha 键控透明度（植被、栅栏），可投射或不投射阴影 | 带 Alpha 的漫反射 |
 
 ### Super 着色器（最常用）
 
-**Super** 着色器是 DayZ 中绝大多数物品使用的标准物理渲染着色器。它期望三个纹理阶段：
+**Super** 着色器是 DayZ 中绝大多数物品使用的标准物理渲染着色器。它期望这些核心纹理阶段（与真实的原版 rvmat 相符，例如 `DZ\weapons\ammunition\data\00buck_box.rvmat`）：
 
 ```
 Stage1 = 法线贴图 (_nohq)
-Stage2 = 漫反射/颜色贴图 (_co)
-Stage3 = 高光/金属贴图 (_smdi)
+Stage2 = 细节贴图 (_dt)
+Stage3 = 宏观贴图 (_mc)
+Stage4 = 环境阴影 (_as)
+Stage5 = 高光/金属贴图 (_smdi)
+Stage6 = Fresnel (_fr)
+Stage7 = 环境贴图 (_env)
 ```
+
+基础颜色（`_co`）在 Super 着色器中不是通过 Stage 分配的——它来自模型的基础纹理或 `hiddenSelectionsTextures[]`。
 
 如果你正在创建模组物品（武器、服装、工具、容器），你几乎总是会使用 Super 着色器。
 
@@ -193,7 +197,7 @@ RVMAT 中的每个 `Stage` 类将纹理分配给特定的着色器输入。阶�
 | 阶段 | 纹理角色 | 典型后缀 | 说明 |
 |-------|-------------|----------------|-------------|
 | **Stage1** | 法线贴图 | `_nohq` | 表面细节、凹凸、凹槽 |
-| **Stage2** | 漫反射 / 颜色贴图 | `_co` 或 `_ca` | 表面的基础颜色 |
+| **Stage2** | 细节贴图 | `_dt` | 精细表面细节（基础 `_co` 颜色由模型的基础纹理 / `hiddenSelectionsTextures[]` 提供，而非由某个 Stage 提供） |
 | **Stage3** | 高光 / 金属贴图 | `_smdi` | 光泽度、金属属性、细节 |
 | **Stage4** | 环境阴影 | `_as` | 预烘焙环境光遮蔽（可选） |
 | **Stage5** | 宏观贴图 | `_mc` | 大尺度颜色变化（可选） |
@@ -267,10 +271,10 @@ emmisive[] = {0.2, 0.8, 0.2, 1.0};   // 绿色发光
 对于应从两面可见的薄表面（旗帜、植被、布料）：
 
 ```cpp
-renderFlags[] = {"noZWrite", "noAlpha", "twoSided"};
+renderFlags[] = {"NoZWrite"};
 ```
 
-这不是顶层 RVMAT 属性，而是在 config.cpp 中或通过材质的着色器设置配置，取决于使用场景。
+`renderFlags[]` 是一个顶层 RVMAT 属性（与 `ambient[]` 和 `PixelShaderID` 同级）。原版的值采用 PascalCase 形式，例如 `"NoZWrite"`、`"NoAlphaWrite"`、`"NoColorWrite"` 和 `"AddBlend"`。不存在 `"twoSided"` 标志——双面渲染是在别处控制的（例如在 Object Builder 的面属性中），而不是通过 `renderFlags[]`。
 
 ---
 
@@ -285,15 +289,25 @@ class MyItem: Inventory_Base
 {
     // ... 其他配置 ...
 
-    healthLevels[] =
+    class DamageSystem
     {
-        // {健康阈值, {"材质集"}},
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    // {健康阈值, {"材质集"}},
 
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // 全新（100% 健康）
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // 磨损（70% 健康）
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // 受损（50% 健康）
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// 严重受损（30% 健康）
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // 损毁（0% 健康）
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // 全新（100% 健康）
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // 磨损（70% 健康）
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // 受损（50% 健康）
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// 严重受损（30% 健康）
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // 损毁（0% 健康）
+                };
+            };
+        };
     };
 };
 ```
@@ -341,16 +355,16 @@ data/
 
 ### 使用原版伤害材质
 
-DayZ 提供了一套通用伤害覆盖材质，如果你不想创建自定义伤害纹理可以使用：
+原版物品并不使用一套命名的、按等级划分的通用覆盖材质。相反，每个健康等级都指向物品专属的 RVMAT（通常是 `<item>.rvmat`、`<item>_damage.rvmat` 和 `<item>_destruct.rvmat`），并在相邻等级之间复用同一个文件。`DZ\data\data\` 中唯一的通用材质是 `default_destruct.rvmat`（与 `default.rvmat` 并存）：
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -575,7 +589,7 @@ VertexShaderID = "Super";
 ### 1. 阶段顺序错误
 
 **症状：** 纹理显示混乱，法线贴图显示为颜色，颜色显示为凹凸。
-**修复：** 确保 Stage1 = 法线，Stage2 = 漫反射，Stage3 = 高光（对于 Super 着色器）。
+**修复：** 确保 Stage1 = 法线，Stage2 = 细节，Stage3 = 宏观，Stage5 = 高光（对于 Super 着色器）。基础 `_co` 颜色来自模型纹理 / `hiddenSelectionsTextures[]`，而非来自某个 Stage。请参阅上面的阶段分配表。
 
 ### 2. `emmisive` 拼写错误
 
@@ -595,7 +609,7 @@ VertexShaderID = "Super";
 ### 5. 透明物品使用了错误的着色器
 
 **症状：** 透明纹理显示为不透明，或整个表面消失。
-**修复：** 对透明表面使用 `Glass`、`AlphaTest` 或 `AlphaBlend` 着色器而不是 `Super`。使用带有正确 Alpha 通道的 `_ca` 后缀纹理。
+**修复：** 对透明表面使用 `Glass`、`AlphaShadow` 或 `AlphaNoShadow` 着色器而不是 `Super`。使用带有正确 Alpha 通道的 `_ca` 后缀纹理。
 
 ---
 

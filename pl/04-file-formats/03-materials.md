@@ -1,6 +1,5 @@
 # Rozdział 4.3: Materiały (.rvmat)
 
-[Strona główna](../README.md) | [<< Poprzedni: Modele 3D](02-models.md) | **Materiały** | [Dalej: Audio >>](04-audio.md)
 
 ---
 
@@ -70,9 +69,9 @@ class Stage1                               // Texture stage: Normal map
     };
 };
 
-class Stage2                               // Texture stage: Diffuse/Color map
+class Stage2                               // Texture stage: Detail map (the base _co color comes from the model texture / hiddenSelectionsTextures[], not a Stage)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -121,9 +120,8 @@ class Stage3                               // Texture stage: Specular/Metallic m
 | **Super** | Standardowe nieprzezroczyste powierzchnie (broń, odzież, przedmioty) | Normal, Diffuse, Specular/Metallic |
 | **Multi** | Wielowarstwowy teren i złożone powierzchnie | Wiele par diffuse/normal |
 | **Glass** | Przezroczyste i półprzezroczyste powierzchnie | Diffuse z alfą |
-| **Water** | Powierzchnie wodne z odbiciem i refrakcją | Specjalne tekstury wody |
-| **AlphaTest** | Ostrokrawędziowa przezroczystość (roślinność, ogrodzenia) | Diffuse z alfą |
-| **AlphaBlend** | Gładka przezroczystość (szkło, dym) | Diffuse z alfą |
+| **CalmWater** | Powierzchnie wodne z odbiciem i refrakcją | Specjalne tekstury wody |
+| **AlphaShadow / AlphaNoShadow** | Przezroczystość kluczowana alfą (roślinność, ogrodzenia) z rzucaniem cienia lub bez | Diffuse z alfą |
 
 ### Shader Super (Najczęstszy)
 
@@ -131,9 +129,11 @@ Shader **Super** to standardowy shader renderowania opartego na fizyce używany 
 
 ```
 Stage1 = Normal map (_nohq)
-Stage2 = Diffuse/Color map (_co)
+Stage2 = Detail map (_dt)
 Stage3 = Specular/Metallic map (_smdi)
 ```
+
+Bazowy kolor (`_co`) nie jest przypisywany przez Stage w shaderze Super -- pochodzi z bazowej tekstury modelu lub z `hiddenSelectionsTextures[]`.
 
 ---
 
@@ -144,7 +144,7 @@ Stage3 = Specular/Metallic map (_smdi)
 | Etap | Rola tekstury | Typowy sufiks | Opis |
 |-------|-------------|----------------|-------------|
 | **Stage1** | Mapa normalnych | `_nohq` | Detale powierzchni, nierówności, rowki |
-| **Stage2** | Mapa diffuse / koloru | `_co` lub `_ca` | Bazowy kolor powierzchni |
+| **Stage2** | Mapa detalu | `_dt` | Drobny detal powierzchni (bazowy kolor `_co` jest dostarczany przez bazową teksturę modelu / `hiddenSelectionsTextures[]`, a nie przez Stage) |
 | **Stage3** | Mapa specular / metaliczna | `_smdi` | Połyskliwość, właściwości metaliczne, detal |
 | **Stage4** | Cień otoczenia | `_as` | Wstępnie wypieciona okluzja otoczenia (opcjonalnie) |
 | **Stage5** | Mapa makro | `_mc` | Wielkoskalowa wariacja koloru (opcjonalnie) |
@@ -162,13 +162,23 @@ Przedmioty DayZ degradują się z czasem. Silnik obsługuje automatyczną zamian
 ```cpp
 class MyItem: Inventory_Base
 {
-    healthLevels[] =
+    class DamageSystem
     {
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Pristine (100% health)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Worn (70% health)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Damaged (50% health)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Badly Damaged (30% health)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Ruined (0% health)
+                };
+            };
+        };
     };
 };
 ```
@@ -182,16 +192,16 @@ class MyItem: Inventory_Base
 
 ### Używanie waniliowych materiałów uszkodzeń
 
-DayZ dostarcza zestaw ogólnych materiałów uszkodzeń nakładkowych, które można użyć, jeśli nie chcesz tworzyć niestandardowych tekstur uszkodzeń:
+Waniliowe przedmioty nie używają zestawu nazwanych ogólnych nakładek dla poszczególnych poziomów. Zamiast tego każdy poziom zdrowia wskazuje na RVMAT specyficzny dla przedmiotu (zazwyczaj `<item>.rvmat`, `<item>_damage.rvmat` oraz `<item>_destruct.rvmat`), używając ponownie tego samego pliku dla sąsiednich poziomów. Jedynym ogólnym materiałem w `DZ\data\data\` jest `default_destruct.rvmat` (obok `default.rvmat`):
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -202,7 +212,7 @@ healthLevels[] =
 ### 1. Zła kolejność etapów
 
 **Objaw:** Tekstura wygląda na pomieszaną, mapa normalnych wyświetla się jako kolor, kolor jako nierówności.
-**Rozwiązanie:** Upewnij się, że Stage1 = normal, Stage2 = diffuse, Stage3 = specular (dla shadera Super).
+**Rozwiązanie:** Upewnij się, że Stage1 = normal, Stage2 = detail, Stage3 = macro, Stage5 = specular (dla shadera Super). Bazowy kolor `_co` pochodzi z tekstury modelu / `hiddenSelectionsTextures[]`, a nie z Stage. Zobacz tabelę Przypisania etapów powyżej.
 
 ### 2. Błąd pisowni `emmisive`
 
@@ -222,7 +232,7 @@ healthLevels[] =
 ### 5. Użycie złego shadera dla przezroczystych przedmiotów
 
 **Objaw:** Przezroczysta tekstura wyświetla się jako nieprzezroczysta lub cała powierzchnia znika.
-**Rozwiązanie:** Użyj shadera `Glass`, `AlphaTest` lub `AlphaBlend` zamiast `Super` dla przezroczystych powierzchni. Używaj tekstur z sufiksem `_ca` z odpowiednimi kanałami alfa.
+**Rozwiązanie:** Użyj shadera `Glass`, `AlphaShadow` lub `AlphaNoShadow` zamiast `Super` dla przezroczystych powierzchni. Używaj tekstur z sufiksem `_ca` z odpowiednimi kanałami alfa.
 
 ---
 

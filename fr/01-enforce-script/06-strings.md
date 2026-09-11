@@ -1,6 +1,5 @@
 # Chapitre 1.6 : Operations sur les chaines
 
-[Accueil](../README.md) | [<< Precedent : Flux de controle](05-control-flow.md) | **Operations sur les chaines** | [Suivant : Math & Vecteurs >>](07-math-vectors.md)
 
 ---
 
@@ -524,7 +523,3 @@ vector v = s.ToVector();
 bool eq = (a == b);
 bool lt = (a < b);
 ```
-
----
-
-[<< 1.5 : Flux de controle](05-control-flow.md) | [Accueil](../README.md) | [1.7 : Math & Vecteurs >>](07-math-vectors.md)

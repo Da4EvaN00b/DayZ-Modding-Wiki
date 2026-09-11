@@ -1,6 +1,5 @@
 # Chapter 1.3: Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -837,7 +836,7 @@ classDiagram
 
     class PlayerBase {
         +GetIdentity() PlayerIdentity
-        +GetBleeding() bool
+        +IsBleeding() bool
         +IsRestrained() bool
     }
 
@@ -859,7 +858,7 @@ classDiagram
     EntityAI <|-- DayZInfected
     ManBase <|-- PlayerBase
     ItemBase <|-- Weapon_Base
-    ItemBase <|-- ClothingBase
+    ItemBase <|-- Clothing_Base
     EntityAI <|-- CarScript
 ```
 
@@ -1044,7 +1043,3 @@ Create an abstract `Handler` class with `protected Handler m_Next` and methods `
 | `out` param | `void Func(out int val)` | Csak kimeneti parameter |
 | `inout` param | `void Func(inout array<int> a)` | Bemeneti + kimeneti parameter |
 | `notnull` param | `void Func(notnull EntityAI e)` | Fordito altal kikenyszeritett nem-null |
-
----
-
-[Kezdolap](../README.md) | [<< Elozo: Tombok, Map-ek es Set-ek](02-arrays-maps-sets.md) | **Osztalyok es oroklodes** | [Kovetkezo: Modded osztalyok >>](04-modded-classes.md)

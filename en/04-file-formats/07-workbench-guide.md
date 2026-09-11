@@ -1,6 +1,5 @@
-# Chapter 4.7: Workbench Guide
+# Workbench Guide
 
-[Home](../README.md) | [<< Previous: PBO Packing](06-pbo-packing.md) | **Workbench Guide** | [Next: Building Modeling >>](08-building-modeling.md)
 
 ---
 
@@ -18,8 +17,8 @@ Workbench is Bohemia Interactive's integrated development environment for the En
 - [The Workbench Interface](#the-workbench-interface)
 - [Script Editing](#script-editing)
 - [Debugging Scripts](#debugging-scripts)
-- [Script Console -- Live Testing](#script-console----live-testing)
-- [UI / Layout Preview](#ui--layout-preview)
+- [Script Console -- Live Testing](#script-console-live-testing)
+- [UI / Layout Preview](#ui-layout-preview)
 - [Resource Browser](#resource-browser)
 - [Performance Profiling](#performance-profiling)
 - [Integration with File Patching](#integration-with-file-patching)
@@ -41,7 +40,7 @@ Workbench is Bohemia's IDE for Enfusion engine development. It is the only tool 
 | **Performance profiling** | Script profiling, frame time analysis, memory monitoring |
 | **Script console** | Execute Enforce Script commands live against a running game instance |
 
-Workbench uses the same Enfusion script compiler as DayZ itself. When Workbench reports a compile error, that error will also occur in-game -- making it a reliable pre-flight check before launching.
+Workbench uses the same Enfusion script compiler as DayZ itself. Keep its script modules and defines aligned with the game; a different project context can produce different compile results.
 
 ### What Workbench is NOT
 
@@ -89,7 +88,7 @@ Extract these via the DayZ Tools Launcher, or create a symbolic link to the extr
 To allow DayZDiag to load scripts directly from your Project Drive (enabling live editing without PBO rebuilds), create a symbolic link from the DayZ installation folder to `P:\scripts`:
 
 1. Navigate to your DayZ installation folder (typically `Steam\steamapps\common\DayZ`).
-2. Delete any existing `scripts` folder inside it.
+2. Preserve or rename any existing `scripts` folder before creating the link; do not discard a working source tree.
 3. Open a command prompt **as Administrator** and run:
 
 ```batch
@@ -156,7 +155,6 @@ GameProjectClass {
 
             widgetStyles {
                 "gui/looknfeel/dayzwidgets.styles"
-                "gui/looknfeel/widgets.styles"
             }
 
             ScriptModules {
@@ -226,23 +224,23 @@ GameProjectClass {
 | `mission` | `5_Mission` | `"CreateMission"` | Mission hooks, UI panels |
 | `workbench` | (tools) | `""` | Workbench plugins |
 
-Vanilla paths come first, then your mod paths. If your mod depends on other mods (like Community Framework), add their paths too:
+Vanilla paths come first, then your mod paths. If your mod depends on another mod (for example a shared framework), add its paths too:
 
 ```
 ScriptModulePathClass {
     Name "game"
     Paths {
         "scripts/3_Game"              // Vanilla
-        "JM/CF/Scripts/3_Game"        // Community Framework
+        "Lantern/Core/Scripts/3_Game" // Framework dependency
         "MyMod/Scripts/3_Game"        // Your mod
     }
     EntryPoint "CreateGame"
 }
 ```
 
-Some frameworks override entry points (CF uses `"CF_CreateGame"`).
+Some frameworks override the module entry point -- if a dependency ships its own `.gproj`, mirror whatever `EntryPoint` value it declares.
 
-**imageSets / widgetStyles** -- Required for layout preview. Without vanilla image sets, layout files show missing images. Always include the standard 14 vanilla image sets listed in the example above.
+**imageSets / widgetStyles** -- Required for layout preview. Without vanilla image sets, layout files show missing images. Include the vanilla image sets your layouts reference; the exact list varies (the default `dayz.gproj` ships roughly a dozen, e.g. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), then append your own.
 
 ### Path Prefix Resolution
 
@@ -260,7 +258,7 @@ workbenchApp.exe -project="P:\MyMod\Workbench\dayz.gproj"
 **Launch with -mod (auto-configure from config.cpp):**
 ```batch
 workbenchApp.exe -mod=P:\MyMod
-workbenchApp.exe -mod=P:\CommunityFramework;P:\MyMod
+workbenchApp.exe -mod=P:\LanternCore;P:\MyMod
 ```
 
 The `-mod` approach is simpler but gives less control. For complex multi-mod setups, a custom `.gproj` is more reliable.
@@ -500,7 +498,7 @@ When connected to DayZDiag, Workbench can profile script execution.
 
 ### In-Game Script Profiler (Diag Menu)
 
-In addition to Workbench's profiler, `DayZDiag_x64.exe` has a built-in Script Profiler accessible through the Diag Menu (under Statistics). It shows top-20 lists for time per class, time per function, class allocations, count per function, and class instance counts. Use the `-profile` launch parameter to enable profiling from startup. The profiler only measures Enforce Script -- proto (engine) methods are not measured as separate entries, but their execution time is included in the total time of the script method that calls them. See `EnProfiler.c` in vanilla scripts for the programmatic API (`EnProfiler.Enable`, `EnProfiler.SetModule`, flag constants).
+In addition to Workbench's profiler, `DayZDiag_x64.exe` has a built-in Script Profiler accessible through the Diag Menu (under Statistics). It shows top-20 lists for time per class, time per function, class allocations, and count per function, plus a top-40 list for class instance counts (Class count). Use the `-profile` launch parameter to enable profiling from startup. The profiler only measures Enforce Script -- proto (engine) methods are not measured as separate entries, but their execution time is included in the total time of the script method that calls them. See `EnProfiler.c` in vanilla scripts for the programmatic API (`EnProfiler.Enable`, `EnProfiler.SetModule`, flag constants).
 
 ### Common Bottlenecks
 
@@ -539,8 +537,8 @@ The fastest development workflow combines Workbench with file patching, eliminat
 |--------|----------|
 | Script logic (`.c`) | No -- restart mission |
 | Layout files (`.layout`) | No -- restart mission |
-| Config.cpp (script-only) | No -- restart mission |
-| Config.cpp (with CfgVehicles) | Yes -- binarized configs require PBO |
+| Config.cpp | Repack the changed config when loaded from a PBO, then restart the game process |
+| model.cfg / model animation data | Binarize the affected model, repack, then restart |
 | Textures (`.paa`) | No -- engine reloads from P: |
 | Models (`.p3d`) | Maybe -- unbinarized MLOD only |
 
@@ -599,9 +597,9 @@ The fastest development workflow combines Workbench with file patching, eliminat
 
 6. **Use bookmarks for navigation.** Blue bookmark dots mark interesting vanilla script locations you reference frequently.
 
-7. **Check compiler output before launching.** If Workbench reports errors, the game will fail too. Fix errors in Workbench first -- faster than waiting for game boot.
+7. **Check compiler output before launching.** Resolve errors in the matching project context, then verify the game build.
 
-8. **Use -mod for simple setups, .gproj for complex.** Single-mod with no dependencies: `-mod=P:\MyMod`. Multi-mod with CF/Dabs: custom `.gproj`.
+8. **Use -mod for simple setups, .gproj for complex.** Single-mod with no dependencies: `-mod=P:\MyMod`. Multi-mod with a framework dependency: custom `.gproj`.
 
 9. **Keep Workbench updated.** Update DayZ Tools through Steam when DayZ updates. Mismatched versions cause compilation failures.
 
@@ -630,11 +628,3 @@ The fastest development workflow combines Workbench with file patching, eliminat
 | `-project="path/dayz.gproj"` | Load specific project file |
 | `-mod=P:\MyMod` | Auto-configure from mod's config.cpp |
 | `-mod=P:\ModA;P:\ModB` | Multiple mods (semicolon-separated) |
-
----
-
-## Navigation
-
-| Previous | Up | Next |
-|----------|----|------|
-| [4.6 PBO Packing](06-pbo-packing.md) | [Part 4: File Formats & DayZ Tools](01-textures.md) | [4.8 Building Modeling](08-building-modeling.md) |

@@ -1,6 +1,5 @@
 # Chapter 9.12: Pokrocila temata serveru
 
-[Domu](../README.md) | [<< Predchozi: Reseni problemu](11-troubleshooting.md) | [Cast 9 - domu](01-server-setup.md)
 
 ---
 
@@ -45,16 +44,19 @@ Vanilkova struktura:
     "StaminaData": {
       "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
       "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
+      "staminaKgToStaminaPercentPenalty": 0.3, "staminaMinCap": 0.0,
+      "sprintSwimmingStaminaModifier": 1.0, "sprintLadderStaminaModifier": 1.0,
+      "meleeStaminaModifier": 1.0, "obstacleTraversalStaminaModifier": 1.0,
+      "holdBreathStaminaModifier": 1.0
     },
     "ShockHandlingData": {
       "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
       "allowRefillSpeedModifier": true
     },
     "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
+      "timeToSprint": 0.45, "timeToStrafeJog": 0.1,
+      "timeToStrafeSprint": 0.3,
+      "rotationSpeedJog": 0.15, "rotationSpeedSprint": 0.15
     },
     "DrowningData": {
       "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
@@ -152,15 +154,19 @@ Server nacte a slouci vsechny soubory s `type="types"`.
 
 ## cfgenvironment.xml a uzemi zvirat
 
-Soubor **cfgenvironment.xml** ve slozce vasi mise odkazuje na soubory uzemi v podadresari `env/`:
+Soubor **cfgenvironment.xml** ve slozce vasi mise mapuje soubory uzemi v podadresari `env/` na chovani zvirat. Kazda skupina zvirat je element `<territory>` s potomkem `<file usable="..." />` (odkazovano podle nazvu, bez prefixu `env/` nebo pripony `.xml`):
 
 ```xml
 <env>
-    <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
-        <file path="env/wolf_territories.xml" />
-    </territories>
+    <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+        <file usable="bear_territories" />
+    </territory>
+    <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+        <file usable="wolf_territories" />
+    </territory>
+    <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+        <file usable="red_deer_territories" />
+    </territory>
 </env>
 ```
 
@@ -222,7 +228,7 @@ Dynamicke udalosti (helikopterove zriceniny, konvoje) jsou definovany v **events
 </event>
 ```
 
-**3. Pridejte infikovane straze** (volitelne) -- pridejte elementy `<secondary type="ZmbM_PatrolNormal_Autumn" />` do definice vasi udalosti.
+**3. Pridejte infikovane straze** (volitelne) -- pridejte element `<secondary>InfectedArmy</secondary>` do definice vasi udalosti. Obsah odkazuje na nazev jine udalosti v **events.xml**, ktera spawnuje infikovane.
 
 **4. Skupinove spawny** (volitelne) -- definujte klustry v **cfgeventgroups.xml** a odkazujte na nazev skupiny ve vasi udalosti.
 
@@ -265,14 +271,14 @@ Vzdy zalohujte `storage_1/` pred kazdym restartem. Poskozena persistence behem v
 
 Soubor **cfgweather.xml** ve slozce vasi mise ridi vzory pocasi. Kazda mapa je dodavana se svymi vychozimi hodnotami:
 
-Kazdy jev ma `min`, `max`, `duration_min` a `duration_max` (sekundy):
+Kazdy jev je vnoreny element (`overcast`, `fog`, `rain`, `windMagnitude`, `windDirection`, `snowfall`) obsahujici potomky `<current actual="" time="" duration="" />`, `<limits min="" max="" />`, `<timelimits min="" max="" />` a `<changelimits min="" max="" />` (`rain` a `snowfall` take prijimaji element `<thresholds>`). Rozsah hodnot `<limits>` pro kazdy jev:
 
-| Jev | Vychozi min | Vychozi max | Poznamky |
+| Jev | Limits min | Limits max | Poznamky |
 |------------|-------------|-------------|-------|
 | `overcast` | 0.0 | 1.0 | Ridi hustotu mraku a pravdepodobnost deste |
 | `rain` | 0.0 | 1.0 | Spusti se pouze nad prahem oblacnosti. Nastavte max na `0.0` pro zadny dest |
 | `fog` | 0.0 | 0.3 | Hodnoty nad `0.5` produkuji temer nulovou viditelnost |
-| `wind_magnitude` | 0.0 | 18.0 | Ovlivnuje balistiku a pohyb hrace |
+| `windMagnitude` | 0.0 | 20.0 | Rychlost vetru v m/s; ovlivnuje balistiku a pohyb hrace |
 
 ---
 
@@ -293,7 +299,3 @@ Soubor **db/messages.xml** ve slozce vasi mise ridi planovane zpravy serveru a v
 - `shutdown` -- `1` pro zpravy sekvence vypnuti, `0` pro bezne vysilani
 
 System zprav nerestartuje server. Pouze zobrazuje varovani, kdyz je plan restartu nakonfigurovany externe.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Reseni problemu](11-troubleshooting.md) | [Cast 9 - domu](01-server-setup.md)

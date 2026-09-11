@@ -1,94 +1,126 @@
-# Chapter 8.5: Using the DayZ Mod Template
+# Scaffolding a Mod Project
 
-[Home](../README.md) | [<< Previous: Adding Chat Commands](04-chat-commands.md) | **Using the DayZ Mod Template** | [Next: Debugging & Testing >>](06-debugging-testing.md)
 
 ---
 
-> **Summary:** This tutorial shows you how to use InclementDab's open-source DayZ Mod Template to bootstrap a new mod project in seconds. Instead of creating every file from scratch, you clone a ready-made skeleton that already has the correct folder structure, config.cpp, mod.cpp, and script layer stubs. You then rename a few things and start writing code immediately.
+> **Summary:** Every new DayZ mod starts from the same skeleton of boilerplate: `mod.cpp`, `config.cpp`, and stubs for each script layer. Instead of recreating those files by hand for every project, you keep a reusable *scaffold* and copy it. This tutorial shows you how to assemble a minimal scaffold once, then rename it safely into a fresh mod using a repeatable, scripted workflow -- so you spend your time writing game logic, not wiring up boilerplate.
 
 ---
 
 ## Table of Contents
 
-- [What Is the DayZ Mod Template?](#what-is-the-dayz-mod-template)
-- [What the Template Provides](#what-the-template-provides)
-- [Step 1: Clone or Download the Template](#step-1-clone-or-download-the-template)
+- [Why Scaffold?](#why-scaffold)
+- [What the Scaffold Contains](#what-the-scaffold-contains)
+- [Step 1: Get a Scaffold](#step-1-get-a-scaffold)
 - [Step 2: Understand the File Structure](#step-2-understand-the-file-structure)
-- [Step 3: Rename the Mod](#step-3-rename-the-mod)
-- [Step 4: Update config.cpp](#step-4-update-configcpp)
-- [Step 5: Update mod.cpp](#step-5-update-modcpp)
-- [Step 6: Rename Script Folders and Files](#step-6-rename-script-folders-and-files)
+- [Step 3: Choose Your Names](#step-3-choose-your-names)
+- [Step 4: A Safe, Scripted Rename](#step-4-a-safe-scripted-rename)
+- [Step 5: Update config.cpp](#step-5-update-configcpp)
+- [Step 6: Update mod.cpp](#step-6-update-modcpp)
 - [Step 7: Build and Test](#step-7-build-and-test)
 - [Integration with DayZ Tools and Workbench](#integration-with-dayz-tools-and-workbench)
 - [Template vs. Manual Setup](#template-vs-manual-setup)
+- [Community Templates](#community-templates)
 - [Next Steps](#next-steps)
 
 ---
 
-## What Is the DayZ Mod Template?
+## Why Scaffold?
 
-The **DayZ Mod Template** is an open-source repository maintained by InclementDab that provides a complete, ready-to-use mod skeleton for DayZ:
+Once you have built a Hello World mod by hand (as covered in [Chapter 8.1: Your First Mod](01-first-mod.md)), you know that the *first* few files of every mod are nearly identical. The engine always needs:
 
-**Repository:** [https://github.com/InclementDab/DayZ-Mod-Template](https://github.com/InclementDab/DayZ-Mod-Template)
+- a `mod.cpp` so the launcher can list your mod,
+- a `config.cpp` that registers your mod and points the engine at each script layer,
+- a folder for each of the three script layers (`3_Game`, `4_World`, `5_Mission`).
 
-Rather than creating every file by hand (as covered in [Chapter 8.1: Your First Mod](01-first-mod.md)), the template gives you a pre-built directory structure with all the boilerplate already in place. You clone it, rename a few identifiers, and you are ready to write game logic.
+Recreating that from memory for every project is slow and easy to get subtly wrong -- a mismatched folder name or a forgotten `files[]` path costs you a debugging session. A **scaffold** solves this: you set up the skeleton correctly *once*, keep it around, and copy it whenever you start a new mod. The only work left is renaming a handful of identifiers, which this tutorial makes mechanical.
 
-This is the recommended starting point for anyone who has already built a Hello World mod and wants to move on to more complex projects.
+This is the recommended starting point for anyone who has already built a Hello World mod and wants to move on to real projects.
 
 ---
 
-## What the Template Provides
+## What the Scaffold Contains
 
-The template includes everything a DayZ mod needs to compile and load:
+A good scaffold includes everything a mod needs to compile and load -- and nothing feature-specific:
 
 | File / Folder | Purpose |
 |---------------|---------|
 | `mod.cpp` | Mod metadata (name, author, version) displayed in the DayZ launcher |
-| `config.cpp` | CfgPatches and CfgMods declarations that register the mod with the engine |
-| `Scripts/3_Game/` | Game-layer script stubs (enums, constants, config classes) |
-| `Scripts/4_World/` | World-layer script stubs (entities, managers, world interactions) |
-| `Scripts/5_Mission/` | Mission-layer script stubs (UI, mission hooks) |
+| `Scripts/config.cpp` | CfgPatches and CfgMods declarations that register the mod with the engine |
+| `Scripts/3_Game/` | Game-layer script stub (enums, constants, config classes) |
+| `Scripts/4_World/` | World-layer script stub (entities, managers, world interactions) |
+| `Scripts/5_Mission/` | Mission-layer script stub (UI, mission hooks) |
 | `.gitignore` | Pre-configured ignores for DayZ development (PBOs, logs, temp files) |
 
-The template follows the standard 5-layer script hierarchy documented in [Chapter 2.1: The 5-Layer Script Hierarchy](../02-mod-structure/01-five-layers.md). All three script layers are wired up in config.cpp so you can immediately place code in any layer without additional configuration.
+The scaffold follows the standard 5-layer script hierarchy documented in [Chapter 2.1: The 5-Layer Script Hierarchy](../02-mod-structure/01-five-layers.md). All three script layers are wired up in `config.cpp` so you can immediately drop code into any layer without touching the configuration again.
+
+> A scaffold is deliberately *minimal*. When you want a richer starting point -- one that already ships a config system, a singleton manager, client-server RPC, a UI panel, keybinds, and localization -- use the full [Chapter 8.9: Professional Mod Template](09-professional-template.md) instead. This chapter is about the smallest reusable skeleton; Chapter 8.9 is the full production template.
 
 ---
 
-## Step 1: Clone or Download the Template
+## Step 1: Get a Scaffold
 
-### Option A: Use GitHub's "Use this template" Feature
+You have three ways to obtain a scaffold. Pick whichever fits how you like to work.
 
-1. Go to [https://github.com/InclementDab/DayZ-Mod-Template](https://github.com/InclementDab/DayZ-Mod-Template)
-2. Click the green **"Use this template"** button at the top of the repository
-3. Choose **"Create a new repository"**
-4. Name your repository (e.g., `MyAwesomeMod`)
-5. Clone your new repository to your P: drive:
+### Option A: Trim Down the Professional Template
 
-```bash
-cd P:\
-git clone https://github.com/YourUsername/MyAwesomeMod.git
+The wiki's [Chapter 8.9: Professional Mod Template](09-professional-template.md) is a complete, production-ready mod you can copy in full. To turn it into a lean scaffold, copy it once and delete the systems you do not want as defaults -- the manager singleton, RPC files, UI panel, keybinds -- leaving just the empty layer folders and the two config files. Save the result as your personal skeleton. You get a battle-tested `config.cpp` and directory layout without carrying features you may not need.
+
+### Option B: Assemble a Minimal Skeleton by Hand
+
+If you prefer to know exactly what is in your scaffold, build it yourself once. Create this tree on your `P:` drive:
+
+```
+P:\_ModScaffold\
+    mod.cpp
+    .gitignore
+    Scripts\
+        config.cpp
+        3_Game\
+            ModName\
+                (empty -- game-layer scripts go here)
+        4_World\
+            ModName\
+                (empty -- world-layer scripts go here)
+        5_Mission\
+            ModName\
+                ModInit.c
 ```
 
-### Option B: Direct Clone
+Populate `config.cpp` and `mod.cpp` using the templates in [Step 5](#step-5-update-configcpp) and [Step 6](#step-6-update-modcpp) below (with `ModName`/placeholder identifiers), and put a single startup print in `5_Mission/ModName/ModInit.c`:
 
-If you do not need your own GitHub repository, clone the template directly:
-
-```bash
-cd P:\
-git clone https://github.com/InclementDab/DayZ-Mod-Template.git MyAwesomeMod
+```c
+modded class MissionServer
+{
+    override void OnInit()
+    {
+        super.OnInit();
+        Print("[ModName] Server initialized!");
+    }
+};
 ```
 
-### Option C: Download as ZIP
+Keep `_ModScaffold` untouched -- you copy *from* it, you never build *in* it.
 
-1. Go to the repository page
-2. Click **Code** then **Download ZIP**
-3. Extract the ZIP to `P:\MyAwesomeMod\`
+### Option C: Start From a Community Template
+
+Several modders publish ready-made starter repositories on GitHub. Using one is fine; just clone it into a fresh working folder rather than developing inside the original, and read its license before reusing any code it ships. See [Community Templates](#community-templates) at the end of this chapter for links.
+
+### Copy the Scaffold for Your New Mod
+
+However you obtained it, start a new project by *copying* the scaffold to a new folder named after your mod:
+
+```batch
+xcopy /E /I P:\_ModScaffold P:\MyAwesomeMod
+```
+
+Now `P:\MyAwesomeMod` is your project. The rest of this tutorial renames its placeholder identifiers into `MyAwesomeMod`.
 
 ---
 
 ## Step 2: Understand the File Structure
 
-After cloning, your mod directory looks like this:
+After copying, your mod directory looks like this:
 
 ```
 P:\MyAwesomeMod\
@@ -125,13 +157,9 @@ See [Chapter 2.2: config.cpp Deep Dive](../02-mod-structure/02-config-cpp.md) fo
 
 ---
 
-## Step 3: Rename the Mod
+## Step 3: Choose Your Names
 
-The template ships with placeholder names. You need to replace them with your mod's actual name. Here is a systematic approach.
-
-### Choose Your Names
-
-Before making any edits, decide on:
+The scaffold ships with placeholder names (`ModName`, and whatever the config uses). Before touching anything, decide on the six identifiers that will replace them. Writing them down first is what makes the rename mechanical instead of error-prone.
 
 | Identifier | Example | Used In |
 |------------|---------|---------|
@@ -145,23 +173,61 @@ Before making any edits, decide on:
 ### Naming Rules
 
 - **No spaces or special characters** in directory and class names. Use PascalCase or underscores.
-- **CfgPatches class names must be globally unique.** Two mods with the same CfgPatches class name will conflict. Use your mod name as a prefix.
-- **Script subfolder names** inside each layer should match your mod name for consistency.
+- **CfgPatches class names must be globally unique.** Two mods with the same CfgPatches class name will conflict on any server that loads both. Prefix the class with your mod name.
+- **Script subfolder names** inside each layer should match your mod name for consistency and to keep PBO prefixes clean.
 
 ---
 
-## Step 4: Update config.cpp
+## Step 4: A Safe, Scripted Rename
 
-Open `Scripts/config.cpp` and update the following sections.
+The fragile way to rename a scaffold is to open every file and manually find-and-replace `ModName`. Miss one path in `config.cpp` and the mod silently loads no scripts. A safer approach is to script the replacement so it is exhaustive and repeatable.
+
+### Rename in the Right Order
+
+Do it in this order so nothing references a name that no longer exists:
+
+1. **Text inside files first** -- replace the placeholder token everywhere in `config.cpp` and `mod.cpp`.
+2. **Folder names second** -- rename the `ModName` subfolder inside each script layer.
+3. **The mod root last** -- if your copied folder is not already named after your mod, rename it.
+
+### A Rename Script
+
+Run this from the mod root. It replaces the placeholder token `ModName` inside every text file, then renames the per-layer subfolders. Adjust `$old` and `$new` to match your scaffold's placeholder and your chosen name.
+
+```batch
+@echo off
+setlocal
+set OLD=ModName
+set NEW=MyAwesomeMod
+
+powershell -NoProfile -Command ^
+  "Get-ChildItem -Recurse -Include *.cpp,*.c,*.xml,*.csv | ForEach-Object { (Get-Content $_.FullName -Raw) -replace '%OLD%','%NEW%' | Set-Content $_.FullName }"
+
+for %%L in (3_Game 4_World 5_Mission) do (
+    if exist "Scripts\%%L\%OLD%" ren "Scripts\%%L\%OLD%" "%NEW%"
+)
+
+echo Rename complete. Review config.cpp before building.
+```
+
+> Scripted find-and-replace is only as safe as your placeholder token. Choose a scaffold whose placeholder (`ModName`) does not appear as a substring of any real keyword -- never use a token like `Mod` or `Script` that collides with engine identifiers.
+
+After the script runs, always **read `config.cpp` once by eye** (next step) to confirm every path now points at your real folders. A five-second review beats a silent no-op mod.
+
+---
+
+## Step 5: Update config.cpp
+
+Whether you renamed by script or by hand, `config.cpp` should now read like this. Verify each section.
 
 ### CfgPatches
 
-Replace the template class name with your own:
+The patch class carries your unique name and lists what your mod depends on:
 
 ```cpp
 class CfgPatches
 {
-    class MyAwesomeMod_Scripts    // <-- Your unique patch name
+    class MyAwesomeMod_Scripts    // <-- Your globally-unique patch name
     {
         units[] = {};
         weapons[] = {};
@@ -174,19 +240,21 @@ class CfgPatches
 };
 ```
 
-If your mod depends on another mod, add its CfgPatches class name to `requiredAddons[]`:
+If your mod depends on another mod, add that mod's CfgPatches class name to `requiredAddons[]`. For example, a mod built on top of a shared framework declares the framework's script patch:
 
 ```cpp
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Depends on Community Framework
+    "Lantern_Core_Scripts"    // Depends on the Lantern_Core framework
 };
 ```
 
+Here `Lantern_Core_Scripts` is the CfgPatches class published by a framework mod your mod is built on. Replace it with the actual patch class name of whatever framework you depend on -- the framework's own documentation lists it. Getting this name right is what guarantees the engine loads the dependency *before* your scripts compile.
+
 ### CfgMods
 
-Update the mod identity and script paths:
+The CfgMods block ties your mod's identity to its script paths:
 
 ```cpp
 class CfgMods
@@ -224,40 +292,39 @@ class CfgMods
 
 **Key points:**
 - The `dir` value must match your mod's root folder name exactly.
-- Each `files[]` path is relative to the mod root.
-- The `dependencies[]` array should list which vanilla script modules you hook into. Most mods use all three: `"Game"`, `"World"`, and `"Mission"`.
+- Each `files[]` path is relative to the mod root and uses forward slashes.
+- The `dependencies[]` array lists which vanilla script modules you hook into. Most mods use all three: `"Game"`, `"World"`, and `"Mission"`.
 
 ### Preprocessor Defines (Optional)
 
-If you want other mods to detect your mod's presence, add a `defines[]` array:
+If you want other mods to detect your mod's presence, add a `defines[]` array to your CfgMods class:
 
 ```cpp
 class MyAwesomeMod
 {
-    // ... (other fields above)
-
-    class defs
-    {
-        class gameScriptModule
-        {
-            value = "";
-            files[] = { "MyAwesomeMod/Scripts/3_Game" };
-        };
-        // ... other modules ...
-    };
+    // ... (dir, name, author, type, dependencies, class defs above)
 
     // Enable cross-mod detection
     defines[] = { "MYAWESOMEMOD" };
 };
 ```
 
-Other mods can then use `#ifdef MYAWESOMEMOD` to conditionally compile code that integrates with yours.
+Other mods can then use `#ifdef MYAWESOMEMOD` to conditionally compile code that integrates with yours. See [Chapter 7.6: The Event Bus Pattern](../07-patterns/06-events.md) for how mods discover and talk to one another at runtime.
+
+**Server-mod caveat (observed behaviour, not documented by Bohemia).** A `defines[]` symbol declared by a package loaded via `-mod=` reaches `#ifdef` checks in other `-mod=` packages. It has been observed *not* to reach packages loaded as `-servermod=` (`type = "servermod"`): in a production multi-package mod, the same `#ifdef` guard compiled in a `type = "mod"` package and was silently compiled out in a `type = "servermod"` package, with the runtime registration log as the discriminator and an unguarded third package as the control. Bohemia does not document `defines[]` propagation either way, so treat this as a field observation rather than a specified rule -- but do design around it, because a silently-false `#ifdef` is indistinguishable from a clean build.
+
+Two ways to stay safe:
+
+- **Declare the symbol in each package's own `defines[]`.** A package always sees its own defines.
+- **Or register unconditionally** and make the dependency hard, via `requiredAddons[]`.
+
+There is a trap in the first option worth knowing before you pick it. Once a server-only package self-declares a symbol, every `#ifdef` on that symbol inside it is unconditionally true and has stopped detecting anything. That is safe only while `requiredAddons[]` already mandates whatever the guard was protecting. The two mechanisms are not interchangeable: `requiredAddons[]` is what makes a type *exist*; `defines[]` and `#ifdef` only decide whether code is *emitted*. For a hard dependency, list the addon and call it unguarded. Keep `#ifdef` for genuinely optional integration between `-mod=` packages, gated on a define the other package publishes and that you do not redeclare.
 
 ---
 
-## Step 5: Update mod.cpp
+## Step 6: Update mod.cpp
 
-Open `mod.cpp` in the root directory and update it with your mod's information:
+Open `mod.cpp` in the root directory and fill in your mod's information:
 
 ```cpp
 name         = "My Awesome Mod";
@@ -272,32 +339,7 @@ tooltip      = "My Awesome Mod";
 action       = "";             // Optional: URL to your mod's website
 ```
 
-At minimum, set `name`, `author`, and `overview`. The other fields are optional but improve presentation in the launcher.
-
----
-
-## Step 6: Rename Script Folders and Files
-
-Rename the script subfolders inside each layer to match your mod name:
-
-```
-Scripts/3_Game/ModName/    -->  Scripts/3_Game/MyAwesomeMod/
-Scripts/4_World/ModName/   -->  Scripts/4_World/MyAwesomeMod/
-Scripts/5_Mission/ModName/ -->  Scripts/5_Mission/MyAwesomeMod/
-```
-
-Inside these folders, rename any placeholder `.c` files and update their class names. For example, if the template includes a file like `ModInit.c` with a class named `ModInit`, rename it to `MyAwesomeModInit.c` and update the class:
-
-```c
-modded class MissionServer
-{
-    override void OnInit()
-    {
-        super.OnInit();
-        Print("[MyAwesomeMod] Server initialized!");
-    }
-};
-```
+At minimum, set `name`, `author`, and `overview`. The other fields are optional but improve how your mod presents in the launcher.
 
 ---
 
@@ -335,13 +377,13 @@ P:\@MyAwesomeMod\
 
 ### Verify in the Script Log
 
-After launching, check the script log for your messages:
+After launching, check the script log for your startup messages:
 
 ```
 %localappdata%\DayZ\script_<date>_<time>.log
 ```
 
-Search for your mod's prefix tag (e.g., `[MyAwesomeMod]`).
+Search for your mod's prefix tag (e.g., `[MyAwesomeMod]`). If it is missing, the most common cause is a `files[]` path in `config.cpp` that still points at the old placeholder folder -- re-check [Step 5](#step-5-update-configcpp).
 
 ---
 
@@ -353,13 +395,13 @@ DayZ Workbench can open and edit your mod's scripts with syntax highlighting:
 
 1. Open **Workbench** from DayZ Tools
 2. Go to **File > Open** and navigate to your mod's `Scripts/` folder
-3. Open any `.c` file to edit with basic Enforce Script support
+3. Open any `.c` file to edit with Enforce Script support
 
-Workbench reads the `config.cpp` to understand which files belong to which script module, so having a correctly configured config.cpp is essential.
+Workbench reads `config.cpp` to understand which files belong to which script module, so a correctly renamed `config.cpp` is essential here too.
 
 ### P: Drive Setup
 
-The template is designed to work from the P: drive. If you cloned to another location, create a junction:
+Scaffolds are designed to work from the `P:` drive. If you keep your source elsewhere, create a junction:
 
 ```batch
 mklink /J P:\MyAwesomeMod "D:\Projects\MyAwesomeMod"
@@ -369,7 +411,7 @@ This makes the mod accessible at `P:\MyAwesomeMod` without moving files.
 
 ### Addon Builder Automation
 
-For repeated builds, you can create a batch file in your mod's root:
+For repeated builds, drop a batch file in your mod's root:
 
 ```batch
 @echo off
@@ -387,30 +429,36 @@ pause
 
 ## Template vs. Manual Setup
 
-| Aspect | Template | Manual (Chapter 8.1) |
+| Aspect | Scaffold | Manual (Chapter 8.1) |
 |--------|----------|----------------------|
 | **Time to first build** | ~2 minutes | ~15 minutes |
 | **All 3 script layers** | Pre-configured | You add them as needed |
 | **config.cpp** | Complete with all modules | Minimal (mission only) |
 | **Git ready** | .gitignore included | You create your own |
-| **Learning value** | Lower (files pre-made) | Higher (build everything yourself) |
+| **Learning value** | Lower (files pre-made) | Higher (you build everything) |
 | **Recommended for** | Experienced modders, new projects | First-time modders learning the ropes |
 
-**Recommendation:** If this is your very first DayZ mod, start with [Chapter 8.1](01-first-mod.md) to understand every file. Once you are comfortable, use the template for all future projects.
+**Recommendation:** If this is your very first DayZ mod, start with [Chapter 8.1](01-first-mod.md) to understand every file. Once you are comfortable, keep a scaffold and copy it for all future projects.
+
+---
+
+## Community Templates
+
+You do not have to build a scaffold from scratch. Several community-maintained starter templates exist on GitHub -- some minimal, some full-featured. They can save setup time, but treat any code they ship the same way you would treat any dependency: **read the license before reusing it**, and clone into a fresh working folder rather than developing inside the original repository.
+
+- [InclementDab/DayZ-Mod-Template](https://github.com/InclementDab/DayZ-Mod-Template) -- a community starter skeleton.
+
+None of the steps in this chapter depend on any particular external template; the rename workflow above applies to whichever scaffold you choose.
 
 ---
 
 ## Next Steps
 
-With your template-based mod up and running, you can:
+With your scaffold-based mod up and running, you can:
 
 1. **Add a custom item** -- Follow [Chapter 8.2: Creating a Custom Item](02-custom-item.md) to define items in config.cpp.
 2. **Build an admin panel** -- Follow [Chapter 8.3: Building an Admin Panel](03-admin-panel.md) for server management UI.
 3. **Add chat commands** -- Follow [Chapter 8.4: Adding Chat Commands](04-chat-commands.md) for in-game text commands.
-4. **Study config.cpp in depth** -- Read [Chapter 2.2: config.cpp Deep Dive](../02-mod-structure/02-config-cpp.md) to understand every field.
-5. **Learn mod.cpp options** -- Read [Chapter 2.3: mod.cpp & Workshop](../02-mod-structure/03-mod-cpp.md) for Workshop publishing.
-6. **Add dependencies** -- If your mod uses Community Framework or another mod, update `requiredAddons[]` and see [Chapter 2.4: Your First Mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Previous:** [Chapter 8.4: Adding Chat Commands](04-chat-commands.md) | [Home](../README.md)
+4. **Graduate to the full template** -- When your project outgrows a minimal skeleton, adopt the [Chapter 8.9: Professional Mod Template](09-professional-template.md) with config, RPC, UI, and build automation.
+5. **Study config.cpp in depth** -- Read [Chapter 2.2: config.cpp Deep Dive](../02-mod-structure/02-config-cpp.md) to understand every field.
+6. **Add dependencies** -- If your mod builds on a framework, update `requiredAddons[]` and see [Chapter 2.4: The Minimum Viable Mod](../02-mod-structure/04-minimum-viable-mod.md).

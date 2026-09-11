@@ -1,6 +1,5 @@
-# Chapter 7.6: Event-Driven Architecture
+# Event-Driven Architecture
 
-[Home](../README.md) | [<< Previous: Permission Systems](05-permissions.md) | **Event-Driven Architecture** | [Next: Performance Optimization >>](07-performance.md)
 
 ---
 
@@ -251,10 +250,6 @@ Sempre use métodos nomeados para poder desinscrever depois.
 |------|---------|----------|
 | Inscrever com `Insert()` mas nunca chamar `Remove()` | Vazamento de memória: o invoker mantém referência ao objeto morto; no `Invoke()`, chama em memória liberada (crash) ou no-ops com iteração desperdiçada | Pareie cada `Insert()` com um `Remove()` em `OnMissionFinish` ou no destrutor |
 | Chamar `Remove()` em um invoker null do EventBus durante shutdown | `MyEventBus.Cleanup()` pode já ter anulado o invoker; chamar `.Remove()` em null crasha | Sempre verifique null no invoker antes de `Remove()`: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| `Insert()` duplo do mesmo handler | Handler é chamado duas vezes por `Invoke()`; um `Remove()` só remove uma entrada, deixando uma inscrição obsoleta | Verifique antes de inserir, ou garanta que `Insert()` é chamado apenas uma vez (ex.: em `OnInit` com uma flag de guarda) |
+| `Insert()` duplo do mesmo handler | Handler é chamado duas vezes por `Invoke()`; um `Remove()` padrão (flag `ALL`) limpa todas as entradas de uma vez, removendo todas as inscrições | Verifique antes de inserir, ou garanta que `Insert()` é chamado apenas uma vez (ex.: em `OnInit` com uma flag de guarda) |
 | Usar funções anônimas/lambda como handlers | Não podem ser removidas porque não há referência para passar ao `Remove()` | Sempre use métodos nomeados como handlers de eventos |
 | Disparar eventos com assinaturas de argumento incompatíveis | Inscritos recebem dados lixo ou crasham em runtime; sem verificação em tempo de compilação | Documente a assinatura esperada acima de toda declaração de `ScriptInvoker` e faça match exatamente em todos os handlers |
-
----
-
-[<< Anterior: Sistemas de Permissão](05-permissions.md) | [Início](../README.md) | [Próximo: Otimização de Performance >>](07-performance.md)

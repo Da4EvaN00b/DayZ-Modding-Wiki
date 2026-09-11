@@ -1,6 +1,5 @@
 # Chapter 8.5: Using the DayZ Mod Template
 
-[Home](../README.md) | [<< Previous: Adding Chat Commands](04-chat-commands.md) | **Using the DayZ Mod Template** | [Next: Debugging & Testing >>](06-debugging-testing.md)
 
 ---
 
@@ -176,7 +175,7 @@ Ha a modod fugg egy masik modtol, add hozza annak CfgPatches osztalynevet a `req
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Fugg a Community Frameworktol
+    "JM_CF_Scripts"           // Fugg a Community Frameworktol
 };
 ```
 
@@ -406,7 +405,3 @@ A sablonon alapulo mododdal mukodve mar:
 4. **Tanulmanyozd a config.cpp-t melyen** -- Olvasd el a [2.2. fejezetet: config.cpp melymerules](../02-mod-structure/02-config-cpp.md) minden mezo megertesehez.
 5. **Ismerd meg a mod.cpp lehetosegeit** -- Olvasd el a [2.3. fejezetet: mod.cpp es Workshop](../02-mod-structure/03-mod-cpp.md) a Workshop publikalashoz.
 6. **Adj hozza fuggosegeket** -- Ha a modod hasznalj a Community Frameworkot vagy mas modot, frissitsd a `requiredAddons[]` tombot es lasd a [2.4. fejezetet: Az elso mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Elozo:** [8.4. fejezet: Chat parancsok hozzaadasa](04-chat-commands.md) | [Fooldal](../README.md)

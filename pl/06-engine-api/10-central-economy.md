@@ -1,6 +1,5 @@
 # Chapter 6.10: Central Economy
 
-[Home](../README.md) | [<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Next: Mission Hooks >>](11-mission-hooks.md)
 
 ---
 
@@ -308,10 +307,14 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -320,11 +323,13 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
+Podstawowe pliki CE (`types.xml`, `events.xml`, `globals.xml`) znajdują się w folderze `db/` zgodnie z wbudowaną konwencją --- waniliowy `cfgeconomycore.xml` nie zawiera elementu `<ce>` wskazującego na nie. Element `<ce>` służy zamiast tego do rejestrowania **dodatkowych** niestandardowych plików CE (wprowadzony w aktualizacji 1.08): atrybut `folder` nazywa folder zawierający Twój niestandardowy plik XML, a każdy zagnieżdżony wpis `<file name="..." type="..."/>` dołącza do pasującego waniliowego pliku lub go nadpisuje (`type` może mieć wartość `types`, `spawnabletypes`, `globals`, `economy`, `events` lub `messages`).
 
 ---
 
@@ -523,7 +528,3 @@ Add a new `<event>` block in `events.xml` and corresponding spawn positions in `
 | Count flags | Which items count toward nominal (cargo, hoarder, map, player) |
 | Events | Dynamic spawns with their own lifecycle (crashes, vehicles, infected) |
 | ECE flags | `ECE_NOLIFETIME`, `ECE_EQUIP` for script-spawned items |
-
----
-
-[<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Home](../README.md)

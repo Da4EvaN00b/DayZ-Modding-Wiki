@@ -1,6 +1,5 @@
 # Capitolo 4.4: Audio (.ogg, .wss)
 
-[Home](../README.md) | [<< Precedente: Materiali](03-materials.md) | **Audio** | [Successivo: Flusso di Lavoro DayZ Tools >>](05-dayz-tools.md)
 
 ---
 
@@ -104,7 +103,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // Scalatura del volume (applicata sopra il volume dello shader)
         frequencyFactor = 1.0;       // Scalatura della frequenza
-        volumeCurve = "InverseSquare"; // Nome curva di attenuazione predefinita
+        volumeCurve = "InverseSquare2Curve"; // Nome della classe di curva di attenuazione in CfgSoundCurves
         spatial = 1;                  // 1 = posizionale 3D, 0 = 2D (HUD/menu)
         doppler = 0;                  // 1 = abilita effetto Doppler
         loop = 0;                     // 1 = loop continuo
@@ -162,15 +161,15 @@ rangeCurve[] =
 
 Il motore interpola linearmente tra i punti definiti. Puoi creare qualsiasi curva di attenuazione aggiungendo più punti di controllo.
 
-### Curve di Volume Predefinite
+### Classi di Curva di Volume
 
-I SoundSet possono riferire curve nominate tramite la proprietà `volumeCurve`:
+I SoundSet riferiscono classi di curva di attenuazione tramite la proprietà `volumeCurve`. I nomi delle curve sono nomi di classe definiti sotto `class CfgSoundCurves` (i suoni vanilla di DZ ne definiscono molti), e le mod possono riferirne una esistente o definirne una propria. Non esistono preset semplici letteralmente chiamati `"InverseSquare"`, `"Linear"` o `"Logarithmic"`. Classi di curva vanilla comuni includono:
 
-| Nome Curva | Comportamento |
+| Classe Curva | Comportamento |
 |------------|----------|
-| `"InverseSquare"` | Attenuazione realistica (volume = 1/distanza^2). Suona naturale. |
-| `"Linear"` | Attenuazione uniforme dal massimo a zero sull'intero range. |
-| `"Logarithmic"` | Forte da vicino, scende rapidamente a distanza media, poi si attenua lentamente. |
+| `"InverseSquare2Curve"` | Attenuazione realistica (il volume cala all'incirca con il quadrato della distanza). Suona naturale. |
+| `"LinearCurve"` | Attenuazione uniforme dal massimo a zero sull'intero range. |
+| `"defaultAmpAttenuationCurve"` | Forte da vicino, scende rapidamente a distanza media, poi si attenua lentamente. |
 
 ---
 

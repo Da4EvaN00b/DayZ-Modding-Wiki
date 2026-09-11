@@ -1,6 +1,5 @@
 # Chapter 4.4: オーディオ (.ogg, .wss)
 
-[Home](../README.md) | [<< 前: マテリアル](03-materials.md) | **オーディオ** | [次: DayZ Tools ワークフロー >>](05-dayz-tools.md)
 
 ---
 
@@ -129,7 +128,7 @@ class CfgSoundSets
         soundShaders[] = {"MyMod_GunShot_SoundShader"};
         volumeFactor = 1.0;          // 音量スケーリング（シェーダーの音量に加えて適用）
         frequencyFactor = 1.0;       // 周波数スケーリング
-        volumeCurve = "InverseSquare"; // 定義済み減衰カーブ名
+        volumeCurve = "InverseSquare2Curve"; // CfgSoundCurvesの減衰カーブクラス名
         spatial = 1;                  // 1 = 3Dポジショナル、0 = 2D (HUD/メニュー)
         doppler = 0;                  // 1 = ドップラー効果を有効化
         loop = 0;                     // 1 = 連続ループ
@@ -145,11 +144,11 @@ class CfgSoundSets
 | `volumeFactor` | float | シェーダーの音量に加えて適用される追加の音量乗数。 |
 | `frequencyFactor` | float | 追加の周波数/ピッチ乗数。 |
 | `frequencyRandomizer` | float | ランダムなピッチ変動（0.0 = なし、0.1 = +/- 10%）。 |
-| `volumeCurve` | string | 名前付き減衰カーブ：`"InverseSquare"`、`"Linear"`、`"Logarithmic"`。 |
+| `volumeCurve` | string | `CfgSoundCurves`の下に定義された減衰カーブクラスの名前（例：`"InverseSquare2Curve"`、`"LinearCurve"`、`"defaultAmpAttenuationCurve"`）。 |
 | `spatial` | int | 3Dポジショナルオーディオは`1`、2D（UI、音楽）は`0`。 |
 | `doppler` | int | 移動する音源のドップラーピッチシフトを有効にするには`1`。 |
 | `loop` | int | 連続ループは`1`、ワンショットは`0`。 |
-| `distanceFilter` | int | 距離でのローパスフィルタ適用は`1`（遠くのこもったサウンド）。 |
+| `distanceFilter` | string | 距離で適用する距離/周波数減衰フィルタクラスの名前（例：`"defaultDistanceFreqAttenuationFilter"`）。遠くのサウンドをこもらせます。 |
 | `occlusionFactor` | float | 壁/地形がサウンドをどの程度消すか（0.0〜1.0）。 |
 | `obstructionFactor` | float | 音源とリスナー間の障害物がサウンドにどの程度影響するか。 |
 
@@ -221,7 +220,7 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
@@ -350,15 +349,15 @@ rangeCurve[] =
 
 エンジンは定義されたポイント間を線形補間します。より多くの制御ポイントを追加することで、任意の減衰カーブを作成できます。
 
-### 定義済みボリュームカーブ
+### ボリュームカーブクラス
 
-SoundSetsは`volumeCurve`プロパティを通じて名前付きカーブを参照できます：
+SoundSetsは`volumeCurve`プロパティを通じて減衰カーブクラスを参照します。カーブ名は`class CfgSoundCurves`の下に定義されたクラス名であり（バニラDZのサウンドには多数定義されています）、MODは既存のものを参照するか独自に定義できます。`"InverseSquare"`、`"Linear"`、`"Logarithmic"`という名前そのままのプリセットは存在しません。一般的なバニラのカーブクラスには以下が含まれます：
 
-| カーブ名 | 動作 |
+| カーブクラス | 動作 |
 |------------|----------|
-| `"InverseSquare"` | リアリスティックな減衰（音量 = 1/距離^2）。自然な音。 |
-| `"Linear"` | 範囲内で最大からゼロまで均等に減衰。 |
-| `"Logarithmic"` | 近くでは大きく、中距離で急激に低下し、その後ゆっくりと減衰。 |
+| `"InverseSquare2Curve"` | リアリスティックな減衰（音量は距離のほぼ二乗で低下）。自然な音。 |
+| `"LinearCurve"` | 範囲内で最大からゼロまで均等に減衰。 |
+| `"defaultAmpAttenuationCurve"` | 近くでは大きく、中距離で急激に低下し、その後ゆっくりと減衰。 |
 
 ### 実用的な減衰の例
 
@@ -503,14 +502,14 @@ class CfgSoundSets
         spatial = 1;
         doppler = 0;
         loop = 0;
-        distanceFilter = 1;
+        distanceFilter = "defaultDistanceFreqAttenuationFilter";
     };
 };
 ```
 
 **ステップ4: 武器/アイテムの設定から参照**
 
-武器の場合、SoundSetは武器の設定クラスで参照されます：
+武器の場合、発砲SoundSetは武器の発射モードクラス内の`soundSetShot[]`配列で参照されます。サプレッサー付きのバリアントには`soundSetShotExt[]`を使用します：
 
 ```cpp
 class CfgWeapons
@@ -519,12 +518,9 @@ class CfgWeapons
     {
         // ... 他の設定 ...
 
-        class Sounds
+        class SemiAuto: Mode_SemiAuto
         {
-            class Fire
-            {
-                soundSet = "MyMod_RifleShot_SoundSet";
-            };
+            soundSetShot[] = {"MyMod_RifleShot_SoundSet", "MyMod_Rifle_Tail_SoundSet"};
         };
     };
 };

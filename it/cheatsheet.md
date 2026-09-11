@@ -1,6 +1,5 @@
 # Scheda di Riferimento Rapido di Enforce Script
 
-[Home](./README.md) | **Scheda di Riferimento Rapido**
 
 ---
 
@@ -30,7 +29,7 @@
 | Metodo | Restituisce | Note |
 |--------|-------------|------|
 | `Insert(item)` | `int` (indice) | Aggiunge in coda |
-| `InsertAt(item, idx)` | `void` | Inserisce alla posizione |
+| `InsertAt(item, idx)` | `int` (conteggio) | Inserisce alla posizione |
 | `Get(idx)` / `arr[idx]` | `T` | Accesso per indice |
 | `Set(idx, item)` | `void` | Sostituisce all'indice |
 | `Find(item)` | `int` | Indice o -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Inverti |
 | `GetRandomElement()` | `T` | Scelta casuale |
 | `InsertAll(other)` | `void` | Aggiunge tutti dall'altro |
-| `Copy(other)` | `void` | Sostituisci con copia |
+| `Copy(other)` | `int` (conteggio) | Sostituisci con copia |
 | `Resize(n)` | `void` | Ridimensiona (riempie con valori predefiniti) |
 | `Reserve(n)` | `void` | Pre-alloca capacita |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifica in-place, restituisce il conteggio |
 | `s.ToLower()` | `void` | **In-place!** |
 | `s.ToUpper()` | `void` | **In-place!** |
-| `s.TrimInPlace()` | `void` | **In-place!** |
+| `s.TrimInPlace()` | `int` (lunghezza) | **In-place!** |
 | `s.Split(delim, out arr)` | `void` | Divide in TStringArray |
 | `s.Get(idx)` | `string` | Singolo carattere |
 | `s.Set(idx, ch)` | `void` | Sostituisce carattere |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Controllo IsAlive (richiede EntityAI)
+### Controllo IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() e definito sulla base Object (restituisce !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Iterazione foreach su Map

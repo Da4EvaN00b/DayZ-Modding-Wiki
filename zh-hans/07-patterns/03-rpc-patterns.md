@@ -1,6 +1,5 @@
 # 第 7.3 章：RPC 通信模式
 
-[首页](../README.md) | [<< 上一章：模块系统](02-module-systems.md) | **RPC 通信模式** | [下一章：配置持久化 >>](04-config-persistence.md)
 
 ---
 
@@ -656,7 +655,3 @@ override void OnMissionFinish()
 | 使用 protocol buffers 或基于 schema 的序列化 | Enforce Script 没有 protobuf 支持；你需要手动按匹配顺序 `Write`/`Read` 原语 |
 | 使用 schema 强制验证所有输入 | 不存在 schema 验证；每个 `ctx.Read()` 返回值必须逐个检查 |
 | RPC 应该是幂等的 | 在 DayZ 中仅对查询 RPC 实用；变更 RPC（生成、删除、传送）本质上不是幂等的——用权限检查代替 |
-
----
-
-[首页](../README.md) | [<< 上一章：模块系统](02-module-systems.md) | **RPC 通信模式** | [下一章：配置持久化 >>](04-config-persistence.md)

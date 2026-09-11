@@ -1,6 +1,5 @@
 # Capítulo 6.2: Sistema de Vehículos
 
-[Inicio](../README.md) | [<< Anterior: Entity System](01-entity-system.md) | **Vehicles** | [Siguiente: Weather >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ The abstract base for all vehicles. Provides seat management and crew access.
 proto native int   CrewSize();                          // Total number of seats
 proto native int   CrewMemberIndex(Human crew_member);  // Get seat index of a human
 proto native Human CrewMember(int posIdx);              // Get human at seat index
-proto native void  CrewGetOut(int posIdx);              // Force crew member out of seat
+proto native Human CrewGetOut(int posIdx);              // Force crew member out of seat (returns the ejected human)
 proto native void  CrewDeath(int posIdx);               // Kill crew member in seat
 ```
 
 ### Crew Entry
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Scripted (overridable) method, not proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Component to seat index
-proto native vector CrewEntryPoint(int posIdx);         // World entry position for seat
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Entry point/direction in model space
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Entry point/direction in world space
 ```
 
 **Ejemplo --- eject all passengers:**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // Speed in km/h (absolute value)
 ### Controls (Simulation)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = all wheels
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (extra params unused)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (second param unused)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust is obsolete)
+proto native void  SetClutch(float value);                    // SetClutchState is obsolete
 ```
 
 ### Wheels
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacks (Override in CarScript)
@@ -219,17 +219,28 @@ Common damage zones for vehicles:
 
 ### Lights
 
+La API de luces reside en `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = off, 1 = on
-int  GetLightsState();
+proto native bool LightIsOn();    // True when lights are on
+proto native void LightOn();      // Turn lights on
+proto native void LightOff();     // Turn lights off
+proto native void LightToggle();  // Toggle current light state
 ```
 
 ### Door Control
 
+El estado de las puertas se consulta con `GetCarDoorsState`, que devuelve un valor `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` o `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Returns a CarDoorState value
 ```
 
 ### Key Overrides for Custom Vehicles
@@ -238,8 +249,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Initialize vehicle parts, fluids
 override void OnEngineStart();             // Custom engine start behavior
 override void OnEngineStop();              // Custom engine stop behavior
-override void EOnSimulate(IEntity other, float dt);  // Per-tick simulation
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Per-tick simulation (CarScript)
 ```
 
 **Ejemplo --- create a vehicle with full fluids:**
@@ -286,31 +296,36 @@ proto native float EngineGetRPM();
 
 ### Fluids
 
-Boats use the same `CarFluid` enum but typically only use `FUEL`:
+Boats use a separate `BoatFluid` enum that only defines `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Speed
+### Speed & Propulsion
+
+`Boat` no expone `GetSpeedometer()` (ese método existe solo en `Car`). En su lugar, lee las RPM del motor y la velocidad de la hélice:
 
 ```c
-proto native float GetSpeedometer();   // Speed in km/h
+proto native float EngineGetRPM();                   // Engine rpm
+proto native float PropellerGetAngularVelocity();    // Propeller angular velocity
 ```
 
 **Ejemplo --- spawn a boat:**
+
+`Boat_01` no es una clase que se pueda spawnear directamente; spawnea una de las variantes de color concretas (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -492,7 +507,7 @@ La clase `Contact` fue modificada:
 **Cambiados:**
 - `Material1`, `Material2` --- el tipo cambio de `dMaterial` a `SurfaceProperties`
 
-Los mods que leen datos de `Contact` en `EOnContact` deben actualizarse a los nuevos nombres y tipos de variables.
+Los mods que leen datos de `Contact` en `OnContact` deben actualizarse a los nuevos nombres y tipos de variables.
 
 ---
 
@@ -511,7 +526,3 @@ Se agregaron funciones de fisica directamente en `Transport` para permitir que l
 ### Colision Dinamica para Todo Transport (1.29 Experimental)
 
 La clase `Transport` (padre de `CarScript` y `BoatScript`) ahora tiene resolucion de colision dinamica. Anteriormente, solo `CarScript` tenia esto. Los mods de botes se benefician de un manejo de colision adecuado.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Entity System](01-entity-system.md) | **Vehicles** | [Siguiente: Weather >>](03-weather.md)

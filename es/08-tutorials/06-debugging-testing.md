@@ -1,6 +1,5 @@
 # Capitulo 8.6: Depuracion y Pruebas de Tu Mod
 
-[Inicio](../README.md) | [<< Anterior: Usar la Plantilla de Mod de DayZ](05-mod-template.md) | **Depuracion y Pruebas** | [Siguiente: Publicar en el Steam Workshop >>](07-publishing-workshop.md)
 
 ---
 
@@ -705,5 +704,3 @@ En este tutorial aprendiste:
 - Como establecer un flujo de trabajo de pruebas confiable desde la edicion hasta la verificacion
 
 **Siguiente:** [Capitulo 8.8: Construir un HUD Overlay](08-hud-overlay.md)
-
----

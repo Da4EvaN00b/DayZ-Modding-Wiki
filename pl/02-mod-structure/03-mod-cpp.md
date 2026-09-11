@@ -1,6 +1,5 @@
 # Chapter 2.3: mod.cpp & Workshop
 
-[Home](../README.md) | [<< Previous: config.cpp Deep Dive](02-config-cpp.md) | **mod.cpp & Workshop** | [Next: Minimum Viable Mod >>](04-minimum-viable-mod.md)
 
 ---
 
@@ -247,9 +246,10 @@ This keeps server-side logic private (never sent to clients) and reduces client 
 When you publish to Steam Workshop, the DayZ tools auto-generate a `meta.cpp` file:
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // Steam Workshop item ID
-timestamp = 1711000000;       // Unix timestamp of last update
+protocol = 1;
+publishedid = 2900000000;            // Steam Workshop item ID
+name = "My Mod";                     // Nazwa elementu Workshop
+timestamp = 5249975085759540888;     // Wewnętrzna wartość 64-bitowa, NIE znacznik czasu Unix
 ```
 
 Do not edit `meta.cpp` manually. It is managed by the publishing tools.

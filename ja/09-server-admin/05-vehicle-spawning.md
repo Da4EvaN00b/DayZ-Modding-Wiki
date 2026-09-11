@@ -1,6 +1,5 @@
 # Chapter 9.5: 車両とダイナミックイベントスポーン
 
-[ホーム](../README.md) | [<< 前へ: ルートエコノミー](04-loot-economy.md) | [次へ: プレイヤースポーン >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@
 
 CEは `events.xml` を読み取り、スポーンが必要なイベントを選択し、`cfgeventspawns.xml` で一致する位置を検索し、`saferadius` と `distanceradius` の制約を満たすものをランダムに選択し、その位置にランダムに選択された子エンティティをスポーンさせます。
 
-3つのファイルはすべて `mpmissions/<your_mission>/db/` にあります。
+`events.xml` は `mpmissions/<your_mission>/db/` にあり、`cfgeventspawns.xml` と `cfgeventgroups.xml` はミッションルート（`mpmissions/<your_mission>/`）にあります。
 
 ---
 
@@ -167,17 +166,17 @@ CEは `events.xml` を読み取り、スポーンが必要なイベントを選�
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ CEは `events.xml` を読み取り、スポーンが必要なイベントを選�
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-護送車列はヘリクラッシュと同一の動作をします: `<secondary>` タグがサイト周辺に `InfectedArmy` をスポーンし、`deloot="1"` のルートアイテムが残骸上に出現します。`nominal=5` で、マップ上に最大5つの護送車列サイトが同時に存在します。各サイトは1800秒（30分）持続した後、新しい場所にサイクルします。
+護送車列はヘリクラッシュと同様に動作します: `<secondary>` タグがサイト周辺に `InfectedArmy` をスポーンし、`deloot="1"` のルートアイテムが残骸上に出現します。ヘリクラッシュとは異なり、護送車列イベントは空の `<children/>` 要素を持っています -- その破壊された車両は `cfgeventgroups.xml` でグループとして定義され、`cfgeventspawns.xml` のグループ参照を介して配置されます。`nominal=5` で、マップ上に最大5つの護送車列サイトが同時に存在します。各サイトは1800秒（30分）持続した後、新しい場所にサイクルします。
 
 ---
 
@@ -231,20 +228,21 @@ CEは `events.xml` を読み取り、スポーンが必要なイベントを選�
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ CEは `events.xml` を読み取り、スポーンが必要なイベントを選�
 このファイルは、複数のオブジェクトが相対的な位置オフセットで一緒にスポーンするイベントを定義します。最も一般的な使用例は放棄された列車です。
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-最初の子要素は `cfgeventspawns.xml` の位置に配置されます。以降の子要素はその原点からの `x`、`z`、`a` 値でオフセットされます。この例では、列車の車両がz軸に沿って15メートル間隔で配置されています。
+各グループはファイルのルート `<eventgroupdef>` 内の `<group name="...">` 要素として宣言され、その `<child>` エントリは `<group>` の直接の子要素です（ここには `<children>` ラッパーはありません）。最初の子要素は `cfgeventspawns.xml` の位置に配置されます。以降の子要素はその原点からの `x`、`z`、`y`、`a` 値でオフセットされます。
 
 グループ内の各 `<child>` には以下があります:
 
@@ -277,7 +273,11 @@ CEは `events.xml` を読み取り、スポーンが必要なイベントを選�
 | `type` | スポーンするオブジェクトのクラス名です。 |
 | `x` | グループ原点からのXオフセット（メートル）です。 |
 | `z` | グループ原点からのZオフセット（メートル）です。 |
+| `y` | グループ原点からのY（垂直）オフセット（メートル）です。 |
 | `a` | グループ原点からの角度オフセット（度）です。 |
+| `deloot` | この子要素にダイナミックイベントルートをスポーンできるかどうか（0 または 1）です。 |
+| `lootmin` | この子要素にスポーンされるルートアイテムの最小数です。 |
+| `lootmax` | この子要素にスポーンされるルートアイテムの最大数です。 |
 
 グループイベント自体も、nominal数、ライフタイム、アクティブ状態を制御する `events.xml` の対応するエントリが必要です。
 
@@ -343,7 +343,3 @@ CEが車両を追跡可能なエンティティとして認識するためには
 **問題:** 車両が建物にクリッピングしたり、地形に埋まってスポーンします。
 
 **対処法:** `cfgeventspawns.xml` の `<pos>` 座標を確認してください。ファイルに追加する前に、管理者テレポートを使用してゲーム内で位置をテストしてください。位置は平坦な道路や開けた地面上にあるべきで、角度（`a`）は道路の方向と合わせてください。
-
----
-
-[ホーム](../README.md) | [<< 前へ: ルートエコノミー](04-loot-economy.md) | [次へ: プレイヤースポーン >>](06-player-spawning.md)

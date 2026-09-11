@@ -1,6 +1,5 @@
 # Глава 2.3: mod.cpp и Workshop
 
-[Главная](../README.md) | [<< Предыдущая: config.cpp подробно](02-config-cpp.md) | **mod.cpp и Workshop** | [Следующая: Минимальный мод >>](04-minimum-viable-mod.md)
 
 ---
 
@@ -251,9 +250,10 @@ type = "servermod";
 При публикации в Steam Workshop инструменты DayZ автоматически генерируют файл `meta.cpp`:
 
 ```cpp
-protocol = 2;
-publishedid = 2900000000;    // ID элемента Steam Workshop
-timestamp = 1711000000;       // Unix-метка времени последнего обновления
+protocol = 1;
+publishedid = 2900000000;            // ID элемента Steam Workshop
+name = "My Mod";                     // Название элемента Workshop
+timestamp = 5249975085759540888;     // Внутреннее 64-битное значение, НЕ Unix-метка времени
 ```
 
 Не редактируйте `meta.cpp` вручную. Он управляется инструментами публикации.

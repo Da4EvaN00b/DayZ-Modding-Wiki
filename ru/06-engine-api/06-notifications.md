@@ -1,6 +1,5 @@
 # Глава 6.6: Система уведомлений
 
-[Главная](../README.md) | [<< Предыдущая: Эффекты постобработки](05-ppe.md) | **Уведомления** | [Следующая: Таймеры и CallQueue >>](07-timers.md)
 
 ---
 
@@ -157,11 +156,13 @@ static void AddNotification(
 
 | Тип | Описание |
 |-----|----------|
-| `NotificationType.GENERIC` | Общее уведомление |
-| `NotificationType.FRIENDLY_FIRE` | Предупреждение о дружественном огне |
-| `NotificationType.JOIN` | Подключение игрока |
-| `NotificationType.LEAVE` | Отключение игрока |
-| `NotificationType.STATUS` | Обновление статуса |
+| `NotificationType.FRIEND_CONNECTED` | Друг подключился |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Приглашение не удалось (уже на том же сервере) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Не удалось получить сессию при подключении |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Общая ошибка подключения |
+| `NotificationType.DISCONNECTED` | Отключён от сервера |
+| `NotificationType.GENERIC_ERROR` | Общая ошибка |
+| `NotificationType.NOTIFICATIONS_END` | Контрольное значение (отмечает конец перечисления) |
 
 > **Примечание:** Доступные типы зависят от версии игры. Для максимальной гибкости используйте варианты `Extended`, которые принимают пользовательские строки заголовка и иконки.
 
@@ -207,7 +208,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +237,7 @@ void OnNotifRemoved()
 static void Update(float timeslice);
 ```
 
-Этот метод вызывается автоматически методом `OnUpdate` ванильной миссии. Если вы пишете полностью пользовательскую миссию, убедитесь, что вызываете его.
+Этот метод вызывается автоматически из `DayZGame.OnUpdate` (игровой цикл обновления), а не из `OnUpdate` миссии. Если вы пишете полностью пользовательский класс игры, убедитесь, что вызываете его.
 
 ---
 

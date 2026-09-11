@@ -1,6 +1,5 @@
 # Chapter 9.4: Lootova ekonomika podrobne
 
-[Domu](../README.md) | [<< Predchozi: Reference serverDZ.cfg](03-server-cfg.md) | **Lootova ekonomika podrobne**
 
 ---
 
@@ -194,7 +193,7 @@ Obvazy jsou velmi bezne (40 nominal). Spawnuji se v budovach Medic (nemocnice, k
 | `restock` | int | sekundy | Minimalni cooldown pred tim, nez CE muze spawnit nahradu. 0 = okamzite. |
 | `quantmin` | int | -1 az 100 | Minimalni procento mnozstvi pri spawnu (% munice, % kapaliny). -1 = nepouzitelne. |
 | `quantmax` | int | -1 az 100 | Maximalni procento mnozstvi pri spawnu. -1 = nepouzitelne. |
-| `cost` | int | 0+ | Prioritni vaha pro vyber spawnu. Vsechny vanilkove predmety aktualne pouzivaji 100. |
+| `cost` | int | 0+ | Prioritni vaha pouzita behem respawnu/cisteni. Temer vsechny vanilkove predmety pouzivaji 100, ale nekolik jich pouziva vyssi hodnoty (napr. `Mag_SVD_10Rnd` pouziva 1000). |
 
 ### Flagy
 
@@ -721,7 +720,3 @@ Po uprave souboru ekonomiky provedte jedno z:
 - Smazte `storage_1/` pro uplny wipe a novy start ekonomiky
 - Nastavte `RestartSpawn` na `1` v `globals.xml` pro jeden restart k opetovnemu nahodnemu rozmisteni lootu, pak ho nastavte zpet na `0`
 - Pockejte, az zivotnosti predmetu prirozene vyprsi (muze trvat hodiny)
-
----
-
-**Predchozi:** [Reference serverDZ.cfg](03-server-cfg.md) | [Domu](../README.md) | **Dalsi:** [Spawnovani vozidel a dynamicke udalosti](05-vehicle-spawning.md)

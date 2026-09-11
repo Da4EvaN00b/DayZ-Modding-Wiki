@@ -1,6 +1,5 @@
-# Chapter 9.9: Controle de Acesso
+# Controle de Acesso
 
-[Inicio](../README.md) | [<< Anterior: Ajuste de Performance](08-performance.md) | [Proximo: Gerenciamento de Mods >>](10-mod-management.md)
 
 ---
 
@@ -41,29 +40,31 @@ Mantenha a senha de admin longa e unica. Qualquer pessoa com ela tem controle to
 
 ## ban.txt
 
-O arquivo **ban.txt** fica no diretorio de perfil do servidor (o caminho que voce definiu com `-profiles=`). Ele contem um SteamID64 por linha:
+O arquivo **ban.txt** fica no diretorio raiz do servidor. Ele contem um UID de jogador por linha:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-- Cada linha e um SteamID64 de 17 digitos -- sem nomes, sem comentarios, sem senhas.
-- Jogadores cujo SteamID aparece neste arquivo sao recusados na conexao ao tentar entrar.
+- Cada linha e um UID de jogador DayZ de 44 caracteres -- nao um SteamID64 de 17 digitos. Voce pode encontrar o UID de um jogador nos logs `*.ADM` e `*.RPT`.
+- Voce pode adicionar um comentario apos um ID usando o prefixo `//` na mesma linha, ou em sua propria linha comentada.
+- Jogadores cujo UID aparece neste arquivo sao recusados na conexao ao tentar entrar.
+- O uso do **ban.txt** pode ser alternado com `disableBanlist` no **serverDZ.cfg** (padrao `false`).
 - Voce pode editar o arquivo enquanto o servidor esta rodando; alteracoes fazem efeito na proxima tentativa de conexao.
 
 ---
 
 ## whitelist.txt
 
-O arquivo **whitelist.txt** fica no mesmo diretorio de perfil. Quando voce ativa a whitelist, apenas SteamIDs listados neste arquivo podem conectar:
+O arquivo **whitelist.txt** fica no mesmo diretorio raiz do servidor. Quando voce ativa a whitelist (`enableWhitelist = 1` no **serverDZ.cfg**), apenas jogadores cujo UID esta listado neste arquivo podem conectar:
 
 ```
-76561198012345678
-76561198087654321
+kBmDmSc4S3uVuKAJsBZTrh-jLWNJ3eX0_VsT2eXyV1Y=
+DCV63zXcS_oWzPfED-PWAJVnJ3wOQ4_jE4WnZdfBkW8=
 ```
 
-O formato e identico ao **ban.txt** -- um SteamID64 por linha, nada mais.
+O formato e identico ao **ban.txt** -- um UID de jogador de 44 caracteres por linha, com comentarios `//` opcionais.
 
 A whitelist e util para comunidades privadas, servidores de teste ou eventos onde voce precisa de uma lista de jogadores controlada.
 
@@ -79,7 +80,7 @@ BattlEye e o sistema anti-cheat integrado ao DayZ. Seus arquivos ficam na pasta 
 | **beserver_x64.cfg** | Arquivo de configuracao (porta RCON, senha RCON) |
 | **bans.txt** | Bans especificos do BattlEye (baseados em GUID, nao SteamID) |
 
-O BattlEye e ativado por padrao. Voce inicia o servidor com `DayZServer_x64.exe` e o BattlEye carrega automaticamente. Para desativa-lo explicitamente (nao recomendado para producao), use o parametro de lancamento `-noBE`.
+O BattlEye e ativado por padrao. Voce inicia o servidor com `DayZServer_x64.exe` e o BattlEye carrega automaticamente. Para desativa-lo explicitamente (nao recomendado para producao), defina `BattlEye = 0;` no **serverDZ.cfg**.
 
 O arquivo **bans.txt** na pasta `BattlEye/` usa GUIDs do BattlEye, que sao diferentes de SteamID64s. Bans emitidos atraves de RCON ou comandos do BattlEye escrevem neste arquivo automaticamente.
 
@@ -91,10 +92,10 @@ O RCON do BattlEye permite administrar o servidor remotamente sem estar in-game.
 
 ```
 RConPassword yourpassword
-RConPort 2306
+RConPort 2305
 ```
 
-A porta RCON padrao e a porta do jogo mais 4. Se seu servidor roda na porta `2302`, o RCON usa `2306` por padrao.
+O BattlEye nao usa uma porta RCON padrao fixa -- se voce omitir `RConPort`, ele escuta em uma porta aleatoria. Defina-a explicitamente. O valor recomendado e a porta do jogo mais 3, ou seja, `2305` para um servidor rodando na porta `2302`. Ela nao deve colidir com a porta do jogo nem com a porta de consulta do Steam.
 
 ### Comandos RCON Disponiveis
 
@@ -174,12 +175,8 @@ Estes sao os problemas que operadores de servidores encontram com mais frequenci
 | Erro | Sintoma | Solucao |
 |---------|---------|-----|
 | `.bikey` faltando em `keys/` | Jogadores sao kickados ao entrar com erro de assinatura | Copie o arquivo `.bikey` do mod para o diretorio `keys/` do servidor |
-| Colocar nomes ou senhas no **ban.txt** | Bans nao funcionam; erros aleatorios | Use apenas valores SteamID64, um por linha |
+| Usar um SteamID64 em vez do UID do jogador no **ban.txt** | Bans nao funcionam | Use o UID de jogador de 44 caracteres, um por linha (comentarios apos `//` sao permitidos) |
 | Conflito de porta RCON | Cliente RCON nao consegue conectar | Garanta que a porta RCON nao esta sendo usada por outro servico; verifique regras de firewall |
 | `verifySignatures = 0` em producao | Qualquer pessoa pode entrar com mods adulterados | Defina como `2` em qualquer servidor publico |
-| Esquecendo de abrir a porta RCON no firewall | Cliente RCON da timeout | Abra a porta UDP do RCON (padrao 2306) no seu firewall |
-| Editando **bans.txt** em `BattlEye/` com SteamIDs | Bans nao funcionam | O **bans.txt** do BattlEye usa GUIDs, nao SteamIDs; use **ban.txt** no diretorio de perfil para bans por SteamID |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Ajuste de Performance](08-performance.md) | [Proximo: Gerenciamento de Mods >>](10-mod-management.md)
+| Esquecendo de abrir a porta RCON no firewall | Cliente RCON da timeout | Abra a porta UDP do RCON (a que voce definiu com `RConPort`, ex. `2305`) no seu firewall |
+| Editando **bans.txt** em `BattlEye/` com UIDs de jogadores | Bans nao funcionam | O **bans.txt** do BattlEye usa GUIDs, nao UIDs; use **ban.txt** na raiz do servidor para bans baseados em UID |

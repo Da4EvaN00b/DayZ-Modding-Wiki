@@ -1,6 +1,5 @@
 # Chapter 9.10: Mod 管理
 
-[首页](../README.md) | [<< 上一章: 访问控制](09-access-control.md) | [下一章: 故障排除 >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ class CfgPatches
 **Mod 路径中有空格。** 类似 `-mod=@My Mod` 的路径会破坏解析。重命名 mod 文件夹以避免空格，或将整个参数用引号括起：`-mod="@My Mod;@CF"`。
 
 **服务器上 mod 过期，客户端已更新（或反之）。** 版本不匹配导致无法连接。保持服务器和 Workshop 版本同步。同时更新所有 mod 和服务器。
-
----
-
-[首页](../README.md) | [<< 上一章: 访问控制](09-access-control.md) | [下一章: 故障排除 >>](11-troubleshooting.md)

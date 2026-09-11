@@ -1,6 +1,5 @@
-# Capítulo 6.12: Sistema de Ações
+# Sistema de Ações
 
-[Início](../README.md) | [<< Anterior: Hooks de Missão](11-mission-hooks.md) | **Sistema de Ações** | [Próximo: Sistema de Entrada >>](13-input-system.md)
 
 ---
 
@@ -767,7 +766,7 @@ Componentes de ação controlam _como_ a ação progride ao longo do tempo. Eles
 | `CAInteract` | nenhum | Execução instantânea para ações de interação |
 | `CAContinuousTime` | `float time` | Barra de progresso, completa após `time` segundos |
 | `CAContinuousRepeat` | `float time` | Ciclos repetidos, dispara `OnFinishProgress` a cada ciclo |
-| `CAContinuousQuantity` | `float quantity, float time` | Consome quantidade ao longo do tempo |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Consome quantidade ao longo do tempo |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Como Quantity mas aplica modificadores de comida/bebida |
 
 ### CAContinuousTime

@@ -1,6 +1,4 @@
-# Chapter 9.10: Mod Management
-
-[Home](../README.md) | [<< Previous: Access Control](09-access-control.md) | [Next: Troubleshooting >>](11-troubleshooting.md)
+# Mod Management
 
 ---
 
@@ -214,7 +212,3 @@ If two mods both use `modded class PlayerBase`, the one loaded **last** (rightmo
 **Spaces in mod paths.** A path like `-mod=@My Mod` breaks parsing. Rename mod folders to avoid spaces, or wrap the entire parameter in quotes: `-mod="@My Mod;@CF"`.
 
 **Outdated mod on server, updated on client (or vice versa).** Version mismatch prevents connection. Keep server and Workshop versions in sync. Update all mods and the server at the same time.
-
----
-
-[Home](../README.md) | [<< Previous: Access Control](09-access-control.md) | [Next: Troubleshooting >>](11-troubleshooting.md)

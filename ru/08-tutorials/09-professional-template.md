@@ -1,6 +1,5 @@
 # Глава 8.9: Профессиональный шаблон мода
 
-[Главная](../README.md) | [<< Назад: Создание HUD-оверлея](08-hud-overlay.md) | **Профессиональный шаблон мода** | [Далее: Создание пользовательского транспорта >>](10-vehicle-mod.md)
 
 ---
 
@@ -856,36 +855,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Подключение игрока - серверная диспетчеризация RPC
-    // Вызывается движком, когда клиент отправляет RPC серверу.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Обрабатываем только наш ID RPC. Все остальные RPC проходят насквозь.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Читаем имя маршрута (первая строка, записанная отправителем).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Диспетчеризация к правильному обработчику на основе имени маршрута.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Добавляйте больше маршрутов здесь по мере роста вашего мода:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Завершение
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +877,47 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Серверная диспетчеризация RPC.
+// ВАЖНО: OnRPC -- это метод DayZGame, а НЕ MissionServer. Цепочка классов
+// Mission не имеет OnRPC, поэтому для получения RPC нужно модифицировать
+// DayZGame. Этот хук срабатывает и на клиенте, и на сервере, поэтому
+// защищайтесь через GetGame().IsServer().
+// ==========================================================================
+modded class DayZGame
+{
+    // Вызывается движком при поступлении RPC. На сервере здесь мы
+    // диспетчеризуем RPC, отправленные клиентами.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Только серверная диспетчеризация.
+        if (!IsServer()) return;
+
+        // Обрабатываем только наш ID RPC. Все остальные RPC проходят насквозь.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Читаем имя маршрута (первая строка, записанная отправителем).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // Диспетчеризация к правильному обработчику на основе имени маршрута.
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Добавляйте больше маршрутов здесь по мере роста вашего мода:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -925,8 +935,9 @@ modded class MissionServer
 //
 // ЗАЧЕМ MissionGameplay:
 //   На клиенте MissionGameplay -- это активный класс миссии во время
-//   геймплея. Он получает OnUpdate() каждый кадр (для опроса ввода)
-//   и OnRPC() для входящих серверных сообщений.
+//   геймплея. Он получает OnUpdate() каждый кадр (для опроса ввода).
+//   RPC, однако, приходят через DayZGame.OnRPC (не на миссию), поэтому
+//   модифицированный DayZGame ниже пересылает входящие сообщения в этот класс.
 //
 // ПРИМЕЧАНИЕ О LISTEN-СЕРВЕРАХ:
 //   На listen-сервере (хост + игра) активны ОБА MissionServer и
@@ -976,15 +987,14 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // Приёмник RPC: обрабатывает сообщения от сервера
+    // Приёмник RPC: обрабатывает сообщения от сервера.
+    // Это НЕ переопределение движка -- сам колбэк движка находится на
+    // DayZGame (см. модифицированный DayZGame ниже). DayZGame.OnRPC достигает
+    // активной миссии через GetGame().GetMission() и пересылает клиентские RPC
+    // сюда, чтобы этот метод мог обращаться к членам экземпляра вроде m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Обрабатываем только наш ID RPC.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // Читаем имя маршрута.
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1060,6 +1070,37 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Клиентская диспетчеризация RPC.
+// ВАЖНО: OnRPC -- это метод DayZGame, а НЕ MissionGameplay. Цепочка классов
+// Mission не имеет OnRPC, поэтому RPC получаются путём модификации DayZGame.
+// Этот хук срабатывает и на клиенте, и на сервере, поэтому защищайтесь через
+// GetGame().IsClient(). Мы достигаем активного MissionGameplay через
+// GetGame().GetMission() и пересылаем в его OnMyModRPC, чтобы члены
+// UI-панели оставались доступными.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Только клиентская диспетчеризация.
+        if (!IsClient()) return;
+
+        // Обрабатываем только наш ID RPC.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Пересылаем в активную миссию, чтобы члены экземпляра (UI-панель)
+        // были достижимы. Приводим к нашему модифицированному типу MissionGameplay.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1266,7 +1307,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1282,7 +1323,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1309,7 +1350,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1326,7 +1367,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1680,7 +1721,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }
@@ -1791,7 +1832,3 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 4. **Добавить HUD-оверлей** -- Следуйте [Главе 8.8: Создание HUD-оверлея](08-hud-overlay.md) для постоянно видимых элементов UI.
 5. **Опубликовать в Workshop** -- Следуйте [Главе 8.7: Публикация в Workshop](07-publishing-workshop.md), когда ваш мод будет готов.
 6. **Изучить отладку** -- Прочитайте [Главу 8.6: Отладка и тестирование](06-debugging-testing.md) для анализа логов и устранения неполадок.
-
----
-
-**Предыдущая:** [Глава 8.8: Создание HUD-оверлея](08-hud-overlay.md) | [Главная](../README.md)

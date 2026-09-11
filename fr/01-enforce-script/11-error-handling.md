@@ -1,6 +1,5 @@
 # Chapitre 1.11 : Gestion des erreurs
 
-[Accueil](../README.md) | [<< Précédent : Enums & Préprocesseur](10-enums-preprocessor.md) | **Gestion des erreurs** | [Suivant : Pièges >>](12-gotchas.md)
 
 ---
 
@@ -827,11 +826,3 @@ override void OnUpdate(float timeslice)
 | notnull | Vérification null du compilateur | `void Fn(notnull Class obj)` |
 
 **La règle d'or :** En Enforce Script, supposez que tout peut être null et que chaque opération peut échouer. Vérifiez d'abord, agissez ensuite, loggez toujours.
-
----
-
-## Navigation
-
-| Précédent | Haut | Suivant |
-|-----------|------|---------|
-| [1.10 Enums & Préprocesseur](10-enums-preprocessor.md) | [Partie 1 : Enforce Script](../README.md) | [1.12 Ce qui n'existe PAS](12-gotchas.md) |

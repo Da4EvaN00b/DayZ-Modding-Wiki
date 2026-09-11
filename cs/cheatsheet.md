@@ -1,6 +1,5 @@
 # Tahák pro Enforce Script
 
-[Domů](./README.md) | **Tahák**
 
 ---
 
@@ -30,7 +29,7 @@
 | Metoda | Vrací | Poznámky |
 |--------|-------|----------|
 | `Insert(item)` | `int` (index) | Připojit na konec |
-| `InsertAt(item, idx)` | `void` | Vložit na pozici |
+| `InsertAt(item, idx)` | `int` (count) | Vložit na pozici |
 | `Get(idx)` / `arr[idx]` | `T` | Přístup podle indexu |
 | `Set(idx, item)` | `void` | Nahradit na indexu |
 | `Find(item)` | `int` | Index nebo -1 |
@@ -45,7 +44,7 @@
 | `Invert()` | `void` | Obrátit |
 | `GetRandomElement()` | `T` | Náhodný výběr |
 | `InsertAll(other)` | `void` | Připojit vše z jiného |
-| `Copy(other)` | `void` | Nahradit kopií |
+| `Copy(other)` | `int` (count) | Nahradit kopií |
 | `Resize(n)` | `void` | Změnit velikost (doplní výchozí hodnoty) |
 | `Reserve(n)` | `void` | Předem alokovat kapacitu |
 
@@ -147,7 +146,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifikuje na místě, vrací počet |
 | `s.ToLower()` | `void` | **Na místě!** |
 | `s.ToUpper()` | `void` | **Na místě!** |
-| `s.TrimInPlace()` | `void` | **Na místě!** |
+| `s.TrimInPlace()` | `int` (length) | **Na místě!** |
 | `s.Split(delim, out arr)` | `void` | Rozdělí do TStringArray |
 | `s.Get(idx)` | `string` | Jeden znak |
 | `s.Set(idx, ch)` | `void` | Nahradit znak |
@@ -212,11 +211,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Kontrola IsAlive (vyžaduje EntityAI)
+### Kontrola IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() je definováno na základním typu Object (vrací !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Iterace přes mapu pomocí foreach

@@ -1,6 +1,5 @@
 # Kapitola 4.2: 3D modely (.p3d)
 
-[Domů](../README.md) | [<< Předchozí: Textury](01-textures.md) | **3D modely** | [Další: Materiály >>](03-materials.md)
 
 ---
 

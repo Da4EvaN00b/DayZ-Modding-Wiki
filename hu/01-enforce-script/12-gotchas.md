@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -601,27 +600,27 @@ class EntityContainer<Class T>
 
 **What you would write:**
 ```c
-EDamageState state = (EDamageState)999;  // Expect error or exception
+DamageType type = (DamageType)999;  // Expect error or exception
 ```
 
 **What happens:** No error. Any `int` value can be assigned to an enum variable, even values outside the defined range.
 
 **Correct solution:** Validate manually:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // fallback
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // fallback
 }
 ```
 
@@ -1215,11 +1214,3 @@ If you are a C++ developer, here are the biggest adjustments:
 | `IsClient()` betoltes kozben | False-t ad | Hasznald az `IsDedicatedServer()` metodust |
 | Forditasi hiba rossz fajl | Felrevezeto hely | Ellenorizd a jelzett utan kovetkezo fajlt |
 | `crash_*.log` fajlok | Nem valos osszeomlasok | Futasideju script kiveteleket tartalmaznak |
-
----
-
-## Navigacio
-
-| Elozo | Fel | Kovetkezo |
-|----------|----|------|
-| [1.11 Hibakezelees](11-error-handling.md) | [Part 1: Enforce Script](../README.md) | [1.13 Fuggvenyek es metodusok](13-functions-methods.md) |

@@ -1,6 +1,5 @@
 # Rozdział 8.9: Profesjonalny szablon moda
 
-[Strona główna](../README.md) | [<< Poprzedni: Budowanie nakładki HUD](08-hud-overlay.md) | **Profesjonalny szablon moda** | [Dalej: Tworzenie własnego pojazdu >>](10-vehicle-mod.md)
 
 ---
 
@@ -856,36 +855,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Połączenie gracza - dispatch RPC serwera
-    // Wywoływane przez silnik gdy klient wysyła RPC do serwera.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Obsługuj tylko nasze ID RPC. Wszystkie inne RPC przechodzą dalej.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Odczytaj nazwę trasy (pierwszy ciąg zapisany przez nadawcę).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Dispatch do właściwego handlera na podstawie nazwy trasy.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Dodawaj więcej tras tutaj w miarę rozwoju moda:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Zamykanie
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +877,46 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Dispatch RPC serwera.
+// WAŻNE: OnRPC jest metodą DayZGame, NIE MissionServer. Łańcuch klas Mission
+// nie ma OnRPC, więc aby odbierać RPC musisz zmodyfikować DayZGame. Ten
+// hook uruchamia się zarówno na kliencie jak i serwerze, więc zabezpiecz go GetGame().IsServer().
+// ==========================================================================
+modded class DayZGame
+{
+    // Wywoływane przez silnik gdy przychodzi RPC. Na serwerze to tutaj
+    // dispatchujemy RPC wysłane przez klientów.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Tylko dispatch po stronie serwera.
+        if (!IsServer()) return;
+
+        // Obsługuj tylko nasze ID RPC. Wszystkie inne RPC przechodzą dalej.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Odczytaj nazwę trasy (pierwszy ciąg zapisany przez nadawcę).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        // Dispatch do właściwego handlera na podstawie nazwy trasy.
+        MyModManager mgr = MyModManager.GetInstance();
+        if (!mgr) return;
+
+        if (routeName == MYMOD_RPC_UI_REQUEST)
+        {
+            mgr.OnUIRequest(sender, ctx);
+        }
+        // Dodawaj więcej tras tutaj w miarę rozwoju moda:
+        // else if (routeName == MYMOD_RPC_SOME_OTHER)
+        // {
+        //     mgr.OnSomeOther(sender, ctx);
+        // }
+    }
+};
 ```
 
 ---
@@ -925,8 +934,9 @@ Podpina się do `MissionGameplay` dla inicjalizacji po stronie klienta, obsługi
 //
 // DLACZEGO MissionGameplay:
 //   Na kliencie MissionGameplay jest aktywną klasą misji podczas
-//   rozgrywki. Odbiera OnUpdate() co klatkę (do odpytywania wejścia)
-//   i OnRPC() dla przychodzących wiadomości serwera.
+//   rozgrywki. Odbiera OnUpdate() co klatkę (do odpytywania wejścia).
+//   RPC jednak przychodzą przez DayZGame.OnRPC (nie przez misję), więc
+//   zmodyfikowany DayZGame poniżej przekazuje przychodzące wiadomości do tej klasy.
 //
 // UWAGA O LISTEN SERWERACH:
 //   Na listen serwerze (host + gra), ZARÓWNO MissionServer jak i
@@ -976,15 +986,14 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // Odbiornik RPC: obsługuje wiadomości z serwera
+    // Odbiornik RPC: obsługuje wiadomości z serwera.
+    // To NIE jest override silnika -- właściwy callback silnika znajduje się
+    // w DayZGame (zobacz zmodyfikowany DayZGame poniżej). DayZGame.OnRPC dociera
+    // do aktywnej misji przez GetGame().GetMission() i przekazuje klienckie RPC tutaj,
+    // aby ta metoda mogła odwoływać się do składowych instancji jak m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, int rpc_type, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Obsługuj tylko nasze ID RPC.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
         // Odczytaj nazwę trasy.
         string routeName;
         if (!ctx.Read(routeName)) return;
@@ -1060,6 +1069,36 @@ modded class MissionGameplay
         Print(MYMOD_TAG + " Client mission finished");
 
         super.OnMissionFinish();
+    }
+};
+
+// ==========================================================================
+// Dispatch RPC klienta.
+// WAŻNE: OnRPC jest metodą DayZGame, NIE MissionGameplay. Łańcuch klas Mission
+// nie ma OnRPC, więc RPC są odbierane przez modyfikację DayZGame. Ten hook
+// uruchamia się zarówno na kliencie jak i serwerze, więc zabezpiecz go GetGame().IsClient().
+// Docieramy do aktywnego MissionGameplay przez GetGame().GetMission() i
+// przekazujemy do jego OnMyModRPC, aby składowe panelu UI pozostały dostępne.
+// ==========================================================================
+modded class DayZGame
+{
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Tylko dispatch po stronie klienta.
+        if (!IsClient()) return;
+
+        // Obsługuj tylko nasze ID RPC.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Przekaż do aktywnej misji, aby składowe instancji (panel UI)
+        // były dostępne. Rzutuj na nasz zmodyfikowany typ MissionGameplay.
+        MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+        if (mission)
+        {
+            mission.OnMyModRPC(sender, rpc_type, ctx);
+        }
     }
 };
 ```
@@ -1266,7 +1305,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1282,7 +1321,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1309,7 +1348,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1326,7 +1365,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1680,7 +1719,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }
@@ -1791,7 +1830,3 @@ Z tym profesjonalnym szablonem działającym, możesz:
 4. **Dodać nakładkę HUD** -- Podążaj za [Rozdziałem 8.8: Budowanie nakładki HUD](08-hud-overlay.md) dla zawsze widocznych elementów UI.
 5. **Opublikować na Workshop** -- Podążaj za [Rozdziałem 8.7: Publikacja na Workshop](07-publishing-workshop.md) gdy twój mod jest gotowy.
 6. **Nauczyć się debugowania** -- Przeczytaj [Rozdział 8.6: Debugowanie i testowanie](06-debugging-testing.md) dla analizy logów i rozwiązywania problemów.
-
----
-
-**Poprzedni:** [Rozdział 8.8: Budowanie nakładki HUD](08-hud-overlay.md) | [Strona główna](../README.md)

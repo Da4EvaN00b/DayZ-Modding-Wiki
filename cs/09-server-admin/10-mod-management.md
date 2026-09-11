@@ -1,6 +1,5 @@
 # Chapter 9.10: Sprava modu
 
-[Domu](../README.md) | [<< Predchozi: Rizeni pristupu](09-access-control.md) | [Dalsi: Reseni problemu >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Pokud dva mody oba pouzivaji `modded class PlayerBase`, ten nacteny **posledni**
 **Mezery v cestach modu.** Cesta jako `-mod=@My Mod` rozbije parsovani. Prejmennujte slozky modu, abyste se vyhnuli mezerám, nebo obalte cely parametr do uvozovek: `-mod="@My Mod;@CF"`.
 
 **Zastaraly mod na serveru, aktualizovany na klientu (nebo naopak).** Nesoulad verze brani pripojeni. Udrzujte verze serveru a Workshopu synchronizovane. Aktualizujte vsechny mody a server ve stejnou dobu.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Rizeni pristupu](09-access-control.md) | [Dalsi: Reseni problemu >>](11-troubleshooting.md)

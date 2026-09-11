@@ -1,6 +1,5 @@
 # Capítulo 8.13: El Menú de Diagnóstico (Diag Menu)
 
-[Inicio](../README.md) | [<< Anterior: Construyendo un Sistema de Comercio](12-trading-system.md) | **El Menú de Diagnóstico**
 
 ---
 

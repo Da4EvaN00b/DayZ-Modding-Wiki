@@ -1,6 +1,5 @@
 # Capitulo 9.4: Economia de Loot en Profundidad
 
-[Inicio](../README.md) | [<< Anterior: Referencia de serverDZ.cfg](03-server-cfg.md) | **Economia de Loot en Profundidad**
 
 ---
 
@@ -194,7 +193,7 @@ Los vendajes son muy comunes (40 nominal). Spawnean en edificios Medic (hospital
 | `restock` | int | segundos | Tiempo de enfriamiento minimo antes de que la CE pueda spawnear un reemplazo. 0 = inmediato. |
 | `quantmin` | int | -1 a 100 | Porcentaje de cantidad minima al spawnear (% municion, % liquido). -1 = no aplica. |
 | `quantmax` | int | -1 a 100 | Porcentaje de cantidad maxima al spawnear. -1 = no aplica. |
-| `cost` | int | 0+ | Peso de prioridad para la seleccion de spawn. Actualmente todos los items vanilla usan 100. |
+| `cost` | int | 0+ | Peso de prioridad usado durante el respawn/limpieza. Casi todos los items vanilla usan 100, pero algunos usan valores mas altos (p. ej. `Mag_SVD_10Rnd` usa 1000). |
 
 ### Flags
 
@@ -721,7 +720,3 @@ Despues de editar archivos de economia, haz una de estas opciones:
 - Elimina `storage_1/` para un wipe completo e inicio limpio de la economia
 - Pon `RestartSpawn` a `1` en `globals.xml` para un reinicio para re-aleatorizar el loot, luego ponlo de vuelta a `0`
 - Espera a que los lifetimes de los items expiren naturalmente (puede tomar horas)
-
----
-
-**Anterior:** [Referencia de serverDZ.cfg](03-server-cfg.md) | [Inicio](../README.md) | **Siguiente:** [Spawn de Vehiculos y Eventos Dinamicos](05-vehicle-spawning.md)

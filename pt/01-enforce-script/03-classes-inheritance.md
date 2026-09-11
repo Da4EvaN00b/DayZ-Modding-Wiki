@@ -1,6 +1,5 @@
-# Chapter 1.3: Classes & Inheritance
+# Classes & Inheritance
 
-[Home](../README.md) | [<< Previous: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Inheritance** | [Next: Modded Classes >>](04-modded-classes.md)
 
 ---
 
@@ -837,7 +836,7 @@ classDiagram
 
     class PlayerBase {
         +GetIdentity() PlayerIdentity
-        +GetBleeding() bool
+        +IsBleeding() bool
         +IsRestrained() bool
     }
 
@@ -859,7 +858,7 @@ classDiagram
     EntityAI <|-- DayZInfected
     ManBase <|-- PlayerBase
     ItemBase <|-- Weapon_Base
-    ItemBase <|-- ClothingBase
+    ItemBase <|-- Clothing_Base
     EntityAI <|-- CarScript
 ```
 
@@ -1077,7 +1076,3 @@ Crie uma classe abstrata `Handler` com `protected Handler m_Next` e métodos `Se
 | Parametro `out` | `void Func(out int val)` | Parametro somente de saida |
 | Parametro `inout` | `void Func(inout array<int> a)` | Parametro de entrada + saida |
 | Parametro `notnull` | `void Func(notnull EntityAI e)` | Non-null imposto pelo compilador |
-
----
-
-[Início](../README.md) | [<< Anterior: Arrays, Maps & Sets](02-arrays-maps-sets.md) | **Classes & Herança** | [Próximo: Modded Classes >>](04-modded-classes.md)

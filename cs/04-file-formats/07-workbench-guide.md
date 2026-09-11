@@ -1,6 +1,5 @@
 # Kapitola 4.7: Průvodce Workbenchem
 
-[Domů](../README.md) | [<< Předchozí: Balení PBO](06-pbo-packing.md) | **Průvodce Workbenchem** | [Další: Modelování budov >>](08-building-modeling.md)
 
 ---
 
@@ -242,7 +241,7 @@ ScriptModulePathClass {
 
 Některé frameworky přepisují entry pointy (CF používá `"CF_CreateGame"`).
 
-**imageSets / widgetStyles** -- Vyžadovány pro náhled layoutu. Bez vanilkových sad obrázků layoutové soubory zobrazují chybějící obrázky. Vždy zahrňte standardních 14 vanilkových sad obrázků uvedených v příkladu výše.
+**imageSets / widgetStyles** -- Vyžadovány pro náhled layoutu. Bez vanilkových sad obrázků layoutové soubory zobrazují chybějící obrázky. Zahrňte vanilkové sady obrázků, na které vaše layouty odkazují; přesný seznam se liší (výchozí `dayz.gproj` dodává zhruba tucet, např. `ccgui_enforce`, `dayz_gui`, `dayz_inventory`, `dayz_crosshairs`), poté připojte své vlastní.
 
 ### Rozlišení prefixu cesty
 
@@ -500,7 +499,7 @@ Při připojení k DayZDiag může Workbench profilovat provádění skriptů.
 
 ### Herní profilér skriptů (Diag Menu)
 
-Kromě profiléru Workbenche má `DayZDiag_x64.exe` vestavěný profilér skriptů přístupný přes Diag Menu (pod Statistics). Zobrazuje top-20 seznamy pro čas na třídu, čas na funkci, alokace tříd, počet na funkci a počty instancí tříd. Použijte parametr spuštění `-profile` pro povolení profilování od startu. Profilér měří pouze Enforce Script -- proto (engine) metody se neměří jako samostatné záznamy, ale jejich doba provádění je zahrnuta v celkovém čase skriptové metody, která je volá. Viz `EnProfiler.c` ve vanilkových skriptech pro programové API (`EnProfiler.Enable`, `EnProfiler.SetModule`, konstanty příznaků).
+Kromě profiléru Workbenche má `DayZDiag_x64.exe` vestavěný profilér skriptů přístupný přes Diag Menu (pod Statistics). Zobrazuje top-20 seznamy pro čas na třídu, čas na funkci, alokace tříd a počet na funkci, plus top-40 seznam pro počty instancí tříd (Class count). Použijte parametr spuštění `-profile` pro povolení profilování od startu. Profilér měří pouze Enforce Script -- proto (engine) metody se neměří jako samostatné záznamy, ale jejich doba provádění je zahrnuta v celkovém čase skriptové metody, která je volá. Viz `EnProfiler.c` ve vanilkových skriptech pro programové API (`EnProfiler.Enable`, `EnProfiler.SetModule`, konstanty příznaků).
 
 ### Běžná úzká místa
 

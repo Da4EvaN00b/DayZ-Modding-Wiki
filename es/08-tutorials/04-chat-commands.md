@@ -1,6 +1,5 @@
 # Capítulo 8.4: Agregando Comandos de Chat
 
-[Inicio](../README.md) | [<< Anterior: Construyendo un Panel de Administrador](03-admin-panel.md) | **Agregando Comandos de Chat** | [Siguiente: Usando la Plantilla de Mod de DayZ >>](05-mod-template.md)
 
 ---
 
@@ -116,7 +115,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID se dispara cuando el jugador envía un mensaje de chat
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +172,12 @@ modded class MissionGameplay
 
 ### Cómo Funciona la Interceptación del Chat
 
-El método `OnEvent` en `MissionGameplay` se llama para varios eventos del juego. Cuando `eventTypeId` es `ChatMessageEventTypeID`, significa que el jugador acaba de enviar un mensaje de chat. El `Param3` contiene:
+El método `OnEvent` en `MissionGameplay` se llama para varios eventos del juego. Cuando `eventTypeId` es `ChatMessageEventTypeID`, significa que el jugador acaba de enviar un mensaje de chat. Los params son un `ChatMessageEventParams` (un `Param4<int, string, string, string>`) y contienen:
 
 - `param1` -- Canal (int): el canal de chat (global, directo, etc.)
 - `param2` -- Nombre del remitente (string)
 - `param3` -- Texto del mensaje (string)
+- `param4` -- Clase de configuración de color (string)
 
 Verificamos si el mensaje comienza con `/`. Si es así, reenviamos la cadena completa al servidor vía RPC. El mensaje aún se envía como chat normal también -- en un mod de producción, lo suprimirías (cubierto en las notas al final).
 
@@ -644,8 +644,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | Canal | Color | Uso Típico |
 |-------|-------|------------|
-| `"colorStatusChannel"` | Amarillo/naranja | Mensajes del sistema |
-| `"colorAction"` | Blanco | Retroalimentación de acción |
+| `"colorStatusChannel"` | Azul | Mensajes del sistema |
+| `"colorAction"` | Amarillo | Retroalimentación de acción |
 | `"colorFriendly"` | Verde | Retroalimentación positiva |
 | `"colorImportant"` | Rojo | Advertencias/errores |
 
@@ -1352,7 +1352,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1505,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Permiso Denegado para Administradores
 
 - **Steam64 ID incorrecto:** Verifica los IDs de admin en `IsCommandAdmin()`. Deben ser Steam64 IDs exactos (números de 17 dígitos que empiezan con `7656`).
-- **GetPlainId() vs GetId():** `GetPlainId()` devuelve el Steam64 ID. `GetId()` devuelve el ID de sesión de DayZ. Usa `GetPlainId()` para verificaciones de admin.
+- **GetPlainId() vs GetId():** `GetPlainId()` devuelve el Steam64 ID en texto plano. `GetId()` devuelve un ID único hasheado estable (seguro para bases de datos y logs), no un ID de sesión -- el ID por sesión que se reutiliza después de que un jugador se desconecta es `GetPlayerId()` (un int). Usa `GetPlainId()` para verificaciones de admin.
 
 ### El Mensaje de Retroalimentación No Aparece en el Chat
 
@@ -1521,20 +1521,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### El Comando Aparece en el Chat como Mensaje Regular
 
-- El hook `OnEvent` intercepta el mensaje pero no lo suprime de ser enviado como chat. Para suprimirlo en un mod de producción, necesitarías modificar la clase `ChatInputMenu` para filtrar mensajes con `/` antes de que se envíen:
+- El hook `OnEvent` intercepta el mensaje pero no lo suprime de ser enviado como chat. Para suprimirlo en un mod de producción, necesitarías modificar la clase `ChatInputMenu` para filtrar mensajes con `/` antes de que se envíen. En vanilla, `ChatInputMenu` envía el texto del chat desde su manejador `OnChange()`, donde llama a `g_Game.ChatPlayer(text)`. Puedes sobrescribir `OnChange()` y omitir el envío cuando el texto comienza con `/`:
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Obtener el texto actual del widget de edición
-        // Si comienza con /, NO llamar a super (que lo envía como chat)
+        // Obtener el texto actual del widget de edición (m_edit_box.GetText())
+        // Si comienza con /, NO llamar a super (que llama a g_Game.ChatPlayer)
         // En su lugar, manejarlo como un comando
 
         // Este enfoque varía según la versión de DayZ -- verificar fuentes vanilla
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1557,7 @@ La implementación exacta depende de la versión de DayZ y cómo `ChatInputMenu`
 
 - **Siempre verifica permisos antes de ejecutar comandos de administrador.** Una verificación de permisos faltante significa que cualquier jugador puede `/heal` o `/kill` a cualquiera. Valida el Steam64 ID del que llama (vía `GetPlainId()`) en el servidor antes de procesar.
 - **Envía retroalimentación al admin incluso para comandos fallidos.** Los fallos silenciosos hacen imposible la depuración. Siempre envía un mensaje de chat explicando qué salió mal ("Player not found", "Permission denied").
-- **Usa `GetPlainId()` para verificaciones de admin, no `GetId()`.** `GetId()` devuelve un ID de DayZ específico de sesión que cambia en cada reconexión. `GetPlainId()` devuelve el Steam64 ID permanente.
+- **Usa `GetPlainId()` para verificaciones de admin, no `GetId()`.** `GetId()` devuelve un ID único hasheado estable pensado para bases de datos y logs (el ID por sesión que se reutiliza después de que un jugador se desconecta es `GetPlayerId()`). `GetPlainId()` devuelve el Steam64 ID en texto plano.
 - **Almacena IDs de admin en un archivo JSON de configuración, no en el código.** Los IDs hardcodeados requieren una reconstrucción del PBO para cambiar. Un archivo JSON en `$profile:` puede ser editado por administradores del servidor sin conocimiento de modding.
 - **Convierte los nombres de comandos a minúsculas antes de comparar.** Los jugadores pueden escribir `/Heal`, `/HEAL` o `/heal`. Normalizar a minúsculas previene errores frustrantes de "unknown command".
 

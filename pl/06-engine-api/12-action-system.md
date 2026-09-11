@@ -1,6 +1,5 @@
 # Rozdział 6.12: System akcji
 
-[Strona główna](../README.md) | [<< Poprzedni: Haki misji](11-mission-hooks.md) | **System akcji** | [Następny: System wejścia >>](13-input-system.md)
 
 ---
 
@@ -767,7 +766,7 @@ Komponenty akcji kontrolują _jak_ akcja postępuje w czasie. Są tworzone w met
 | `CAInteract` | brak | Natychmiastowe wykonanie dla akcji interakcji |
 | `CAContinuousTime` | `float time` | Pasek postępu, kończy się po `time` sekundach |
 | `CAContinuousRepeat` | `float time` | Powtarzające się cykle, uruchamia `OnFinishProgress` przy każdym cyklu |
-| `CAContinuousQuantity` | `float quantity, float time` | Zużywa ilość w czasie |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Zużywa ilość w czasie |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Jak Quantity, ale stosuje modyfikatory jedzenia/picia |
 
 ### CAContinuousTime

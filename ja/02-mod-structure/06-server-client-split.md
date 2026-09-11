@@ -1,6 +1,5 @@
 # 第2.6章: サーバーvsクライアントアーキテクチャ
 
-[ホーム](../README.md) | [<< 前へ: ファイル構成](05-file-organization.md) | **サーバーvsクライアントアーキテクチャ**
 
 ---
 
@@ -159,7 +158,7 @@ void ShowNotification(string text)
         return;
 
     // クライアントのみがUIを表示可能
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 ```
 

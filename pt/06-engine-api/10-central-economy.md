@@ -1,6 +1,5 @@
-# Chapter 6.10: Central Economy
+# Central Economy
 
-[Home](../README.md) | [<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Next: Mission Hooks >>](11-mission-hooks.md)
 
 ---
 
@@ -325,7 +324,3 @@ Defina `nominal` e `min` como `0`:
 | Flags de contagem | Quais itens contam para o nominal (cargo, hoarder, map, player) |
 | Eventos | Spawns dinâmicos com seu próprio ciclo de vida (quedas, veículos, infectados) |
 | Flags ECE | `ECE_NOLIFETIME`, `ECE_EQUIP` para itens spawnados por script |
-
----
-
-[<< Anterior: Networking & RPC](09-networking.md) | **Central Economy** | [Início](../README.md)

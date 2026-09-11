@@ -1,6 +1,5 @@
 # Chapitre 2.6 : Architecture Serveur vs Client
 
-[Accueil](../README.md) | [<< Précédent : Organisation des fichiers](05-file-organization.md) | **Architecture Serveur vs Client**
 
 ---
 
@@ -167,7 +166,7 @@ void ShowNotification(string text)
         return;
 
     // Seul le client peut afficher l'UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 ```
 

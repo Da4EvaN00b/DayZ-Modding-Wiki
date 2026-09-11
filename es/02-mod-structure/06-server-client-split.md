@@ -1,6 +1,5 @@
 # Capítulo 2.6: Server vs Client Architecture
 
-[Inicio](../README.md) | [<< Anterior: File Organization](05-file-organization.md) | **Server vs Client Architecture**
 
 ---
 
@@ -172,7 +171,7 @@ void ShowNotification(string text)
         return;
 
     // Only the client can display UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 
 // Guard: handle both sides correctly

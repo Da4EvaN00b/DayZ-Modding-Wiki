@@ -1,6 +1,5 @@
 # Chapter 8.7: Steam Workshopへの公開
 
-[Home](../README.md) | [<< 前へ: デバッグとテスト](06-debugging-testing.md) | **Steam Workshopへの公開** | [次へ: HUDオーバーレイの構築 >>](08-hud-overlay.md)
 
 ---
 
@@ -109,7 +108,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### フィールドリファレンス
@@ -127,7 +125,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | いいえ | Mod概要パネルに表示される大きな画像 |
 | `action` | いいえ | プレイヤーが「Website」をクリックしたときに開くURL（通常Workshopページまたは GitHub） |
 | `version` | はい | 現在のバージョン文字列（例：`"1.0.0"`） |
-| `versionPath` | いいえ | バージョン番号を含むテキストファイルへのパス（自動ビルド用） |
 
 ### よくある間違い
 
@@ -454,7 +451,7 @@ Modが永続データ（JSON config、プレイヤーデータファイル）を
 
 Enforce Scriptでのマイグレーションチェックの例：
 
-```csharp
+```c
 // config読み込み関数内で
 if (config.configVersion < 2)
 {

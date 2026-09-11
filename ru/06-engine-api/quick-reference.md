@@ -1,6 +1,5 @@
 # Engine API Quick Reference
 
-[Home](../README.md) | **Engine API Quick Reference**
 
 ---
 
@@ -61,8 +60,8 @@
 
 | Метод | Сигнатура | Описание |
 |-------|-----------|----------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | Прикрепить дочернюю сущность к кости |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | Открепить дочернюю сущность |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | Прикрепить дочернюю сущность к кости |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | Открепить дочернюю сущность |
 | `GetParent` | `IEntity GetParent()` | Родительская сущность или null |
 | `GetChildren` | `IEntity GetChildren()` | Первая дочерняя сущность |
 | `GetSibling` | `IEntity GetSibling()` | Следующая сущность-сиблинг |
@@ -126,11 +125,11 @@
 | `IsTransport()` | Object | Это транспорт? |
 | `IsDayZCreature()` | Object | Это существо (зомби/животное)? |
 | `IsKindOf(string)` | Object | Проверка наследования конфига |
-| `IsItemBase()` | EntityAI | Это предмет инвентаря? |
-| `IsWeapon()` | EntityAI | Это оружие? |
-| `IsMagazine()` | EntityAI | Это магазин? |
-| `IsClothing()` | EntityAI | Это одежда? |
-| `IsFood()` | EntityAI | Это еда? |
+| `IsItemBase()` | Object | Это предмет инвентаря? |
+| `IsWeapon()` | Object | Это оружие? |
+| `IsMagazine()` | Object | Это магазин? |
+| `IsClothing()` | Object | Это одежда? |
+| `IsFood()` | Object | Это еда? |
 | `Class.CastTo(out, obj)` | Class | Безопасное приведение типа (возвращает bool) |
 | `ClassName.Cast(obj)` | Class | Приведение в строке (возвращает null при неудаче) |
 
@@ -146,12 +145,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | Создать предмет в грузе |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | Создать предмет в грузе |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | Создать предмет как вложение |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | Перечислить все предметы |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | Перечислить все предметы |
 | `CountInventory` | `int CountInventory()` | Подсчитать предметы |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | Проверить наличие предмета |
 | `AttachmentCount` | `int AttachmentCount()` | Количество вложений |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | Получить вложение по индексу |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | Получить вложение по слоту |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | Получить вложение по слоту |
 
 ---
 
@@ -214,7 +213,7 @@
 | `CrewSize` | `int CrewSize()` | Общее количество мест |
 | `CrewMember` | `Human CrewMember(int idx)` | Получить человека на месте |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | Получить место человека |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | Принудительно высадить с места |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | Принудительно высадить с места |
 | `CrewDeath` | `void CrewDeath(int idx)` | Убить члена экипажа |
 
 ### Двигатель (Car)
@@ -245,10 +244,10 @@
 
 | Метод | Сигнатура | Описание |
 |-------|-----------|----------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0, -1 = все |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | Ввод руля |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 газ |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | Ввод руля |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 газ (заменяет устаревший `SetThrust`) |
 
 ---
 
@@ -282,11 +281,11 @@
 |-------|-----------|----------|
 | `GetActual` | `float GetActual()` | Текущее интерполированное значение |
 | `GetForecast` | `float GetForecast()` | Целевое значение |
-| `GetDuration` | `float GetDuration()` | Оставшаяся продолжительность (секунды) |
+| `GetNextChange` | `float GetNextChange()` | Время до следующего изменения (секунды) |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | Установить цель (только сервер) |
 | `SetLimits` | `void SetLimits(float min, float max)` | Ограничения диапазона значений |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | Ограничения скорости изменения |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | Ограничения величины изменения |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | Ограничения скорости изменения |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | Ограничения величины изменения |
 
 ---
 
@@ -314,7 +313,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | Записать текст (без перевода строки) |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | Записать текст + перевод строки |
 | `FGets` | `int FGets(FileHandle fh, string line)` | Прочитать одну строку |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | Прочитать весь файл |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | Прочитать байты в массив (возвращает количество) |
 | `DeleteFile` | `bool DeleteFile(string path)` | Удалить файл |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | Копировать файл |
 
@@ -354,10 +353,12 @@
 |-------|-----------|----------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | Запланировать отложенный/повторяющийся вызов |
 | `Call` | `void Call(func fn, param1..4)` | Выполнить на следующем кадре |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | Вызвать метод по имени строкой |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | Вызвать метод по имени строкой |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | Отложенный/повторяющийся вызов по имени строкой |
 | `Remove` | `void Remove(func fn)` | Отменить запланированный вызов |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | Отменить по имени строкой |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | Получить оставшееся время CallLater |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | Получить оставшееся время CallLater (мс) |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | Оставшееся время по имени строкой (мс) |
 
 ### Класс Timer
 
@@ -368,18 +369,17 @@
 | `Остановить` | `void Остановить()` | Остановить таймер |
 | `Pause` | `void Pause()` | Приостановить таймер |
 | `Продолжить` | `void Продолжить()` | Возобновить таймер |
-| `IsPaused` | `bool IsPaused()` | Таймер приостановлен? |
-| `IsRunning` | `bool IsRunning()` | Таймер активен? |
+| `IsRunning` | `bool IsRunning()` | Таймер активен? (false во время паузы) |
 | `GetRemaining` | `float GetRemaining()` | Оставшиеся секунды |
 
 ### ScriptInvoker
 
 | Метод | Сигнатура | Описание |
 |-------|-----------|----------|
-| `Insert` | `void Insert(func fn)` | Зарегистрировать коллбэк |
-| `Remove` | `void Remove(func fn)` | Отменить регистрацию коллбэка |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | Зарегистрировать коллбэк |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | Отменить регистрацию коллбэка |
 | `Invoke` | `void Invoke(params...)` | Вызвать все коллбэки |
-| `Count` | `int Count()` | Количество зарегистрированных коллбэков |
+| `Count` | `int Count(func fn)` | Сколько раз зарегистрирована эта функция |
 | `Clear` | `void Clear()` | Удалить все коллбэки |
 
 ---
@@ -395,13 +395,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | Найти дочерний виджет по имени (рекурсивно) |
 | `Show` | `void Show(bool show)` | Показать/скрыть виджет |
 | `SetText` | `void TextWidget.SetText(string text)` | Установить текстовое содержимое |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | Установить индекс изображения |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | Установить индекс изображения |
 | `SetColor` | `void SetColor(int color)` | Установить цвет виджета (ARGB) |
 | `SetAlpha` | `void SetAlpha(float alpha)` | Установить прозрачность 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Установить размер виджета |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Установить позицию виджета |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Установить размер виджета |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Установить позицию виджета |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | Разрешение экрана |
-| `Destroy` | `void Widget.Destroy()` | Удалить и уничтожить виджет |
+| `Unlink` | `void Widget.Unlink()` | Удалить и уничтожить виджет (вместе с дочерними) |
 
 ### Вспомогательные функции цвета ARGB
 
@@ -582,7 +582,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | Время сервера (секунды) |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | Рабочее пространство UI |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | Высота местности в точке |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | Тип поверхности |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | Тип поверхности (в `out`-параметре) |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | Найти объекты рядом с позицией |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | Получить разрешение экрана |
 | `GetGame().IsServer()` | `bool IsServer()` | Проверка сервера |
@@ -610,7 +610,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | События чата, голоса |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | Игрок подключился |
 | `override void InvokeOnDisconnect(PlayerBase player)` | Игрок отключился |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | Клиент готов к приёму данных |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | Клиент готов к приёму данных |
 | `override void PlayerRegistered(int peerId)` | Идентификация зарегистрирована |
 
 ### Клиентская сторона (modded MissionGameplay)

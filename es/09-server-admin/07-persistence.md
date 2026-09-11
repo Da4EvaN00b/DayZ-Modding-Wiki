@@ -1,6 +1,5 @@
 # Capitulo 9.7: Estado del Mundo y Persistencia
 
-[Inicio](../README.md) | [<< Anterior: Spawn de Jugadores](06-player-spawning.md) | [Siguiente: Ajuste de Rendimiento >>](08-performance.md)
 
 La persistencia de DayZ mantiene el mundo vivo entre reinicios. Entender como funciona te permite gestionar bases, planificar borrados y evitar corrupcion de datos.
 
@@ -188,7 +187,3 @@ Estos aparecen repetidamente en comunidades de administradores de servidores:
 | Confundir reinicio de clima con borrado completo | Eliminar `events.xy` solo reinicia las posiciones de eventos dinamicos. No reinicia loot, bases ni jugadores. | Conoce que archivos controlan que (ver la tabla de directorio arriba). |
 | Bandera no refrescada a tiempo | Despues de 40 dias (FlagRefreshMaxDuration), la bandera expira y todas las partes de base adjuntas se vuelven elegibles para limpieza. Los jugadores pierden toda su base. | Recuerda a los jugadores el intervalo de refresco. Baja FlagRefreshMaxDuration en servidores de poca poblacion. |
 | Editar globals.xml mientras el servidor esta corriendo | Los cambios no se aplican hasta el reinicio. Peor aun, el servidor puede sobrescribir tus ediciones al apagarse. | Edita archivos de configuracion solo mientras el servidor esta detenido. |
-
----
-
-[Inicio](../README.md) | [<< Anterior: Spawn de Jugadores](06-player-spawning.md) | [Siguiente: Ajuste de Rendimiento >>](08-performance.md)

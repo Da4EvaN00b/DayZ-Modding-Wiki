@@ -1,6 +1,5 @@
 # Chapitre 6.16: Crafting System
 
-[Accueil](../README.md) | [<< Précédent : Sound System](15-sound-system.md) | **Crafting System** | [Suivant : Construction System >>](17-construction-system.md)
 
 ---
 
@@ -46,7 +45,7 @@ OnFinishProgressServer() --> PluginRecipesManager.PerformRecipeServer()
         |
         v
 RecipeBase: SpawnItems() --> ApplyModificationsResults()
-         --> ApplyModificationsIngredients() --> Do() --> DeleteIngredientsPass()
+         --> ApplyModificationsIngredients() --> Do() --> DeleleIngredientsPass()
 ```
 
 ```mermaid
@@ -620,7 +619,7 @@ For each ingredient:
 
 Your override runs here with sorted ingredients, results array, and specialty weight.
 
-### 6. Cleanup: DeleteIngredientsPass()
+### 6. Cleanup: DeleleIngredientsPass()
 
 All ingredients queued for deletion are destroyed.
 
@@ -666,7 +665,7 @@ m_IngredientDestroy[0] = false;      // survives crafting
 m_IngredientUseSoftSkills[0] = true; // soft skills modify health loss
 ```
 
-Vanilla examples: `CleanWeapon` (WeaponCleaningKit), `SawoffShotgunIzh43` (Hacksaw), `SharpenMelee` (WhetStone).
+Vanilla examples: `CleanWeapon` (WeaponCleaningKit), `SawoffShotgunIzh43` (Hacksaw), `SharpenMelee` (Whetstone).
 
 ### Partial Quantity Consumption
 

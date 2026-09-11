@@ -1,6 +1,5 @@
 # Chapitre 3.6 : Gestion des événements
 
-[Accueil](../README.md) | [<< Précédent : Création programmatique de widgets](05-programmatic-widgets.md) | **Gestion des événements** | [Suivant : Styles, polices et images >>](07-styles-fonts.md)
 
 ---
 
@@ -65,6 +64,7 @@ class ScriptedWidgetEventHandler
     // Autres
     bool OnUpdate(Widget w);
     bool OnModalResult(Widget w, int x, int y, int code, int result);
+    bool OnEvent(EventType eventType, Widget target, int parameter0, int parameter1);
 }
 ```
 

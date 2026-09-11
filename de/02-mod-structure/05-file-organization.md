@@ -1,6 +1,5 @@
 # Kapitel 2.5: Bewährte Praktiken der Dateiorganisation
 
-[Startseite](../README.md) | [<< Zurück: Minimaler funktionsfähiger Mod](04-minimum-viable-mod.md) | **Dateiorganisation** | [Weiter: Server- vs. Client-Architektur >>](06-server-client-split.md)
 
 ---
 
@@ -134,8 +133,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPP-Muster: [Name] (kein Präfix)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Regeln:**
@@ -679,7 +678,7 @@ Inhalts-Mods haben ein massives `Data/`-Verzeichnis und relativ kleines `Scripts
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -689,18 +688,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- Einer der wenigen Mods mit Schicht 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Hinweis: DabsFramework verwendet Ordnernamen in Kleinbuchstaben (`scripts/`, `gui/`). Das funktioniert, weil Windows nicht zwischen Groß- und Kleinschreibung unterscheidet, kann aber auf Linux Probleme verursachen. Die Konvention ist die kanonische Schreibweise (`Scripts/`, `GUI/`).
+Hinweis: Die physischen Ordner von DabsFramework verwenden die kanonische Schreibweise (`Scripts/`, `GUI/`, `1_Core/`), aber die `files[]`-Pfade in seiner `config.cpp` referenzieren sie in Kleinbuchstaben (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). Diese Diskrepanz bei der Groß-/Kleinschreibung funktioniert, weil Windows nicht zwischen Groß- und Kleinschreibung unterscheidet, kann aber auf Linux Probleme verursachen. Halten Sie Ihre `files[]`-Pfade in Übereinstimmung mit der tatsächlichen Ordner-Schreibweise.
 
 ---
 
@@ -845,7 +844,7 @@ MyModPanel.c
 |---------|-----|--------|
 | Tiefe Subsystem-Ordner in `3_Game` | StarDZ Core | 15+ Ordner unter `3_Game/` (Config, RPC, Events, Logging, Permissions, usw.) |
 | `Common/`-gemeinsamer Ordner | COT | In jedem Script-Modul-`files[]` eingebunden, um schichtübergreifende Hilfstypen bereitzustellen |
-| Ordnernamen in Kleinbuchstaben | DabsFramework | Verwendet `scripts/`, `gui/` statt `Scripts/`, `GUI/` -- funktioniert unter Windows, riskiert aber Probleme unter Linux |
+| Kleinbuchstaben-Pfade in `files[]` | DabsFramework | Physische Ordner sind `Scripts/`, `GUI/`, aber die `files[]` in der `config.cpp` referenzieren sie in Kleinbuchstaben (`scripts/`, `gui/`, `1_core`) -- funktioniert unter Windows, riskiert aber Probleme unter Linux |
 | Separate GUI-PBO | Expansion, COT | GUI-Ressourcen (Layouts, ImageSets, Styles) in eine eigene PBO mit eigener config.cpp gepackt |
 | Minimale Scripts für Inhalts-Mods | Waffenpakete | `Data/`-Verzeichnis dominiert; `Scripts/` hat nur eine dünne config.cpp und optionale Verhaltensüberschreibungen |
 

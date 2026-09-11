@@ -1,6 +1,5 @@
-# Chapter 6.2: Vehicle System
+# Vehicle System
 
-[Home](../README.md) | [<< Previous: Entity System](01-entity-system.md) | **Vehicles** | [Next: Weather >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ The abstract base for all vehicles. Provides seat management and crew access.
 proto native int   CrewSize();                          // Total number of seats
 proto native int   CrewMemberIndex(Human crew_member);  // Get seat index of a human
 proto native Human CrewMember(int posIdx);              // Get human at seat index
-proto native void  CrewGetOut(int posIdx);              // Force crew member out of seat
+proto native Human CrewGetOut(int posIdx);              // Force crew member out of seat (returns the ejected human)
 proto native void  CrewDeath(int posIdx);               // Kill crew member in seat
 ```
 
 ### Crew Entry
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Scripted (overridable) method, not proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Component to seat index
-proto native vector CrewEntryPoint(int posIdx);         // World entry position for seat
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Entry point/direction in model space
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Entry point/direction in world space
 ```
 
 **Example --- eject all passengers:**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // Speed in km/h (absolute value)
 ### Controls (Simulation)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = all wheels
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (extra params unused)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (second param unused)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust is obsolete)
+proto native void  SetClutch(float value);                    // SetClutchState is obsolete
 ```
 
 ### Wheels
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacks (Override in CarScript)
@@ -219,17 +219,28 @@ Common damage zones for vehicles:
 
 ### Lights
 
+The light API lives on `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = off, 1 = on
-int  GetLightsState();
+proto native bool LightIsOn();    // True when lights are on
+proto native void LightOn();      // Turn lights on
+proto native void LightOff();     // Turn lights off
+proto native void LightToggle();  // Toggle current light state
 ```
 
 ### Door Control
 
+Door state is queried with `GetCarDoorsState`, which returns a `CarDoorState` value (`DOORS_MISSING`, `DOORS_OPEN`, or `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Returns a CarDoorState value
 ```
 
 ### Key Overrides for Custom Vehicles
@@ -238,8 +249,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Initialize vehicle parts, fluids
 override void OnEngineStart();             // Custom engine start behavior
 override void OnEngineStop();              // Custom engine stop behavior
-override void EOnSimulate(IEntity other, float dt);  // Per-tick simulation
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Per-tick simulation (CarScript)
 ```
 
 **Example --- create a vehicle with full fluids:**
@@ -286,31 +296,36 @@ proto native float EngineGetRPM();
 
 ### Fluids
 
-Boats use the same `CarFluid` enum but typically only use `FUEL`:
+Boats use a separate `BoatFluid` enum that only defines `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Speed
+### Speed & Propulsion
+
+`Boat` does not expose `GetSpeedometer()` (that method exists only on `Car`). Read engine RPM and propeller velocity instead:
 
 ```c
-proto native float GetSpeedometer();   // Speed in km/h
+proto native float EngineGetRPM();                   // Engine rpm
+proto native float PropellerGetAngularVelocity();    // Propeller angular velocity
 ```
 
 **Example --- spawn a boat:**
+
+`Boat_01` is not a directly spawnable class; spawn one of the concrete color variants (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -392,7 +407,7 @@ void FindAllVehicles(out array<Transport> vehicles)
 > **Mod Compatibility:** Vehicle mods commonly extend `CarScript` with modded classes. Conflicts arise when multiple mods override the same callbacks like `OnEngineStart()` or `EOnSimulate()`.
 
 - **Load Order:** If two mods both `modded class CarScript` and override `OnEngineStart()`, only the last-loaded mod runs unless both call `super`. Vehicle overhaul mods should always call `super` in every callback.
-- **Modded Class Conflicts:** Expansion Vehicles and vanilla vehicle mods frequently conflict on `EEInit()` and fluid initialization. Test with both loaded.
+- **Modded Class Conflicts:** DayZ Expansion Vehicles ships its own custom vehicle base class; mods that also touch `EEInit()` or fluid initialization on `CarScript` frequently conflict with it. Test with both loaded.
 - **Performance Impact:** `EOnSimulate()` runs every physics tick for each active vehicle. Keep logic minimal in this callback; use timer accumulators for expensive operations.
 - **Server/Client:** `EngineStart()`, `EngineStop()`, `Fill()`, `Leak()`, and `CrewGetOut()` are server-authoritative. `GetSpeedometer()`, `EngineIsOn()`, and `GetFluidFraction()` are safe to read on both sides.
 
@@ -479,7 +494,7 @@ The `Contact` class was modified:
 **Changed:**
 - `Material1`, `Material2` --- type changed from `dMaterial` to `SurfaceProperties`
 
-Mods that read `Contact` data in `EOnContact` must update to the new variable names and types.
+Mods that read `Contact` data in `OnContact` must update to the new variable names and types.
 
 ---
 
@@ -501,17 +516,11 @@ The `Transport` class (parent of `CarScript` and `BoatScript`) now has dynamic c
 
 ---
 
-## Observed in Real Mods
+## Common Patterns in Published Vehicle Mods
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These recurring patterns are all built from the vanilla `CarScript` API covered in this chapter:
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| Override `EEInit()` to set custom fluid capacities and spawn parts | Expansion Vehicles | `CarScript` subclasses |
-| `EOnSimulate` accumulator for periodic fuel consumption checks | Vanilla+ vehicle mods | `CarScript` overrides |
-| `CrewGetOut()` loop in admin eject-all command | VPP Admin Tools | Vehicle management module |
-| Custom `OnContact()` override for collision damage tuning | Expansion | `ExpansionCarScript` |
-
----
-
-[Home](../README.md) | [<< Previous: Entity System](01-entity-system.md) | **Vehicles** | [Next: Weather >>](03-weather.md)
+- **Custom initialization in `EEInit()`** — subclasses override `EEInit()` (calling `super.EEInit()` first) to set fluid levels and spawn required attachments the moment the vehicle is created.
+- **Tick accumulator in `EOnPostSimulate()`** — rather than running expensive logic every physics tick, accumulate `timeSlice` into a member float and act only when it crosses a threshold (periodic fuel-consumption checks, wear simulation).
+- **Admin eject-all via `CrewGetOut()`** — loop over `CrewSize()` and call `CrewGetOut(i)` for each occupied seat, exactly like the `EjectAllCrew()` example earlier in this chapter.
+- **Collision damage tuning in `OnContact()`** — override `OnContact()` to scale or filter contact damage using the `Contact` data before delegating to `super`.

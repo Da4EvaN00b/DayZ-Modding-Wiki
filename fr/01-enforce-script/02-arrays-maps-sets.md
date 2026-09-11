@@ -1,6 +1,5 @@
 # Chapitre 1.2 : Tableaux, Maps & Sets
 
-[Accueil](../README.md) | [<< Précédent : Variables & Types](01-variables-types.md) | **Tableaux, Maps & Sets** | [Suivant : Classes & Héritage >>](03-classes-inheritance.md)
 
 ---
 
@@ -915,7 +914,3 @@ Créez une classe avec deux maps permettant la recherche dans les deux sens : é
 | Aléatoire | `GetRandomElement()` | Retourne une valeur aléatoire |
 | foreach | `foreach (T val : arr)` | Valeur seulement |
 | foreach indexé | `foreach (int i, T val : arr)` | Index + valeur |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Variables & Types](01-variables-types.md) | **Tableaux, Maps & Sets** | [Suivant : Classes & Héritage >>](03-classes-inheritance.md)

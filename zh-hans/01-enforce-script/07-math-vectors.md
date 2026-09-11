@@ -1,6 +1,5 @@
 # 第 1.7 章：数学与向量运算
 
-[首页](../README.md) | [<< 上一章：字符串操作](06-strings.md) | **数学与向量运算** | [下一章：内存管理 >>](08-memory-management.md)
 
 ---
 
@@ -751,7 +750,3 @@ v.Length()  v.LengthSq()  v.Normalized()  v.Normalize()
 // 向量常量
 vector.Zero  vector.Up  vector.Aside  vector.Forward
 ```
-
----
-
-[<< 1.6：字符串操作](06-strings.md) | [首页](../README.md) | [1.8：内存管理 >>](08-memory-management.md)

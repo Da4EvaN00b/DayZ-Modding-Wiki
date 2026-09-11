@@ -1,21 +1,22 @@
-# Chapter 9.6: Player Spawning
+# Player Spawning
 
-[Home](../README.md) | [<< Previous: Vehicle Spawning](05-vehicle-spawning.md) | [Next: Persistence >>](07-persistence.md)
 
 ---
 
-> **Summary:** Player spawn locations are controlled by **cfgplayerspawnpoints.xml** (position bubbles) and **init.c** (starting gear). This chapter covers both files with real vanilla values from Chernarus.
+> **Summary:** Player spawn locations are controlled by **cfgplayerspawnpoints.xml** (position bubbles) and **init.c** (starting gear). This chapter covers both files with real vanilla values from Chernarus. For the JSON-based starting-gear preset system, see [Spawning Gear Configuration](../05-config-files/06-spawning-gear.md).
 
 ---
 
 ## Table of Contents
 
 - [cfgplayerspawnpoints.xml Overview](#cfgplayerspawnpointsxml-overview)
+- [File Structure](#file-structure)
 - [Spawn Parameters](#spawn-parameters)
 - [Generator Parameters](#generator-parameters)
 - [Group Parameters](#group-parameters)
 - [Fresh Spawn Bubbles](#fresh-spawn-bubbles)
 - [Hop Spawns](#hop-spawns)
+- [Map-Specific Configs](#map-specific-configs)
 - [init.c -- Starting Equipment](#initc----starting-equipment)
 - [Adding Custom Spawn Points](#adding-custom-spawn-points)
 - [Common Mistakes](#common-mistakes)
@@ -24,10 +25,40 @@
 
 ## cfgplayerspawnpoints.xml Overview
 
-This file lives in your mission folder (e.g., `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). It has two sections, each with its own parameters and position bubbles:
+This file lives in your mission folder (e.g., `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). It has three sections, each with its own parameters and position bubbles:
 
 - **`<fresh>`** -- brand new characters (first life or after death)
 - **`<hop>`** -- server hoppers (player had a character on another server)
+- **`<travel>`** -- in-game map travel/teleport spawns
+
+`<fresh>` is required. `<hop>` and `<travel>` are only used on official-style server hives, but should still be defined -- see [Common Mistakes](#common-mistakes).
+
+---
+
+## File Structure
+
+Each of the three sections contains the same three sub-elements: `<spawn_params>` (runtime scoring), `<generator_params>` (candidate grid generation), and `<generator_posbubbles>` (the actual positions):
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<playerspawnpoints>
+    <fresh>
+        <spawn_params>...</spawn_params>
+        <generator_params>...</generator_params>
+        <generator_posbubbles>...</generator_posbubbles>
+    </fresh>
+    <hop>
+        <spawn_params>...</spawn_params>
+        <generator_params>...</generator_params>
+        <generator_posbubbles>...</generator_posbubbles>
+    </hop>
+    <travel>
+        <spawn_params>...</spawn_params>
+        <generator_params>...</generator_params>
+        <generator_posbubbles>...</generator_posbubbles>
+    </travel>
+</playerspawnpoints>
+```
 
 ---
 
@@ -55,7 +86,9 @@ Vanilla fresh spawn values:
 | `min_dist_static` | 0 | Minimum distance from static objects (buildings, walls) |
 | `max_dist_static` | 2 | Maximum distance from static objects -- keeps players close to structures |
 
-The engine tries `min_dist_*` first; if no valid position exists, it relaxes toward `max_dist_*`.
+**Scoring logic:** The engine calculates a score for each candidate point rather than applying hard cutoffs. Distance `0` to `min_dist` scores `-1` (nearly invalidated). Distance `min_dist` to the midpoint scores up to `1.1`. Distance from the midpoint to `max_dist` scores down from `1.1` to `0.1`. Beyond `max_dist` scores `0`. The higher a point's total score, the more likely it is chosen. In practice this means the engine prefers positions inside the `min_dist`--`max_dist` band and falls back to more distant ones when nothing better exists.
+
+> **Sakhal:** The Sakhal mission also adds `min_dist_trigger` and `max_dist_trigger` parameters, which score distance to trigger zones with a 6x weight multiplier.
 
 ---
 
@@ -77,12 +110,14 @@ The generator creates a grid of candidate positions around each bubble:
 
 | Parameter | Value | Meaning |
 |-----------|-------|---------|
-| `grid_density` | 4 | Spacing between grid points in meters -- lower = more candidates, higher CPU cost |
-| `grid_width` | 200 | Grid extends 200m on the X axis around each bubble center |
-| `grid_height` | 200 | Grid extends 200m on the Z axis around each bubble center |
+| `grid_density` | 4 | Sampling frequency (number of subdivisions) of the grid -- higher = more candidates, higher CPU cost. Spacing between points = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Total width of the candidate grid in meters (centered on the bubble) -- extends ~100m to each side on the X axis |
+| `grid_height` | 200 | Total height of the candidate grid in meters (centered on the bubble) -- extends ~100m to each side on the Z axis |
 | `min_steepness` / `max_steepness` | -45 / 45 | Terrain slope range in degrees -- rejects cliff faces and steep hills |
 
-Each bubble gets a 200x200m grid with a point every 4m (~2,500 candidates). The engine filters by steepness and static distance, then applies `spawn_params` at spawn time.
+Each bubble gets a 200x200m grid with candidate points spaced `grid_width` / `grid_density` = 200/4 = 50m apart (on the order of ~16-25 candidates). The engine filters by steepness and static distance and discards points that overlap objects or fall in water, then applies `spawn_params` at spawn time.
+
+`grid_density` must be at least `1`. When set to `0`, only the bubble's center point is used as a candidate.
 
 #### `allow_in_water` Parameter (1.28+)
 
@@ -111,19 +146,37 @@ By default, the engine rejects any candidate position that falls in water (ponds
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
 | Parameter | Value | Meaning |
 |-----------|-------|---------|
-| `enablegroups` | true | Position bubbles are organized into named groups |
-| `groups_as_regular` | true | Groups are treated as regular spawn points (any group can be selected) |
-| `lifetime` | 240 | Seconds before a used spawn point becomes available again |
-| `counter` | -1 | Number of times a spawn point can be used. -1 = unlimited |
+| `enablegroups` | true | Position bubbles are organized into named groups and rotate over time |
+| `groups_as_regular` | true | Only relevant when `enablegroups` is `false`: treat grouped positions as regular spawn points instead of ignoring them |
+| `lifetime` | 120 | Seconds a spawn group stays active before the system swaps to another group. -1 = disabled |
+| `counter` | 2 | Number of logins a group stays active before being swapped (per-group). -1 = disabled |
 
-A used position is locked for 240 seconds, preventing two players from spawning on top of each other.
+`lifetime` controls how long a spawn group remains the active group before the system swaps to another group; it is not a per-position lockout. Spacing between simultaneous spawns is enforced by `min_dist_player`.
+
+Individual groups can override the global `lifetime` and `counter` values via attributes:
+
+```xml
+<group name="Tents" lifetime="300" counter="25">
+    <pos x="4212.421875" z="11038.256836" />
+</group>
+```
+
+**Without groups**, positions are listed directly under `<generator_posbubbles>` and the engine treats them as one flat pool:
+
+```xml
+<generator_posbubbles>
+    <pos x="4212.421875" z="11038.256836" />
+    <pos x="4712.299805" z="10595" />
+    <pos x="5334.310059" z="9850.320313" />
+</generator_posbubbles>
+```
 
 ---
 
@@ -192,10 +245,24 @@ Hop spawns are more lenient on player distance and use smaller grids:
 
 <!-- Hop group_params differences -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 Hop groups are spread **inland**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). With `enablegroups=false`, the engine treats all 50 positions as a flat pool.
+
+---
+
+## Map-Specific Configs
+
+Each map ships its own `cfgplayerspawnpoints.xml` in its mission folder:
+
+| Map | Mission Folder | Notes |
+|-----|----------------|-------|
+| Chernarus | `dayzOffline.chernarusplus/` | Coastal spawns: Cherno, Elektro, Kamyshovo, Berezino, Svetlojarsk |
+| Livonia | `dayzOffline.enoch/` | Spread across the map with different group names |
+| Sakhal | `dayzOffline.sakhal/` | Adds `min_dist_trigger`/`max_dist_trigger` params, more detailed comments |
+
+When creating a custom map or modifying spawn locations, always work from the vanilla file for your map as a starting point and adjust positions to match the geography.
 
 ---
 
@@ -205,6 +272,8 @@ The **init.c** file in your mission folder controls character creation and start
 
 - **`CreateCharacter`** -- calls `GetGame().CreatePlayer()`. The engine picks the position from **cfgplayerspawnpoints.xml** before this runs; you do not set spawn position here.
 - **`StartingEquipSetup`** -- runs after character creation. The player already has default clothing (shirt, jeans, sneakers). This method adds starting items.
+
+> **Note:** If JSON spawn gear presets are registered through `cfggameplay.json`, they take priority and `StartingEquipSetup()` is never called. See [Spawning Gear Configuration](../05-config-files/06-spawning-gear.md).
 
 ### Vanilla StartingEquipSetup (Chernarus)
 
@@ -246,7 +315,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-What this gives each player: **BandageDressing** (quickbar 3), random **Chemlight** (quickbar 2), random fruit -- 35% Apple, 30% Plum, 35% Pear (quickbar 1). `SetRandomHealth` sets 45-65% condition on all items.
+What this gives each player: **BandageDressing** (quickbar 2), random **Chemlight** (quickbar 1), random fruit -- 35% Apple, 30% Plum, 35% Pear (quickbar 3). `SetRandomHealth` sets 45-65% condition on all items.
 
 ### Adding custom starting gear
 
@@ -279,7 +348,9 @@ Steps:
 4. Use `x` for east-west and `z` for north-south -- the engine calculates Y (altitude) from the terrain
 5. Restart the server -- no persistence wipe required
 
-For balanced spawning, keep at least 4 positions per group so the 240-second lockout does not block all positions when multiple players die at once.
+For balanced spawning, keep at least 4 positions per group so a single group has enough spread to keep `min_dist_player` satisfied when multiple players die at once.
+
+> **Position format:** The `x` and `z` attributes use DayZ world coordinates. `x` is east-west, `z` is north-south. The `y` (height) coordinate is not specified --- the engine places the point on the terrain surface. You can find coordinates using the in-game debug monitor or the DayZ Editor mod (a free community tool).
 
 ---
 
@@ -291,7 +362,7 @@ You swapped `z` (north-south) with Y (altitude), or used coordinates outside the
 
 ### Not enough spawn points
 
-With only 2-3 positions, the 240-second lockout causes clustering. Vanilla uses 49 fresh positions across 11 groups. Aim for at least 20 positions in 4+ groups.
+With only 2-3 positions, the active group cannot spread players out and clustering results. Vanilla uses 49 fresh positions across 11 groups. Aim for at least 20 positions in 4+ groups.
 
 ### Forgetting the hop section
 
@@ -303,8 +374,4 @@ The generator rejects slopes beyond 45 degrees. If all custom positions are on h
 
 ### Players always spawning at the same spot
 
-Groups with 1-2 positions get locked by the 240-second cooldown. Add more positions per group.
-
----
-
-[Home](../README.md) | [<< Previous: Vehicle Spawning](05-vehicle-spawning.md) | [Next: Persistence >>](07-persistence.md)
+Groups with 1-2 positions have too few candidates for the engine to vary the chosen position. Add more positions per group.

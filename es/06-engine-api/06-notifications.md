@@ -1,6 +1,5 @@
 # Capítulo 6.6: Sistema de Notificaciones
 
-[Inicio](../README.md) | [<< Anterior: Efectos de Post-Procesado](05-ppe.md) | **Notificaciones** | [Siguiente: Timers y CallQueue >>](07-timers.md)
 
 ---
 
@@ -157,11 +156,13 @@ El juego vanilla define tipos de notificación con títulos e íconos asociados.
 
 | Tipo | Descripción |
 |------|-------------|
-| `NotificationType.GENERIC` | Notificación genérica |
-| `NotificationType.FRIENDLY_FIRE` | Advertencia de fuego amigo |
-| `NotificationType.JOIN` | Jugador se unió |
-| `NotificationType.LEAVE` | Jugador se fue |
-| `NotificationType.STATUS` | Actualización de estado |
+| `NotificationType.FRIEND_CONNECTED` | Un amigo se conectó |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | La invitación falló (ya está en el mismo servidor) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Error al obtener la sesión al unirse |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Fallo de conexión genérico |
+| `NotificationType.DISCONNECTED` | Desconectado del servidor |
+| `NotificationType.GENERIC_ERROR` | Error genérico |
+| `NotificationType.NOTIFICATIONS_END` | Valor centinela (marca el final del enum) |
 
 > **Nota:** Los tipos disponibles dependen de la versión del juego. Para máxima flexibilidad, usa las variantes `Extended` que aceptan strings personalizados de título e ícono.
 
@@ -207,7 +208,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +237,7 @@ El sistema de notificaciones debe actualizarse cada frame para manejar las anima
 static void Update(float timeslice);
 ```
 
-Esto se llama automáticamente por el método `OnUpdate` de la misión vanilla. Si estás escribiendo una misión completamente personalizada, asegúrate de llamarlo.
+Esto se llama automáticamente desde `DayZGame.OnUpdate` (el bucle de actualización del juego), no desde el `OnUpdate` de la misión. Si estás escribiendo una clase de juego completamente personalizada, asegúrate de llamarlo.
 
 ---
 

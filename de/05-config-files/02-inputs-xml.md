@@ -1,6 +1,5 @@
 # Chapter 5.2: inputs.xml --- Custom Keybindings
 
-[Home](../README.md) | [<< Previous: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Next: Credits.json >>](03-credits-json.md)
 
 ---
 
@@ -34,7 +33,7 @@ Custom inputs are identified by a unique action name (conventionally prefixed wi
 
 ## File Location
 
-Place `inputs.xml` inside a `data` subfolder of your Scripts directory:
+You can place `inputs.xml` anywhere inside your mod's PBO. A common layout is a `data` subfolder of your Scripts directory:
 
 ```
 @MyMod/
@@ -48,7 +47,7 @@ Place `inputs.xml` inside a `data` subfolder of your Scripts directory:
         5_Mission/
 ```
 
-Some mods place it directly in the `Scripts/` folder. Both locations work. The engine discovers the file automatically --- no config.cpp registration is needed.
+The file's location is not fixed by convention; the engine does not auto-discover it. You must register the file by pointing the `inputs` property of your `config.cpp` `CfgMods` block at it, for example `inputs = "MyMod/Scripts/data/inputs.xml";`. The path is arbitrary --- the engine loads the file from wherever you specify.
 
 ---
 
@@ -292,7 +291,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-The `false` parameter in `LocalPress("name", false)` indicates that the check should not consume the input event.
+The `false` parameter in `LocalPress("name", false)` is the `check_focus` argument. Passing `false` evaluates the input even when the game window is unfocused; when it is `true` (the default), an unfocused game returns `false`. It does not control input consumption.
 
 ---
 
@@ -334,7 +333,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Double-tap action:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -406,12 +405,12 @@ Key names used in the `<btn name="">` attribute follow a specific naming convent
 | Letters | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Numbers (top row) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Function keys | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modifiers | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navigation | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modifiers | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (Left Alt), `kRMenu` (Right Alt) |
+| Navigation | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Editing | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (numpad +), `kSubstract` (numpad -, note engine spelling), `kMultiply` (numpad *), `kDivide` (numpad /), `kDecimal` (numpad .) |
 | Punctuation | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Locks | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Locks | `kCapital` (Caps Lock), `kNumlock` (note lowercase `l`), `kScrollLock` |
 
 ### Mouse Buttons
 
@@ -420,15 +419,18 @@ Key names used in the `<btn name="">` attribute follow a specific naming convent
 | `mBLeft` | Left mouse button |
 | `mBRight` | Right mouse button |
 | `mBMiddle` | Middle mouse button (scroll wheel click) |
-| `mBExtra1` | Mouse button 4 (side button back) |
-| `mBExtra2` | Mouse button 5 (side button forward) |
+| `mB4` | Mouse button 4 (side button back) |
+| `mB5` | Mouse button 5 (side button forward) |
+| `mB6`, `mB7`, `mB8` | Additional mouse buttons |
 
-### Mouse Axes
+### Mouse Movement and Wheel
 
-| Name | Axis |
-|------|------|
-| `mAxisX` | Mouse horizontal movement |
-| `mAxisY` | Mouse vertical movement |
+| Name | Direction |
+|------|-----------|
+| `mLeft` | Mouse moved left |
+| `mRight` | Mouse moved right |
+| `mUp` | Mouse moved up |
+| `mDown` | Mouse moved down |
 | `mWheelUp` | Scroll wheel up |
 | `mWheelDown` | Scroll wheel down |
 
@@ -436,7 +438,7 @@ Key names used in the `<btn name="">` attribute follow a specific naming convent
 
 - **Keyboard**: `k` prefix + key name (e.g., `kT`, `kF5`, `kLControl`)
 - **Mouse buttons**: `mB` prefix + button name (e.g., `mBLeft`, `mBRight`)
-- **Mouse axes**: `m` prefix + axis name (e.g., `mAxisX`, `mWheelUp`)
+- **Mouse movement/wheel**: `m` prefix + direction name (e.g., `mLeft`, `mWheelUp`)
 
 ---
 

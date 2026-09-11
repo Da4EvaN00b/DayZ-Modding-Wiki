@@ -1,6 +1,5 @@
 # Chapitre 7.7 : Optimisation des performances
 
-[Accueil](../README.md) | [<< Précédent : Architecture événementielle](06-events.md) | **Optimisation des performances**
 
 ---
 
@@ -442,7 +441,8 @@ Un besoin courant est de suivre tous les véhicules (ou toutes les entités d'un
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +613,7 @@ Cela scanne chaque objet physique dans le monde dans le rayon donné. À `50000`
 
 ```c
 // NE JAMAIS FAIRE CECI
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 Utilisez un registre basé sur l'enregistrement à la place (voir [Patron de registre de véhicules](#patron-de-registre-de-véhicules)).
@@ -797,7 +797,3 @@ Avant de livrer du code sensible aux performances, vérifiez :
 | Utiliser le traitement asynchrone pour les opérations coûteuses | Enforce Script est mono-thread sans primitives async ; répartir le travail sur les frames en utilisant un traitement basé sur l'index |
 | Le pooling d'objets est une optimisation prématurée | La création de widgets est véritablement coûteuse dans Enfusion ; le pooling est une pratique standard dans chaque mod majeur (COT, VPP, Expansion) |
 | Profiler avant d'optimiser | Correct, mais certains patrons (scans du monde, allocation de chaînes par frame, reconstructions par frappe) sont *toujours* faux dans DayZ. Évitez-les dès le départ. |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Architecture événementielle](06-events.md) | **Optimisation des performances**

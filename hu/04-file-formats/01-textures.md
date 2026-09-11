@@ -1,6 +1,5 @@
 # 4.1. fejezet: Textúrák (.paa, .edds, .tga)
 
-[Kezdőlap](../README.md) | **Textúrák** | [Következő: 3D modellek >>](02-models.md)
 
 ---
 

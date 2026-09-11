@@ -1,6 +1,5 @@
-# Chapter 5.4: ImageSet Format
+# ImageSet Format
 
-[Home](../README.md) | [<< Previous: Credits.json](03-credits-json.md) | **ImageSet Format** | [Next: Server Configuration Files >>](05-server-configs.md)
 
 ---
 
@@ -20,8 +19,8 @@
 - [Image Flags](#image-flags)
 - [Multi-Resolution Textures](#multi-resolution-textures)
 - [Creating Custom Icon Sets](#creating-custom-icon-sets)
-- [Font Awesome Integration Pattern](#font-awesome-integration-pattern)
-- [Real Examples](#real-examples)
+- [Icon Font Atlas Pattern](#icon-font-atlas-pattern)
+- [Worked Examples](#worked-examples)
 - [Common Mistakes](#common-mistakes)
 
 ---
@@ -146,9 +145,9 @@ An alternative XML-based format exists and is used by some mods. It is simpler b
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<imageset name="mh_icons" file="MyMod/GUI/imagesets/mh_icons.edds">
-  <image name="icon_store" pos="0 0" size="64 64" />
-  <image name="icon_cart" pos="64 0" size="64 64" />
+<imageset name="lnt_icons" file="Lantern_Core/GUI/imagesets/lnt_icons.edds">
+  <image name="icon_settings" pos="0 0" size="64 64" />
+  <image name="icon_player" pos="64 0" size="64 64" />
   <image name="icon_wallet" pos="128 0" size="64 64" />
 </imageset>
 ```
@@ -179,7 +178,7 @@ An alternative XML-based format exists and is used by some mods. It is simpler b
 | Enfusion GUID paths | Yes | Yes |
 | Simplicity | Lower | Higher |
 | Used by vanilla DayZ | Yes | No |
-| Used by Expansion, MyMod, VPP | Yes | Occasionally |
+| Used by content mods | Common | Occasionally |
 
 **Recommendation:** Use the native format for production mods. Use the XML format for quick prototyping or simple icon sets that do not need tiling or multi-resolution support.
 
@@ -212,9 +211,9 @@ class CfgMods
 };
 ```
 
-### Real Example: MyMod Core
+### Example: A Framework With Several Sets
 
-MyMod Core registers seven imagesets including Font Awesome icon sets:
+A framework mod often splits its graphics across a few purpose-built sets --- one for standalone HUD icons, one for reusable UI primitives, and one for its icon-font atlas. The Lantern framework used throughout this wiki registers three:
 
 ```cpp
 class defs
@@ -223,19 +222,17 @@ class defs
     {
         files[] =
         {
-            "MyFramework/GUI/imagesets/prefabs.imageset",
-            "MyFramework/GUI/imagesets/CUI.imageset",
-            "MyFramework/GUI/icons/thin.imageset",
-            "MyFramework/GUI/icons/light.imageset",
-            "MyFramework/GUI/icons/regular.imageset",
-            "MyFramework/GUI/icons/solid.imageset",
-            "MyFramework/GUI/icons/brands.imageset"
+            "Lantern_Core/GUI/imagesets/lnt_icons.imageset",
+            "Lantern_Core/GUI/imagesets/lnt_hud.imageset",
+            "Lantern_Core/GUI/imagesets/lnt_prefabs.imageset"
         };
     };
 };
 ```
 
-### Real Example: VPP Admin Tools
+### Example: A Single-Atlas Mod
+
+Most content mods ship a single atlas. One entry is all you need:
 
 ```cpp
 class defs
@@ -244,22 +241,7 @@ class defs
     {
         files[] =
         {
-            "VPPAdminTools/GUI/Textures/dayz_gui_vpp.imageset"
-        };
-    };
-};
-```
-
-### Real Example: DayZ Editor
-
-```cpp
-class defs
-{
-    class imageSets
-    {
-        files[] =
-        {
-            "DayZEditor/gui/imagesets/dayz_editor_gui.imageset"
+            "NightPatrol/GUI/imagesets/np_weapon_icons.imageset"
         };
     };
 };
@@ -286,7 +268,7 @@ ImageWidgetClass MyIcon {
 set:SETNAME image:IMAGENAME
 ```
 
-- `SETNAME` --- the `Name` field from the imageset definition (e.g., `dayz_gui`, `solid`, `brands`)
+- `SETNAME` --- the `Name` field from the imageset definition (e.g., `dayz_gui`, `lnt_icons`, `lnt_solid`)
 - `IMAGENAME` --- the `Name` field from a specific `ImageSetDefClass` entry (e.g., `icon_refresh`, `arrow_down`)
 
 ### Multiple Image States
@@ -303,14 +285,14 @@ ButtonWidgetClass btn {
 }
 ```
 
-### Examples from Real Mods
+### Example References
 
 ```
-image0 "set:regular image:arrow_down_short_wide"     -- MyMod: Font Awesome regular icon
-image0 "set:dayz_gui image:icon_minus"                -- MyMod: vanilla DayZ icon
-image0 "set:dayz_gui image:icon_collapse"             -- MyMod: vanilla DayZ icon
-image0 "set:dayz_gui image:circle"                    -- MyMod: vanilla DayZ shape
-image0 "set:dayz_editor_gui image:eye_open"           -- DayZ Editor: custom icon
+image0 "set:lnt_regular image:arrow_down_short_wide"  -- icon-font regular set (custom atlas)
+image0 "set:dayz_gui image:icon_minus"                -- vanilla DayZ icon
+image0 "set:dayz_gui image:icon_collapse"             -- vanilla DayZ icon
+image0 "set:dayz_gui image:circle"                    -- vanilla DayZ shape
+image0 "set:lnt_icons image:icon_settings"            -- custom mod icon
 ```
 
 ---
@@ -339,14 +321,20 @@ collapseIcon.LoadImageFile(1, "set:solid image:square_minus");     // Toggled st
 Switch between states using `SetImage(index)`:
 
 ```c
-collapseIcon.SetImage(isExpanded ? 1 : 0);
+if (isExpanded)
+{
+    collapseIcon.SetImage(1);
+}
+else
+{
+    collapseIcon.SetImage(0);
+}
 ```
 
 ### Using String Variables
 
 ```c
-// From DayZ Editor
-string icon = "set:dayz_editor_gui image:search";
+string icon = "set:lnt_icons image:icon_search";
 searchBarIcon.LoadImageFile(0, icon);
 
 // Later, change dynamically
@@ -413,7 +401,7 @@ Most mods only include `mpix 1` (a single resolution). Multi-resolution support 
 Textures {
  ImageSetTextureClass {
   mpix 1
-  path "MyFramework/GUI/icons/solid.edds"
+  path "Lantern_Core/GUI/icons/lnt_solid.edds"
  }
 }
 ```
@@ -503,66 +491,67 @@ ImageWidgetClass SettingsIcon {
 
 ---
 
-## Font Awesome Integration Pattern
+## Icon Font Atlas Pattern
 
-MyMod Core (inherited from DabsFramework) demonstrates a powerful pattern: converting Font Awesome icon fonts into DayZ imagesets. This gives mods access to thousands of professional-quality icons without creating custom artwork.
+A powerful pattern is to convert an existing **icon font** (a font whose glyphs are pictograms rather than letters) into DayZ imagesets. This gives a mod access to hundreds or thousands of consistent, professional-quality icons without hand-drawing any artwork.
 
 ### How It Works
 
-1. Font Awesome icons are rendered to a texture atlas at a fixed grid size (64x64 per icon)
-2. Each icon style gets its own imageset: `solid`, `regular`, `light`, `thin`, `brands`
-3. Icon names in the imageset match Font Awesome icon names (e.g., `circle`, `arrow_down`, `discord`)
-4. The imagesets are registered in config.cpp and available to any layout or script
+1. Each glyph in the icon font is rendered to a texture atlas at a fixed grid size (e.g. 64x64 per icon)
+2. Each font weight gets its own imageset: for example `lnt_solid`, `lnt_regular`, `lnt_light`, `lnt_brands`
+3. Icon names in the imageset match the font's glyph names (e.g. `circle`, `arrow_down`, `gear`), so the same name resolves across every weight
+4. The imagesets are registered in config.cpp and become available to any layout or script
 
-### MyMod Core / DabsFramework Icon Sets
+### Per-Weight Icon Sets
 
 ```
-MyFramework/GUI/icons/
-  solid.imageset       -- Filled icons (3648x3712 atlas, 64x64 per icon)
-  regular.imageset     -- Outlined icons
-  light.imageset       -- Light-weight outlined icons
-  thin.imageset        -- Ultra-thin outlined icons
-  brands.imageset      -- Brand logos (Discord, GitHub, etc.)
+Lantern_Core/GUI/icons/
+  lnt_solid.imageset       -- Filled icons
+  lnt_regular.imageset     -- Outlined icons
+  lnt_light.imageset       -- Light-weight outlined icons
+  lnt_brands.imageset      -- Logo glyphs
 ```
 
 ### Usage in Layouts
 
 ```
-image0 "set:solid image:circle"
-image0 "set:solid image:gear"
-image0 "set:regular image:arrow_down_short_wide"
-image0 "set:brands image:discord"
-image0 "set:brands image:500px"
+image0 "set:lnt_solid image:circle"
+image0 "set:lnt_solid image:gear"
+image0 "set:lnt_regular image:arrow_down_short_wide"
 ```
 
 ### Usage in Scripts
 
+Because the glyph name is identical across weights, swapping states is just a set-name change:
+
 ```c
-// DayZ Editor using the solid set
-CollapseIcon.LoadImageFile(1, "set:solid image:square_minus");
-CollapseIcon.LoadImageFile(0, "set:regular image:square_plus");
+collapseIcon.LoadImageFile(1, "set:lnt_solid image:square_minus");
+collapseIcon.LoadImageFile(0, "set:lnt_regular image:square_plus");
 ```
 
 ### Why This Pattern Works Well
 
-- **Massive icon library**: Thousands of icons available without any artwork creation
-- **Consistent style**: All icons share the same visual weight and style
-- **Multiple weights**: Choose solid, regular, light, or thin for different visual contexts
-- **Brand icons**: Ready-made logos for Discord, Steam, GitHub, etc.
-- **Standard names**: Icon names follow Font Awesome conventions, making discovery easy
+- **Large icon library**: Hundreds of icons available without any artwork creation
+- **Consistent style**: All icons share the same visual weight and construction
+- **Multiple weights**: Choose solid, regular, or light for different visual contexts
+- **Name parity**: The same glyph name resolves across every weight, so switching states is a one-word change
+
+### Licensing Note
+
+Icon fonts carry their own licenses. Before you render one to a texture atlas and ship it inside a PBO, check the font's license and honor its terms --- some require attribution, some restrict redistribution, and some are free for any use. For example, Font Awesome Free is distributed under **CC BY 4.0**, which permits redistribution as long as you credit the source. Treat the atlas you generate as a redistribution of the original artwork.
 
 ### The Atlas Structure
 
-The solid imageset, for example, has a `RefSize` of 3648x3712 with icons arranged at 64-pixel intervals:
+A per-weight set is simply a large atlas with icons arranged at a fixed interval. For example, a solid-weight set with icons on a 64-pixel grid:
 
 ```
 ImageSetClass {
- Name "solid"
- RefSize 3648 3712
+ Name "lnt_solid"
+ RefSize 1024 1024
  Textures {
   ImageSetTextureClass {
    mpix 1
-   path "MyFramework/GUI/icons/solid.edds"
+   path "Lantern_Core/GUI/icons/lnt_solid.edds"
   }
  }
  Images {
@@ -572,44 +561,45 @@ ImageSetClass {
    Size 64 64
    Flags 0
   }
-  ImageSetDefClass 360_degrees {
-   Name "360_degrees"
-   Pos 320 0
+  ImageSetDefClass gear {
+   Name "gear"
+   Pos 64 0
    Size 64 64
    Flags 0
   }
-  ...
  }
 }
 ```
 
 ---
 
-## Real Examples
+## Worked Examples
 
-### VPP Admin Tools
+> The examples below use the wiki's constructed teaching mods (Lantern, NightPatrol). They are illustrations, not dumps of any shipped mod. Every GUID is shown as `{0000000000000000}` --- DayZ Workbench generates a real GUID for each asset when you import it, so you never type these by hand.
 
-VPP packs all admin tool icons into a single 1920x1080 atlas with freeform positioning (not a strict grid):
+### Freeform Admin Atlas
+
+A large full-screen atlas that packs admin-panel icons wherever they fit --- freeform positioning rather than a strict grid --- to maximize texture space. Note the varied positions and a non-power-of-two `RefSize` matched to a 1920x1080 canvas:
 
 ```
 ImageSetClass {
- Name "dayz_gui_vpp"
+ Name "lnt_admin_icons"
  RefSize 1920 1080
  Textures {
   ImageSetTextureClass {
    mpix 1
-   path "{534691EE0479871E}VPPAdminTools/GUI/Textures/dayz_gui_vpp.edds"
+   path "{0000000000000000}Lantern_Admin/GUI/imagesets/lnt_admin_icons.edds"
   }
  }
  Images {
-  ImageSetDefClass vpp_icon_cloud {
-   Name "vpp_icon_cloud"
+  ImageSetDefClass icon_cloud {
+   Name "icon_cloud"
    Pos 1206 108
    Size 62 62
    Flags 0
   }
-  ImageSetDefClass vpp_icon_players {
-   Name "vpp_icon_players"
+  ImageSetDefClass icon_players {
+   Name "icon_players"
    Pos 391 112
    Size 62 62
    Flags 0
@@ -620,32 +610,32 @@ ImageSetClass {
 
 Referenced in layouts as:
 ```
-image0 "set:dayz_gui_vpp image:vpp_icon_cloud"
+image0 "set:lnt_admin_icons image:icon_cloud"
 ```
 
-### MyMod Weapons
+### Weapon Inventory Icons (Varied Sizes)
 
-Weapon and attachment icons packed into large atlases with varied icon sizes:
+A content mod's weapon and attachment icons packed into a large atlas. Inventory icons are much larger than UI icons because they show detail in the inventory grid --- this set mixes 300x300 entries, while a HUD set would typically use 64x64:
 
 ```
 ImageSetClass {
- Name "SNAFU_Weapons_Icons"
+ Name "np_weapon_icons"
  RefSize 2048 2048
  Textures {
   ImageSetTextureClass {
    mpix 1
-   path "{7C781F3D4B1173D4}SNAFU_Guns_01/gui/Imagesets/SNAFU_Weapons_Icons.edds"
+   path "{0000000000000000}NightPatrol/GUI/imagesets/np_weapon_icons.edds"
   }
  }
  Images {
-  ImageSetDefClass SNAFUFGRIP {
-   Name "SNAFUFGRIP"
+  ImageSetDefClass np_foregrip {
+   Name "np_foregrip"
    Pos 123 19
    Size 300 300
    Flags 0
   }
-  ImageSetDefClass SNAFU_M14Optic {
-   Name "SNAFU_M14Optic"
+  ImageSetDefClass np_optic_scope {
+   Name "np_optic_scope"
    Pos 426 20
    Size 300 300
    Flags 0
@@ -654,20 +644,20 @@ ImageSetClass {
 }
 ```
 
-This shows that icons do not need to be uniform size --- inventory icons for weapons use 300x300 while UI icons typically use 64x64.
+This shows that icons do not need to be uniform size --- inventory icons use 300x300 while UI icons typically use 64x64.
 
-### MyMod Core Prefabs
+### UI Primitives (Spaces in Names)
 
-UI primitives (rounded corners, alpha gradients) packed into a small 256x256 atlas:
+UI primitives --- rounded corners and single-pixel alpha swatches used to tint panels --- packed into a small 256x256 atlas:
 
 ```
 ImageSetClass {
- Name "prefabs"
+ Name "lnt_prefabs"
  RefSize 256 256
  Textures {
   ImageSetTextureClass {
    mpix 1
-   path "{82F14D6B9D1AA1CE}MyFramework/GUI/imagesets/prefabs.edds"
+   path "{0000000000000000}Lantern_Core/GUI/imagesets/lnt_prefabs.edds"
   }
  }
  Images {
@@ -687,20 +677,20 @@ ImageSetClass {
 }
 ```
 
-Notable: image names can contain spaces when quoted (e.g., `"Alpha 10"`). However, referencing these in layouts requires the exact name including the space.
+Notable: image names can contain spaces when quoted (e.g. `"Alpha 10"`). However, referencing these in layouts requires the exact name including the space.
 
-### MyMod Market Hub (XML Format)
+### Simple Set (XML Format)
 
-A simpler XML imageset for the market hub module:
+A small XML imageset for a single module:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<imageset name="mh_icons" file="DayZMarketHub/GUI/imagesets/mh_icons.edds">
-  <image name="icon_store" pos="0 0" size="64 64" />
-  <image name="icon_cart" pos="64 0" size="64 64" />
+<imageset name="lnt_icons" file="Lantern_Core/GUI/imagesets/lnt_icons.edds">
+  <image name="icon_settings" pos="0 0" size="64 64" />
+  <image name="icon_player" pos="64 0" size="64 64" />
   <image name="icon_wallet" pos="128 0" size="64 64" />
-  <image name="icon_vip" pos="192 0" size="64 64" />
-  <image name="icon_weapons" pos="0 64" size="64 64" />
+  <image name="icon_group" pos="192 0" size="64 64" />
+  <image name="icon_map" pos="0 64" size="64 64" />
   <image name="icon_success" pos="0 192" size="64 64" />
   <image name="icon_error" pos="64 192" size="64 64" />
 </imageset>
@@ -708,7 +698,7 @@ A simpler XML imageset for the market hub module:
 
 Referenced as:
 ```
-image0 "set:mh_icons image:icon_store"
+image0 "set:lnt_icons image:icon_settings"
 ```
 
 ---
@@ -788,11 +778,11 @@ While the engine supports spaces in image names (e.g., `"Alpha 10"`), they can c
 
 ---
 
-## Observed in Real Mods
+## Patterns Seen in Practice
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| Font Awesome icon atlases | DabsFramework / StarDZ Core | Renders Font Awesome icons to large atlases (3648x3712), providing thousands of professional icons via `set:solid`, `set:regular`, `set:brands` |
-| Freeform atlas layout | VPP Admin Tools | Icons arranged non-uniformly on a 1920x1080 atlas with varying sizes, maximizing texture space usage |
-| Per-feature small atlases | Expansion | Each Expansion sub-module has its own small imageset rather than one massive atlas, keeping PBO sizes minimal |
-| 300x300 inventory icons | SNAFU Weapons | Large icon sizes for weapon/attachment inventory slots where detail matters, unlike 64x64 UI icons |
+| Pattern | Detail |
+|---------|--------|
+| Icon-font atlases | An icon font is rendered to large per-weight atlases (see the [Icon Font Atlas Pattern](#icon-font-atlas-pattern) above), providing hundreds of consistent icons via sets like `set:lnt_solid`, `set:lnt_regular` |
+| Freeform atlas layout | Icons arranged non-uniformly on a full-screen atlas with varying sizes, maximizing texture-space usage |
+| Per-feature small atlases | Each sub-module ships its own small imageset rather than one massive atlas, keeping PBO sizes minimal |
+| 300x300 inventory icons | Large icon sizes for weapon/attachment inventory slots where detail matters, unlike 64x64 UI icons |

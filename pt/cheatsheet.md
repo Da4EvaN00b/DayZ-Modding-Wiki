@@ -1,6 +1,5 @@
 # Enforce Script Cheat Sheet
 
-[Home](./README.md) | **Cheat Sheet**
 
 ---
 
@@ -26,7 +25,7 @@
 | Metodo | Retorna | Notas |
 |--------|---------|-------|
 | `Insert(item)` | `int` (indice) | Adiciona ao final |
-| `InsertAt(item, idx)` | `void` | Insere na posicao |
+| `InsertAt(item, idx)` | `int` (count) | Insere na posicao |
 | `Get(idx)` / `arr[idx]` | `T` | Acesso por indice |
 | `Set(idx, item)` | `void` | Substitui no indice |
 | `Find(item)` | `int` | Indice ou -1 |
@@ -41,7 +40,7 @@
 | `Invert()` | `void` | Reverter |
 | `GetRandomElement()` | `T` | Escolha aleatoria |
 | `InsertAll(other)` | `void` | Adiciona todos de outro |
-| `Copy(other)` | `void` | Substitui com copia |
+| `Copy(other)` | `int` (count) | Substitui com copia |
 | `Resize(n)` | `void` | Redimensiona (preenche com padroes) |
 | `Reserve(n)` | `void` | Pre-aloca capacidade |
 
@@ -143,7 +142,7 @@ switch (val) { case 0: Print("zero"); break; default: break; }
 | `s.Replace(old, new)` | `int` | Modifica in-place, retorna contagem |
 | `s.ToLower()` | `void` | **In-place!** |
 | `s.ToUpper()` | `void` | **In-place!** |
-| `s.TrimInPlace()` | `void` | **In-place!** |
+| `s.TrimInPlace()` | `int` (length) | **In-place!** |
 | `s.Split(delim, out arr)` | `void` | Divide em TStringArray |
 | `s.Get(idx)` | `string` | Caractere unico |
 | `s.Set(idx, ch)` | `void` | Substitui caractere |
@@ -208,11 +207,11 @@ if (!player.GetIdentity()) return;
 string name = player.GetIdentity().GetName();
 ```
 
-### Verificar IsAlive (Requer EntityAI)
+### Verificar IsAlive
 
 ```c
-EntityAI eai;
-if (Class.CastTo(eai, obj) && eai.IsAlive()) { }
+// IsAlive() esta definido na base Object (retorna !IsDamageDestroyed())
+if (obj && obj.IsAlive()) { }
 ```
 
 ### Iteracao de Map com Foreach

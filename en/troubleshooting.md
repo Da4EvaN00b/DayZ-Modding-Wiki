@@ -1,6 +1,5 @@
 # Troubleshooting Guide
 
-[Home](./README.md) | **Troubleshooting Guide**
 
 ---
 
@@ -40,6 +39,7 @@ These are problems where the mod does not appear, does not activate, or is rejec
 | "Cannot register cfg class X" | Duplicate `CfgPatches` class name | Another mod already uses that class name. Rename your `CfgPatches` class to something unique with your mod prefix. |
 | Mod loads only in singleplayer | Server does not have the mod installed | Ensure the server's `-mod=` launch parameter includes your mod path, and the PBO is in the server's `@YourMod/Addons/` folder. |
 | "Addon X is not signed" | Server requires signed addons | Sign your PBOs with your private key and provide the `.bikey` to the server's `keys/` folder. See [Chapter 4.6](04-file-formats/06-pbo-packing.md). |
+| Server crashes with `ACCESS_VIOLATION` a few seconds into boot, no script log written at all | A single PBO is over 2 GB, or a `CfgPatches` ownership array (`units[]`/`weapons[]`/`magazines[]`/`ammo[]`) contains a literal empty string `""`, or a merged/generated `config.cpp` is missing a `};` after one of its inner class bodies | All three pass `CfgConvert`/`AddonBuilder` clean -- the offline compiler cannot see any of them. Check PBO file sizes first (split anything over 2 GB, same `$PBOPREFIX$` on both halves), then grep every ownership array inside `CfgPatches` for a bare `""`, then verify every class body ends in `};`, not just the outer containers. See [Chapter 2.2](02-mod-structure/02-config-cpp.md) and [Chapter 4.6](04-file-formats/06-pbo-packing.md). |
 
 ---
 
@@ -61,9 +61,10 @@ These appear in the script log as `SCRIPT (E):` or `SCRIPT ERROR:` lines.
 | `Index out of range` | Array access with invalid index | Always check `array.Count()` or use `array.IsValidIndex(idx)` before accessing by index. |
 | `String conversion error` | Using `string.ToInt()` or `string.ToFloat()` on non-numeric text | Validate string content before conversion. There is no try/catch, so you must guard manually. |
 | `Error: Serializer X mismatch` | Read/write order does not match in serialization | Ensure `OnStoreSave()` and `OnStoreLoad()` write and read the same types in the same order, including version checks. |
-| Syntax error with no clear message | Backslash `\` or escaped quote `\"` in string literal | Enforce Script's CParser does not support `\\` or `\"`. Use forward slashes for paths (`"my/path/file"`). For quotes, use single-quote characters. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
-| `JsonFileLoader` returns null data | Assigning the return value of `JsonLoadFile()` | `JsonLoadFile()` returns `void`. Pre-allocate the object and pass it by reference: `ref MyConfig cfg = new MyConfig(); JsonFileLoader<MyConfig>.JsonLoadFile(path, cfg);`. See [Chapter 6.8](06-engine-api/08-file-io.md). |
+| Syntax error with no clear message | An unterminated string literal, or a call split across lines | `\\` and `\"` are **not** the cause — Bohemia documents both as supported escapes and vanilla uses them (`3_game/objectspawner.c:4`, `3_game/tools/jsonfileloader.c:14`). Look instead for a missing closing quote, or a function call broken over several lines. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
+| `JsonFileLoader` returns null data | Assigning the return value of `JsonLoadFile()` | `JsonLoadFile()` returns `void` (and is deprecated in vanilla source, `jsonfileloader.c`). Pre-allocate the object and pass it by reference, or switch to the non-deprecated `LoadFile()`, which returns `bool` and an error message: `ref MyConfig cfg = new MyConfig(); string err; if (!JsonFileLoader<MyConfig>.LoadFile(path, cfg, err)) Print(err);`. See [Chapter 6.8](06-engine-api/08-file-io.md) and [Error Handling](01-enforce-script/11-error-handling.md). |
 | `Object.IsAlive()` crash | Calling `IsAlive()` on a null `Object` reference | `IsAlive()` is defined on `Object` (object.c:523), but the reference must not be null. Always null-check first: `if (obj && obj.IsAlive()) { ... }` |
+| Raw health reads misbehave or log an exception on the client | Calling `GetHealth()` / `GetHealth01()` from client-side script in multiplayer | Treat raw health values as server-side. Vanilla's own HUD reads `player.GetHealth("","")` only inside `if (!g_Game.IsMultiplayer())` (`5_mission/gui/ingamehud.c:699-715`), while client GUI code uses `GetHealthLevel()` freely and unguarded (`5_mission/gui/actiontargetscursor.c:881`, `inspectmenunew.c:194`, `itemactionswidget.c:300`). On the client use `GetHealthLevel()` (a 0-4 bucket, `object.c:1167`) or `IsDamageDestroyed()` (`object.c:977`); if you need a real percentage, have the server send it over RPC. The exact engine message text and whether it aborts the rest of the calling function are not documented by Bohemia and are not established here. See [Chapter 6.1](06-engine-api/01-entity-system.md). |
 | No ternary operator support | Using `condition ? a : b` syntax | Enforce Script has no ternary operator. Use an `if`/`else` block instead. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
 | `do...while` loop error | Using `do { } while(cond)` | Enforce Script does not support `do...while`. Use a `while` loop with a `break` condition instead. See [Chapter 1.12](01-enforce-script/12-gotchas.md). |
 | Multiline method call fails | Splitting a single method call across lines incorrectly | Avoid splitting chained calls with comments or preprocessor directives between lines. Keep method call chains on one line or use intermediate variables. |
@@ -95,17 +96,18 @@ Issues with GUI layouts, widgets, menus, and input.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Layout loads but nothing is visible | Widget size is zero | Check `hexactsize` and `vexactsize` values. Both must be greater than zero. Do not use negative sizes. See [Chapter 3.3](03-gui-system/03-sizing-positioning.md). |
+| Layout loads but nothing is visible | Widget size is zero | Check the widget's `size` attribute (the `w h` values must be greater than zero). Do not use negative sizes. (`hexactsize`/`vexactsize` are `0`/`1` flags that choose proportional (`0`) vs pixel (`1`) sizing, not the size itself.) See [Chapter 3.3](03-gui-system/03-sizing-positioning.md). |
 | `CreateWidgets()` returns null | Layout file path is wrong or file is missing | Verify the `.layout` file path is correct (forward slashes, no typos). The engine returns `null` silently on bad paths, no error is logged. |
 | Widgets exist but cannot be clicked | Another widget is covering the button | Check widget `priority` (z-order). Higher priority widgets render on top and capture input first. Also check that the button has `ButtonWidget` as its `ScriptClass` or is a `ButtonWidget` type. |
 | Game input is stuck / cannot move after closing UI | `ChangeGameFocus()` calls are imbalanced | Every `GetGame().GetInput().ChangeGameFocus(1)` must be paired with `ChangeGameFocus(-1)`. Track your focus changes and ensure cleanup happens even if the UI is force-closed. |
-| Text shows `#STR_some_key` literally | Stringtable entry is missing or file is not loaded | Add the key to your `stringtable.csv`. Check that the CSV is in your mod root and has the correct `Language,Key,Original` header format. See [Chapter 5.2](05-config-files/02-inputs-xml.md). |
+| Text shows `#STR_some_key` literally | Stringtable entry is missing or file is not loaded | Add the key to your `stringtable.csv`. Check that the CSV is in your mod root and has the correct `"Language","original","english",...` header format (the first column holds the string key, `original` is the fallback, and the remaining columns are per-language translations). See [Chapter 5.1](05-config-files/01-stringtable.md). |
 | Mouse cursor does not appear | `ShowUICursor()` not called | Call `GetGame().GetUIManager().ShowUICursor(true)` when opening your UI. Call it with `false` when closing. |
 | UI flickers or renders behind game world | Layout is not attached to correct parent widget | Attach your layout to a proper parent. For fullscreen overlays, use `GetGame().GetWorkspace()` as the parent. |
 | ScrollWidget content does not scroll | Content is not inside a WrapSpacer or child widget | ScrollWidget needs a single child (usually a `WrapSpacer` or `FrameWidget`) that is larger than the scroll area. Put your content widgets inside that child. See [Chapter 3.3](03-gui-system/03-sizing-positioning.md). |
 | Image or icon not showing | Path uses backslashes or wrong extension | Use forward slashes in image paths. Verify the file exists and is in a recognized format (`.paa`, `.edds`). Use `ImageWidget` for images, not `TextWidget`. |
 | Slider does not respond to input | Missing script handler or wrong widget type | Ensure the slider widget has a `ScriptClass` assigned and that your handler processes `OnChange` events. Initialize the slider range in script. |
 | UI looks different at other resolutions | Using hardcoded pixel values | Use proportional sizing (`halign`, `valign`, `hfill`, `vfill`) instead of fixed pixel values. Test at multiple resolutions. See [Chapter 3.3](03-gui-system/03-sizing-positioning.md). |
+| A specific button/label/panel never updates or never responds, but the rest of the screen works fine | `FindAnyWidget("Name")` did not find that name in the loaded `.layout` and returned `null` -- a typo, a rename in one file but not the other, or a name that was removed from the layout | This fails completely silently: the standard `if (w) { ... }` null-guard prevents the crash but also means the block just never runs, forever, with nothing in any log. Grep the `.c` file's `FindAnyWidget("X")` calls against the actual `Name`s declared in the `.layout` it loads -- do not start by re-reading the event-handler code, it is usually correct. See [Chapter 3.1](03-gui-system/01-widget-types.md). |
 
 ---
 
@@ -138,7 +140,7 @@ Server or client FPS drops, memory problems, and slow operations.
 | Memory grows over time (memory leak) | `ref` reference cycles preventing garbage collection | When two objects hold `ref` references to each other, neither is ever freed. Make one side a raw (non-`ref`) reference. Break cycles in cleanup methods. See [Chapter 1.8](01-enforce-script/08-memory-management.md). |
 | Slow server startup | Heavy initialization in `OnInit` | Defer non-critical initialization with `GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater()`. Load configs lazily on first use instead of all at startup. |
 | Client FPS drops near specific objects | Complex model with too many polygons or bad LODs | Add proper LOD levels to your model. The engine uses LODs to reduce poly count at distance. Ensure LOD transitions are smooth. |
-| Stutter every few seconds | Periodic garbage collection spikes | Reduce object churn. Reuse objects via pooling instead of constantly creating and destroying them. Pre-allocate arrays. |
+| Stutter every few seconds | A burst of near-simultaneous object destruction (Enforce Script has no tracing garbage collector -- it uses deterministic reference counting, so an object is freed the instant its ref count hits zero; a stutter comes from many deallocations landing in the same frame/tick, not from a GC scan). See [Memory Management](01-enforce-script/08-memory-management.md#garbage-collection-behavior). | Reduce object churn. Reuse objects via pooling instead of constantly creating and destroying them in the same frame. Pre-allocate arrays. |
 | Network lag spikes | Too many RPCs or large RPC payloads | Batch small updates into fewer RPCs. Use Net Sync Variables for frequently changing values. Compress data where possible. |
 | Log file growing very large | Excessive `Print()` or debug logging | Remove or guard debug `Print()` calls behind `#ifdef DEVELOPER` or a debug flag. Large log files can slow disk I/O. |
 | High entity count causing server lag | Too many spawned entities in the world | Reduce `nominal` values in `types.xml`. Clean up dynamic objects with lifetime management. Limit AI spawn density. |
@@ -178,7 +180,7 @@ Problems with `config.cpp`, `types.xml`, and other configuration files.
 | Items spawn with wrong quantities | `quantmin`/`quantmax` values incorrect | Values are percentages (0-100) in `types.xml`, not absolute counts. `-1` means "use default". |
 | Loot table not spawning items | `nominal` is 0 or missing `category`/`usage`/`tag` | Set `nominal` above 0. Add at least one `<usage>` and `<category>` tag so the Central Economy knows where to spawn items. |
 | JSON config file not loading | Malformed JSON or wrong path | Validate JSON syntax (no trailing commas, proper quoting). Use `$profile:` prefix for server profile paths. Check that the file exists with `FileExist()`. |
-| `cfgGameplay.json` changes ignored | File not enabled or wrong location | Place the file in the mission folder. Set `enableCustomGameplay` to `1` in `serverDZ.cfg`. Restart the server (not just reload). |
+| `cfgGameplay.json` changes ignored | File not enabled or wrong location | Place the file in the mission folder. Set `enableCfgGameplayFile` to `1` in `serverDZ.cfg`. Restart the server (not just reload). |
 | Class inheritance not working in config | `baseClass` misspelled or not loaded | The parent class must exist in the same or earlier addon. Check that `requiredAddons[]` includes the addon defining the parent class. |
 
 ---
@@ -192,7 +194,7 @@ Problems with data saving and loading across server restarts.
 | Player data lost on restart | Not saving to `$profile:` directory | Use `JsonFileLoader<T>.JsonSaveFile()` with a `$profile:` path. Save on player disconnect (`PlayerDisconnected`) and periodically during gameplay. |
 | Saved file is empty or corrupt | Crash during write, or serialization error | Write to a temporary file first, then rename to the final path. Validate data before saving. Always handle `FileExist()` checks on load. |
 | `OnStoreSave`/`OnStoreLoad` mismatch | Version changed but no migration | Always write a version number first. On load, read the version and handle old formats: `if (version < CURRENT) { /* read old format */ }`. |
-| Items disappear from storage | `lifetime` expired in `types.xml` | Increase `lifetime` for persistent items. Default is often too short for base-building containers. Check `globals.xml` `cleanupLifetimeRuin` value. |
+| Items disappear from storage | `lifetime` expired in `types.xml` | Increase `lifetime` for persistent items. Default is often too short for base-building containers. Check `globals.xml` `CleanupLifetimeRuined` value. |
 | Custom variables reset on relog | Variables not synced or stored | Register variables for network sync with `RegisterNetSyncVariable*()`. For persistence, save/load in `OnStoreSave()`/`OnStoreLoad()`. |
 
 ---
@@ -316,7 +318,7 @@ When this guide does not solve your problem, these are the best resources.
 
 ### Reference Source Code
 
-Study these mods to learn patterns from experienced modders:
+Study these mods to learn patterns from experienced modders. These projects are learning references only — their licenses do not permit copying code into your mod (or this wiki). Read them to understand *how* a problem was solved, then write your own implementation from scratch.
 
 | Mod | What to Learn |
 |-----|---------------|
@@ -357,6 +359,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 
 | Symptom (what you see) | Go to |
 |-------------------------|-------|
+| `ACCESS_VIOLATION` crash on boot, no script log | [Section 1](#1-mod-wont-load) |
 | Addon Builder fails | [Section 5](#5-build-and-pbo-issues) |
 | Array index out of range | [Section 2](#2-script-errors) |
 | Buttons not clickable | [Section 4](#4-ui-problems) |
@@ -370,6 +373,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 | File patching not working | [Section 5](#5-build-and-pbo-issues) |
 | FPS drops | [Section 6](#6-performance-issues) |
 | Game input stuck | [Section 4](#4-ui-problems) |
+| Raw health reads (`GetHealth`/`GetHealth01`) on the client | [Section 2](#2-script-errors) |
 | Image not showing | [Section 4](#4-ui-problems) |
 | Item invisible | [Section 7](#7-item-vehicle-and-entity-issues) |
 | Item won't spawn | [Section 7](#7-item-vehicle-and-entity-issues) |
@@ -396,6 +400,7 @@ Cannot find your problem in the sections above? Try this alphabetical index.
 | Variable redeclaration | [Section 2](#2-script-errors) |
 | Vehicle won't drive | [Section 7](#7-item-vehicle-and-entity-issues) |
 | Widget invisible | [Section 4](#4-ui-problems) |
+| Widget never updates / never responds | [Section 4](#4-ui-problems) |
 | Works offline fails online | [Section 3](#3-rpc-and-network-issues) |
 
 ---

@@ -1,6 +1,5 @@
 # Kapitel 1.8: Speicherverwaltung
 
-[Startseite](../README.md) | [<< Zurück: Mathematik & Vektoren](07-math-vectors.md) | **Speicherverwaltung** | [Weiter: Casting & Reflection >>](09-casting-reflection.md)
 
 ---
 
@@ -670,7 +669,3 @@ delete obj;                      // Zerstört sofort, nullt alle Refs (Managed)
 class Parent { ref Child m_Child; }      // Stark -- Elternteil besitzt Kind
 class Child  { Parent m_Parent; }        // Schwach -- Kind beobachtet Elternteil
 ```
-
----
-
-[<< 1.7: Mathematik & Vektoren](07-math-vectors.md) | [Startseite](../README.md) | [1.9: Casting & Reflection >>](09-casting-reflection.md)

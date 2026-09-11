@@ -1,6 +1,5 @@
 # Capítulo 8.10: Creando un Mod de Vehículo Personalizado
 
-[Inicio](../README.md) | [<< Anterior: Plantilla Profesional de Mod](09-professional-template.md) | **Creando un Vehículo Personalizado** | [Siguiente: Creando Ropa Personalizada >>](11-clothing-mod.md)
 
 ---
 
@@ -752,7 +751,7 @@ Si cambias esto al valor incorrecto, la animación del jugador atravesará el ve
 
 **CrewCanGetThrough** -- Se llama cada frame para determinar si un jugador puede entrar o salir de un asiento. Los asientos traseros del Niva (índices 2 y 3) funcionan diferente a los delanteros: el respaldo del asiento delantero debe estar plegado hacia adelante (fase de animación > 0.5) antes de que los pasajeros traseros puedan pasar. Esto coincide con el comportamiento del mundo real de un hatchback de 2 puertas donde los pasajeros traseros deben inclinar el asiento delantero.
 
-**OnDebugSpawn** -- Se llama cuando usas el menú de aparición de debug. `SpawnUniversalParts()` agrega bombillas de faros y una batería de auto. `FillUpCarFluids()` llena combustible, refrigerante, aceite y líquido de frenos al máximo. Luego creamos ruedas, puertas, capó y maletero. Esto te da un vehículo inmediatamente conducible para pruebas.
+**OnDebugSpawn** -- Se llama cuando usas el menú de aparición de debug. `SpawnUniversalParts()` agrega bombillas de faros y una batería de auto. `FillUpCarFluids()` llena combustible, refrigerante y aceite al máximo (no llena el líquido de frenos). Luego creamos ruedas, puertas, capó y maletero. Esto te da un vehículo inmediatamente conducible para pruebas.
 
 ---
 

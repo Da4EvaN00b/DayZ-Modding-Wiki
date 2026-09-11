@@ -1,6 +1,6 @@
-# Chapter 6.13: Input System
+# Input System
 
-[Home](../README.md) | [<< Previous: Action System](12-action-system.md) | **Input System** | [Next: Player System >>](14-player-system.md)
+> **Summary:** The DayZ input system maps keyboard, mouse, and gamepad hardware to named actions declared in inputs.xml, and exposes the UAInput API so scripts can query presses, releases, holds, and analog values at runtime.
 
 ---
 
@@ -113,7 +113,7 @@ float value   = input.LocalValue("UAMyAction", false);
 
 Note the slight naming difference: `LocalDoubleClick()` on `UAInput` vs `LocalDbl()` on `Input`.
 
-Both classes also provide `_ID` variants that accept integer action IDs instead of strings (e.g., `LocalPress_ID(int action)`).
+The `Input` class also provides `_ID` variants that accept integer action IDs instead of strings (e.g., `LocalPress_ID(int action, bool check_focus = true)`). `UAInput` has no `_ID` overloads; its methods (`LocalPress()`, etc.) take no parameters.
 
 ---
 
@@ -202,9 +202,9 @@ modded class MissionGameplay
 
 Inputs can technically be checked in any per-frame callback, but `MissionGameplay.OnUpdate()` is the canonical location. Other valid places include:
 
-- `PlayerBase.CommandHandler()` --- runs every frame for the local player
-- `ScriptedWidgetEventHandler.Update()` --- for UI-specific input (but prefer widget event handlers)
-- `PluginBase.OnUpdate()` --- for plugin-scoped input
+- `PlayerBase.CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)` --- the engine header describes it as "updated each tick". Note that it runs for **every** simulated `DayZPlayer`, on the server as well as the client, not only for the local player. A `GetUApi()` query placed here is only meaningful on the client for the player you actually control, so guard it. Vanilla itself reads synced input in this callback through `GetInputController()` (a `HumanInputController`), not through `UAInput`.
+- `ScriptedWidgetEventHandler.OnUpdate(Widget w)` --- for UI-specific input (but prefer widget event handlers)
+- `PluginBase.OnUpdate(float delta_time)` --- for plugin-scoped input
 
 Avoid checking inputs in server-side code, entity constructors, or one-off event handlers where frame timing is not guaranteed.
 
@@ -212,7 +212,10 @@ Avoid checking inputs in server-side code, entity constructors, or one-off event
 
 ## Alternative: OnKeyPress and OnKeyRelease
 
-For simple hardcoded key detection, `MissionBase` provides `OnKeyPress()` and `OnKeyRelease()` callbacks:
+For simple hardcoded key detection, the base `Mission` class (`3_Game/gameplay.c`)
+declares `OnKeyPress(int key)` and `OnKeyRelease(int key)`, which `MissionGameplay`
+overrides. `DayZGame.OnKeyPress()` forwards every raw key event to the active
+mission, so overriding them in `MissionGameplay` works:
 
 ```c
 modded class MissionGameplay
@@ -276,6 +279,12 @@ The `KeyCode` enum is defined in `1_Core/proto/ensystem.c`. These constants are 
 | Locks | `KC_CAPITAL` (Caps Lock), `KC_NUMLOCK`, `KC_SCROLL` (Scroll Lock) |
 | Punctuation | `KC_MINUS`, `KC_EQUALS`, `KC_LBRACKET`, `KC_RBRACKET`, `KC_SEMICOLON`, `KC_APOSTROPHE`, `KC_GRAVE`, `KC_BACKSLASH`, `KC_COMMA`, `KC_PERIOD`, `KC_SLASH` |
 
+"Through" above lists names, not a contiguous numeric range. `KeyCode` follows the
+classic DirectInput scan-code order, so the values are **not** sequential in the way the
+names suggest: `KC_F11` and `KC_F12` sit far after `KC_F10`, and the numpad block runs
+`7, 8, 9, SUBTRACT, 4, 5, 6, ADD, 1, 2, 3, 0`. Never loop over a key range with
+`for (int k = KeyCode.KC_F1; k <= KeyCode.KC_F12; k++)`; name the constants you want.
+
 ### MouseState Enum
 
 For raw mouse button state checking (not through the UAInput system):
@@ -291,15 +300,29 @@ enum MouseState
     WHEEL     // Scroll wheel
 };
 
-// Usage:
-int state = GetMouseState(MouseState.LEFT);
-// Bit 15 (MB_PRESSED_MASK) is set when pressed
+// Usage: the documented test for "button is currently down"
+if (GetMouseState(MouseState.LEFT) & MB_PRESSED_MASK)
+{
+    // Left mouse button is pressed
+}
 ```
+
+`GetMouseState()` returns a combination of press/release edge counts and the
+`MB_PRESSED_MASK` flag. The engine header documents the mask idiom above but does
+*not* publish the mask's numeric value --- its `const int MB_PRESSED_MASK`
+declaration is commented out in `1_Core/proto/ensystem.c` and the value is supplied
+by the engine. Do not hardcode a bit index: vanilla's own
+`3_Game/tools/tools.c` tests `GetMouseState(MouseState.LEFT) & 0x80000000`, while
+`4_World/classes/weapondebug.c` and `5_Mission/gui/scriptconsoleweathertab.c` use the
+named `MB_PRESSED_MASK` constant. Use the named constant.
 
 ### Low-Level Key State
 
 ```c
-// Check raw key state (returns bitmask, bit 15 = currently pressed)
+// Raw key state. Engine doc (1_Core/proto/ensystem.c):
+//   0         = not pressed
+//   bit 15    = set while the key is down
+//   bits 0-14 = number of press edges since the last read
 int state = KeyState(KeyCode.KC_LSHIFT);
 
 // Clear the key state (prevents auto-repeat until next physical press)
@@ -309,13 +332,23 @@ ClearKey(KeyCode.KC_RETURN);
 GetGame().GetInput().DisableKey(KeyCode.KC_RETURN);
 ```
 
+Because the low bits carry an edge count, a non-zero return does **not** on its own
+mean "the key is down right now". Vanilla is inconsistent here: `pluginkeybinding.c`
+and `weapondebug.c` compare against `1`, while `scriptconsoletabbase.c` and
+`scriptconsolecameratab.c` treat any non-zero value as pressed. If you specifically
+need "currently held", test the documented pressed bit rather than `!= 0`.
+
 ---
 
 ## Suppressing and Disabling Inputs
 
 ### Suppress (Per-Input, One Frame)
 
-Prevents the input from firing on the next frame. Useful during transitions (closing a menu) to prevent one-frame input bleed:
+Suppresses the input's press event. The engine header (`3_Game/inputapi/uainput.c`)
+documents it as "supress press event for next frame (while not pressed ATM ---
+otherwise until release)": if the bound key is *not* currently held, the suppression
+lasts one frame; if it *is* held, the input stays suppressed until the player
+releases it. Useful during transitions (closing a menu) to prevent input bleed:
 
 ```c
 UAInput input = GetUApi().GetInputByName("UAMyAction");
@@ -324,13 +357,16 @@ input.Supress();  // Note: single 's' in the method name
 
 ### Suppress All Inputs (Global, One Frame)
 
-Suppresses ALL inputs for the next frame. Call this when leaving menus or transitioning between input contexts:
+Suppresses inputs for the next frame --- and, per the engine header comment, until a
+held key is released. The header's own guidance is to "call this when leaving main menu
+and alike --- to avoid button collision after character control returned":
 
 ```c
 GetUApi().SupressNextFrame(true);
 ```
 
-This is commonly used by vanilla when closing the main menu to prevent the escape key from immediately re-opening something.
+Vanilla calls it from `MissionGameplay.RemoveActiveInputExcludes()`, passing that
+method's `bForceSupress` argument straight through.
 
 ### ForceDisable (Per-Input, Persistent)
 
@@ -356,11 +392,21 @@ input.Unlock();  // Re-enable
 bool locked = input.IsLocked();  // Check state
 ```
 
-The engine documentation recommends using exclude groups instead of Lock/Unlock for most cases.
+A comment directly above these methods in `3_Game/inputapi/uainput.c` warns: "take care
+when using these locking methods, if two or more systems un/lock the same input, there is
+a chance off cross-un/locking it from a wrong place! Use exclude groups instead."
+
+`UAInput` also exposes `ForceEnable(bool bEnable)` alongside `ForceDisable(bool bEnable)`.
+Vanilla uses it in **both** directions on the same input: `MissionGameplay` calls
+`GetUApi().GetInputByID(UAWalkRunForced).ForceEnable(true)` when it *applies* the inventory
+and map input restrictions (`missiongameplay.c:1010`, `1022`), and `ForceEnable(false)` when
+it lifts them (`missiongameplay.c:951`, `956`). `MissionServer` mirrors the same pair at
+`missionserver.c:874`/`879` and `933`/`945`. The boolean is the forced state you want, not an
+enable/clear toggle.
 
 ### ForceDisable All Inputs (Bulk)
 
-When opening a full-screen UI, disable all game inputs except the ones your UI needs. This is the pattern used by COT and Expansion:
+When opening a full-screen UI, disable all game inputs except the ones your UI needs. This is the standard pattern in admin and menu mods:
 
 ```c
 void DisableAllInputs(bool state)
@@ -384,11 +430,25 @@ void DisableAllInputs(bool state)
 }
 ```
 
-**Important:** Always call `GetUApi().UpdateControls()` after modifying input states in bulk.
+**Important:** Call `GetUApi().UpdateControls()` after modifying input states in bulk. The
+engine header documents this as the flush to call *"on each change of exclusion"*
+(`uainput.c:197`), and every vanilla call site follows an exclusion or restriction change
+(`missionbase.c:50`, `missiongameplay.c:1055`/`1077`, `missionserver.c:978`/`1000`,
+`plugindayzinfecteddebug.c:169`/`184`). Community code applies the same call after bulk
+`ForceDisable()` changes; note that `ForceDisable()` has **no call site anywhere in the
+vanilla scripts** --- only its declaration at `uainput.c:84` --- so vanilla never
+demonstrates that pairing, and the flush is a defensive convention here rather than a
+documented requirement.
 
 ### Input Exclude Groups
 
-The mission system provides named exclude groups defined in the engine's `specific.xml`. When activated, they disable categories of inputs:
+The mission system activates named exclude groups. In the supplied extraction the
+vanilla groups are declared in `bin/specific.xml` (root element `<inputs>`), which
+defines `gestures`, `hotkey`, `aiming`, `movement`, `stances`, `optics`, `actions`,
+`actionslite`, `inventory`, `inspect`, `menu`, `map`, `gamepaddisconnect`,
+`radialmenu`, `loopedactions`, `vehicledriving`, `swimming`, `ladderclimbing`,
+`actonViewOpticExcl` and `sprintExcl`. When activated, a group disables every input
+listed inside it:
 
 ```c
 // Suppress gameplay inputs while a menu is open
@@ -407,14 +467,29 @@ void EnableAllInputs(bool bForceSupress = false);
 bool IsInputExcludeActive(string exclude);
 ```
 
-The `bForceSupress` parameter on `RemoveActiveInputExcludes` calls `SupressNextFrame` internally to prevent input bleed when re-enabling.
+`MissionGameplay.RemoveActiveInputExcludes()` always ends with
+`GetUApi().SupressNextFrame(bForceSupress)`, passing your argument through as the
+`bForce` flag --- that is what prevents input bleed when the excludes are lifted.
+`AddActiveInputExcludes()` and `RemoveActiveInputExcludes()` only queue the change and
+call `RefreshExcludes()`; the queued groups are applied on the next mission update,
+which re-runs `ActivateExclude()` for every active group and then `UpdateControls()`.
 
-Expansion uses its own custom exclude group registered with the engine:
+`ActivateExclude()` plus `UpdateControls()` can also be called directly, which is what
+`PluginDayZInfectedDebug` does with the vanilla `"menu"` group:
 
 ```c
-GetUApi().ActivateExclude("menuexpansion");
+GetUApi().ActivateExclude("menu");
 GetUApi().UpdateControls();
 ```
+
+**Unverified:** whether a mod can *declare a new* exclude group of its own is not
+demonstrated by any source checked for this chapter. Vanilla declares excludes only in
+`bin/specific.xml`, and none of the mod input files inspected --- the official
+`DayZ-Samples/Test_Inputs/my_new_inputs.xml`, Community Online Tools, or the DayZ
+Expansion modules --- contains an `<exclude>` element; they use `<modded_inputs>` with
+only `<actions>`, `<sorting>` and `<preset>`. Treat activating one of the vanilla group
+names as the supported path, and test any custom group before relying on it. See
+[Chapter 5.2: inputs.xml](../05-config-files/02-inputs-xml.md) for the file format.
 
 ---
 
@@ -557,8 +632,10 @@ override void OnUpdate(float timeslice)
     UAInput input = GetUApi().GetInputByName("UAMyModAction");
     if (input && input.LocalPress())
     {
-        // Check if Shift is held via raw KeyState
-        bool shiftHeld = (KeyState(KeyCode.KC_LSHIFT) != 0);
+        // Check if Shift is held via raw KeyState.
+        // Bit 15 is the "currently down" flag; bits 0-14 are an edge count,
+        // so mask rather than testing != 0.
+        bool shiftHeld = (KeyState(KeyCode.KC_LSHIFT) & 0x8000) != 0;
 
         if (shiftHeld)
             PerformAlternateAction();
@@ -603,11 +680,7 @@ string keyName = InputUtils.GetButtonNameFromInput("UAMyModAction", EUAINPUT_DEV
 For controller icons and rich-text formatting:
 
 ```c
-string richText = InputUtils.GetRichtextButtonIconFromInputAction(
-    "UAMyModAction",
-    "Open Menu",
-    EUAINPUT_DEVICE_CONTROLLER
-);
+string richText = InputUtils.GetRichtextButtonIconFromInputAction("UAMyModAction", "Open Menu", EUAINPUT_DEVICE_CONTROLLER);
 // Returns image tag + label for UI display
 ```
 
@@ -634,6 +707,30 @@ bool hasFocus = input.HasGameFocus();
 ```
 
 This is a reference-counted system. Multiple systems can request focus changes, and inputs resume only when all of them release.
+
+All three methods take an optional trailing device argument ---
+`ChangeGameFocus(int add, int input_device = -1)`,
+`ResetGameFocus(int input_device = -1)` and `HasGameFocus(int input_device = -1)`.
+The default `-1` acts globally across every device; pass an `INPUT_DEVICE_*` value to scope
+the call to a single device.
+
+The doc comments on those methods point at an engine-side `constants.h`, but you do not need
+it: the constants are **declared in script, with values**, at
+`scripts/1_core/constants.c:23-29`.
+
+| Constant | Value |
+|---|---|
+| `INPUT_DEVICE_KEYBOARD` | `0x00000000` |
+| `INPUT_DEVICE_MOUSE` | `0x00100000` |
+| `INPUT_DEVICE_STICK` | `0x00200000` |
+| `INPUT_DEVICE_XINPUT` | `0x00300000` |
+| `INPUT_DEVICE_TRACKIR` | `0x00400000` |
+| `INPUT_DEVICE_GAMEPAD` | `0x00500000` |
+| `INPUT_DEVICE_CHEAT` | `0x00600000` |
+
+Do not confuse these with `EUAINPUT_DEVICE_*`, which is a different set: it appears in the
+extraction only as commented-out names at `scripts/3_game/inputapi/uainput.c:7-11` and is
+genuinely engine-supplied, with no script-side values.
 
 ---
 
@@ -848,7 +945,11 @@ string name = InputUtils.GetButtonNameFromInput("UAMyAction", EUAINPUT_DEVICE_KE
 - **Always use `UAInput` via inputs.xml for player-facing keybindings.** This allows players to rebind keys, shows actions in the Controls menu, and supports gamepad input. Reserve `OnKeyPress` for debug shortcuts only.
 - **Call `AddActiveInputExcludes({"menu"})` when opening full-screen UI.** Without this, player movement keys (WASD), mouse aiming, and weapon firing remain active behind your menu, causing accidental actions.
 - **Check inputs only in per-frame callbacks like `OnUpdate()`.** `LocalPress()` returns true for exactly one frame. Checking it in event handlers or callbacks that do not run every frame will miss key presses.
-- **Call `GetUApi().UpdateControls()` after bulk `ForceDisable()` changes.** Without this flush call, disable/enable state changes may not take effect until the next frame, causing one-frame input bleed.
+- **Call `GetUApi().UpdateControls()` after bulk `ForceDisable()` changes.** The header
+  documents `UpdateControls()` as the flush to call on each change of *exclusion*
+  (`uainput.c:197`), and that is the only mechanism vanilla states. No vanilla call site pairs
+  it with `ForceDisable()` --- that method has zero call sites in the extracted scripts --- so
+  treat the pairing as a community convention, not as documented engine timing behaviour.
 - **Remember that `Supress()` uses a single "s".** The engine API spells it `Supress()` and `SupressNextFrame()`. Using the correct English spelling `Suppress` will not compile.
 
 ---
@@ -856,5 +957,5 @@ string name = InputUtils.GetButtonNameFromInput("UAMyAction", EUAINPUT_DEVICE_KE
 ## Compatibility & Impact
 
 - **Multi-Mod:** Input action names are global. Two mods registering the same `UAInput` name (e.g., `"UAOpenMenu"`) will collide. Always prefix with your mod name: `"UAMyModOpenMenu"`. Input exclude groups are shared -- one mod activating `"menu"` excludes affects all mods.
-- **Performance:** Input polling is lightweight. `GetUApi().GetInputByName()` performs a hash lookup. Caching the `UAInput` reference in a member variable avoids repeated lookups but is not strictly necessary for performance.
+- **Performance:** `GetInputByName()` is a `proto native` call whose implementation lives in the engine, so its cost cannot be read from the script dump --- treat "it is just a hash lookup" as folklore rather than fact; no measurement was made for this chapter. What the headers *do* show is a supported way to avoid repeated by-name lookups: `UAInput.GetPersistentWrapper()` returns a `UAIDWrapper` whose `InputP()` resolves back to the input, which is the engine's own idiom for holding on to an input across frames.
 - **Server/Client:** Inputs exist only on the client. The server has no keyboard, mouse, or gamepad state. Always detect input on the client and send RPCs to the server for authoritative actions.

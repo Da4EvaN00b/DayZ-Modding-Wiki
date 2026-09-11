@@ -1,6 +1,5 @@
 # Chapter 9.4: Szczegolowy przewodnik po ekonomii lootu
 
-[Strona glowna](../README.md) | [<< Poprzedni: Dokumentacja serverDZ.cfg](03-server-cfg.md) | **Szczegolowy przewodnik po ekonomii lootu**
 
 ---
 
@@ -194,7 +193,7 @@ Bandaze sa bardzo popularne (40 nominal). Pojawiaja sie w budynkach Medic (szpit
 | `restock` | int | sekundy | Minimalny czas odnowienia zanim CE moze stworzyc zamiennik. 0 = natychmiastowy. |
 | `quantmin` | int | -1 do 100 | Minimalny procent ilosci przy spawnie (% amunicji, % plynu). -1 = nie dotyczy. |
 | `quantmax` | int | -1 do 100 | Maksymalny procent ilosci przy spawnie. -1 = nie dotyczy. |
-| `cost` | int | 0+ | Waga priorytetu do wyboru spawnu. Obecnie wszystkie vanillowe przedmioty uzywaja 100. |
+| `cost` | int | 0+ | Waga priorytetu uzywana podczas respawnu/sprzatania. Prawie wszystkie vanillowe przedmioty uzywaja 100, ale kilka uzywa wyzszych wartosci (np. `Mag_SVD_10Rnd` uzywa 1000). |
 
 ### Flagi
 
@@ -721,7 +720,3 @@ Po edycji plikow ekonomii zrob jedno z ponizszych:
 - Usun `storage_1/` dla pelnego wipe'a i swiezego startu ekonomii
 - Ustaw `RestartSpawn` na `1` w `globals.xml` na jeden restart, aby losowo rozmiesic loot, a nastepnie wroc do `0`
 - Poczekaj, az lifetime przedmiotow wygasnie naturalnie (moze to trwac godziny)
-
----
-
-**Poprzedni:** [Dokumentacja serverDZ.cfg](03-server-cfg.md) | [Strona glowna](../README.md) | **Dalej:** [Spawn pojazdow i zdarzen dynamicznych](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Kapitel 9.8: Performance-Optimierung
 
-[Home](../README.md) | [<< Zurueck: Persistenz](07-persistence.md) | [Weiter: Zugriffskontrolle >>](09-access-control.md)
 
 ---
 
@@ -30,7 +29,7 @@ Aus Community-Daten (ueber 400 Discord-Erwaehnungen von FPS/Performance/Lag/Desy
 2. **Event-Spawning** -- zu viele aktive dynamische Events (Fahrzeuge, Tiere, Heliabstuerze) in `events.xml` verbrauchen Spawn-/Aufraeumzyklen und Entitaets-Slots.
 3. **Spieleranzahl + Mod-Anzahl** -- jeder verbundene Spieler generiert Entitaets-Updates, und jeder Mod fuegt Script-Klassen hinzu, die die Engine jeden Tick kompilieren und ausfuehren muss.
 
-Die Server-Spielschleife laeuft mit einer festen Tickrate von 30 FPS. Wenn der Server keine 30 FPS halten kann, erleben Spieler Desync -- Rubberbanding, verzoegertes Item-Aufheben und Treffer-Registrierungsfehler. Unter 15 Server-FPS wird das Spiel unspielbar.
+Die Server-Spielschleife laeuft mit einer variablen FPS, die mit der Last schwankt. Wenn der Server keine gesunde FPS halten kann (der Standardschwellenwert von `serverFpsWarning` ist 15), erleben Spieler Desync -- Rubberbanding, verzoegertes Item-Aufheben und Treffer-Registrierungsfehler. Unter 15 Server-FPS wird das Spiel unspielbar.
 
 ---
 
@@ -53,7 +52,7 @@ Dies sind die Vanilla-Standardwerte fuer die Parameter, die die Performance dire
 | `ZombieMaxCount` | 1000 | Obergrenze fuer gesamte Infizierte auf dem Server. Jeder Zombie fuehrt KI-Pfadfindung aus. Eine Senkung auf 500-700 verbessert die Server-FPS auf bevoelkerten Servern spuerbar. |
 | `AnimalMaxCount` | 200 | Obergrenze fuer Tiere. Tiere haben einfachere KI als Zombies, verbrauchen aber trotzdem Tick-Zeit. Senken Sie auf 100, wenn FPS-Probleme auftreten. |
 | `ZoneSpawnDist` | 300 | Entfernung in Metern, ab der Zombie-Zonen um Spieler aktiviert werden. Eine Senkung auf 200 bedeutet weniger gleichzeitig aktive Zonen. |
-| `SpawnInitial` | 1200 | Anzahl der Items, die die CE beim ersten Start spawnt. Hoehere Werte bedeuten eine laengere initiale Ladezeit. Beeinflusst nicht die Steady-State-Performance. |
+| `SpawnInitial` | 1200 | Anzahl der Spawn-Versuche (Tests), die waehrend des initialen Item-Spawns erlaubt sind, keine Anzahl der gespawnten Items. Die beim ersten Start gespawnte Loot-Menge wird durch `InitialSpawn` gesteuert (Standard 100, ein Prozentsatz). Hoehere Werte bedeuten eine laengere initiale Ladezeit. Beeinflusst nicht die Steady-State-Performance. |
 | `CleanupLifetimeDefault` | 45 | Standard-Aufraeumzeit in Sekunden fuer Items ohne spezifische Lebensdauer. Niedrigere Werte bedeuten schnellere Aufraeumzyklen, aber haeufigere CE-Verarbeitung. |
 
 **Empfohlenes Performance-Profil** (fuer Server, die ueber 40 Spielern kaempfen):
@@ -135,7 +134,7 @@ Die Haupt-Server-Konfigurationsdatei hat begrenzte performancebezogene Optionen:
 | `maxPlayers` | Senken Sie dies, wenn der Server kaempft. Jeder Spieler erzeugt Netzwerkverkehr und Entitaets-Updates. Von 60 auf 40 Spieler zu gehen kann 5-10 Server-FPS zurueckgewinnen. |
 | `instanceId` | Bestimmt den `storage_1/`-Pfad. Keine Performance-Einstellung, aber wenn Ihr Speicher auf einer langsamen Festplatte liegt, beeinflusst es die Persistenz-I/O. |
 
-**Was Sie nicht aendern koennen:** Die Server-Tickrate ist fest auf 30 FPS. Es gibt keine Einstellung, um sie zu erhoehen oder zu senken. Wenn der Server keine 30 FPS halten kann, laeuft er einfach langsamer.
+**Was Sie nicht aendern koennen:** Es gibt keine Einstellung, um eine hoehere minimale Server-FPS zu erzwingen. Die Server-FPS ist variabel und schwankt mit der Last. Sie koennen das Maximum mit dem Startparameter `-limitFPS=` begrenzen (das aktuelle Maximum ist 200), um die CPU-Auslastung auf Servern mit geringer Spielerzahl zu senken, aber wenn der Server unter Last nicht mithalten kann, laeuft er einfach langsamer.
 
 ---
 
@@ -225,7 +224,3 @@ Ein `storage_1/`-Ordner, der auf mehrere Gigabyte anwaechst, verlangsamt jeden P
 ### Logging dauerhaft aktiviert lassen
 
 CE-Diagnose-Logging, Script-Debug-Logging und Admin-Tool-Logging schreiben alle jeden Tick auf die Festplatte. Aktivieren Sie sie zur Diagnose, dann deaktivieren Sie sie. Dauerhaftes ausfuehrliches Logging auf einem ausgelasteten Server kann allein 1-2 FPS kosten.
-
----
-
-[Home](../README.md) | [<< Zurueck: Persistenz](07-persistence.md) | [Weiter: Zugriffskontrolle >>](09-access-control.md)

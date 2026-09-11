@@ -1,6 +1,5 @@
 # Глава 6.7: Таймеры и CallQueue
 
-[Главная](../README.md) | [<< Предыдущая: Уведомления](06-notifications.md) | **Таймеры и CallQueue** | [Следующая: Файловый ввод-вывод и JSON >>](08-file-io.md)
 
 ---
 
@@ -33,7 +32,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**Файл:** `3_Game/tools/utilityclasses.c`
+**Файл:** `2_GameLib/tools.c`
 
 Основной механизм отложенных вызовов функций. Поддерживает одноразовые задержки, повторяющиеся вызовы и немедленное выполнение в следующем кадре.
 
@@ -99,16 +98,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-Вызов метода по его строковому имени. Полезно, когда ссылка на метод напрямую недоступна.
+Вызов метода по его строковому имени в следующем кадре. Полезно, когда ссылка на метод напрямую недоступна. Для отложенного или повторяющегося вызова по имени используйте `CallLaterByName`:
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **Пример:**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +151,7 @@ void Tick(float timeslice);
 
 ## Timer
 
-**Файл:** `3_Game/tools/utilityclasses.c`
+**Файл:** `3_Game/tools/tools.c`
 
 Таймер на основе класса с явным жизненным циклом старт/стоп. Удобнее для долгоживущих таймеров, которые нужно ставить на паузу или перезапускать.
 
@@ -161,7 +164,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | Параметр | Описание |
@@ -239,15 +242,9 @@ void Continue();
 
 Возобновляет приостановленный таймер с того места, где он остановился.
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-Возвращает `true`, если таймер сейчас на паузе.
-
 **Пример --- пауза и возобновление:**
+
+У `Timer` нет метода `IsPaused()`. Поскольку `IsRunning()` возвращает `true` только пока таймер активен (и `false`, как только он приостановлен или остановлен), используйте его, чтобы решить, ставить таймер на паузу или возобновить:
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +257,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +284,25 @@ float GetDuration();
 
 ## ScriptInvoker
 
-**Файл:** `3_Game/tools/utilityclasses.c`
+**Файл:** `2_GameLib/tools.c`
 
 Система событий/делегатов. `ScriptInvoker` хранит список функций обратного вызова и вызывает их все при вызове `Invoke()`. Это аналог событий C# или паттерна наблюдатель в DayZ.
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-Регистрация функции обратного вызова.
+Регистрация функции обратного вызова. Необязательный аргумент `flags` принимает `EScriptInvokerInsertFlags.IMMEDIATE` (по умолчанию) или `EScriptInvokerInsertFlags.UNIQUE`. Возвращает `true` при успехе.
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-Снятие регистрации функции обратного вызова.
+Снятие регистрации функции обратного вызова. Необязательный аргумент `flags` по умолчанию равен `EScriptInvokerRemoveFlags.ALL`. Возвращает `true` при успехе.
 
 ### Invoke
 
@@ -319,10 +316,10 @@ void Invoke(void param1 = NULL, void param2 = NULL,
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-Количество зарегистрированных обратных вызовов.
+Возвращает, сколько раз указанная функция `fn` в данный момент зарегистрирована в инвокере (а не общее количество всех обратных вызовов).
 
 ### Clear
 
@@ -387,17 +384,16 @@ updater.Remove(this.OnFrame);
 
 ## WidgetFadeTimer
 
-**Файл:** `3_Game/tools/utilityclasses.c`
+**Файл:** `3_Game/tools/tools.c`
 
-Специализированный таймер для плавного появления и исчезновения виджетов.
+Специализированный таймер для плавного появления и исчезновения виджетов. `WidgetFadeTimer` расширяет `TimerBase`, поэтому наследует `Stop()` и `IsRunning()`.
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop() и IsRunning() наследуются от TimerBase
 }
 ```
 
@@ -405,7 +401,9 @@ class WidgetFadeTimer
 |----------|----------|
 | `w` | Виджет для затухания |
 | `time` | Длительность затухания в секундах |
-| `continue_from_current` | Если `true`, начать с текущей альфы; иначе начать с 0 (появление) или 1 (исчезновение) |
+| `continue_` | Если `true`, начать с текущей альфы; иначе начать с 0 (появление) или 1 (исчезновение) |
+
+Используйте унаследованный `IsRunning()`, чтобы проверить, выполняется ли затухание в данный момент.
 
 **Пример:**
 
@@ -433,17 +431,18 @@ void HideNotification()
 
 ## GetRemainingTime (CallQueue)
 
-`ScriptCallQueue` также предоставляет возможность запросить оставшееся время у запланированного `CallLater`:
+`ScriptCallQueue` также предоставляет возможность запросить оставшееся время (в миллисекундах) у запланированного вызова. Есть два варианта --- один по ссылке на функцию, другой по имени:
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **Пример:**
 
 ```c
-// Узнать, сколько времени осталось у CallLater
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// Узнать, сколько времени осталось у вызова, запланированного по имени
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("Обратный вызов сработает через %1 мс", remaining));
 ```

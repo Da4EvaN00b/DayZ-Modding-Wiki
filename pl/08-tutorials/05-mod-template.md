@@ -1,6 +1,5 @@
 # Rozdział 8.5: Korzystanie z szablonu moda DayZ
 
-[Strona główna](../README.md) | [<< Poprzedni: Dodawanie komend czatu](04-chat-commands.md) | **Korzystanie z szablonu moda DayZ** | [Następny: Debugowanie i testowanie >>](06-debugging-testing.md)
 
 ---
 
@@ -180,7 +179,7 @@ Jeśli twój mod zależy od innego moda, dodaj jego nazwę klasy CfgPatches do `
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Zależy od Community Framework
+    "JM_CF_Scripts"           // Zależy od Community Framework
 };
 ```
 
@@ -410,7 +409,3 @@ Z twoim modem opartym na szablonie działającym, możesz:
 4. **Studiować config.cpp szczegółowo** -- Przeczytaj [Rozdział 2.2: config.cpp szczegółowo](../02-mod-structure/02-config-cpp.md), aby zrozumieć każde pole.
 5. **Poznać opcje mod.cpp** -- Przeczytaj [Rozdział 2.3: mod.cpp i Workshop](../02-mod-structure/03-mod-cpp.md) do publikacji na Workshop.
 6. **Dodać zależności** -- Jeśli twój mod używa Community Framework lub innego moda, zaktualizuj `requiredAddons[]` i zobacz [Rozdział 2.4: Twój pierwszy mod](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Poprzedni:** [Rozdział 8.4: Dodawanie komend czatu](04-chat-commands.md) | [Strona główna](../README.md)

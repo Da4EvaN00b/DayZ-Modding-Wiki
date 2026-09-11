@@ -1,6 +1,5 @@
 # 5.6. fejezet: Spawn felszerelés konfiguráció
 
-[Főoldal](../README.md) | [<< Előző: Szerver konfigurációs fájlok](05-server-configs.md) | **Spawn felszerelés konfiguráció**
 
 ---
 
@@ -195,7 +194,7 @@ A `discreteItemSets` minden bejegyzése egy lehetséges tárgyat jelöl az adott
 | `quickBarSlot` | integer | Gyorssáv hely hozzárendelés (0-alapú). Használj `-1`-et a gyorssáv hozzárendelés mellőzéséhez |
 | `complexChildrenTypes` | array | Tárgyak, amelyeket ezen belül kell megjeleníteni. Lásd: [ComplexChildrenTypes](#complexchildrentypes) |
 | `simpleChildrenTypes` | array | Tárgy osztálynevek, amelyeket ezen belül kell megjeleníteni alapértelmezett vagy szülői attribútumokkal |
-| `simpleChildrenUseDefaultAttributes` | bool | Ha `true`, az egyszerű gyermekek a szülő `attributes`-ét használják. Ha `false`, a konfigurációs alapértékeket használják |
+| `simpleChildrenUseDefaultAttributes` | bool | Ha `true`, az egyszerű gyermekek a konfigurációs alapértékeket használják. Ha `false`, a szülő `attributes`-ét használják |
 
 **Üres tárgy trükk:** Ha azt akarod, hogy egy csatlakozási pontnak 50/50 esélye legyen üresnek vagy kitöltöttnek lenni, használj üres `itemType`-ot:
 
@@ -230,10 +229,10 @@ Minden bejegyzés egy rakomány változatot jelöl, és a szerver a `spawnWeight
 |------|-------|--------|
 | `name` | string | Ember által olvasható név (csak azonosításra) |
 | `spawnWeight` | integer | Súly a kiválasztáshoz. Minimum `1` |
-| `attributes` | object | Alapértelmezett életerő/mennyiség tartományok. Gyermekek használják, amikor a `simpleChildrenUseDefaultAttributes` értéke `true` |
+| `attributes` | object | Alapértelmezett életerő/mennyiség tartományok. Gyermekek használják, amikor a `simpleChildrenUseDefaultAttributes` értéke `false` |
 | `complexChildrenTypes` | array | Tárgyak a rakományba, mindegyik saját attribútumokkal és beágyazással |
 | `simpleChildrenTypes` | array | Tárgy osztálynevek a rakományba |
-| `simpleChildrenUseDefaultAttributes` | bool | Ha `true`, az egyszerű gyermekek ennek a struktúrának az `attributes`-ét használják. Ha `false`, a konfigurációs alapértékeket használják |
+| `simpleChildrenUseDefaultAttributes` | bool | Ha `true`, az egyszerű gyermekek a konfigurációs alapértékeket használják. Ha `false`, ennek a struktúrának az `attributes`-ét használják |
 
 ```json
 {
@@ -329,7 +328,7 @@ Példa --- fegyver kiegészítőkkel és tárral:
 }
 ```
 
-Ebben a példában az AKM egy tussal, optikával (elemmel benne) és töltött tárral jelenik meg összetett gyermekekként, plusz egy kézvédővel és szuronnyal egyszerű gyermekekként. Az egyszerű gyermekek konfigurációs alapértékeket használnak, mert a `simpleChildrenUseDefaultAttributes` értéke `false`.
+Ebben a példában az AKM egy tussal, optikával (elemmel benne) és töltött tárral jelenik meg összetett gyermekekként, plusz egy kézvédővel és szuronnyal egyszerű gyermekekként. Az egyszerű gyermekek a szülő AKM készlet `attributes`-ét használják, mert a `simpleChildrenUseDefaultAttributes` értéke `false`; a konfigurációs alapértékeket csak akkor használná, ha a jelző `true` lenne.
 
 ### SimpleChildrenTypes
 
@@ -337,8 +336,8 @@ Az egyszerű gyermekek egy rövidítés tárgyak szülőn belüli megjelenítés
 
 Az attribútumaikat a `simpleChildrenUseDefaultAttributes` jelző határozza meg:
 
-- **`true`** --- A tárgyak a szülő struktúrán definiált `attributes`-t használják.
-- **`false`** --- A tárgyak a motor konfigurációs alapértékeit használják (jellemzően teljes életerő és mennyiség).
+- **`true`** --- A tárgyak a motor konfigurációs alapértékeit használják (jellemzően teljes életerő és mennyiség).
+- **`false`** --- A tárgyak a szülő struktúrán definiált `attributes`-t használják.
 
 Az egyszerű gyermekeknek nem lehetnek saját beágyazott gyermekeik vagy gyorssáv hozzárendeléseik. Ezekhez a képességekhez használd a `complexChildrenTypes`-ot.
 
@@ -777,7 +776,7 @@ Ha a mod nincs betöltve a szerveren, az ismeretlen osztálynevű tárgyak csend
 |------|-------------|---------|
 | Az `enableCfgGameplayFile = 1` elfelejtése a `serverDZ.cfg`-ben | A `cfggameplay.json` nem töltődik be, a preset-ek figyelmen kívül maradnak | Add hozzá a jelzőt és indítsd újra a szervert |
 | Érvénytelen JSON szintaxis (záró vessző, hiányzó zárójel) | A fájlban lévő összes preset csendben meghibásodik | Validáld a JSON-t külső eszközzel telepítés előtt |
-| A `spawnGearPresetFiles` használata a `StartingEquipSetup()` kód eltávolítása nélkül | A szkriptelt felszerelés csendben felül lesz írva a JSON preset-tel. Az init.c kód lefut, de a tárgyai lecserélődnek | Ez elvárt viselkedés, nem hiba. Távolítsd el vagy kommenteld ki az init.c felszerelés kódot a félreértések elkerüléséhez |
+| A `spawnGearPresetFiles` használata a `StartingEquipSetup()` kód eltávolítása nélkül | A szkriptelt felszerelés csendben felül lesz írva a JSON preset-tel. Ha érvényes preset-ek aktívak, a `StartingEquipSetup()` egyáltalán nem kerül meghívásra --- a tárgyai nem jönnek létre, majd cserélődnek le | Ez elvárt viselkedés, nem hiba. Távolítsd el vagy kommenteld ki az init.c felszerelés kódot a félreértések elkerüléséhez |
 | `spawnWeight: 0` beállítása | Az érték a minimum alatt van. A viselkedés definiálatlan | Mindig használj `spawnWeight: 1`-et vagy magasabbat |
 | Nem létező osztálynévre hivatkozás | Az adott tárgy csendben nem jelenik meg, de a preset többi része működik | Ellenőrizd duplán az osztályneveket a mod `config.cpp`-je vagy types.xml-je alapján |
 | Tárgy hozzárendelése olyan csatlakozási ponthoz, amelyet nem foglalhat el | A tárgy nem jelenik meg. Nincs naplózott hiba | Ellenőrizd, hogy a tárgy `inventorySlot[]`-ja a config.cpp-ben egyezik a `slotName`-mel |
@@ -814,7 +813,3 @@ cfgplayerspawnpoints.xml
        ├─ generator_params → rács sűrűség, méret, lejtés korlátok
        └─ generator_posbubbles → pozíciók (opcionálisan elnevezett csoportokban)
 ```
-
----
-
-[Főoldal](../README.md) | [<< Előző: Szerver konfigurációs fájlok](05-server-configs.md) | **Spawn felszerelés konfiguráció**

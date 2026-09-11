@@ -1,10 +1,11 @@
-# Chapter 9.11: Server Troubleshooting
+# Server Troubleshooting
 
-[Home](../README.md) | [<< Previous: Mod Management](10-mod-management.md) | [Next: Advanced Topics >>](12-advanced.md)
 
 ---
 
-> **Summary:** Diagnose and fix the most common DayZ server problems -- startup failures, connection issues, crashes, loot and vehicle spawning, persistence, and performance. Every solution here comes from real failure patterns across thousands of community reports.
+> **Summary:** A symptom index for the most common DayZ **server operations** problems -- startup failures, connection issues, crashes, loot and vehicle spawning, persistence, and performance. Find your symptom, run the first-aid check, then follow the link to the chapter that owns the full fix.
+
+> **Scope:** This chapter is for **running a server**. For problems inside **mod code** -- script errors, RPC, UI, PBO builds -- see the mod-development [Troubleshooting Guide](../troubleshooting.md).
 
 ---
 
@@ -54,16 +55,15 @@ Every path in `-mod=@CF;@VPPAdminTools;@MyMod` must exist relative to the server
 
 ### Port Forwarding
 
-DayZ requires these ports forwarded and open in your firewall:
+DayZ needs these UDP ports forwarded and open in your firewall:
 
 | Port | Protocol | Purpose |
 |------|----------|---------|
-| 2302 | UDP | Game traffic |
-| 2303 | UDP | Steam networking |
-| 2304 | UDP | Steam query (internal) |
-| 27016 | UDP | Steam server browser query |
+| 2302 | UDP | Main game traffic |
+| 2303-2304 | UDP | Steam networking |
+| 2305 | UDP | Steam query port (`steamQueryPort`, default) |
 
-If you changed the base port with `-port=`, all other ports shift by the same offset.
+The engine reserves the block **2302-2305** off the base port. If you change the base with `-port=`, the whole block shifts by the same offset. The query port default of **2305** is confirmed in [Server Setup](01-server-setup.md#method-4-query-port).
 
 ### Firewall Blocking
 
@@ -87,18 +87,20 @@ Check `maxPlayers` in **serverDZ.cfg** (default 60).
 
 ### Null Pointer Access
 
-`SCRIPT (E): Null pointer access in 'MyClass.SomeMethod'` -- the most common script error. A mod is calling a method on a deleted or uninitialized object. This is a mod bug, not a server misconfiguration. Report it to the mod author with the full RPT log.
+`SCRIPT (E): Null pointer access in 'MyClass.SomeMethod'` -- the most common script error. A mod is calling a method on a deleted or uninitialized object. This is a mod bug, not a server misconfiguration. Report it to the mod author with the full `script_*.log`.
 
 ### Finding Script Errors
 
-Search the RPT log for `SCRIPT (E)`. The class and method name in the error tells you which mod is responsible. RPT locations:
+Script errors land in the `script_*.log`, **not** the `.RPT`. Search that file for `SCRIPT (E)`; the class and method name tells you which mod is responsible. Log locations:
 
-- **Server:** `$profiles/` directory (or server root if no `-profiles=` is set)
+- **Server:** the `profiles/` directory (set with `-profiles=`, otherwise the server root)
 - **Client:** `%localappdata%\DayZ\`
+
+Engine-level failures -- missing addons, signature errors, hard crashes -- go in the `.RPT` instead. See [Reading Log Files](#reading-log-files).
 
 ### Crash on Restart
 
-If the server crashes on every restart, **storage_1/** may be corrupted. Stop the server, back up `storage_1/`, delete `storage_1/data/events.bin`, and restart. If that fails, delete the entire `storage_1/` directory (wipes all persistence).
+If the server crashes on every restart, **storage_1/** may be corrupted. Stop the server, back up `storage_1/`, delete `storage_1/data/events.bin`, and restart. If that fails, delete the entire `storage_1/` directory (wipes all persistence). See [World State & Persistence](07-persistence.md) for a safe recovery routine.
 
 ### Crash After Mod Update
 
@@ -108,141 +110,87 @@ Revert to the previous mod version. Check the Workshop changelog for breaking ch
 
 ## Loot Not Spawning
 
-### types.xml Not Registered
+Loot lives in the central economy (CE). Most "it won't spawn" cases are a registration or tag mismatch, not a missing item.
 
-Items defined in **types.xml** will not spawn unless the file is registered in **cfgeconomycore.xml**:
+| Symptom | Likely cause | First-aid check |
+|---------|-------------|-----------------|
+| A custom item never appears anywhere | types file not registered in **cfgeconomycore.xml** | Confirm a `<file name="..." type="types" />` entry exists for your file |
+| One item is absent, the rest spawn fine | Category / usage / value tag mismatch | Tags in types.xml must match **cfglimitsdefinition.xml** names exactly (case-sensitive: `Military`, not `military`) |
+| Item is registered but count stays at zero | `nominal` is `0` | Set `nominal` to at least `1` for natural spawning |
+| Item loads with no errors but still absent | No matching map group positions | Assign categories/usages that already have positions in **mapgroupproto.xml** |
 
-```xml
-<economycore>
-    <ce folder="db">
-        <file name="types.xml" type="types" />
-    </ce>
-</economycore>
-```
+**First-aid:** search the `script_*.log` at boot for CE load lines and any complaint about your economy files. A rejected types file logs an error there.
 
-If you use a custom types file (e.g. **types_custom.xml**), add a separate `<file>` entry for it.
-
-### Wrong Category, Usage, or Value Tags
-
-Every `<category>`, `<usage>`, and `<value>` tag in your types.xml must match a name defined in **cfglimitsdefinition.xml**. A typo like `usage name="Military"` (capital M) when the definition says `military` (lowercase) silently prevents the item from spawning.
-
-### Nominal Set to Zero
-
-If `nominal` is `0`, the CE will never spawn that item. This is intentional for items that should only exist via crafting, events, or admin placement. If you want the item to spawn naturally, set `nominal` to at least `1`.
-
-### Missing Map Group Positions
-
-Items need valid spawn positions inside buildings. If a custom item has no matching map group positions (defined in **mapgroupproto.xml**), the CE has nowhere to place it. Assign the item to categories and usages that already have valid positions on the map.
+Full field-by-field walkthrough of `cfgeconomycore.xml`, tag definitions, `nominal`/`min`/`lifetime` tuning, and map group positions: see [Loot Economy Deep Dive](04-loot-economy.md).
 
 ---
 
 ## Vehicles Not Spawning
 
-Vehicles use the event system, **not** types.xml.
+Vehicles use the **event system**, not types.xml.
 
-### events.xml Configuration
+| Symptom | Likely cause | First-aid check |
+|---------|-------------|-----------------|
+| No vehicles anywhere | Event set to `<active>0</active>` | Set the event to `<active>1</active>` in **events.xml** |
+| Event active but no vehicles appear | Missing spawn coordinates | `<position>fixed</position>` events need entries in **cfgeventspawns.xml** |
+| Vehicle count drops over time and never recovers | Wrecks occupy slots | Set `remove_damaged="1"` so the CE cleans up destroyed vehicles |
 
-Vehicle spawns are defined in **events.xml**:
+**First-aid:** confirm the event name in `events.xml` matches the name referenced in `cfgeventspawns.xml` exactly.
 
-```xml
-<event name="VehicleOffroadHatchback">
-    <nominal>8</nominal>
-    <min>5</min>
-    <max>8</max>
-    <lifetime>3888000</lifetime>
-    <restock>0</restock>
-    <saferadius>500</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
-    <flags deletable="0" init_random="0" remove_damaged="1"/>
-    <position>fixed</position>
-    <limit>child</limit>
-    <active>1</active>
-    <children>
-        <child lootmax="0" lootmin="0" max="1" min="1" type="OffroadHatchback"/>
-    </children>
-</event>
-```
-
-### Missing Spawn Positions
-
-Vehicle events with `<position>fixed</position>` require entries in **cfgeventspawns.xml**. Without defined coordinates, the event has nowhere to place the vehicle.
-
-### Event Disabled
-
-If `<active>0</active>`, the event is completely disabled. Set it to `1`.
-
-### Damaged Vehicles Blocking Slots
-
-If `remove_damaged="0"`, destroyed vehicles remain in the world forever and occupy spawn slots. Set `remove_damaged="1"` so the CE cleans up wrecks and spawns replacements.
+Full event structure (`nominal`/`min`/`max`, radii, children, spawn coordinates) is covered in [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md).
 
 ---
 
 ## Persistence Issues
 
-### Bases Disappearing
+| Symptom | Likely cause | First-aid check |
+|---------|-------------|-----------------|
+| Bases and stored objects disappear | Territory flag expired | Check `FlagRefreshFrequency` in **globals.xml** (default `432000` = 5 days); a flag not refreshed in that window deletes everything in its radius |
+| Items vanish after a restart | `lifetime` expired | Each item has a `lifetime` (seconds) in **types.xml**; container contents inherit the container's lifetime |
+| `storage_1/` grows very large | Too many economy items | Reduce `nominal` values, especially food, clothing, and ammunition |
+| All players spawn fresh | Player data lost | Player inventories live in `storage_1/players/`; back up `storage_1/` regularly |
 
-Territory flags must be refreshed before their timer expires. The default `FlagRefreshFrequency` is `432000` seconds (5 days). If no player interacts with the flag within that window, the flag and all objects within its radius are deleted.
+**First-aid:** never edit persistence files while the server is running -- it will overwrite your changes on the next save.
 
-Check the value in **globals.xml**:
-
-```xml
-<var name="FlagRefreshFrequency" type="0" value="432000"/>
-```
-
-Increase this value on low-population servers where players log in less frequently.
-
-### Items Vanishing After Restart
-
-Every item has a `lifetime` in **types.xml** (seconds). When it expires without player interaction, the CE removes it. Reference: `3888000` = 45 days, `604800` = 7 days, `14400` = 4 hours. Items inside containers inherit the container's lifetime.
-
-### storage_1/ Growing Too Large
-
-If your `storage_1/` directory grows beyond several hundred MB, your economy is producing too many items. Reduce `nominal` values across your types.xml, especially for high-count items like food, clothing, and ammunition. A bloated persistence file causes longer restart times.
-
-### Player Data Lost
-
-Player inventories and positions are stored in `storage_1/players/`. If this directory is deleted or corrupted, all players spawn fresh. Back up `storage_1/` regularly.
+Lifetime reference values, flag refresh tuning, and safe `storage_1/` maintenance are covered in [World State & Persistence](07-persistence.md).
 
 ---
 
 ## Performance Problems
 
-### Server FPS Dropping
+| Symptom | Likely cause | First-aid check |
+|---------|-------------|-----------------|
+| Low server FPS (target is 30+) | Too many entities or heavy loot | Reduce `ZombieMaxCount` and `AnimalMaxCount` in **globals.xml**; lower `nominal` values |
+| Rubber-banding, delayed actions, invisible zombies (desync) | Server FPS below ~15 | Fix the underlying FPS problem -- there is no desync-specific setting |
+| Restarts take longer than 2-3 minutes | Oversized `storage_1/` | Reduce loot nominals and set appropriate lifetimes to shrink persistence |
 
-DayZ servers target 30+ FPS for smooth gameplay. Common causes of low server FPS:
+**First-aid:** watch server FPS in the admin console or a monitoring tool before changing settings, so you can measure the effect of each change.
 
-- **Too many zombies** -- reduce `ZombieMaxCount` in **globals.xml** (default 800, try 400-600)
-- **Too many animals** -- reduce `AnimalMaxCount` (default 200, try 100)
-- **Excessive loot** -- lower `nominal` values across your types.xml
-- **Too many base objects** -- large bases with hundreds of items strain persistence
-- **Heavy script mods** -- some mods run expensive per-frame logic
-
-### Desync
-
-Players experiencing rubber-banding, delayed actions, or invisible zombies are symptoms of desync. This almost always means server FPS has dropped below 15. Fix the underlying performance problem rather than looking for a desync-specific setting.
-
-### Long Restart Times
-
-Restart time is directly proportional to the size of `storage_1/`. If restarts take more than 2-3 minutes, you have too many persistent objects. Reduce loot nominal values and set appropriate lifetimes.
+Default values, the entity/loot/persistence trade-offs, and a step-by-step tuning method are in [Performance Tuning](08-performance.md).
 
 ---
 
 ## Reading Log Files
 
-### Server RPT Location
+### Server Log Locations
 
-The RPT file is in `$profiles/` (if launched with `-profiles=`) or the server root. Filename pattern: `DayZServer_x64_<date>_<time>.RPT`.
+Both logs live in `profiles/` -- the directory passed to `-profiles=`, or the server root if that flag is unset:
+
+- **`script_<date>_<time>.log`** -- script output and `SCRIPT (E)` errors. This is your primary debugging tool.
+- **`DayZServer_x64_<date>_<time>.RPT`** -- the engine report: startup, crashes, missing addons, and signature failures.
 
 ### What to Search For
 
-| Search term | Meaning |
-|-------------|---------|
-| `SCRIPT (E)` | Script error -- a mod has a bug |
-| `[ERROR]` | Engine-level error |
-| `ErrorMessage` | Fatal error that may cause shutdown |
-| `Cannot open` | Missing file (PBO, config, mission) |
-| `Crash` | Application-level crash |
+| Search term | Log | Meaning |
+|-------------|-----|---------|
+| `SCRIPT (E)` | script log | Script error -- a mod has a bug |
+| `Cannot register` | RPT | Class-name collision between two mods |
+| `Missing addons` | RPT | A dependency is not loaded (wrong load order or missing mod) |
+| `Signature verification failed` | RPT | `.bikey` mismatch or missing key |
+| `Cannot open` | RPT | Missing file (PBO, config, mission) |
+| `Crash` | RPT | Application-level crash |
+
+For mod-conflict diagnosis using these same logs, see [Mod Management](10-mod-management.md#troubleshooting-mod-conflicts).
 
 ### BattlEye Logs
 
@@ -255,18 +203,14 @@ BattlEye logs are in the `BattlEye/` directory within your server root. These sh
 When something goes wrong, work through this list in order:
 
 ```
-1. Check the server RPT for SCRIPT (E) and [ERROR] lines
+1. Check the script_*.log for SCRIPT (E), and the .RPT for engine errors
 2. Verify every -mod= path exists and contains addons/*.pbo
 3. Verify all .bikey files are copied to keys/
 4. Check serverDZ.cfg for syntax errors (missing semicolons)
-5. Check port forwarding: 2302 UDP + 27016 UDP
+5. Check port forwarding: 2302 UDP + Steam ports 2303-2305 UDP
 6. Verify mission folder matches the template value in serverDZ.cfg
-7. Check storage_1/ for corruption (delete events.bin if needed)
+7. Check storage_1/ for corruption (delete data/events.bin if needed)
 8. Test with zero mods first, then add mods one at a time
 ```
 
 Step 8 is the most powerful technique. If the server works vanilla but breaks with mods, you can isolate the problem mod through binary search -- add half your mods, test, then narrow down.
-
----
-
-[Home](../README.md) | [<< Previous: Mod Management](10-mod-management.md) | [Next: Advanced Topics >>](12-advanced.md)

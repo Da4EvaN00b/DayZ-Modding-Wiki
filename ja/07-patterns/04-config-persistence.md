@@ -1,6 +1,5 @@
 # Chapter 7.4: 設定の永続化
 
-[ホーム](../README.md) | [<< 前: RPCパターン](03-rpc-patterns.md) | **設定の永続化** | [次: パーミッションシステム >>](05-permissions.md)
 
 ---
 
@@ -121,7 +120,7 @@ class SettingsManager
 | `string` | 文字列 |
 | `vector` | 3つの数値の配列 |
 | `array<T>` | JSON配列 |
-| `map<string, T>` | JSONオブジェクト（文字列キーのみ） |
+| `map<K, T>` | JSONオブジェクト（`K`は`string`、`int`、または`enum`が使用可能。JSONではすべてのキーが文字列として表現される） |
 | ネストされたクラス | ネストされたJSONオブジェクト |
 
 ### ネストされたオブジェクト
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | ブロッキングを避けるために非同期ファイルI/Oを使用する | Enforce Scriptには非同期ファイルI/Oがありません。すべての読み書きは同期的です。起動時に読み込み、タイマーで保存してください。 |
 | スキーマでJSONを検証する | JSONスキーマ検証は存在しません。`OnAfterLoad()`内またはロード後のガード句でフィールドを検証してください。 |
 | 構造化データにはデータベースを使用する | Enforce Scriptからデータベースにアクセスすることはできません。`$profile:`内のJSONファイルが唯一の永続化メカニズムです。 |
-
----
-
-[ホーム](../README.md) | [<< 前: RPCパターン](03-rpc-patterns.md) | **設定の永続化** | [次: パーミッションシステム >>](05-permissions.md)

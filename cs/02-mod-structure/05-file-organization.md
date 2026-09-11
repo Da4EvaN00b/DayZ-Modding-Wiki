@@ -1,6 +1,5 @@
 # Chapter 2.5: File Organization Best Practices
 
-[Domů](../README.md) | [<< Předchozí: Minimální funkční mod](04-minimum-viable-mod.md) | **Organizace souborů** | [Další: Server vs Client Architecture >>](06-server-client-split.md)
 
 ---
 
@@ -134,8 +133,8 @@ class CF_EventArgs
 class JM_COT_Menu
 
 // VPP pattern: [Name] (no prefix)
-class ChatCommandBase
-class WebhookManager
+class ChatCommandManager
+class WebHooksManager
 ```
 
 **Rules:**
@@ -679,7 +678,7 @@ Content mods have a massive `Data/` directory and relatively small `Scripts/`.
 ```
 DabsFramework/
   mod.cpp
-  gui/
+  GUI/
     config.cpp
     imagesets/
     icons/
@@ -689,18 +688,18 @@ DabsFramework/
       solid.imageset
       thin.imageset
     looknfeel/
-  scripts/
+  Scripts/
     config.cpp
     Credits.json
     Version.hpp
-    1_core/
+    1_Core/
     2_GameLib/                            <-- One of few mods using layer 2
     3_Game/
     4_World/
     5_Mission/
 ```
 
-Note: DabsFramework uses lowercase folder names (`scripts/`, `gui/`). This works protože Windows is case-insensitive, but may cause issues on Linux. The convention is to use the canonical casing (`Scripts/`, `GUI/`).
+Note: Fyzické složky DabsFrameworku používají kanonickou velikost písmen (`Scripts/`, `GUI/`, `1_Core/`), ale cesty `files[]` v jeho `config.cpp` na ně odkazují malými písmeny (`DabsFramework/scripts/1_core`, `DabsFramework/gui/...`). Tato neshoda ve velikosti písmen funguje protože Windows is case-insensitive, but may cause issues on Linux. Udržujte cesty `files[]` tak, aby odpovídaly skutečné velikosti písmen složek.
 
 ---
 
@@ -845,7 +844,7 @@ Před publishing your mod, verify:
 |---------|-----|--------|
 | Deep subsystem folders in `3_Game` | StarDZ Core | 15+ folders under `3_Game/` (Config, RPC, Events, Logging, Permissions, etc.) |
 | `Common/` shared folder | COT | Included in každý script module's `files[]` to provide cross-layer utility types |
-| Lowercase folder names | DabsFramework | Uses `scripts/`, `gui/` místo `Scripts/`, `GUI/` -- works on Windows but risks issues on Linux |
+| Lowercase paths in `files[]` | DabsFramework | Fyzické složky jsou `Scripts/`, `GUI/`, ale `files[]` v `config.cpp` na ně odkazují malými písmeny (`scripts/`, `gui/`, `1_core`) -- works on Windows but risks issues on Linux |
 | Separate GUI PBO | Expansion, COT | GUI resources (layouts, imagesets, styles) packed into a dedicated PBO with its own config.cpp |
 | Minimal Scripts for content mods | Weapon packs | `Data/` directory dominates; `Scripts/` has pouze a thin config.cpp and volitelný behavior overrides |
 

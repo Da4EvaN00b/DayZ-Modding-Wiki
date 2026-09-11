@@ -1,6 +1,5 @@
 # 8.4. fejezet: Chat parancsok hozzáadása
 
-[Főoldal](../README.md) | [<< Előző: Admin panel építése](03-admin-panel.md) | **Chat parancsok hozzáadása** | [Következő: A DayZ mod sablon használata >>](05-mod-template.md)
 
 ---
 
@@ -113,7 +112,7 @@ modded class MissionGameplay
         // A ChatMessageEventTypeID akkor aktiválódik, amikor a játékos chat üzenetet küld
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -170,11 +169,12 @@ modded class MissionGameplay
 
 ### Hogyan működik a chat elfogás
 
-Az `OnEvent` metódus a `MissionGameplay` osztályon különböző játék eseményeknél hívódik meg. Amikor az `eventTypeId` értéke `ChatMessageEventTypeID`, az azt jelenti, hogy a játékos éppen chat üzenetet küldött. A `Param3` tartalmazza:
+Az `OnEvent` metódus a `MissionGameplay` osztályon különböző játék eseményeknél hívódik meg. Amikor az `eventTypeId` értéke `ChatMessageEventTypeID`, az azt jelenti, hogy a játékos éppen chat üzenetet küldött. A paraméterek egy `ChatMessageEventParams` (egy `Param4<int, string, string, string>`) és a következőket tartalmazzák:
 
 - `param1` -- Csatorna (int): a chat csatorna (globális, közvetlen, stb.)
 - `param2` -- Küldő neve (string)
 - `param3` -- Üzenet szövege (string)
+- `param4` -- Szín konfigurációs osztály (string)
 
 Ellenőrizzük, hogy az üzenet `/` karakterrel kezdődik-e. Ha igen, az egész sztringet továbbítjuk a szervernek RPC-n keresztül. Az üzenet normál chatként is elküldésre kerül -- egy éles modban ezt elnyomnád (a megjegyzésekben a végén tárgyalva).
 
@@ -641,8 +641,8 @@ A `GetGame().Chat()` egy üzenetet jelenít meg a játékos chat ablakában. A m
 
 | Csatorna | Szín | Tipikus használat |
 |---------|-------|-------------|
-| `"colorStatusChannel"` | Sárga/narancs | Rendszer üzenetek |
-| `"colorAction"` | Fehér | Akció visszajelzés |
+| `"colorStatusChannel"` | Kék | Rendszer üzenetek |
+| `"colorAction"` | Sárga | Akció visszajelzés |
 | `"colorFriendly"` | Zöld | Pozitív visszajelzés |
 | `"colorImportant"` | Piros | Figyelmeztetések/hibák |
 
@@ -1349,7 +1349,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1502,7 +1502,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Jogosultság megtagadva az adminoknak
 
 - **Rossz Steam64 ID:** Ellenőrizd kétszer az admin ID-kat az `IsCommandAdmin()` metódusban. Pontos Steam64 ID-knak kell lenniük (17 jegyű számok, amelyek `7656`-tal kezdődnek).
-- **GetPlainId() vs GetId():** A `GetPlainId()` a Steam64 ID-t adja vissza. A `GetId()` a DayZ session ID-t adja vissza. Használd a `GetPlainId()` metódust az admin ellenőrzésekhez.
+- **GetPlainId() vs GetId():** A `GetPlainId()` az olvasható (plaintext) Steam64 ID-t adja vissza. A `GetId()` egy stabil, hash-elt egyedi ID-t ad vissza (adatbázisokhoz és naplókhoz biztonságos), nem session ID-t -- a session-onkénti ID, amely a játékos lecsatlakozása után újrahasználásra kerül, a `GetPlayerId()` (egy int). Használd a `GetPlainId()` metódust az admin ellenőrzésekhez.
 
 ### A visszajelzés üzenet nem jelenik meg a chatben
 
@@ -1518,20 +1518,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### A parancs normál üzenetként jelenik meg a chatben
 
-- Az `OnEvent` hook elfogja az üzenetet, de nem nyomja el a chatként való küldést. Éles modban módosítanod kellene a `ChatInputMenu` osztályt a `/` üzenetek szűréséhez, mielőtt elküldésre kerülnének:
+- Az `OnEvent` hook elfogja az üzenetet, de nem nyomja el a chatként való küldést. Éles modban módosítanod kellene a `ChatInputMenu` osztályt a `/` üzenetek szűréséhez, mielőtt elküldésre kerülnének. A vanilla változatban a `ChatInputMenu` az `OnChange()` kezelőjéből küldi a chat szöveget, ahol meghívja a `g_Game.ChatPlayer(text)` metódust. Felülírhatod az `OnChange()` metódust, és kihagyhatod a küldést, amikor a szöveg `/` karakterrel kezdődik:
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Az aktuális szöveg lekérése a szerkesztő widgetből
-        // Ha / karakterrel kezdődik, NE hívd meg a super-t (ami chatként küldi)
+        // Az aktuális szöveg lekérése a szerkesztő widgetből (m_edit_box.GetText())
+        // Ha / karakterrel kezdődik, NE hívd meg a super-t (ami a g_Game.ChatPlayer-t hívja)
         // Ehelyett kezeld parancsként
 
         // Ez a megközelítés a DayZ verziótól függ -- ellenőrizd a vanilla forrásokat
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```

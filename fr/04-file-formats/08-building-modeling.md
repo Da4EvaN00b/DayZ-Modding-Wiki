@@ -1,6 +1,5 @@
 # Chapitre 4.8 : Modélisation de bâtiments -- Portes et échelles
 
-[Accueil](../README.md) | [<< Précédent : Guide Workbench](07-workbench-guide.md) | **Modélisation de bâtiments**
 
 ---
 

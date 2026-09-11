@@ -1,6 +1,5 @@
 # Chapitre 6.22: Admin & Server Management
 
-[Accueil](../README.md) | [<< Précédent : Zombie & AI System](21-zombie-ai-system.md) | **Admin & Server Management** | [Suivant : World Systems >>](23-world-systems.md)
 
 ---
 
@@ -147,14 +146,26 @@ enum EClientKicked
     KICK_ALL_ADMIN,     // Admin kicked all (RCON)
     KICK_ALL_SERVER,    // Server kicked all
     TIMEOUT,            // Network timeout
+    LOGOUT,             // Joueur déconnecté
     KICK,               // Generic kick
     BAN,                // Player was banned
     PING,               // Ping limit exceeded
     MODIFIED_DATA,      // Modified game files
+    UNSTABLE_NETWORK,   // Connexion trop instable
+    SERVER_SHUTDOWN,    // Serveur en cours d'arrêt
     NOT_WHITELISTED,    // Not on whitelist
+    NO_IDENTITY,        // Aucune identité reçue
+    NO_INPUT_INTERFACE, // Aucune interface d'entrée pour le joueur
+    INVALID_UID,        // UID incorrect lors de la création de l'identité
+    BANK_COUNT,         // Nombre de banques modifié
     ADMIN_KICK,         // Kicked by admin
+    INVALID_ID,         // ID de joueur invalide
+    INPUT_HACK,         // Envoi de plus d'entrées que possible
+    QUIT,               // Le joueur a fermé le jeu
+    LEAVE,              // Le joueur a appuyé sur le bouton Quitter
+    // ... de grands sauts suivent pour les erreurs de machine de connexion (LOGIN_MACHINE_ERROR = 48),
+    // erreurs de BDD, réapparition, vérification, authentification et codes d'incompatibilité PBO
     BATTLEYE = 240,     // BattlEye kick
-    // ... additional codes for login machine errors, DB errors, etc.
 }
 ```
 
@@ -297,7 +308,7 @@ GetGame().GetWorld().SetTimeMultiplier(2.0);
 Also available from `CGame`:
 
 ```c
-proto native float GetDayTime(); // Seconds since midnight (0-86400 approx.)
+proto native float GetDayTime(); // Heure actuelle de la journée en heures (0-24)
 ```
 
 ### Weather Control

@@ -1,6 +1,5 @@
 # Capitolo 3.10: Widget Avanzati
 
-[Home](../README.md) | [<< Precedente: Pattern UI dei Mod Reali](09-real-mod-patterns.md) | **Widget Avanzati**
 
 ---
 

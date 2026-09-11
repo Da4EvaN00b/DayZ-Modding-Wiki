@@ -1,6 +1,5 @@
 # Глава 7.2: Модульные / плагинные системы
 
-[Главная](../README.md) | [<< Предыдущая: Паттерн Singleton](01-singletons.md) | **Модульные / плагинные системы** | [Следующая: Паттерны RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -219,18 +218,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Регистрация
 
-VPP регистрирует плагины в modded-версии `MissionServer.OnInit()`:
+VPP регистрирует плагины путём модификации (modded) ванильного `PluginManager.Init()`. `RegisterPlugin` принимает имя класса плагина в виде строки плюс флаги клиент/сервер (он не принимает экземпляр, созданный через `new`):
 
 ```c
 // Паттерн VPP
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Имя класса         Клиент  Сервер
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+Менеджер сам создаёт экземпляр каждого зарегистрированного плагина. Чтобы получить работающий плагин в другом месте, используйте `GetPluginManager().GetPluginByType(VPPESPPlugin)` или глобальную функцию `GetPlugin(VPPESPPlugin)`.
 
 ### Ключевые характеристики
 
-- **Ручная регистрация**: каждый плагин явно создаётся через `new` и регистрируется
+- **Ручная регистрация**: каждый плагин регистрируется по имени класса в `PluginManager.Init()`; менеджер создаёт его экземпляр
 - **Интеграция с конфигурацией**: `ConfigurablePlugin` объединяет управление конфигурацией с жизненным циклом модуля
 - **Самодостаточность**: нет зависимости от CF; менеджер плагинов VPP --- это собственная система
 - **Чёткое владение**: менеджер плагинов хранит `ref` на все плагины, контролируя их время жизни
@@ -532,7 +541,7 @@ override void OnMissionFinish()
 | **Интеграция конфигов** | Отдельно | Встроена в ConfigurablePlugin | Отдельно | Через MyConfigManager |
 | **Диспетчеризация обновлений** | Автоматическая | Менеджер вызывает `OnUpdate` | Автоматическая | Менеджер вызывает `OnUpdate` |
 | **Очистка** | CF обрабатывает | Ручная `OnDestroy` | CF обрабатывает | `MyModuleManager.Cleanup()` |
-| **Межмодульный доступ** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Межмодульный доступ** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Выбирайте подход, соответствующий профилю зависимостей вашего мода. Если вы уже зависите от CF, используйте `CF_ModuleCore`. Если хотите нулевых внешних зависимостей, создавайте собственную систему по образцу собственного менеджера или паттерна VPP.
 
@@ -568,7 +577,3 @@ override void OnMissionFinish()
 | Модули должны заменяться «на горячую» во время выполнения | DayZ не поддерживает горячую перезагрузку скриптов; модули живут весь жизненный цикл миссии |
 | Используйте интерфейсы для контрактов модулей | В Enforce Script нет ключевого слова `interface`; используйте виртуальные методы базового класса (`override`) |
 | Внедрение зависимостей разъединяет модули | Фреймворка DI не существует; используйте поиск через менеджер и `#ifdef`-проверки для опциональных межмодульных зависимостей |
-
----
-
-[<< Предыдущая: Паттерн Singleton](01-singletons.md) | [Главная](../README.md) | [Следующая: Паттерны RPC >>](03-rpc-patterns.md)

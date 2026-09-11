@@ -1,6 +1,5 @@
 # Kapitel 9.2: Verzeichnisstruktur & Missionsordner
 
-[Home](../README.md) | [<< Zurueck: Server-Einrichtung](01-server-setup.md) | **Verzeichnisstruktur** | [Weiter: serverDZ.cfg-Referenz >>](03-server-cfg.md)
 
 ---
 
@@ -174,7 +173,7 @@ Definiert Spawn-Regeln fuer **jedes Item** im Spiel. Mit etwa 23.000 Zeilen ist 
 
 ### globals.xml
 
-Globale Parameter, die die gesamte Wirtschaft betreffen: Zombie-Anzahlen, Tieranzahlen, Aufraeum-Timer, Loot-Schadensbereiche, Respawn-Zeiten. Es gibt insgesamt 33 Parameter. Siehe [Kapitel 9.4](04-loot-economy.md) fuer die vollstaendige Referenz.
+Globale Parameter, die die gesamte Wirtschaft betreffen: Zombie-Anzahlen, Tieranzahlen, Aufraeum-Timer, Loot-Schadensbereiche, Respawn-Zeiten. Es gibt insgesamt 30 Parameter. Siehe [Kapitel 9.4](04-loot-economy.md) fuer die vollstaendige Referenz.
 
 ### events.xml
 
@@ -258,19 +257,19 @@ Speichert den persistenten Zustand des Servers zwischen Neustarts:
 
 ```
 storage_1/
-  players.db         # SQLite-Datenbank aller Spielercharaktere
+  players/           # Binaere Charakterdatensaetze, einer pro Spieler
   spawnpoints.bin    # Binaere Spawnpunkt-Daten
   backup/            # Automatische Backups der Persistenzdaten
   data/              # Weltzustand (platzierte Items, Basisbau, Fahrzeuge)
 ```
 
-**Bearbeiten Sie niemals `players.db`, waehrend der Server laeuft.** Es handelt sich um eine SQLite-Datenbank, die vom Serverprozess gesperrt wird. Wenn Sie Charaktere zuruecksetzen muessen, stoppen Sie zuerst den Server und loeschen oder benennen Sie die Datei um.
+**Bearbeiten Sie niemals von Hand die Dateien in `players/`, waehrend der Server laeuft.** Es handelt sich um undurchsichtige Binaerdatensaetze, die ausschliesslich vom Serverprozess geschrieben werden. Wenn Sie Charaktere zuruecksetzen muessen, stoppen Sie zuerst den Server und loeschen oder benennen Sie den Ordner um.
 
 Fuer einen **vollstaendigen Persistenz-Wipe** stoppen Sie den Server und loeschen den gesamten `storage_1/`-Ordner. Der Server erstellt ihn beim naechsten Start mit einer frischen Welt neu.
 
 Fuer einen **teilweisen Wipe** (Charaktere behalten, Loot zuruecksetzen):
 1. Server stoppen
-2. Dateien in `storage_1/data/` loeschen, aber `players.db` behalten
+2. Dateien in `storage_1/data/` loeschen, aber `storage_1/players/` behalten
 3. Neustarten
 
 ---
@@ -438,7 +437,3 @@ Das `a`-Attribut ist der Rotationswinkel in Grad.
 | `storage_1/` | Nur loeschen | Persistenz -- nicht von Hand bearbeiten |
 | `battleye/` | **Nein** | Anti-Cheat -- nicht anfassen |
 | `mapgroup*.xml` | Vorsichtig | Gebaeude-Loot-Positionen -- nur fuer fortgeschrittene Bearbeitung |
-
----
-
-**Zurueck:** [Server-Einrichtung](01-server-setup.md) | [Home](../README.md) | **Weiter:** [serverDZ.cfg-Referenz >>](03-server-cfg.md)

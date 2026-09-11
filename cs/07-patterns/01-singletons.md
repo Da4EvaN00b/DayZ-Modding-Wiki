@@ -1,6 +1,5 @@
 # Kapitola 7.1: Vzor Singleton
 
-[Domů](../README.md) | **Vzor Singleton** | [Další: Systémy modulů >>](02-module-systems.md)
 
 ---
 
@@ -544,7 +543,3 @@ Před nasazením singletonu ověřte:
 | Singletony jsou anti-vzor; použijte dependency injection | Enforce Script nemá DI kontejner. Singletony jsou standardní přístup pro globální manažery napříč všemi hlavními mody. |
 | Líná inicializace je vždy dostatečná | RPC handlery musí být registrovány dříve, než se připojí jakýkoli klient, takže eager inicializace v `OnInit()` je často nutná. |
 | Singletony by nikdy neměly být zničeny | DayZ mise se restartují bez restartu serverového procesu; singletony *musí* být zničeny a znovu vytvořeny v každém cyklu mise. |
-
----
-
-[Domů](../README.md) | **Vzor Singleton** | [Další: Systémy modulů >>](02-module-systems.md)

@@ -1,6 +1,5 @@
 # Engine API Quick Reference
 
-[Home](../README.md) | **Engine API Quick Reference**
 
 ---
 
@@ -61,8 +60,8 @@
 
 | メソッド | シグネチャ | 説明 |
 |--------|-----------|-------------|
-| `AddChild` | `void AddChild(IEntity child, int pivot, bool posOnly = false)` | ボーンに子をアタッチ |
-| `RemoveChild` | `void RemoveChild(IEntity child, bool keepTransform = false)` | 子をデタッチ |
+| `AddChild` | `bool AddChild(notnull IEntity child, int pivot, bool positionOnly = false)` | ボーンに子をアタッチ |
+| `RemoveChild` | `bool RemoveChild(notnull IEntity child, bool keepTransform = false)` | 子をデタッチ |
 | `GetParent` | `IEntity GetParent()` | 親エンティティまたは null |
 | `GetChildren` | `IEntity GetChildren()` | 最初の子エンティティ |
 | `GetSibling` | `IEntity GetSibling()` | 次の兄弟エンティティ |
@@ -126,11 +125,11 @@
 | `IsTransport()` | Object | 車両かどうか |
 | `IsDayZCreature()` | Object | クリーチャー（ゾンビ/動物）かどうか |
 | `IsKindOf(string)` | Object | config 継承のチェック |
-| `IsItemBase()` | EntityAI | インベントリアイテムかどうか |
-| `IsWeapon()` | EntityAI | 武器かどうか |
-| `IsMagazine()` | EntityAI | マガジンかどうか |
-| `IsClothing()` | EntityAI | 衣類かどうか |
-| `IsFood()` | EntityAI | 食料かどうか |
+| `IsItemBase()` | Object | インベントリアイテムかどうか |
+| `IsWeapon()` | Object | 武器かどうか |
+| `IsMagazine()` | Object | マガジンかどうか |
+| `IsClothing()` | Object | 衣類かどうか |
+| `IsFood()` | Object | 食料かどうか |
 | `Class.CastTo(out, obj)` | Class | 安全なダウンキャスト（bool を返します） |
 | `ClassName.Cast(obj)` | Class | インラインキャスト（失敗時は null を返します） |
 
@@ -146,12 +145,12 @@
 | `CreateInInventory` | `EntityAI CreateInInventory(string type)` | カーゴにアイテムを生成 |
 | `CreateEntityInCargo` | `EntityAI CreateEntityInCargo(string type)` | カーゴにアイテムを生成 |
 | `CreateAttachment` | `EntityAI CreateAttachment(string type)` | アタッチメントとしてアイテムを生成 |
-| `EnumerateInventory` | `void EnumerateInventory(int traversal, out array<EntityAI> items)` | 全アイテムをリスト |
+| `EnumerateInventory` | `bool EnumerateInventory(InventoryTraversalType tt, out array<EntityAI> items)` | 全アイテムをリスト |
 | `CountInventory` | `int CountInventory()` | アイテム数をカウント |
 | `HasEntityInInventory` | `bool HasEntityInInventory(EntityAI item)` | アイテムの存在チェック |
 | `AttachmentCount` | `int AttachmentCount()` | アタッチメント数 |
 | `GetAttachmentFromIndex` | `EntityAI GetAttachmentFromIndex(int idx)` | インデックスでアタッチメントを取得 |
-| `FindAttachmentByName` | `EntityAI FindAttachmentByName(string slot)` | スロット名でアタッチメントを取得 |
+| `FindAttachmentBySlotName` | `EntityAI FindAttachmentBySlotName(string slot_name)` | スロット名でアタッチメントを取得 |
 
 ---
 
@@ -214,7 +213,7 @@
 | `CrewSize` | `int CrewSize()` | 総座席数 |
 | `CrewMember` | `Human CrewMember(int idx)` | 座席の人物を取得 |
 | `CrewMemberIndex` | `int CrewMemberIndex(Human member)` | 人物の座席を取得 |
-| `CrewGetOut` | `void CrewGetOut(int idx)` | 座席から強制排出 |
+| `CrewGetOut` | `Human CrewGetOut(int posIdx)` | 座席から強制排出 |
 | `CrewDeath` | `void CrewDeath(int idx)` | 乗員を死亡させる |
 
 ### エンジン (Car)
@@ -245,10 +244,10 @@
 
 | メソッド | シグネチャ | 説明 |
 |--------|-----------|-------------|
-| `SetBrake` | `void SetBrake(float value, int wheel = -1)` | 0.0-1.0、-1 = 全輪 |
+| `SetBrake` | `void SetBrake(float value, float unused0 = 0, bool unused1 = false)` | 0.0-1.0 |
 | `SetHandbrake` | `void SetHandbrake(float value)` | 0.0-1.0 |
-| `SetSteering` | `void SetSteering(float value, bool analog = true)` | ステアリング入力 |
-| `SetThrust` | `void SetThrust(float value, int wheel = -1)` | 0.0-1.0 スロットル |
+| `SetSteering` | `void SetSteering(float value, bool unused0 = false)` | ステアリング入力 |
+| `SetThrottle` | `void SetThrottle(float value)` | 0.0-1.0 スロットル（廃止された `SetThrust` の代替） |
 
 ---
 
@@ -282,11 +281,11 @@
 |--------|-----------|-------------|
 | `GetActual` | `float GetActual()` | 現在の補間値 |
 | `GetForecast` | `float GetForecast()` | 目標値 |
-| `GetDuration` | `float GetDuration()` | 残り時間（秒） |
+| `GetNextChange` | `float GetNextChange()` | 次の変化までの時間（秒） |
 | `Set` | `void Set(float forecast, float time = 0, float minDuration = 0)` | 目標を設定（サーバーのみ） |
 | `SetLimits` | `void SetLimits(float min, float max)` | 値の範囲制限 |
-| `SetTimeLimits` | `void SetTimeLimits(float min, float max)` | 変化速度の制限 |
-| `SetChangeLimits` | `void SetChangeLimits(float min, float max)` | 変化量の制限 |
+| `SetForecastTimeLimits` | `void SetForecastTimeLimits(float ftMin, float ftMax)` | 変化速度の制限 |
+| `SetForecastChangeLimits` | `void SetForecastChangeLimits(float fcMin, float fcMax)` | 変化量の制限 |
 
 ---
 
@@ -314,7 +313,7 @@
 | `FPrint` | `void FPrint(FileHandle fh, string text)` | テキストを書き込み（改行なし） |
 | `FPrintln` | `void FPrintln(FileHandle fh, string text)` | テキスト + 改行を書き込み |
 | `FGets` | `int FGets(FileHandle fh, string line)` | 1行を読み取り |
-| `ReadFile` | `string ReadFile(FileHandle fh)` | ファイル全体を読み取り |
+| `ReadFile` | `int ReadFile(FileHandle file, void param_array, int length)` | バイトを配列に読み取り（読み取った数を返します） |
 | `DeleteFile` | `bool DeleteFile(string path)` | ファイルを削除 |
 | `CopyFile` | `bool CopyFile(string src, string dst)` | ファイルをコピー |
 
@@ -354,10 +353,12 @@
 |--------|-----------|-------------|
 | `CallLater` | `void CallLater(func fn, int delay = 0, bool repeat = false, param1..4)` | 遅延/繰り返し呼び出しをスケジュール |
 | `Call` | `void Call(func fn, param1..4)` | 次フレームで実行 |
-| `CallByName` | `void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param par = null)` | 文字列名でメソッドを呼び出し |
+| `CallByName` | `void CallByName(Class obj, string fnName, Param params = NULL)` | 文字列名でメソッドを呼び出し |
+| `CallLaterByName` | `void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false, Param params = NULL)` | 文字列名で遅延/繰り返し呼び出し |
 | `Remove` | `void Remove(func fn)` | スケジュール済み呼び出しをキャンセル |
 | `RemoveByName` | `void RemoveByName(Class obj, string fnName)` | 文字列名でキャンセル |
-| `GetRemainingTime` | `float GetRemainingTime(Class obj, string fnName)` | CallLater の残り時間を取得 |
+| `GetRemainingTime` | `int GetRemainingTime(func fn)` | CallLater の残り時間を取得（ミリ秒） |
+| `GetRemainingTimeByName` | `int GetRemainingTimeByName(Class obj, string fnName)` | 文字列名で残り時間を取得（ミリ秒） |
 
 ### Timer クラス
 
@@ -368,18 +369,17 @@
 | `Stop` | `void Stop()` | タイマー停止 |
 | `Pause` | `void Pause()` | タイマー一時停止 |
 | `Continue` | `void Continue()` | タイマー再開 |
-| `IsPaused` | `bool IsPaused()` | 一時停止中か |
-| `IsRunning` | `bool IsRunning()` | 実行中か |
+| `IsRunning` | `bool IsRunning()` | 実行中か（一時停止中は false） |
 | `GetRemaining` | `float GetRemaining()` | 残り秒数 |
 
 ### ScriptInvoker
 
 | メソッド | シグネチャ | 説明 |
 |--------|-----------|-------------|
-| `Insert` | `void Insert(func fn)` | コールバックを登録 |
-| `Remove` | `void Remove(func fn)` | コールバックを登録解除 |
+| `Insert` | `bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE)` | コールバックを登録 |
+| `Remove` | `bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL)` | コールバックを登録解除 |
 | `Invoke` | `void Invoke(params...)` | 全コールバックを発火 |
-| `Count` | `int Count()` | 登録済みコールバック数 |
+| `Count` | `int Count(func fn)` | この fn が登録されている回数 |
 | `Clear` | `void Clear()` | 全コールバックを削除 |
 
 ---
@@ -395,13 +395,13 @@
 | `FindAnyWidget` | `Widget FindAnyWidget(string name)` | 名前で子を検索（再帰的） |
 | `Show` | `void Show(bool show)` | Widget の表示/非表示 |
 | `SetText` | `void TextWidget.SetText(string text)` | テキスト内容を設定 |
-| `SetImage` | `void ImageWidget.SetImage(int index)` | 画像インデックスを設定 |
+| `SetImage` | `bool ImageWidget.SetImage(int num)` | 画像インデックスを設定 |
 | `SetColor` | `void SetColor(int color)` | Widget の色を設定（ARGB） |
 | `SetAlpha` | `void SetAlpha(float alpha)` | 透明度を設定 0.0-1.0 |
-| `SetSize` | `void SetSize(float x, float y, bool relative = false)` | Widget のサイズを設定 |
-| `SetPos` | `void SetPos(float x, float y, bool relative = false)` | Widget の位置を設定 |
+| `SetSize` | `void SetSize(float w, float h, bool immedUpdate = true)` | Widget のサイズを設定 |
+| `SetPos` | `void SetPos(float x, float y, bool immedUpdate = true)` | Widget の位置を設定 |
 | `GetScreenSize` | `void GetScreenSize(out float x, out float y)` | 画面解像度 |
-| `Destroy` | `void Widget.Destroy()` | Widget を削除して破棄 |
+| `Unlink` | `void Widget.Unlink()` | Widget を削除して破棄（子も含む） |
 
 ### ARGB カラーヘルパー
 
@@ -582,7 +582,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `GetGame().GetTickTime()` | `float GetTickTime()` | サーバー時間（秒） |
 | `GetGame().GetWorkspace()` | `WorkspaceWidget GetWorkspace()` | UI ワークスペース |
 | `GetGame().SurfaceY(x, z)` | `float SurfaceY(float x, float z)` | 指定位置の地形高さ |
-| `GetGame().SurfaceGetType(x, z)` | `string SurfaceGetType(float x, float z)` | 地表マテリアルの種類 |
+| `GetGame().SurfaceGetType(x, z, type)` | `float SurfaceGetType(float x, float z, out string type)` | 地表マテリアルの種類（`out` パラメータで返します） |
 | `GetGame().GetObjectsAtPosition(pos, radius, objects, proxyCargo)` | `void GetObjectsAtPosition(vector pos, float radius, out array<Object> objects, out array<CargoBase> proxyCargo)` | 位置付近のオブジェクトを検索 |
 | `GetScreenSize(w, h)` | `void GetScreenSize(out int w, out int h)` | 画面解像度を取得 |
 | `GetGame().IsServer()` | `bool IsServer()` | サーバーチェック |
@@ -610,7 +610,7 @@ float result = Math.SmoothCD(current, target, m_Velocity, 0.3, 1000.0, dt);
 | `override void OnEvent(EventType eventTypeId, Param params)` | チャット、ボイスイベント |
 | `override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)` | プレイヤーが参加 |
 | `override void InvokeOnDisconnect(PlayerBase player)` | プレイヤーが離脱 |
-| `override void OnClientReadyEvent(int peerId, PlayerIdentity identity)` | クライアントがデータ受信準備完了 |
+| `override void OnClientReadyEvent(PlayerIdentity identity, PlayerBase player)` | クライアントがデータ受信準備完了 |
 | `override void PlayerRegistered(int peerId)` | アイデンティティが登録済み |
 
 ### クライアントサイド (modded MissionGameplay)

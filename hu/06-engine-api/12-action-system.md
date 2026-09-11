@@ -1,6 +1,5 @@
 # 6.12. fejezet: Akció rendszer
 
-[Főoldal](../README.md) | [<< Előző: Mission hookok](11-mission-hooks.md) | **Akció rendszer** | [Következő: Input rendszer >>](13-input-system.md)
 
 ---
 
@@ -767,7 +766,7 @@ Az akció komponensek szabályozzák, _hogyan_ halad az akció az idő múlásá
 | `CAInteract` | nincs | Azonnali végrehajtás interact akciókhoz |
 | `CAContinuousTime` | `float time` | Folyamatjelző, `time` másodperc után fejeződik be |
 | `CAContinuousRepeat` | `float time` | Ismétlődő ciklusok, minden ciklusban `OnFinishProgress` aktiválódik |
-| `CAContinuousQuantity` | `float quantity, float time` | Mennyiséget fogyaszt az idő múlásával |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Mennyiséget fogyaszt az idő múlásával |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Mint a Quantity, de étel/ital módosítókkal |
 
 ### CAContinuousTime

@@ -1,6 +1,5 @@
 # Chapter 9.11: Szerver hibaelhárítás
 
-[Kezdőlap](../README.md) | [<< Előző: Mod kezelés](10-mod-management.md) | [Következő: Haladó témák >>](12-advanced.md)
 
 ---
 
@@ -60,7 +59,7 @@ A DayZ-nek ezeket a portokat kell továbbítani és megnyitni a tűzfalban:
 |------|-----------|-----|
 | 2302 | UDP | Játék forgalom |
 | 2303 | UDP | Steam hálózatkezelés |
-| 2304 | UDP | Steam lekérdezés (belső) |
+| 2304 | UDP | Kliens csatlakozási port (`clientPort`) |
 | 27016 | UDP | Steam szerver böngésző lekérdezés |
 
 Ha megváltoztattad az alapportot a `-port=` paraméterrel, minden más port ugyanannyival eltolódik.
@@ -124,7 +123,7 @@ Ha egyedi types fájlt használsz (pl. **types_custom.xml**), adj hozzá egy kü
 
 ### Rossz kategória, használat vagy érték tagek
 
-Minden `<category>`, `<usage>` és `<value>` tagnak a types.xml-ben meg kell egyeznie a **cfglimitsdefinition.xml**-ben definiált névvel. Egy elírás, mint `usage name="Military"` (nagy M), amikor a definíció `military` (kis m) mondja, csendben megakadályozza a tárgy megjelenését.
+Minden `<category>`, `<usage>` és `<value>` tagnak a types.xml-ben meg kell egyeznie a **cfglimitsdefinition.xml**-ben definiált névvel. Egy elírás, mint `usage name="military"` (kis m), amikor a definíció `Military` (nagy M) mondja, csendben megakadályozza a tárgy megjelenését.
 
 ### Nominal nullára állítva
 
@@ -212,7 +211,7 @@ A játékos inventárok és pozíciók a `storage_1/players/` mappában tároló
 
 A DayZ szerverek 30+ FPS-t céloznak a gördülékeny játékmenethez. Az alacsony szerver FPS gyakori okai:
 
-- **Túl sok zombi** -- csökkentsd a `ZombieMaxCount` értéket a **globals.xml**-ben (alapértelmezett 800, próbálj 400-600-at)
+- **Túl sok zombi** -- csökkentsd a `ZombieMaxCount` értéket a **globals.xml**-ben (alapértelmezett 1000, próbálj 400-600-at)
 - **Túl sok állat** -- csökkentsd az `AnimalMaxCount` értéket (alapértelmezett 200, próbálj 100-at)
 - **Túlzott zsákmány** -- csökkentsd a `nominal` értékeket a types.xml-ben
 - **Túl sok bázis objektum** -- a nagy bázisok száznyi tárggyal terhelik a perzisztenciát
@@ -266,7 +265,3 @@ Ha valami elromlik, dolgozd végig ezt a listát sorrendben:
 ```
 
 A 8. lépés a legerősebb technika. Ha a szerver vanilla módban működik, de modokkal elromlik, izolálhatod a problémás modot bináris kereséssel -- add hozzá a modjaid felét, tesztelj, majd szűkítsd le.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Mod kezelés](10-mod-management.md) | [Következő: Haladó témák >>](12-advanced.md)

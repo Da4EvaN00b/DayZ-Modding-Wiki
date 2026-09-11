@@ -1,6 +1,5 @@
 # Chapitre 8.3 : Construire un module de panneau d'administration
 
-[Accueil](../README.md) | [<< Précédent : Créer un objet personnalisé](02-custom-item.md) | **Construire un panneau d'administration** | [Suivant : Ajouter des commandes de chat >>](04-chat-commands.md)
 
 ---
 
@@ -381,7 +380,7 @@ class AdminDemoPanel extends ScriptedWidgetEventHandler
     }
 
     // -------------------------------------------------------
-    // Appelé quand la réponse du serveur arrive (depuis le OnRPC de mission)
+    // Appelé quand la réponse du serveur arrive (depuis le gestionnaire OnRPC de DayZGame)
     // -------------------------------------------------------
     void OnPlayerInfoReceived(int playerCount, string playerNames)
     {
@@ -565,24 +564,11 @@ modded class PlayerBase
         // --- Envoyer la réponse au client demandeur ---
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // RPCSingleParam avec l'objet joueur du demandeur envoie à ce client spécifique
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
+        // target = null pour que le DayZGame.OnRPC du client exécute son propre switch ;
+        // le destinataire (requestor) restreint la livraison à ce seul client.
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
 
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -603,7 +589,7 @@ modded class PlayerBase
 
 ```c
 GetGame().RPCSingleParam(
-    requestorPlayer,                        // Objet cible (le joueur)
+    null,                                   // Objet cible (null -> le DayZGame.OnRPC du client le gère)
     AdminDemoRPC.RESPONSE_PLAYER_INFO,      // Identifiant RPC
     responseData,                           // Charge utile de données
     true,                                   // Livraison garantie
@@ -611,7 +597,7 @@ GetGame().RPCSingleParam(
 );
 ```
 
-Le cinquième paramètre `requestor` (un `PlayerIdentity`) est ce qui fait de ceci une réponse ciblée. Sans lui, le RPC irait à tous les clients.
+Le cinquième paramètre `requestor` (un `PlayerIdentity`) est ce qui fait de ceci une réponse ciblée. Sans lui, le RPC irait à tous les clients. Le premier paramètre est `null` car la réponse est gérée par le switch `DayZGame.OnRPC` du client -- si vous passez un objet cible à la place, le moteur transmet le RPC au `OnRPC` de cet objet (la forme à 3 paramètres) et le switch de `DayZGame` ne s'exécute jamais.
 
 ---
 
@@ -620,6 +606,8 @@ Le cinquième paramètre `requestor` (un `PlayerIdentity`) est ce qui fait de ce
 De retour côté client, nous devons intercepter le RPC de réponse du serveur et le router vers le panneau.
 
 ### Créer `Scripts/5_Mission/AdminDemo/AdminDemoMission.c`
+
+Le panneau et son raccourci clavier vivent sur la mission, mais la réponse RPC est reçue sur `DayZGame` -- le véritable gestionnaire RPC universel du moteur. Nous divisons le fichier en deux classes `modded` en conséquence.
 
 ```c
 modded class MissionGameplay
@@ -668,8 +656,19 @@ modded class MissionGameplay
         }
     }
 
+    // Exposer le panneau pour que le gestionnaire RPC de DayZGame puisse y accéder
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     // -------------------------------------------------------
-    // Recevoir les RPCs du serveur côté client
+    // Recevoir les RPCs du serveur côté client.
+    // DayZGame.OnRPC est le gestionnaire universel du moteur ; il
+    // n'exécute ce switch que pour les RPCs sans cible (target = null).
     // -------------------------------------------------------
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
@@ -700,15 +699,16 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
 
 ### Comment fonctionne la réception RPC côté client
 
-1. **`MissionGameplay.OnRPC()`** est un gestionnaire universel pour les RPCs reçus sur le client. Il se déclenche pour chaque RPC entrant.
+1. **`DayZGame.OnRPC()`** est le gestionnaire universel du moteur pour les RPCs reçus sur le client. Il se déclenche pour chaque RPC entrant. La classe mission (`MissionGameplay`) n'a pas de méthode `OnRPC`, donc le récepteur doit modder `DayZGame`. Notez que `DayZGame.OnRPC` n'exécute son propre switch que lorsque le RPC n'a pas d'objet cible ; si une cible est définie, le moteur transmet le RPC à `target.OnRPC(sender, rpc_type, ctx)` à la place.
 
 2. **`ParamsReadContext ctx`** contient les données sérialisées envoyées par le serveur. Vous devez les désérialiser en utilisant `ctx.Read()` avec un type `Param` correspondant.
 
@@ -897,22 +897,8 @@ modded class PlayerBase
 
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -1091,6 +1077,14 @@ modded class MissionGameplay
         }
     }
 
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
@@ -1117,8 +1111,9 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
@@ -1152,7 +1147,7 @@ Voici la séquence exacte des événements quand l'admin appuie sur F5 et clique
 
 5. [RÉSEAU] Le RPC voyage du serveur au client
 
-6. [CLIENT] MissionGameplay.OnRPC() se déclenche
+6. [CLIENT] DayZGame.OnRPC() se déclenche (la cible est null, donc son switch s'exécute)
    --> rpc_type correspond à RESPONSE_PLAYER_INFO
    --> HandlePlayerInfoResponse(ctx) est appelé
    --> Les données sont désérialisées depuis ParamsReadContext
@@ -1188,7 +1183,7 @@ Temps total : typiquement moins de 100ms sur un réseau local.
 
 - **Vérifiez le paramètre destinataire :** Le cinquième paramètre de `RPCSingleParam` doit être le `PlayerIdentity` du client cible.
 - **Vérifiez la correspondance des types Param :** Le serveur envoie `Param2<int, string>`, le client lit `Param2<int, string>`. Une non-correspondance de type fait échouer `ctx.Read()`.
-- **Vérifiez la surcharge MissionGameplay.OnRPC :** Assurez-vous d'appeler `super.OnRPC()` et que la signature de la méthode est correcte.
+- **Vérifiez la surcharge DayZGame.OnRPC :** Assurez-vous d'appeler `super.OnRPC()`, que la signature de la méthode est correcte, et que le serveur a envoyé la réponse avec une cible `null` (sinon le moteur la route vers le `OnRPC` de la cible et le switch de `DayZGame` ne s'exécute jamais).
 
 ### L'interface s'affiche mais les données ne se mettent pas à jour
 

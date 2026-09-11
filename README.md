@@ -27,10 +27,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/DayZ-1.29-black?style=flat-square&logo=steam&logoColor=white" alt="DayZ 1.29" />
-  <img src="https://img.shields.io/badge/chapters-104-blue?style=flat-square" alt="104 chapters" />
+  <img src="https://img.shields.io/badge/chapters-98-blue?style=flat-square" alt="98 chapters" />
   <img src="https://img.shields.io/badge/languages-12-green?style=flat-square" alt="12 languages" />
-  <img src="https://img.shields.io/badge/files-1,107-orange?style=flat-square" alt="1,107 files" />
 </p>
 
 ---
@@ -39,7 +37,7 @@
 
 There is **no complete public documentation** for DayZ modding. The official wiki is sparse, community tutorials are scattered and outdated, and most knowledge lives in private Discord servers. This project changes that.
 
-This wiki was built by **reverse-engineering 10+ professional mods**, studying **2,800+ vanilla script files**, analyzing **15 official Bohemia samples**, and documenting every pattern, gotcha, and best practice we found.
+This wiki was built by studying the **2,800+ vanilla DayZ script files** and the **12 official Bohemia sample mods**, and documenting every pattern, gotcha, and best practice we found.
 
 **Whether you're creating your first mod or building a complex framework — this is your reference.**
 
@@ -51,16 +49,16 @@ This wiki was built by **reverse-engineering 10+ professional mods**, studying *
 |:----:|-------|:--------:|-------------------|
 | **1** | [Enforce Script Language](en/01-enforce-script/01-variables-types.md) | 13 | The complete language — types, classes, modded classes, memory management, 30+ gotchas |
 | **2** | [Mod Structure](en/02-mod-structure/01-five-layers.md) | 6 | 5-layer hierarchy, config.cpp, server/client architecture |
-| **3** | [GUI & Layout System](en/03-gui-system/01-widget-types.md) | 10 | Widgets, .layout files, sizing, events, dialogs, real mod UI patterns |
+| **3** | [GUI & Layout System](en/03-gui-system/01-widget-types.md) | 10 | Widgets, .layout files, sizing, events, dialogs, production UI patterns |
 | **4** | [File Formats & Tools](en/04-file-formats/01-textures.md) | 8 | Textures, models, audio, DayZ Tools, Workbench, PBO packing |
 | **5** | [Configuration Files](en/05-config-files/01-stringtable.md) | 6 | stringtable.csv, inputs.xml, imagesets, server configs, spawn gear |
 | **6** | [Engine API Reference](en/06-engine-api/01-entity-system.md) | 23 | Entity, player, vehicle, sound, crafting, construction, animation, zombie/AI, terrain, particles, admin |
 | **7** | [Patterns & Best Practices](en/07-patterns/01-singletons.md) | 7 | Singletons, modules, RPC, permissions, events, performance |
 | **8** | [Tutorials](en/08-tutorials/01-first-mod.md) | 13 | Hello World → Custom Items → Admin Panel → Vehicles → Trading System |
 | **9** | [Server Administration](en/09-server-admin/01-server-setup.md) | 12 | Server setup, loot economy, vehicles, persistence, performance, troubleshooting |
-| | [Quick Reference](en/06-engine-api/quick-reference.md) | 6 | Cheatsheet, API reference, glossary, FAQ, troubleshooting |
+| | [Quick Reference](en/06-engine-api/quick-reference.md) | 5 | API quick reference, cheatsheet, glossary, FAQ, troubleshooting |
 
-> **92 chapters total** — each with code examples, common mistakes, best practices, and real-world patterns from professional mods.
+> **98 numbered chapters plus 5 reference pages — 103 content pages** — each with code examples, common mistakes, and best practices. (`en/` also holds 2 landing pages, `README.md` and `index.md`, for 105 files in total.)
 
 ---
 
@@ -77,18 +75,18 @@ This wiki was built by **reverse-engineering 10+ professional mods**, studying *
 **Experienced developer?** Jump to:
 - [API Quick Reference](en/06-engine-api/quick-reference.md) — Condensed method reference
 - [Professional Mod Template](en/08-tutorials/09-professional-template.md) — Production-ready starter
-- [Real Mod UI Patterns](en/03-gui-system/09-real-mod-patterns.md) — Patterns from COT, VPP, Expansion, Dabs
-- [Troubleshooting Guide](en/troubleshooting.md) — 91 problems with solutions
+- [UI Architecture Patterns](en/03-gui-system/09-real-mod-patterns.md) — How to structure a non-trivial mod UI
+- [Troubleshooting Guide](en/troubleshooting.md) — Symptom / cause / fix tables across nine problem areas
 
 ---
 
 ## Key Features
 
-- **Learn by example** — Every chapter includes real code from professional mods (COT, VPP, Expansion, Dabs Framework, Colorful UI)
+- **Learn by example** — Chapters teach through worked code: some examples are runnable in full, others are the fragment that makes the point
 - **Gotcha-first approach** — Each topic highlights what goes wrong before showing what's right
-- **Copy-paste ready** — All code examples are complete and tested
+- **Adapt, then test** — Examples illustrate APIs and patterns rather than ship as drop-in code. Many are deliberately partial (a method body, a config excerpt). Adapt them to your mod and test against your target DayZ build: nothing here is compiled or run as part of authoring
 - **Theory vs Practice** — Tables showing what the docs say vs how things actually behave
-- **12 languages** — Full wiki available in English, Portuguese, German, Russian, Spanish, French, Japanese, Chinese, Czech, Polish, Hungarian, and Italian
+- **12 languages** — Available in English, Portuguese, German, Russian, Spanish, French, Japanese, Chinese, Czech, Polish, Hungarian, and Italian. **English is the source of truth**; the accuracy review described here covers the English pages only, and the translations have not been re-verified against it
 - **31+ Mermaid diagrams** — Visual flowcharts, class hierarchies, and sequence diagrams
 - **Professional template** — Complete mod starter with every file explained
 
@@ -96,19 +94,14 @@ This wiki was built by **reverse-engineering 10+ professional mods**, studying *
 
 ## Reference Material
 
-This documentation was built by studying:
+This documentation is grounded in:
 
-| Source | What We Extracted |
-|--------|-------------------|
-| [Community Online Tools](https://github.com/Jacob-Mango/DayZ-CommunityOnlineTools) | Module system, RPC, permissions, ESP, admin UI |
-| [VPP Admin Tools](https://github.com/Da0ne/VPP-AdminTools) | Player management, dialogs, webhook system |
-| [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts) | Market, vehicles, AI, notifications, settings versioning |
-| [Dabs Framework](https://github.com/InclementDab/DayZ-Dabs-Framework) | MVC architecture, ViewBinding, attribute-based registration |
-| [Colorful UI](https://github.com/DrkDevil/DayZ-Colorful-UI) | Theme system, modded class UI, resolution-aware layouts |
-| [DayZ Editor](https://github.com/InclementDab/DayZ-Editor) | Editor UI, command pattern, object management |
-| [Community Framework](https://github.com/Jacob-Mango/DayZ-CommunityFramework) | Module lifecycle, RPC manager, logging |
-| [Official DayZ Samples](https://github.com/BohemiaInteractive/DayZ-Samples) | 15 sample mods covering vehicles, weapons, crafting, terrain |
-| Vanilla DayZ Scripts | 2,800+ script files reverse-engineered |
+| Source | Role |
+|--------|------|
+| Vanilla DayZ Scripts | 2,800+ script files — the definitive API reference |
+| [Official DayZ Samples](https://github.com/BohemiaInteractive/DayZ-Samples) | 12 sample mods (commit `da5e543`) covering buildings, fireplaces, clothing retexture, clutter, crafting, garden plots, inputs, ladders, swimming, a vehicle, stringtables and terrain |
+
+The example code is written for this wiki rather than lifted from a published mod; the wiki has no audit trail that can establish the provenance of every snippet, so treat that as the authors’ intent and not a guarantee. If you want real-world open-source mods to study on your own, notable projects in the ecosystem include [Community Framework](https://github.com/Arkensor/DayZ-CommunityFramework), [Community Online Tools](https://github.com/Jacob-Mango/DayZ-CommunityOnlineTools), [VPP Admin Tools](https://github.com/VanillaPlusPlus/VPP-Admin-Tools), [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts), [Dabs Framework](https://github.com/InclementDab/DayZ-Dabs-Framework), [Colorful UI](https://github.com/DayZ-n-Chill/DayZ-Colorful-UI), and [DayZ Editor](https://github.com/InclementDab/DayZ-Editor) — each under its own license.
 
 ---
 
@@ -128,9 +121,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Credits
 
-This wiki exists thanks to the incredible work of these developers and their open-source projects:
+A tip of the hat to the developers whose open-source projects have shaped the DayZ modding ecosystem and inspired this wiki to exist:
 
-| Developer | Projects | Key Contributions |
+| Developer | Projects | Known For |
 |-----------|----------|-------------------|
 | [**Jacob_Mango**](https://github.com/Jacob-Mango) | Community Framework, COT | Module system, RPC, permissions, ESP |
 | [**InclementDab**](https://github.com/InclementDab) | Dabs Framework, DayZ Editor, Mod Template | MVC, ViewBinding, editor UI |

@@ -1,6 +1,5 @@
 # Chapter 8.5: Using the DayZ Mod Template
 
-[Home](../README.md) | [<< Previous: Adding Chat Commands](04-chat-commands.md) | **Using the DayZ Mod Template** | [Next: Debugging & Testing >>](06-debugging-testing.md)
 
 ---
 
@@ -176,7 +175,7 @@ class CfgPatches
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Зависит от Community Framework
+    "JM_CF_Scripts"           // Зависит от Community Framework
 };
 ```
 
@@ -406,7 +405,3 @@ pause
 4. **Изучить config.cpp подробнее** -- Прочитайте [Главу 2.2: config.cpp подробно](../02-mod-structure/02-config-cpp.md), чтобы понять каждое поле.
 5. **Узнать опции mod.cpp** -- Прочитайте [Главу 2.3: mod.cpp и Workshop](../02-mod-structure/03-mod-cpp.md) для публикации в Workshop.
 6. **Добавить зависимости** -- Если ваш мод использует Community Framework или другой мод, обновите `requiredAddons[]` и смотрите [Главу 2.4: Ваш первый мод](../02-mod-structure/04-minimum-viable-mod.md).
-
----
-
-**Предыдущая:** [Глава 8.4: Добавление команд чата](04-chat-commands.md) | [Главная](../README.md)

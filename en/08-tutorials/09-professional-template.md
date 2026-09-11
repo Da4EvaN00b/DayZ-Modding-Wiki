@@ -1,10 +1,9 @@
-# Chapter 8.9: Professional Mod Template
+# Professional Mod Template
 
-[Home](../README.md) | [<< Previous: Building a HUD Overlay](08-hud-overlay.md) | **Professional Mod Template** | [Next: Creating a Custom Vehicle >>](10-vehicle-mod.md)
 
 ---
 
-> **Summary:** This chapter provides a complete, production-ready mod template with every file you need for a professional DayZ mod. Unlike [Chapter 8.5](05-mod-template.md) which introduces InclementDab's starter skeleton, this is a full-featured template with a config system, singleton manager, client-server RPC, UI panel, keybinds, localization, and build automation. Every file is copy-paste ready and heavily commented to explain **why** each line exists.
+> **Summary:** This chapter provides a complete, production-ready mod template with every file you need for a professional DayZ mod. Unlike [Chapter 8.5](05-mod-template.md), which shows how to scaffold from a minimal reusable skeleton, this is a full-featured template with a config system, singleton manager, client-server RPC, UI panel, keybinds, localization, and build automation. Every file is copy-paste ready and heavily commented to explain **why** each line exists.
 
 ---
 
@@ -174,7 +173,7 @@ class CfgPatches
 
         // Dependencies: list CfgPatches class names from other mods.
         // "DZ_Data" is the base game -- every mod should depend on it.
-        // Add "CF_Scripts" if you use Community Framework.
+        // To depend on a framework, add its CfgPatches class name here.
         // Add other mod patches if you extend them.
         requiredAddons[] =
         {
@@ -208,7 +207,12 @@ class CfgMods
         // Mod type. Always "mod" for script mods.
         type = "mod";
 
-        // credits: optional path to a Credits.json file.
+        // creditsJson: NOT a vanilla key. Vanilla's ModStructure reads only
+        // name, picture, logo, logoSmall, logoOver, tooltip and overview from
+        // CfgMods. creditsJson is read by Community Framework, which also
+        // replaces the credits screen loader to aggregate per-mod credits, so
+        // it does nothing unless @CF is loaded. This template stays
+        // dependency-free; leave it out unless you require CF.
         // creditsJson = "MyProfessionalMod/Scripts/Credits.json";
 
         // inputs: path to your Inputs.xml for custom keybinds.
@@ -856,36 +860,6 @@ modded class MissionServer
     }
 
     // -----------------------------------------------------------------------
-    // Player connection - server RPC dispatch
-    // Called by the engine when a client sends an RPC to the server.
-    // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
-    {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Only handle our RPC ID. All other RPCs pass through.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Read the route name (first string written by the sender).
-        string routeName;
-        if (!ctx.Read(routeName)) return;
-
-        // Dispatch to the correct handler based on route name.
-        MyModManager mgr = MyModManager.GetInstance();
-        if (!mgr) return;
-
-        if (routeName == MYMOD_RPC_UI_REQUEST)
-        {
-            mgr.OnUIRequest(sender, ctx);
-        }
-        // Add more routes here as your mod grows:
-        // else if (routeName == MYMOD_RPC_SOME_OTHER)
-        // {
-        //     mgr.OnSomeOther(sender, ctx);
-        // }
-    }
-
-    // -----------------------------------------------------------------------
     // Shutdown
     // -----------------------------------------------------------------------
     override void OnMissionFinish()
@@ -908,6 +882,18 @@ modded class MissionServer
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// Server RPC dispatch.
+// NOTE: The engine delivers RPCs to DayZGame.OnRPC, not to the Mission
+// classes -- the Mission chain has no OnRPC. But a class can be modded only
+// ONCE per PBO (the modded-class chain adds one level per addon, not per
+// block), so this template defines a SINGLE `modded class DayZGame` that
+// serves BOTH sides. It lives in MyModMissionClient.c (below) and branches on
+// IsServer(); on the server it dispatches client requests to MyModManager.
+// Do NOT add a second `modded class DayZGame` here -- a duplicate declaration
+// aborts compilation of the entire 5_Mission module.
+// ==========================================================================
 ```
 
 ---
@@ -925,8 +911,9 @@ This hooks into `MissionGameplay` for client-side initialization, input handling
 //
 // WHY MissionGameplay:
 //   On the client, MissionGameplay is the active mission class during
-//   gameplay. It receives OnUpdate() every frame (for input polling)
-//   and OnRPC() for incoming server messages.
+//   gameplay. It receives OnUpdate() every frame (for input polling).
+//   RPCs, however, arrive via DayZGame.OnRPC (not on the mission), so the
+//   modded DayZGame below forwards incoming messages to this class.
 //
 // NOTE ON LISTEN SERVERS:
 //   On a listen server (host + play), BOTH MissionServer and
@@ -976,18 +963,17 @@ modded class MissionGameplay
     }
 
     // -----------------------------------------------------------------------
-    // RPC receiver: handles messages from the server
+    // RPC receiver: handles messages from the server.
+    // This is NOT an engine override -- the actual engine callback lives on
+    // DayZGame (see the modded DayZGame below). DayZGame.OnRPC reaches the
+    // active mission via GetGame().GetMission() and forwards client RPCs here
+    // so this method can touch instance members like m_MyModPanel.
     // -----------------------------------------------------------------------
-    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    void OnMyModRPC(PlayerIdentity sender, string routeName, ParamsReadContext ctx)
     {
-        super.OnRPC(sender, target, rpc_type, ctx);
-
-        // Only handle our RPC ID.
-        if (rpc_type != MYMOD_RPC_ID) return;
-
-        // Read the route name.
-        string routeName;
-        if (!ctx.Read(routeName)) return;
+        // The route name was already read by DayZGame.OnRPC and handed in, so
+        // ctx is positioned past it -- we branch on routeName directly and
+        // never read the route twice.
 
         // Dispatch based on route.
         if (routeName == MYMOD_RPC_WELCOME)
@@ -1062,6 +1048,62 @@ modded class MissionGameplay
         super.OnMissionFinish();
     }
 };
+
+// ==========================================================================
+// RPC dispatch (both sides) -- the ONLY modded DayZGame in this mod.
+// IMPORTANT: OnRPC is a method of DayZGame, NOT the Mission classes; the
+// Mission chain has no OnRPC, so you must mod DayZGame to receive RPCs.
+//
+// A class can be modded only ONCE per PBO -- the modded-class chain adds one
+// level per addon (per PBO), not per block. A second `modded class DayZGame`
+// anywhere in this mod is a duplicate declaration and aborts compilation. So
+// this single hook serves BOTH sides: it fires on client and server and
+// branches with IsServer(). The route name is read here exactly once and
+// handed onward, so ctx is never read twice.
+// ==========================================================================
+modded class DayZGame
+{
+    // Called by the engine when an RPC arrives, on both client and server.
+    override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
+    {
+        super.OnRPC(sender, target, rpc_type, ctx);
+
+        // Only handle our RPC ID. All other RPCs pass through.
+        if (rpc_type != MYMOD_RPC_ID) return;
+
+        // Read the route name once (first string written by the sender).
+        string routeName;
+        if (!ctx.Read(routeName)) return;
+
+        if (IsServer())
+        {
+            // Server side: dispatch client requests to the manager.
+            MyModManager mgr = MyModManager.GetInstance();
+            if (!mgr) return;
+
+            if (routeName == MYMOD_RPC_UI_REQUEST)
+            {
+                mgr.OnUIRequest(sender, ctx);
+            }
+            // Add more server routes here as your mod grows:
+            // else if (routeName == MYMOD_RPC_SOME_OTHER)
+            // {
+            //     mgr.OnSomeOther(sender, ctx);
+            // }
+        }
+        else
+        {
+            // Client side: forward to the active mission so instance members
+            // (the UI panel) are reachable. The route name was already read
+            // above, so we hand it over instead of re-reading ctx.
+            MissionGameplay mission = MissionGameplay.Cast(GetGame().GetMission());
+            if (mission)
+            {
+                mission.OnMyModRPC(sender, routeName, ctx);
+            }
+        }
+    }
+};
 ```
 
 ---
@@ -1111,9 +1153,7 @@ class MyModUI
     {
         // CreateWidgets loads the .layout file and instantiates all widgets.
         // The path is relative to the mod root (same as config.cpp paths).
-        m_Root = GetGame().GetWorkspace().CreateWidgets(
-            "MyProfessionalMod/Scripts/GUI/layouts/MyModPanel.layout"
-        );
+        m_Root = GetGame().GetWorkspace().CreateWidgets("MyProfessionalMod/Scripts/GUI/layouts/MyModPanel.layout");
 
         // Initially hidden until Open() is called.
         if (m_Root)
@@ -1220,10 +1260,21 @@ This defines the visual structure of the UI panel. DayZ layouts use a custom tex
 // SIZING RULES:
 //   hexactsize 1 + vexactsize 1 = size is in pixels (e.g., size 400 300)
 //   hexactsize 0 + vexactsize 0 = size is proportional (0.0 to 1.0)
-//   halign/valign control anchor point:
-//     left_ref/top_ref     = anchored to parent's left/top edge
-//     center_ref           = centered in parent
-//     right_ref/bottom_ref = anchored to parent's right/bottom edge
+//   halign/valign control the anchor point. The spellings are not symmetrical,
+//   so copy them exactly. These are the only values the shipped DayZ layouts use:
+//     halign left        = anchored to parent's left edge   (NOT 'left_ref')
+//     halign center_ref  = centered horizontally
+//     halign right_ref   = anchored to parent's right edge
+//     valign top         = anchored to parent's top edge    (NOT 'top_ref')
+//     valign center_ref  = centered vertically
+//     valign bottom_ref  = anchored to parent's bottom edge
+//     valign bottom      = also anchored to parent's bottom edge (rare: 1 use across
+//                          216 shipped layouts, vs. 837 for bottom_ref)
+//
+//   halign/valign anchor the widget itself. Text or content alignment is a
+//   different, differently-spelled property: 'text halign'/'text valign' and
+//   'content_halign'/'content_valign' take bare center/left/right/bottom
+//   (no '_ref' suffix). Do not mix the two families up.
 //
 // IMPORTANT:
 //   - Never use negative sizes. Use alignment and position instead.
@@ -1266,7 +1317,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "My Mod"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 16
      color 1 1 1 0.9
     }
@@ -1282,7 +1333,7 @@ PanelWidgetClass MyModPanelRoot {
      valign center_ref
      ignorepointer 1
      text "v1.0.0"
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 12
      color 0.6 0.6 0.6 0.8
     }
@@ -1309,7 +1360,7 @@ PanelWidgetClass MyModPanelRoot {
      vexactsize 1
      ignorepointer 1
      text "Waiting for data..."
-     font "gui/fonts/metron2"
+     font "gui/fonts/Metron"
      "exact size" 14
      color 0.85 0.85 0.85 1
     }
@@ -1326,7 +1377,7 @@ PanelWidgetClass MyModPanelRoot {
    hexactsize 1
    vexactsize 1
    text "Close"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 14
   }
  }
@@ -1379,9 +1430,16 @@ This defines custom keybinds that appear in the game's Options > Controls menu. 
     KEY NAMES:
     - Keyboard: kA through kZ, k0-k9, kInsert, kHome, kEnd, kDelete,
       kNumpad0-kNumpad9, kF1-kF12, kLControl, kRControl, kLShift, kRShift,
-      kLAlt, kRAlt, kSpace, kReturn, kBack, kTab, kEscape
-    - Mouse: mouse1 (left), mouse2 (right), mouse3 (middle)
-    - Combo keys: use <combo> element with multiple <btn> children
+      kLMenu, kRMenu, kSpace, kReturn, kBackspace, kTab, kEscape
+      (DayZ declares these names in bin/constants.xml, whose root is
+      <inputs version="141">. This is a distinct namespace from Enforce
+      script's KeyCode enum, which uses KeyCode.KC_* names instead,
+      e.g. KC_LMENU, KC_NUMPADENTER.)
+    - Mouse: mBLeft (left), mBRight (right), mBMiddle (middle)
+      (also mB4-mB8, mWheelUp, mWheelDown)
+    - Combo keys: nest the primary key <btn> inside the modifier <btn>.
+      Vanilla bin/preset_x1mousekey.xml uses this form for Ctrl+X/Y
+      (UABuldUndo/UABuldRedo); see the example below.
 -->
 <modded_inputs>
     <inputs>
@@ -1405,13 +1463,12 @@ This defines custom keybinds that appear in the game's Options > Controls menu. 
         </input>
 
         <!--
-        COMBO KEY EXAMPLE (uncomment to use):
+        COMBO KEY EXAMPLE (replace the single-key input above to use):
         This would bind to Ctrl+H instead of a single key.
         <input name="UAMyModPanel">
-            <combo>
-                <btn name="kLControl"/>
+            <btn name="kLControl">
                 <btn name="kH"/>
-            </combo>
+            </btn>
         </input>
         -->
     </preset>
@@ -1616,7 +1673,7 @@ void OnBountySet(PlayerIdentity sender, ParamsReadContext ctx)
 }
 ```
 
-**3. Add the dispatch case** in `MyModMissionServer.c` (5_Mission), inside `OnRPC()`:
+**3. Add the dispatch case** in `MyModMissionClient.c` (5_Mission), inside the consolidated `DayZGame.OnRPC()`, in the `if (IsServer())` branch:
 
 ```c
 else if (routeName == MYMOD_RPC_BOUNTY_SET)
@@ -1680,7 +1737,7 @@ PanelWidgetClass BountyListRoot {
    hexactsize 1
    vexactsize 1
    text "Active Bounties"
-   font "gui/fonts/metron2"
+   font "gui/fonts/Metron"
    "exact size" 18
    color 1 1 1 0.9
   }
@@ -1698,9 +1755,7 @@ class MyModBountyListUI
 
     void MyModBountyListUI()
     {
-        m_Root = GetGame().GetWorkspace().CreateWidgets(
-            "MyProfessionalMod/Scripts/GUI/layouts/MyModBountyList.layout"
-        );
+        m_Root = GetGame().GetWorkspace().CreateWidgets("MyProfessionalMod/Scripts/GUI/layouts/MyModBountyList.layout");
         if (m_Root)
             m_Root.Show(false);
     }
@@ -1785,13 +1840,9 @@ text "#STR_MYMOD_BOUNTY_PLACED"
 
 With this professional template running, you can:
 
-1. **Study production mods** -- Read [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts) and the `StarDZ_Core` source for real-world patterns at scale.
+1. **Study production mods** -- Read [DayZ Expansion](https://github.com/salutesh/DayZ-Expansion-Scripts) for real-world patterns at scale (read it for concepts only -- check its license before reusing any code), then extend this template with the reusable framework subsystems covered in [Part 7: Patterns](../07-patterns/01-singletons.md) -- a logger, RPC router, [event bus](../07-patterns/06-events.md), and [module manager](../07-patterns/02-module-systems.md).
 2. **Add custom items** -- Follow [Chapter 8.2: Creating a Custom Item](02-custom-item.md) and integrate them with your manager.
 3. **Build an admin panel** -- Follow [Chapter 8.3: Building an Admin Panel](03-admin-panel.md) using your config system.
 4. **Add a HUD overlay** -- Follow [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md) for always-visible UI elements.
 5. **Publish to the Workshop** -- Follow [Chapter 8.7: Publishing to Workshop](07-publishing-workshop.md) when your mod is ready.
 6. **Learn debugging** -- Read [Chapter 8.6: Debugging & Testing](06-debugging-testing.md) for log analysis and troubleshooting.
-
----
-
-**Previous:** [Chapter 8.8: Building a HUD Overlay](08-hud-overlay.md) | [Home](../README.md)

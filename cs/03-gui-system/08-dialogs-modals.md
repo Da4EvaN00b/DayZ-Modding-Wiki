@@ -1,6 +1,5 @@
 # Kapitola 3.8: Dialogy a modální okna
 
-[Domů](../README.md) | [<< Předchozí: Styly, fonty a obrázky](07-styles-fonts.md) | **Dialogy a modální okna** | [Další: Vzory UI ve skutečných modech >>](09-real-mod-patterns.md)
 
 ---
 
@@ -631,7 +630,7 @@ class InputDialog : ScriptedWidgetEventHandler
         if (w == m_BtnOk)
         {
             string text = m_InputBox.GetText();
-            text.Trim();
+            text.TrimInPlace();
 
             if (text == "")
             {

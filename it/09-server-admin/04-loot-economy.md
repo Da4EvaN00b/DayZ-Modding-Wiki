@@ -1,6 +1,5 @@
 # Chapter 9.4: Economia del Loot in Dettaglio
 
-[Home](../README.md) | [<< Precedente: Riferimento serverDZ.cfg](03-server-cfg.md) | **Economia del Loot in Dettaglio**
 
 ---
 
@@ -194,7 +193,7 @@ Le bende sono molto comuni (40 nominal). Appaiono negli edifici Medic (ospedali,
 | `restock` | int | secondi | Cooldown minimo prima che la CE possa generare un sostituto. 0 = immediato. |
 | `quantmin` | int | da -1 a 100 | Percentuale minima di quantita alla generazione (% munizioni, % liquido). -1 = non applicabile. |
 | `quantmax` | int | da -1 a 100 | Percentuale massima di quantita alla generazione. -1 = non applicabile. |
-| `cost` | int | 0+ | Peso di priorita per la selezione dello spawn. Attualmente tutti gli oggetti vanilla usano 100. |
+| `cost` | int | 0+ | Peso di priorita usato durante il respawn/cleanup. Quasi tutti gli oggetti vanilla usano 100, ma alcuni usano valori piu alti (es. `Mag_SVD_10Rnd` usa 1000). |
 
 ### Flags
 
@@ -713,7 +712,3 @@ Dopo aver modificato i file dell'economia, esegui una di queste azioni:
 - Cancella `storage_1/` per un wipe completo e un nuovo inizio dell'economia
 - Imposta `RestartSpawn` a `1` in `globals.xml` per un riavvio per ri-randomizzare il loot, poi reimpostalo a `0`
 - Aspetta che i lifetime degli oggetti scadano naturalmente (puo richiedere ore)
-
----
-
-**Precedente:** [Riferimento serverDZ.cfg](03-server-cfg.md) | [Home](../README.md) | **Successivo:** [Spawn di Veicoli ed Eventi Dinamici](05-vehicle-spawning.md)

@@ -1,6 +1,5 @@
 # Capitulo 2.2: config.cpp a Fondo
 
-[Inicio](../README.md) | [<< Anterior: La Jerarquia de 5 Capas de Scripts](01-five-layers.md) | **config.cpp a Fondo** | [Siguiente: mod.cpp & Workshop >>](03-mod-cpp.md)
 
 ---
 
@@ -81,6 +80,8 @@ Este es el campo mas critico en toda la configuracion. `requiredAddons` le dice 
 
 1. **Orden de carga:** Los scripts de tu PBO se compilan DESPUES de todos los addons listados
 2. **Dependencia dura:** Si un addon listado falta, tu mod falla al cargar
+
+Las cadenas de `requiredAddons` son transitivas. Si Mod_A depende de Mod_B, y Mod_B depende de `DZ_Data`, entonces Mod_A no necesita listar `DZ_Data`. Sin embargo, listar dependencias explicitas sigue siendo buena practica para mayor claridad y resiliencia ante cambios upstream.
 
 Cada entrada debe coincidir con un nombre de clase `CfgPatches` de otro mod:
 
@@ -365,7 +366,7 @@ class defs
 
 ## Array defines
 
-El array `defines[]` en `CfgMods` crea simbolos de preprocesador que otros mods pueden verificar con `#ifdef`:
+El array `defines[]` en `CfgMods` crea simbolos de preprocesador que otros mods pueden verificar con `#ifdef`. Desde DayZ 1.21, el motor tambien registra automaticamente el nombre de clase de `CfgMods` como un `#define`, asi que `#ifdef MyMod` funciona sin una entrada explicita en `defines[]`.
 
 ```cpp
 defines[] =
@@ -445,7 +446,7 @@ class CfgVehicles
     class ItemBase;                          // Declaracion anticipada de la clase padre
     class MyMod_CustomItem : ItemBase        // Heredar de la base vanilla
     {
-        scope = 2;                           // 0=oculto, 1=solo editor, 2=publico
+        scope = 2;                           // 0=oculto, 1=estatico/objetos de mapa, 2=publico
         displayName = "Custom Item";
         descriptionShort = "A custom item.";
         model = "MyMod/Data/Models/item.p3d";
@@ -457,13 +458,45 @@ class CfgVehicles
 };
 ```
 
+### Declaraciones Anticipadas
+
+Al sobrescribir una clase de otro addon, debes declarar anticipadamente la clase padre para que el parser de config pueda resolver la cadena de herencia:
+
+```cpp
+class CfgVehicles
+{
+    class Inventory_Base;                        // Declaracion anticipada
+    class MyCustomItem : Inventory_Base          // Ahora el parser conoce al padre
+    {
+        scope = 2;
+        displayName = "Custom Item";
+    };
+};
+```
+
+### El Operador += para Arrays de Config
+
+Desde DayZ 1.17, puedes usar `+=` para agregar a arrays sin sobrescribir las entradas de otros mods:
+
+```cpp
+class CfgVehicles
+{
+    class MyItem : ItemBase
+    {
+        attachments[] += { "MyCustomAttachment" };  // Agrega en lugar de reemplazar
+    };
+};
+```
+
+Sin `+=`, usar `=` reemplaza todo el array, eliminando potencialmente accesorios agregados por otros mods o por vanilla.
+
 ### Valores de scope
 
 | Valor | Significado | Uso |
 |-------|---------|-------|
-| `0` | Oculto | Clases base, padres abstractos -- nunca spawneables |
-| `1` | Solo editor | Visible en DayZ Editor pero no en gameplay normal |
-| `2` | Publico | Completamente spawneable, aparece en herramientas de admin y spawners |
+| `0` | Oculto | Oculto de todo -- no spawneable, no en el editor, no en la consola de scripts. Usado para clases base y padres abstractos. |
+| `1` | Estatico/objetos de mapa | Para objetos colocados en el mapa: casas, restos, rocas, arboles. Estos NO son items generales "solo de editor" -- son objetos estaticos del mundo que existen como parte del terreno. No pueden spawnearse mediante la Economia Central ni herramientas de admin. |
+| `2` | Publico | Completamente spawneable -- aparece en la consola de scripts, herramientas de admin, y puede usarse en `types.xml` o `events.xml`. Este es el scope para cualquier item, vehiculo o entidad con la que los jugadores interactuan. |
 
 ### Definicion de Edificio/Estructura
 
@@ -762,6 +795,8 @@ class CfgMods
     };
 };
 ```
+
+> **Nota:** El `config.cpp` real de COT omite por completo `units[]` y `weapons[]` de su bloque `CfgPatches`. Estos arrays son opcionales -- por defecto quedan vacios cuando no se declaran. Los PBOs solo de scripts que no agregan entidades ni armas spawneables pueden dejarlos fuera sin problemas.
 
 ### MyMissions Mod Server (Mod Solo de Servidor)
 

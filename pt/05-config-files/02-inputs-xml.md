@@ -1,6 +1,5 @@
-# Chapter 5.2: inputs.xml --- Custom Keybindings
+# inputs.xml --- Custom Keybindings
 
-[Home](../README.md) | [<< Previous: stringtable.csv](01-stringtable.md) | **inputs.xml** | [Next: Credits.json >>](03-credits-json.md)
 
 ---
 
@@ -34,7 +33,7 @@ Inputs personalizados são identificados por um nome de acao único (convenciona
 
 ## Localização do Arquivo
 
-Coloque `inputs.xml` dentro de uma subpasta `data` do seu diretório Scripts:
+Você pode colocar `inputs.xml` em qualquer lugar dentro do PBO do seu mod. Um layout comum é uma subpasta `data` do seu diretório Scripts:
 
 ```
 @MyMod/
@@ -48,7 +47,7 @@ Coloque `inputs.xml` dentro de uma subpasta `data` do seu diretório Scripts:
         5_Mission/
 ```
 
-Alguns mods o colocam diretamente na pasta `Scripts/`. Ambas as localizacoes funcionam. O motor descobre o arquivo automáticamente --- nenhum registro no config.cpp é necessário.
+A localizacao do arquivo não é fixada por convencao; o motor não o descobre automáticamente. Você deve registrar o arquivo apontando a propriedade `inputs` do bloco `CfgMods` do seu `config.cpp` para ele, por exemplo `inputs = "MyMod/Scripts/data/inputs.xml";`. O caminho é arbitrário --- o motor carrega o arquivo de onde quer que você especifique.
 
 ---
 
@@ -292,7 +291,7 @@ override void OnUpdate(float timeslice)
 }
 ```
 
-O parâmetro `false` em `LocalPress("name", false)` indica que a verificação não deve consumir o evento de input.
+O parâmetro `false` em `LocalPress("name", false)` é o argumento `check_focus`. Passar `false` avalia o input mesmo quando a janela do jogo não está em foco; quando é `true` (o padrão), um jogo sem foco retorna `false`. Ele não controla o consumo de input.
 
 ---
 
@@ -334,7 +333,7 @@ if (input.LocalRelease("eAICommandMenu", false) || input.LocalValue("eAICommandM
 
 **Acao de duplo toque:**
 ```c
-if (input.LocalDoubleClick("UAMyModSpecial", false))
+if (input.LocalDbl("UAMyModSpecial", false))
 {
     PerformSpecialAction();
 }
@@ -406,12 +405,12 @@ Nomes de tecla usados no atributo `<btn name="">` seguem uma convencao de nomenc
 | Letras | `kA`, `kB`, `kC`, `kD`, `kE`, `kF`, `kG`, `kH`, `kI`, `kJ`, `kK`, `kL`, `kM`, `kN`, `kO`, `kP`, `kQ`, `kR`, `kS`, `kT`, `kU`, `kV`, `kW`, `kX`, `kY`, `kZ` |
 | Números (linha superior) | `k0`, `k1`, `k2`, `k3`, `k4`, `k5`, `k6`, `k7`, `k8`, `k9` |
 | Teclas de função | `kF1`, `kF2`, `kF3`, `kF4`, `kF5`, `kF6`, `kF7`, `kF8`, `kF9`, `kF10`, `kF11`, `kF12` |
-| Modificadores | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLAlt`, `kRAlt` |
-| Navegação | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPageUp`, `kPageDown` |
+| Modificadores | `kLControl`, `kRControl`, `kLShift`, `kRShift`, `kLMenu` (Alt esquerdo), `kRMenu` (Alt direito) |
+| Navegação | `kUp`, `kDown`, `kLeft`, `kRight`, `kHome`, `kEnd`, `kPrior` (Page Up), `kNext` (Page Down) |
 | Edicao | `kReturn`, `kBackspace`, `kDelete`, `kInsert`, `kSpace`, `kTab`, `kEscape` |
-| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kNumpadPlus`, `kNumpadMinus`, `kNumpadMultiply`, `kNumpadDivide`, `kNumpadDecimal` |
+| Numpad | `kNumpad0` ... `kNumpad9`, `kNumpadEnter`, `kAdd` (numpad +), `kSubstract` (numpad -, observe a grafia do motor), `kMultiply` (numpad *), `kDivide` (numpad /), `kDecimal` (numpad .) |
 | Pontuacao | `kMinus`, `kEquals`, `kLBracket`, `kRBracket`, `kBackslash`, `kSemicolon`, `kApostrophe`, `kComma`, `kPeriod`, `kSlash`, `kGrave` |
-| Bloqueios | `kCapsLock`, `kNumLock`, `kScrollLock` |
+| Bloqueios | `kCapital` (Caps Lock), `kNumlock` (observe o `l` minúsculo), `kScrollLock` |
 
 ### Botoes do Mouse
 
@@ -420,15 +419,18 @@ Nomes de tecla usados no atributo `<btn name="">` seguem uma convencao de nomenc
 | `mBLeft` | Botao esquerdo do mouse |
 | `mBRight` | Botao direito do mouse |
 | `mBMiddle` | Botao do meio do mouse (clique na roda de scroll) |
-| `mBExtra1` | Botao 4 do mouse (botao latéral traseiro) |
-| `mBExtra2` | Botao 5 do mouse (botao latéral dianteiro) |
+| `mB4` | Botao 4 do mouse (botao latéral traseiro) |
+| `mB5` | Botao 5 do mouse (botao latéral dianteiro) |
+| `mB6`, `mB7`, `mB8` | Botoes adicionais do mouse |
 
-### Eixos do Mouse
+### Movimento e Roda do Mouse
 
-| Nome | Eixo |
-|------|------|
-| `mAxisX` | Movimento horizontal do mouse |
-| `mAxisY` | Movimento vertical do mouse |
+| Nome | Direção |
+|------|---------|
+| `mLeft` | Mouse movido para a esquerda |
+| `mRight` | Mouse movido para a direita |
+| `mUp` | Mouse movido para cima |
+| `mDown` | Mouse movido para baixo |
 | `mWheelUp` | Roda de scroll para cima |
 | `mWheelDown` | Roda de scroll para baixo |
 
@@ -436,7 +438,7 @@ Nomes de tecla usados no atributo `<btn name="">` seguem uma convencao de nomenc
 
 - **Teclado**: prefixo `k` + nome da tecla (ex.: `kT`, `kF5`, `kLControl`)
 - **Botoes do mouse**: prefixo `mB` + nome do botao (ex.: `mBLeft`, `mBRight`)
-- **Eixos do mouse**: prefixo `m` + nome do eixo (ex.: `mAxisX`, `mWheelUp`)
+- **Movimento/roda do mouse**: prefixo `m` + nome da direção (ex.: `mLeft`, `mWheelUp`)
 
 ---
 

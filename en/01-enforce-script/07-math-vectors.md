@@ -1,6 +1,6 @@
-# Chapter 1.7: Math & Vector Operations
+# Math & Vector Operations
 
-[Home](../README.md) | [<< Previous: String Operations](06-strings.md) | **Math & Vector Operations** | [Next: Memory Management >>](08-memory-management.md)
+> **Summary:** The static `Math` class for scalar operations (rounding, trig, random numbers, clamping, interpolation) and the `vector` type's static helpers for 3D math (distance, direction, normalization, rotation) --- a complete reference organized by category, with DayZ-specific examples for each.
 
 ---
 
@@ -557,8 +557,8 @@ void WarnProximity(PlayerBase player, array<Man> allPlayers, float warnDistance)
 
         if (vector.DistanceSq(myPos, man.GetPosition()) < warnDistSq)
         {
-            Print(string.Format("Player nearby! Distance: %1m",
-                vector.Distance(myPos, man.GetPosition())));
+            float dist = vector.Distance(myPos, man.GetPosition());
+            Print(string.Format("Player nearby! Distance: %1m", dist));
         }
     }
 }
@@ -667,16 +667,16 @@ array<vector> GetSpawnRing(vector center, float radius, int count)
 
 ---
 
-## Observed in Real Mods
+## Observed in the Vanilla Scripts
 
-> Patterns confirmed by studying professional DayZ mod source code.
+These patterns appear throughout the vanilla DayZ scripts and are worth adopting in your own code:
 
-| Pattern | Mod | Detail |
-|---------|-----|--------|
-| `DistanceSq` with pre-squared threshold | Expansion / COT | Proximity checks store `float maxDistSq = range * range` and compare with `DistanceSq` |
-| `Math.Atan2(dx, dz) * RAD2DEG` for heading | Expansion AI | Direction-to-target computed as angle in degrees for orientation assignment |
-| `Math.RandomFloat(0, Math.PI2)` for spawn ring | Dabs / Expansion | Random angle + `Cos`/`Sin` to generate circular spawn positions |
-| `Math.Clamp` on health/damage values | VPP / COT | Every damage application clamps result to `[0, maxHealth]` to prevent negative or overflow values |
+| Pattern | Where in vanilla | Detail |
+|---------|------------------|--------|
+| `DistanceSq` with pre-squared threshold | `4_world/static/miscgameplayfunctions.c` | Proximity checks compare `vector.DistanceSq(a, b)` against `maxDist * maxDist`, avoiding the square root |
+| `Math.Atan2(dir[0], dir[2])` for heading | `4_world/entities/dayzplayerimplementmeleecombat.c`, `5_mission/dayzintroscene.c` | A flat direction vector is converted to a yaw angle with `Atan2`, then `* Math.RAD2DEG` where degrees are needed |
+| `Math.RandomFloat(0, Math.PI2)` for spawn ring | Common scripting practice | Random angle + `Cos`/`Sin` offsets generate circular spawn positions around a center point |
+| `Math.Clamp` on stat and damage values | `4_world/entities/manbase/playerbase.c` | Shock, blood scale, and immunity values are clamped into valid ranges (e.g. `Math.Clamp(shock, 0, cap)`) to prevent negative or overflow values |
 
 ---
 
@@ -751,7 +751,3 @@ v.Length()  v.LengthSq()  v.Normalized()  v.Normalize()
 // Vector constants
 vector.Zero  vector.Up  vector.Aside  vector.Forward
 ```
-
----
-
-[<< 1.6: String Operations](06-strings.md) | [Home](../README.md) | [1.8: Memory Management >>](08-memory-management.md)

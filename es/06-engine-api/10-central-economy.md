@@ -1,6 +1,5 @@
 # Capítulo 6.10: Economía Central
 
-[Inicio](../README.md) | [<< Anterior: Networking & RPC](09-networking.md) | **Central Economy** | [Siguiente: Mission Hooks >>](11-mission-hooks.md)
 
 ---
 
@@ -312,10 +311,14 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
 ```xml
 <economycore>
     <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
+        <rootclass name="DefaultWeapon"/>
+        <rootclass name="DefaultMagazine"/>
+        <rootclass name="Inventory_Base"/>
+        <rootclass name="HouseNoDestruct" reportMemoryLOD="no"/>
+        <rootclass name="SurvivorBase" act="character" reportMemoryLOD="no"/>
+        <rootclass name="DZ_LightAI" act="character" reportMemoryLOD="no"/>
+        <rootclass name="CarScript" act="car" reportMemoryLOD="no"/>
+        <rootclass name="BoatScript" act="car" reportMemoryLOD="no"/>
     </classes>
     <defaults>
         <default name="dyn_radius" value="40"/>
@@ -324,11 +327,13 @@ Root-level CE configuration. Defines default values, CE classes, and logging fla
         <default name="dyn_dmin" value="0"/>
         <default name="dyn_dmax" value="10"/>
     </defaults>
-    <ce folder="db"/>
+    <ce folder="myfolder">
+        <file name="my_types.xml" type="types"/>
+    </ce>
 </economycore>
 ```
 
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
+Los archivos principales de la CE (`types.xml`, `events.xml`, `globals.xml`) residen en la carpeta `db/` por convención integrada --- el `cfgeconomycore.xml` original no contiene un elemento `<ce>` que apunte a ellos. En cambio, el elemento `<ce>` se usa para registrar archivos CE personalizados **adicionales** (introducido en la actualización 1.08): el atributo `folder` indica el nombre de la carpeta que contiene tu XML personalizado, y cada entrada anidada `<file name="..." type="..."/>` se añade o sobrescribe el archivo original correspondiente (`type` puede ser `types`, `spawnabletypes`, `globals`, `economy`, `events` o `messages`).
 
 ---
 
@@ -545,7 +550,3 @@ Add a new `<event>` block in `events.xml` and corresponding spawn positions in `
 - **Multi-Mod:** Multiple mods can add entries to `types.xml`. If two mods define the same `<type name="">`, the last loaded file wins. Use unique class names to avoid collisions. Merge types.xml entries carefully on community servers.
 - **Performance:** High `nominal` values (200+) for many item types strain the CE's spawn loop. The CE runs periodic scans that scale with total tracked entity count. Keep nominals realistic -- 5-20 for weapons, 20-100 for common items.
 - **Server/Client:** The CE runs entirely on the server. Clients have no visibility into CE state. All XML files are server-side only and are not distributed to clients.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Networking & RPC](09-networking.md) | **Central Economy** | [Siguiente: Mission Hooks >>](11-mission-hooks.md)

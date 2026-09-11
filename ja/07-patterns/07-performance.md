@@ -1,6 +1,5 @@
 # Chapter 7.7: パフォーマンス最適化
 
-[ホーム](../README.md) | [<< 前: イベント駆動アーキテクチャ](06-events.md) | **パフォーマンス最適化**
 
 ---
 
@@ -442,7 +441,8 @@ class ProximityChecker
 void FindAllVehicles()
 {
     array<Object> objects = new array<Object>();
-    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects);
+    array<CargoBase> proxyCargos = new array<CargoBase>();
+    GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, objects, proxyCargos);
 
     foreach (Object obj : objects)
     {
@@ -613,7 +613,7 @@ void OnPlayerScoreChanged()
 
 ```c
 // 絶対にやってはいけません
-GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results);
+GetGame().GetObjectsAtPosition3D(Vector(7500, 0, 7500), 50000, results, proxyCargos);
 ```
 
 代わりに登録ベースのレジストリを使用してください（[車両レジストリパターン](#vehicle-registry-pattern)を参照）。
@@ -797,7 +797,3 @@ DayZサーバーのスクリプトログで以下のパフォーマンス警告�
 | コストの高い操作には非同期処理を使用する | Enforce Scriptは非同期プリミティブのないシングルスレッドです。インデックスベースの処理を使用してフレーム間で作業をバッチ処理してください |
 | オブジェクトプーリングは早すぎる最適化である | Enfusionではウィジェットの作成は本当にコストが高いです。プーリングはすべての主要Mod（COT、VPP、Expansion）での標準プラクティスです |
 | 最適化する前にプロファイリングする | 正しいですが、一部のパターン（ワールドスキャン、フレームごとの文字列割り当て、キーストロークごとの再構築）はDayZでは*常に*間違いです。最初から避けてください。 |
-
----
-
-[ホーム](../README.md) | [<< 前: イベント駆動アーキテクチャ](06-events.md) | **パフォーマンス最適化**

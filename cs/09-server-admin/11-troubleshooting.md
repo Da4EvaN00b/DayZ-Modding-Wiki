@@ -1,6 +1,5 @@
 # Chapter 9.11: Reseni problemu serveru
 
-[Domu](../README.md) | [<< Predchozi: Sprava modu](10-mod-management.md) | [Dalsi: Pokrocila temata >>](12-advanced.md)
 
 ---
 
@@ -60,7 +59,7 @@ DayZ vyzaduje presmerovani a otevreni techto portu ve vasem firewallu:
 |------|----------|---------|
 | 2302 | UDP | Herní provoz |
 | 2303 | UDP | Sit Steamu |
-| 2304 | UDP | Dotaz Steamu (interni) |
+| 2304 | UDP | Port pripojeni klienta (`clientPort`) |
 | 27016 | UDP | Dotaz prohlizece serveru Steamu |
 
 Pokud jste zmenili zakladni port s `-port=`, vsechny ostatni porty se posunuji o stejny ofset.
@@ -124,7 +123,7 @@ Pokud pouzivate vlastni soubor typu (napr. **types_custom.xml**), pridejte pro n
 
 ### Spatne tagy kategorie, pouziti nebo hodnoty
 
-Kazdy tag `<category>`, `<usage>` a `<value>` ve vasem types.xml musi odpovidat nazvu definovanemu v **cfglimitsdefinition.xml**. Preklep jako `usage name="Military"` (velke M) kdyz definice rika `military` (male) tiše zabrani spawnu predmetu.
+Kazdy tag `<category>`, `<usage>` a `<value>` ve vasem types.xml musi odpovidat nazvu definovanemu v **cfglimitsdefinition.xml**. Preklep jako `usage name="military"` (male) kdyz definice rika `Military` (velke M) tiše zabrani spawnu predmetu.
 
 ### Nominal nastaven na nulu
 
@@ -212,7 +211,7 @@ Inventare a pozice hracu jsou ulozeny v `storage_1/players/`. Pokud je tento adr
 
 Servery DayZ ciluji na 30+ FPS pro plynulý gameplay. Bezne priciny nizkeho server FPS:
 
-- **Prilis mnoho zombie** -- snizte `ZombieMaxCount` v **globals.xml** (vychozi 800, zkuste 400-600)
+- **Prilis mnoho zombie** -- snizte `ZombieMaxCount` v **globals.xml** (vychozi 1000, zkuste 400-600)
 - **Prilis mnoho zvirat** -- snizte `AnimalMaxCount` (vychozi 200, zkuste 100)
 - **Nadmerny loot** -- snizte hodnoty `nominal` napric vasim types.xml
 - **Prilis mnoho objektu bazi** -- velke baze se stovkami predmetu zatezuji persistenci
@@ -266,7 +265,3 @@ Kdyz se neco pokazi, projdete si tento seznam v poradi:
 ```
 
 Krok 8 je nejucinnejsi technika. Pokud server funguje vanilkove, ale rozbije se s mody, muzete izolovat problemovy mod pomoci binárniho vyhledávani -- pridejte polovinu modu, testujte, pak zuzte.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Sprava modu](10-mod-management.md) | [Dalsi: Pokrocila temata >>](12-advanced.md)

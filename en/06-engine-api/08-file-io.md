@@ -1,6 +1,5 @@
-# Chapter 6.8: File I/O & JSON
+# File I/O & JSON
 
-[Home](../README.md) | [<< Previous: Timers & CallQueue](07-timers.md) | **File I/O & JSON** | [Next: Networking & RPC >>](09-networking.md)
 
 ---
 
@@ -531,17 +530,13 @@ Print("MaxPlayers: " + parsed.MaxPlayers);
 
 ---
 
-## Observed in Real Mods
+## Common File I/O Patterns
 
-> These patterns were confirmed by studying the source code of professional DayZ mods.
+These combinations recur across server-side mods. Each builds on the primitives above.
 
-| Pattern | Mod | File/Location |
-|---------|-----|---------------|
-| `MakeDirectory` chain + `FileExist` check + `LoadFile` with fallback to defaults | Expansion | Settings manager (`ExpansionSettings`) |
-| `CopyFile` backup before config save | COT | Permission file management |
-| `FindFile`/`FindNextFile` to enumerate per-player JSON files in `$profile:` | VPP Admin Tools | Player data loader |
-| `JsonSerializer.WriteToString()` for RPC payload serialization (no file) | Dabs Framework | Network config sync |
-
----
-
-[<< Previous: Timers & CallQueue](07-timers.md) | **File I/O & JSON** | [Next: Networking & RPC >>](09-networking.md)
+| Pattern | How it is built | Where it is covered |
+|---------|-----------------|---------------------|
+| Settings manager | `MakeDirectory` chain + `FileExist` check + `LoadFile` with fallback to freshly-constructed defaults, then `SaveFile` to persist the defaults on first run | [Config Persistence](../07-patterns/04-config-persistence.md) |
+| Backup before save | `CopyFile` the current config to a `.bak` sibling before overwriting, so a corrupt write can be recovered | `CopyFile` example above |
+| Per-player enumeration | `FindFile`/`FindNextFile` over `$profile:<mod>/Players/*.json` to load every stored player record on startup | [Config Persistence](../07-patterns/04-config-persistence.md) |
+| RPC payload serialization | `JsonSerializer.WriteToString()` to turn a config object into a string, sent over the network with no file involved | [RPC Patterns](../07-patterns/03-rpc-patterns.md) |

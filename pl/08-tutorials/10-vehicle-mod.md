@@ -1,6 +1,5 @@
 # Rozdział 8.10: Tworzenie niestandardowego moda pojazdów
 
-[Strona główna](../README.md) | [<< Poprzedni: Profesjonalny szablon moda](09-professional-template.md) | **Tworzenie niestandardowego pojazdu** | [Następny: Tworzenie niestandardowej odzieży >>](11-clothing-mod.md)
 
 ---
 
@@ -752,7 +751,7 @@ Jeśli zmienisz to na niewłaściwą wartość, animacja gracza będzie przechod
 
 **CrewCanGetThrough** -- Jest wywoływane co klatkę, aby określić, czy gracz może wsiąść lub wysiąść z siedzenia. Tylne siedzenia Nivy (indeksy 2 i 3) działają inaczej niż przednie: oparcie przedniego siedzenia musi być złożone do przodu (faza animacji > 0.5), zanim tylni pasażerowie mogą się przedostać. Odpowiada to rzeczywistemu zachowaniu 2-drzwiowego hatchbacka, gdzie tylni pasażerowie muszą odchylić przednie siedzenie.
 
-**OnDebugSpawn** -- Wywoływane przy użyciu menu debug spawn. `SpawnUniversalParts()` dodaje żarówki reflektorów i akumulator samochodowy. `FillUpCarFluids()` uzupełnia paliwo, płyn chłodzący, olej i płyn hamulcowy do maksimum. Następnie tworzymy koła, drzwi, maskę i bagażnik. Daje to natychmiast jezdny pojazd do testowania.
+**OnDebugSpawn** -- Wywoływane przy użyciu menu debug spawn. `SpawnUniversalParts()` dodaje żarówki reflektorów i akumulator samochodowy. `FillUpCarFluids()` uzupełnia paliwo, płyn chłodzący i olej do maksimum (nie uzupełnia płynu hamulcowego). Następnie tworzymy koła, drzwi, maskę i bagażnik. Daje to natychmiast jezdny pojazd do testowania.
 
 ---
 

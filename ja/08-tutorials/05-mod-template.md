@@ -1,6 +1,5 @@
 # 第8.5章: DayZ Mod テンプレートの使い方
 
-[ホーム](../README.md) | [<< 前へ: チャットコマンドの追加](04-chat-commands.md) | **DayZ Mod テンプレートの使い方** | [次へ: デバッグとテスト >>](06-debugging-testing.md)
 
 ---
 
@@ -180,7 +179,7 @@ Mod が別の Mod に依存する場合、その CfgPatches クラス名を `req
 requiredAddons[] =
 {
     "DZ_Data",
-    "CF_Scripts"              // Community Framework に依存
+    "JM_CF_Scripts"           // Community Framework に依存
 };
 ```
 
@@ -410,7 +409,3 @@ pause
 4. **config.cpp を深く学ぶ** -- [第2.2章: config.cpp 詳細解説](../02-mod-structure/02-config-cpp.md)ですべてのフィールドを理解します。
 5. **mod.cpp のオプションを学ぶ** -- [第2.3章: mod.cpp と Workshop](../02-mod-structure/03-mod-cpp.md)で Workshop 公開について学びます。
 6. **依存関係を追加** -- Mod が Community Framework や他の Mod を使用する場合、`requiredAddons[]` を更新し、[第2.4章: 初めての Mod](../02-mod-structure/04-minimum-viable-mod.md)を参照してください。
-
----
-
-**前へ:** [第8.4章: チャットコマンドの追加](04-chat-commands.md) | [ホーム](../README.md)

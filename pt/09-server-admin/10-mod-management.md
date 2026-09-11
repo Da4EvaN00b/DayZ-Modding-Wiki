@@ -1,6 +1,5 @@
-# Chapter 9.10: Gerenciamento de Mods
+# Gerenciamento de Mods
 
-[Inicio](../README.md) | [<< Anterior: Controle de Acesso](09-access-control.md) | [Proximo: Solucao de Problemas >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Se dois mods usam `modded class PlayerBase`, aquele carregado **por ultimo** (ma
 **Espacos em caminhos de mods.** Um caminho como `-mod=@My Mod` quebra o parsing. Renomeie pastas de mods para evitar espacos, ou envolva o parametro inteiro em aspas: `-mod="@My Mod;@CF"`.
 
 **Mod desatualizado no servidor, atualizado no cliente (ou vice-versa).** Incompatibilidade de versao impede conexao. Mantenha versoes do servidor e Workshop sincronizadas. Atualize todos os mods e o servidor ao mesmo tempo.
-
----
-
-[Inicio](../README.md) | [<< Anterior: Controle de Acesso](09-access-control.md) | [Proximo: Solucao de Problemas >>](11-troubleshooting.md)

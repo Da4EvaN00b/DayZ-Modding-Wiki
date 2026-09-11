@@ -1,6 +1,5 @@
-# Capítulo 6.16: Sistema de Crafting
+# Sistema de Crafting
 
-[Início](../README.md) | [<< Anterior: Sistema de Som](15-sound-system.md) | **Sistema de Crafting** | [Próximo: Sistema de Construção >>](17-construction-system.md)
 
 ---
 
@@ -46,7 +45,7 @@ OnFinishProgressServer() --> PluginRecipesManager.PerformRecipeServer()
         |
         v
 RecipeBase: SpawnItems() --> ApplyModificationsResults()
-         --> ApplyModificationsIngredients() --> Do() --> DeleteIngredientsPass()
+         --> ApplyModificationsIngredients() --> Do() --> DeleleIngredientsPass()
 ```
 
 ```mermaid
@@ -620,7 +619,7 @@ Para cada ingrediente:
 
 Sua sobrescrita executa aqui com ingredientes ordenados, array de resultados e peso de especialidade.
 
-### 6. Limpeza: DeleteIngredientsPass()
+### 6. Limpeza: DeleleIngredientsPass()
 
 Todos os ingredientes enfileirados para deleção são destruídos.
 
@@ -666,7 +665,7 @@ m_IngredientDestroy[0] = false;      // sobrevive ao crafting
 m_IngredientUseSoftSkills[0] = true; // habilidades suaves modificam a perda de saúde
 ```
 
-Exemplos vanilla: `CleanWeapon` (WeaponCleaningKit), `SawoffShotgunIzh43` (Hacksaw), `SharpenMelee` (WhetStone).
+Exemplos vanilla: `CleanWeapon` (WeaponCleaningKit), `SawoffShotgunIzh43` (Hacksaw), `SharpenMelee` (Whetstone).
 
 ### Consumo Parcial de Quantidade
 

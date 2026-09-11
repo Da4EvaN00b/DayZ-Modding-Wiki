@@ -1,6 +1,5 @@
 # Chapter 9.2: Könyvtárszerkezet és küldetés mappa
 
-[Kezdőlap](../README.md) | [<< Előző: Szerver telepítés](01-server-setup.md) | **Könyvtárszerkezet** | [Következő: serverDZ.cfg referencia >>](03-server-cfg.md)
 
 ---
 
@@ -174,7 +173,7 @@ Meghatározza a spawn szabályokat **minden tárgyra** a játékban. Körülbel�
 
 ### globals.xml
 
-Globális paraméterek, amelyek az egész gazdaságot érintik: zombi számok, állat számok, takarítási időzítők, zsákmány sérülés tartományok, újraspawnolás időzítése. Összesen 33 paraméter van. A teljes referencia a [9.4. fejezetben](04-loot-economy.md).
+Globális paraméterek, amelyek az egész gazdaságot érintik: zombi számok, állat számok, takarítási időzítők, zsákmány sérülés tartományok, újraspawnolás időzítése. Összesen 30 paraméter van. A teljes referencia a [9.4. fejezetben](04-loot-economy.md).
 
 ### events.xml
 
@@ -258,19 +257,19 @@ A szerver perzisztens állapotát tárolja az újraindítások között:
 
 ```
 storage_1/
-  players.db         # SQLite adatbázis az összes játékos karakterről
+  players/           # Bináris karakter rekordok, játékosonként egy
   spawnpoints.bin    # Bináris spawn pont adatok
   backup/            # Automatikus biztonsági mentések a perzisztencia adatokról
   data/              # Világ állapot (elhelyezett tárgyak, bázis építés, járművek)
 ```
 
-**Soha ne szerkeszd a `players.db` fájlt, amíg a szerver fut.** Ez egy SQLite adatbázis, amelyet a szerver folyamat zárol. Ha karaktereket kell törölnöd, először állítsd le a szervert, majd töröld vagy nevezd át a fájlt.
+**Soha ne szerkeszd kézzel a `players/` mappában lévő fájlokat, amíg a szerver fut.** Ezek átláthatatlan bináris rekordok, amelyeket kizárólag a szerver folyamat ír. Ha karaktereket kell törölnöd, először állítsd le a szervert, majd töröld vagy nevezd át a mappát.
 
 **Teljes perzisztencia törléshez** állítsd le a szervert és töröld a teljes `storage_1/` mappát. A szerver a következő indításkor újra létrehozza friss világgal.
 
 **Részleges törléshez** (karakterek megtartása, zsákmány visszaállítása):
 1. Állítsd le a szervert
-2. Töröld a `storage_1/data/` fájljait, de tartsd meg a `players.db` fájlt
+2. Töröld a `storage_1/data/` fájljait, de tartsd meg a `storage_1/players/` mappát
 3. Indítsd újra
 
 ---
@@ -438,7 +437,3 @@ Az `a` attribútum az elforgatási szög fokban.
 | `storage_1/` | Csak törlés | Perzisztencia -- ne szerkeszd kézzel |
 | `battleye/` | **Nem** | Csalásellenes -- ne nyúlj hozzá |
 | `mapgroup*.xml` | Óvatosan | Épület zsákmány pozíciók -- csak haladó szerkesztés |
-
----
-
-**Előző:** [Szerver telepítés](01-server-setup.md) | [Kezdőlap](../README.md) | **Következő:** [serverDZ.cfg referencia >>](03-server-cfg.md)

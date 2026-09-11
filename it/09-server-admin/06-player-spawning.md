@@ -1,6 +1,5 @@
 # Chapter 9.6: Spawn dei Giocatori
 
-[Home](../README.md) | [<< Precedente: Spawn dei Veicoli](05-vehicle-spawning.md) | [Successivo: Persistenza >>](07-persistence.md)
 
 ---
 
@@ -24,10 +23,11 @@
 
 ## Panoramica di cfgplayerspawnpoints.xml
 
-Questo file si trova nella cartella della tua missione (ad esempio `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ha due sezioni, ciascuna con i propri parametri e bolle di posizione:
+Questo file si trova nella cartella della tua missione (ad esempio `dayzOffline.chernarusplus/cfgplayerspawnpoints.xml`). Ha tre sezioni, ciascuna con i propri parametri e bolle di posizione:
 
 - **`<fresh>`** -- personaggi completamente nuovi (prima vita o dopo la morte)
 - **`<hop>`** -- server hopper (il giocatore aveva un personaggio su un altro server)
+- **`<travel>`** -- spawn per viaggi/teletrasporto sulla mappa in-game
 
 ---
 
@@ -77,12 +77,12 @@ Il generatore crea una griglia di posizioni candidate intorno a ogni bolla:
 
 | Parametro | Valore | Significato |
 |-----------|--------|-------------|
-| `grid_density` | 4 | Spaziatura tra i punti della griglia in metri -- piu bassa = piu candidati, costo CPU piu alto |
-| `grid_width` | 200 | La griglia si estende per 200m sull'asse X intorno al centro di ogni bolla |
-| `grid_height` | 200 | La griglia si estende per 200m sull'asse Z intorno al centro di ogni bolla |
+| `grid_density` | 4 | Frequenza di campionamento (numero di suddivisioni) della griglia -- piu alta = piu candidati, costo CPU piu alto. Spaziatura tra i punti = `grid_width` / `grid_density` |
+| `grid_width` | 200 | Larghezza totale della griglia di candidati in metri (centrata sulla bolla) -- si estende ~100m per lato sull'asse X |
+| `grid_height` | 200 | Altezza totale della griglia di candidati in metri (centrata sulla bolla) -- si estende ~100m per lato sull'asse Z |
 | `min_steepness` / `max_steepness` | -45 / 45 | Intervallo di pendenza del terreno in gradi -- rifiuta pareti rocciose e colline ripide |
 
-Ogni bolla ottiene una griglia 200x200m con un punto ogni 4m (~2.500 candidati). Il motore filtra per pendenza e distanza dagli oggetti statici, poi applica i `spawn_params` al momento dello spawn.
+Ogni bolla ottiene una griglia 200x200m con punti candidati spaziati `grid_width` / `grid_density` = 200/4 = 50m l'uno dall'altro (nell'ordine di ~16-25 candidati). Il motore filtra per pendenza e distanza dagli oggetti statici, poi applica i `spawn_params` al momento dello spawn.
 
 #### Parametro `allow_in_water` (1.28+)
 
@@ -111,8 +111,8 @@ Per impostazione predefinita, il motore rifiuta qualsiasi posizione candidata ch
 <group_params>
     <enablegroups>true</enablegroups>
     <groups_as_regular>true</groups_as_regular>
-    <lifetime>240</lifetime>
-    <counter>-1</counter>
+    <lifetime>120</lifetime>
+    <counter>2</counter>
 </group_params>
 ```
 
@@ -120,10 +120,10 @@ Per impostazione predefinita, il motore rifiuta qualsiasi posizione candidata ch
 |-----------|--------|-------------|
 | `enablegroups` | true | Le bolle di posizione sono organizzate in gruppi nominati |
 | `groups_as_regular` | true | I gruppi sono trattati come punti di spawn regolari (qualsiasi gruppo puo essere selezionato) |
-| `lifetime` | 240 | Secondi prima che un punto di spawn usato diventi nuovamente disponibile |
-| `counter` | -1 | Numero di volte che un punto di spawn puo essere usato. -1 = illimitato |
+| `lifetime` | 120 | Secondi durante i quali un gruppo di spawn resta attivo prima che il sistema passi a un altro gruppo. -1 = disabilitato |
+| `counter` | 2 | Numero di login durante i quali un gruppo resta attivo prima di essere sostituito (per gruppo). -1 = disabilitato |
 
-Una posizione usata viene bloccata per 240 secondi, impedendo a due giocatori di spawnare uno sopra l'altro.
+`lifetime` controlla per quanto tempo un gruppo di spawn rimane il gruppo attivo prima che il sistema passi a un altro gruppo; non e un blocco per singola posizione. La spaziatura tra gli spawn simultanei e imposta da `min_dist_player`.
 
 ---
 
@@ -192,7 +192,7 @@ Gli spawn per gli hopper sono piu permissivi sulla distanza dai giocatori e usan
 
 <!-- Differenze dei group_params per hop -->
 <enablegroups>false</enablegroups>        <!-- fresh: true -->
-<lifetime>360</lifetime>                  <!-- fresh: 240 -->
+<lifetime>360</lifetime>                  <!-- fresh: 120 -->
 ```
 
 I gruppi hop sono distribuiti **nell'entroterra**: Balota (6), Cherno (5), Pusta (5), Kamyshovo (4), Solnechny (5), Nizhnee (6), Berezino (5), Olsha (4), Svetlojarsk (5), Dobroye (5). Con `enablegroups=false`, il motore tratta tutte le 50 posizioni come un pool piatto.
@@ -246,7 +246,7 @@ override void StartingEquipSetup(PlayerBase player, bool clothesChosen)
 }
 ```
 
-Cosa riceve ogni giocatore: **BandageDressing** (quickbar 3), **Chemlight** casuale (quickbar 2), frutta casuale -- 35% Apple, 30% Plum, 35% Pear (quickbar 1). `SetRandomHealth` imposta una condizione del 45-65% su tutti gli oggetti.
+Cosa riceve ogni giocatore: **BandageDressing** (quickbar 2), **Chemlight** casuale (quickbar 1), frutta casuale -- 35% Apple, 30% Plum, 35% Pear (quickbar 3). `SetRandomHealth` imposta una condizione del 45-65% su tutti gli oggetti.
 
 ### Aggiungere equipaggiamento iniziale personalizzato
 
@@ -279,7 +279,7 @@ Passaggi:
 4. Usa `x` per est-ovest e `z` per nord-sud -- il motore calcola Y (altitudine) dal terreno
 5. Riavvia il server -- non e necessario un wipe della persistenza
 
-Per uno spawn equilibrato, mantieni almeno 4 posizioni per gruppo in modo che il blocco di 240 secondi non blocchi tutte le posizioni quando piu giocatori muoiono contemporaneamente.
+Per uno spawn equilibrato, mantieni almeno 4 posizioni per gruppo in modo che un singolo gruppo abbia abbastanza distribuzione da mantenere `min_dist_player` soddisfatto quando piu giocatori muoiono contemporaneamente.
 
 ---
 
@@ -291,7 +291,7 @@ Hai scambiato `z` (nord-sud) con Y (altitudine), o hai usato coordinate fuori da
 
 ### Non abbastanza punti di spawn
 
-Con solo 2-3 posizioni, il blocco di 240 secondi causa raggruppamento. Il vanilla usa 49 posizioni fresh distribuite su 11 gruppi. Punta ad almeno 20 posizioni in 4+ gruppi.
+Con solo 2-3 posizioni, il gruppo attivo non puo distribuire i giocatori e ne risulta raggruppamento. Il vanilla usa 49 posizioni fresh distribuite su 11 gruppi. Punta ad almeno 20 posizioni in 4+ gruppi.
 
 ### Dimenticare la sezione hop
 
@@ -303,8 +303,4 @@ Il generatore rifiuta pendenze oltre i 45 gradi. Se tutte le posizioni personali
 
 ### I giocatori spawnano sempre nello stesso punto
 
-I gruppi con 1-2 posizioni vengono bloccati dal cooldown di 240 secondi. Aggiungi piu posizioni per gruppo.
-
----
-
-[Home](../README.md) | [<< Precedente: Spawn dei Veicoli](05-vehicle-spawning.md) | [Successivo: Persistenza >>](07-persistence.md)
+I gruppi con 1-2 posizioni hanno troppi pochi candidati perche il motore possa variare la posizione scelta. Aggiungi piu posizioni per gruppo.

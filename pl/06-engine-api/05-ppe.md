@@ -1,12 +1,11 @@
 # Rozdział 6.5: Efekty post-processingu (PPE)
 
-[Strona główna](../README.md) | [<< Poprzedni: Kamery](04-cameras.md) | **Efekty post-processingu** | [Następny: Powiadomienia >>](06-notifications.md)
 
 ---
 
 ## Wprowadzenie
 
-System efektów post-processingu (PPE) w DayZ kontroluje efekty wizualne stosowane po renderowaniu sceny: rozmycie, korekcję kolorów, winietowanie, aberrację chromatyczną, noktowizję i inne. System jest zbudowany wokół klas `PPERequester`, które mogą żądać określonych efektów wizualnych. Wiele requesterów może być aktywnych jednocześnie, a silnik łączy ich wkład. Ten rozdział opisuje, jak używać systemu PPE w modach.
+System efektów post-processingu (PPE) w DayZ kontroluje efekty wizualne stosowane po renderowaniu sceny: rozmycie, korekcję kolorów, winietowanie, aberrację chromatyczną, noktowizję i inne. System jest zbudowany wokół klas `PPERequesterBase`, które mogą żądać określonych efektów wizualnych. Wiele requesterów może być aktywnych jednocześnie, a silnik łączy ich wkład. Ten rozdział opisuje, jak używać systemu PPE w modach.
 
 ---
 
@@ -18,32 +17,32 @@ PPEManager
 │   ├── REQ_INVENTORYBLUR         // Rozmycie ekwipunku
 │   ├── REQ_MENUEFFECTS           // Efekty menu
 │   ├── REQ_CONTROLLERDISCONNECT  // Nakładka odłączenia kontrolera
-│   ├── REQ_UNCONSCIOUS           // Efekt nieprzytomności
+│   ├── REQ_UNCONEFFECTS         // Efekt nieprzytomności
 │   ├── REQ_FEVEREFFECTS          // Efekty wizualne gorączki
 │   ├── REQ_FLASHBANGEFFECTS      // Granat błyskowy
 │   ├── REQ_BURLAPSACK            // Worek na głowie
 │   ├── REQ_DEATHEFFECTS          // Ekran śmierci
 │   ├── REQ_BLOODLOSS             // Desaturacja utraty krwi
 │   └── ... (i wiele innych)
-└── PPERequester_*                // Poszczególne implementacje requesterów
+└── PPERequester_*                // Poszczególne implementacje requesterów (rozszerzają PPERequesterBase)
 ```
 
 ---
 
 ## PPEManager
 
-`PPEManager` to singleton koordynujący wszystkie aktywne żądania PPE. Rzadko wchodzisz z nim w interakcję bezpośrednio --- zamiast tego pracujesz przez podklasy `PPERequester`.
+`PPEManager` to singleton koordynujący wszystkie aktywne żądania PPE. Rzadko wchodzisz z nim w interakcję bezpośrednio --- zamiast tego pracujesz przez podklasy `PPERequesterBase`.
 
 ```c
-// Pobranie instancji menedżera
-PPEManager GetPPEManager();
+// Pobranie instancji menedżera (metoda statyczna na PPEManagerStatic)
+PPEManager mgr = PPEManagerStatic.GetPPEManager();
 ```
 
 ---
 
 ## PPERequesterBank
 
-**Plik:** `3_Game/PPE/pperequesterbank.c`
+**Plik:** `3_Game/ppemanager/pperequesterbank.c`
 
 Statyczny rejestr przechowujący instancje wszystkich requesterów PPE. Dostęp do konkretnych requesterów odbywa się przez ich stały indeks.
 
@@ -51,7 +50,7 @@ Statyczny rejestr przechowujący instancje wszystkich requesterów PPE. Dostęp 
 
 ```c
 // Pobranie requestera przez jego stałą bankową
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 ```
 
 ### Typowe stałe requesterów
@@ -60,7 +59,7 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 |-------|-------|
 | `REQ_INVENTORYBLUR` | Rozmycie gaussowskie przy otwartym ekwipunku |
 | `REQ_MENUEFFECTS` | Rozmycie tła menu |
-| `REQ_UNCONSCIOUS` | Efekt nieprzytomności (rozmycie + desaturacja) |
+| `REQ_UNCONEFFECTS` | Efekt nieprzytomności (rozmycie + desaturacja) |
 | `REQ_DEATHEFFECTS` | Ekran śmierci (skala szarości + winieta) |
 | `REQ_BLOODLOSS` | Desaturacja utraty krwi |
 | `REQ_FEVEREFFECTS` | Aberracja chromatyczna gorączki |
@@ -69,18 +68,15 @@ PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYB
 | `REQ_PAINBLUR` | Efekt rozmycia bólu |
 | `REQ_CONTROLLERDISCONNECT` | Nakładka odłączenia kontrolera |
 | `REQ_CAMERANV` | Noktowizja |
-| `REQ_FILMGRAINEFFECTS` | Nakładka ziarna filmowego |
-| `REQ_RAINEFFECTS` | Efekty deszczu na ekranie |
-| `REQ_COLORSETTING` | Ustawienia korekcji kolorów |
 
 ---
 
 ## Baza PPERequester
 
-Wszystkie requestery PPE rozszerzają `PPERequester`:
+Wszystkie requestery PPE rozszerzają `PPERequesterBase` (konkretne requestery są nazywane `PPERequester_*`, np. `PPERequester_InventoryBlur`):
 
 ```c
-class PPERequester : Managed
+class PPERequesterBase
 {
     // Uruchom efekt
     void Start(Param par = null);
@@ -89,17 +85,16 @@ class PPERequester : Managed
     void Stop(Param par = null);
 
     // Sprawdź czy aktywny
-    bool IsActiveRequester();
+    bool IsRequesterRunning();
 
-    // Ustaw wartości parametrów materiału
-    void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
-                              float val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueColor(int mat_id, int param_idx, bool relative,
-                              float val1, float val2, float val3, float val4,
-                              int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueBool(int mat_id, int param_idx, bool relative,
+    // Ustaw wartości parametrów materiału (protected: wywoływalne tylko z wnętrza podklasy requestera)
+    protected void SetTargetValueFloat(int mat_id, int param_idx, bool relative,
+                              float val, int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueColor(int mat_id, int param_idx, array<float> val,
+                              int priority_layer, int operator = PPOperators.ADD_RELATIVE);
+    protected void SetTargetValueBool(int mat_id, int param_idx,
                              bool val, int priority_layer, int operator = PPOperators.SET);
-    void SetTargetValueInt(int mat_id, int param_idx, bool relative,
+    protected void SetTargetValueInt(int mat_id, int param_idx, bool relative,
                             int val, int priority_layer, int operator = PPOperators.SET);
 }
 ```
@@ -107,15 +102,19 @@ class PPERequester : Managed
 ### PPOperators
 
 ```c
-class PPOperators
+enum PPOperators
 {
-    static const int SET          = 0;  // Bezpośrednie ustawienie wartości
-    static const int ADD          = 1;  // Dodaj do aktualnej wartości
-    static const int ADD_RELATIVE = 2;  // Dodaj relatywnie do aktualnej
-    static const int HIGHEST      = 3;  // Użyj wyższej z aktualnej i nowej
-    static const int LOWEST       = 4;  // Użyj niższej z aktualnej i nowej
-    static const int MULTIPLY     = 5;  // Pomnóż aktualną wartość
-    static const int OVERRIDE     = 6;  // Wymuś nadpisanie
+    LOWEST,                      // 0 - Użyj niższej z aktualnej i nowej
+    HIGHEST,                     // 1 - Użyj wyższej z aktualnej i nowej
+    ADD,                         // 2 - Dodawanie liniowe
+    ADD_RELATIVE,                // 3 - Liniowe dodawanie relatywne
+    SUBSTRACT,                   // 4 - Odejmowanie liniowe
+    SUBSTRACT_RELATIVE,          // 5 - Liniowe odejmowanie relatywne
+    SUBSTRACT_REVERSE,           // 6 - Odejmij cel od miejsca docelowego
+    SUBSTRACT_REVERSE_RELATIVE,  // 7 - Relatywne odejmowanie celu od miejsca docelowego
+    MULTIPLICATIVE,              // 8 - Mnożenie liniowe
+    SET,                         // 9 - Ustaw wartość (nie kończy dalszych obliczeń)
+    OVERRIDE                     // 10 - Ustaw wartość i zakończ dalsze obliczenia
 }
 ```
 
@@ -131,14 +130,15 @@ Efekty celują w określone materiały post-processingu. Typowe identyfikatory m
 | `PostProcessEffectType.FilmGrain` | Ziarno filmowe |
 | `PostProcessEffectType.RadialBlur` | Rozmycie radialne |
 | `PostProcessEffectType.ChromAber` | Aberracja chromatyczna |
-| `PostProcessEffectType.WetEffect` | Efekt mokrego obiektywu |
+| `PostProcessEffectType.WetDistort` | Efekt mokrego obiektywu |
 | `PostProcessEffectType.ColorGrading` | Korekcja kolorów / LUT |
 | `PostProcessEffectType.DepthOfField` | Głębia ostrości |
 | `PostProcessEffectType.SSAO` | Okluzja otoczenia w przestrzeni ekranu |
 | `PostProcessEffectType.GodRays` | Światło wolumetryczne |
 | `PostProcessEffectType.Rain` | Deszcz na ekranie |
-| `PostProcessEffectType.Vignette` | Nakładka winiety |
 | `PostProcessEffectType.HBAO` | Okluzja otoczenia oparta na horyzoncie |
+
+Winieta nie jest osobnym typem materiału; jest to parametr `PPEGlow.PARAM_VIGNETTE` (indeks 25) na materiale `PostProcessEffectType.Glow`.
 
 ---
 
@@ -150,7 +150,7 @@ Najprostszy przykład --- rozmycie pojawiające się przy otwarciu ekwipunku:
 
 ```c
 // Uruchom rozmycie
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
+PPERequesterBase blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
 blurReq.Start();
 
 // Zatrzymaj rozmycie
@@ -160,7 +160,7 @@ blurReq.Stop();
 ### Efekt granatu błyskowego
 
 ```c
-PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
 flashReq.Start();
 
 // Zatrzymaj po opóźnieniu
@@ -168,7 +168,7 @@ GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(StopFlashbang, 3000, fa
 
 void StopFlashbang()
 {
-    PPERequester flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
+    PPERequesterBase flashReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_FLASHBANGEFFECTS);
     flashReq.Stop();
 }
 ```
@@ -177,12 +177,12 @@ void StopFlashbang()
 
 ## Tworzenie własnego requestera PPE
 
-Aby stworzyć niestandardowe efekty post-processingu, rozszerz `PPERequester` i zarejestruj go.
+Aby stworzyć niestandardowe efekty post-processingu, rozszerz `PPERequester_GameplayBase` (lub `PPERequester_MenuBase`) i zarejestruj go.
 
 ### Krok 1: Zdefiniuj requester
 
 ```c
-class MyCustomPPERequester extends PPERequester
+class MyCustomPPERequester extends PPERequester_GameplayBase
 {
     override protected void OnStart(Param par = null)
     {
@@ -190,11 +190,11 @@ class MyCustomPPERequester extends PPERequester
 
         // Zastosuj silną winietę
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.8, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.8, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
 
-        // Desaturuj kolory
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 0.3, PPEManager.L_0_STATIC, PPOperators.SET);
+        // Desaturuj kolory (saturacja znajduje się na materiale Glow)
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 0.3, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 
     override protected void OnStop(Param par = null)
@@ -203,9 +203,9 @@ class MyCustomPPERequester extends PPERequester
 
         // Przywróć domyślne
         SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_VIGNETTE,
-                            false, 0.0, PPEManager.L_0_STATIC, PPOperators.SET);
-        SetTargetValueFloat(PostProcessEffectType.ColorGrading, PPEColorGrading.PARAM_SATURATION,
-                            false, 1.0, PPEManager.L_0_STATIC, PPOperators.SET);
+                            false, 0.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.Glow, PPEGlow.PARAM_SATURATION,
+                            false, 1.0, PPEGlow.L_22_BLOODLOSS, PPOperators.SET);
     }
 }
 ```
@@ -222,30 +222,35 @@ Noktowizja jest zaimplementowana jako efekt PPE. Odpowiedni requester to `REQ_CA
 
 ```c
 // Włącz efekt NVG
-PPERequester nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
+PPERequesterBase nvgReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_CAMERANV);
 nvgReq.Start();
 
 // Wyłącz efekt NVG
 nvgReq.Stop();
 ```
 
-Rzeczywiste NVG w grze jest uruchamiane przez przedmiot NVGoggles poprzez jego `ComponentEnergyManager` i metodę `NVGoggles.ToggleNVG()`, która wewnętrznie steruje systemem PPE.
+Rzeczywiste NVG w grze jest przełączane przez akcję użytkownika `ActionToggleNVG`; gogle używają menedżera energii (`ComponentEnergyManager`) dla swojego stanu zasilania, a efekt PPE NVG (`REQ_CAMERANV`) jest sterowany osobno.
 
 ---
 
 ## Korekcja kolorów
 
-Korekcja kolorów modyfikuje ogólny wygląd kolorystyczny sceny:
+Saturacja jest parametrem materiału Glow (`PPEGlow.PARAM_SATURATION`). Ponieważ settery wartości są `protected`, dostosowujesz ją z wnętrza podklasy niestandardowego requestera:
 
 ```c
-PPERequester colorReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_COLORSETTING);
-colorReq.Start();
+class MyColorRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Dostosuj saturację (1.0 = normalna, 0.0 = skala szarości, >1.0 = przesycenie)
-colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
-                              PPEColorGrading.PARAM_SATURATION,
-                              false, 0.5, PPEManager.L_0_STATIC,
-                              PPOperators.SET);
+        // Dostosuj saturację (1.0 = normalna, 0.0 = skala szarości, >1.0 = przesycenie)
+        SetTargetValueFloat(PostProcessEffectType.Glow,
+                            PPEGlow.PARAM_SATURATION,
+                            false, 0.5, PPEGlow.L_22_BLOODLOSS,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
@@ -255,47 +260,59 @@ colorReq.SetTargetValueFloat(PostProcessEffectType.ColorGrading,
 ### Rozmycie gaussowskie
 
 ```c
-PPERequester blurReq = PPERequesterBank.GetRequester(PPERequesterBank.REQ_INVENTORYBLUR);
-blurReq.Start();
+class MyBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-// Dostosuj intensywność rozmycia (0.0 = brak, wyższe = więcej rozmycia)
-blurReq.SetTargetValueFloat(PostProcessEffectType.GaussFilter,
-                             PPEGaussFilter.PARAM_INTENSITY,
-                             false, 0.5, PPEManager.L_0_STATIC,
-                             PPOperators.SET);
+        // Dostosuj intensywność rozmycia (0.0 = brak, wyższe = więcej rozmycia)
+        SetTargetValueFloat(PostProcessEffectType.GaussFilter,
+                            PPEGaussFilter.PARAM_INTENSITY,
+                            false, 0.5, PPEGaussFilter.L_0_INV,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ### Rozmycie radialne
 
 ```c
-PPERequester req = PPERequesterBank.GetRequester(PPERequesterBank.REQ_PAINBLUR);
-req.Start();
+class MyRadialBlurRequester extends PPERequester_GameplayBase
+{
+    override protected void OnStart(Param par = null)
+    {
+        super.OnStart(par);
 
-req.SetTargetValueFloat(PostProcessEffectType.RadialBlur,
-                         PPERadialBlur.PARAM_POWERX,
-                         false, 0.3, PPEManager.L_0_STATIC,
-                         PPOperators.SET);
+        SetTargetValueFloat(PostProcessEffectType.RadialBlur,
+                            PPERadialBlur.PARAM_POWERX,
+                            false, 0.3, PPERadialBlur.L_0_PAIN_BLUR,
+                            PPOperators.SET);
+    }
+}
 ```
 
 ---
 
 ## Warstwy priorytetowe
 
-Gdy wiele requesterów modyfikuje ten sam parametr, warstwa priorytetowa określa, który wygrywa:
+Gdy wiele requesterów modyfikuje ten sam parametr, warstwa priorytetowa określa, który wygrywa. Stałe warstw priorytetowych są deklarowane na każdej klasie materiału (nie na `PPEManager`) z nazwami specyficznymi dla efektu i używają dużych liczb (wyższa wygrywa). Na przykład na materiale Glow:
 
 ```c
-class PPEManager
+class PPEGlow: PPEClassBase
 {
-    static const int L_0_STATIC   = 0;   // Najniższy priorytet (efekty statyczne)
-    static const int L_1_VALUES   = 1;   // Dynamiczne zmiany wartości
-    static const int L_2_SCRIPTS  = 2;   // Efekty sterowane skryptami
-    static const int L_3_EFFECTS  = 3;   // Efekty rozgrywkowe
-    static const int L_4_OVERLAY  = 4;   // Efekty nakładkowe
-    static const int L_LAST       = 100;  // Najwyższy priorytet (nadpisz wszystko)
+    // ... stałe parametrów ...
+
+    static const int L_22_BLOODLOSS = 100;
+
+    static const int L_23_GLASSES   = 100;
+    static const int L_23_TOXIC_TINT = 200;
+    static const int L_23_HMP       = 300;
+    static const int L_23_NVG       = 600;
 }
 ```
 
-Wyższe numery mają priorytet. Użyj `PPEManager.L_LAST`, aby wymusić nadpisanie wszystkich innych efektów.
+Inne materiały deklarują własne, np. `PPEGaussFilter.L_0_INV` (500) i `PPERadialBlur.L_0_PAIN_BLUR` (100). Wyższe numery mają priorytet, więc wybierz warstwę powyżej dowolnego efektu, który chcesz nadpisać.
 
 ---
 
@@ -306,21 +323,21 @@ Wyższe numery mają priorytet. Użyj `PPEManager.L_LAST`, aby wymusić nadpisan
 | Dostęp | `PPERequesterBank.GetRequester(STAŁA)` |
 | Start/Stop | `requester.Start()` / `requester.Stop()` |
 | Parametry | `SetTargetValueFloat(materiał, parametr, relatywny, wartość, warstwa, operator)` |
-| Operatory | `PPOperators.SET`, `ADD`, `MULTIPLY`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
+| Operatory | `PPOperators.SET`, `ADD`, `MULTIPLICATIVE`, `HIGHEST`, `LOWEST`, `OVERRIDE` |
 | Typowe efekty | Rozmycie, winieta, saturacja, NVG, granat błyskowy, ziarno, aberracja chromatyczna |
 | NVG | Requester `REQ_CAMERANV` |
-| Priorytet | Warstwy 0-100; wyższy numer wygrywa konflikty |
-| Własny | Rozszerz `PPERequester`, nadpisz `OnStart()` / `OnStop()` |
+| Priorytet | Stałe warstw per materiał; wyższy numer wygrywa konflikty |
+| Własny | Rozszerz `PPERequester_GameplayBase`, nadpisz `OnStart()` / `OnStop()` |
 
 ---
 
 ## Dobre praktyki
 
 - **Zawsze wywołuj `Stop()` aby posprzątać po swoim requesterze.** Niezatrzymanie requestera PPE pozostawia jego efekt wizualny na stałe aktywny, nawet po zakończeniu warunku wyzwalającego.
-- **Używaj odpowiednich warstw priorytetowych.** Efekty rozgrywkowe powinny używać `L_3_EFFECTS` lub wyższych. Użycie `L_LAST` (100) nadpisuje wszystko, w tym efekty vanilla nieprzytomności i śmierci, co może zepsuć doświadczenie gracza.
+- **Używaj odpowiednich warstw priorytetowych.** Wybierz stałą warstwy per materiał, która znajduje się powyżej efektów, które zamierzasz nadpisać. Użycie bardzo wysokiej warstwy nadpisuje wszystko, w tym efekty vanilla nieprzytomności i śmierci, co może zepsuć doświadczenie gracza.
 - **Preferuj wbudowane requestery nad niestandardowymi.** `PPERequesterBank` już zawiera requestery dla rozmycia, desaturacji, winiety i ziarna. Użyj ich ponownie z dostosowanymi parametrami przed tworzeniem niestandardowej klasy requestera.
 - **Testuj efekty PPE w różnych warunkach oświetleniowych.** Winieta i desaturacja wyglądają drastycznie różnie w nocy w porównaniu z dniem. Sprawdź, czy efekt jest czytelny w obu skrajnościach.
-- **Unikaj nakładania wielu intensywnych efektów rozmycia.** Wiele aktywnych requesterów rozmycia kumuluje się, potencjalnie czyniąc ekran nieczytelnym. Sprawdzaj `IsActiveRequester()` przed uruchomieniem dodatkowych efektów.
+- **Unikaj nakładania wielu intensywnych efektów rozmycia.** Wiele aktywnych requesterów rozmycia kumuluje się, potencjalnie czyniąc ekran nieczytelnym. Sprawdzaj `IsRequesterRunning()` przed uruchomieniem dodatkowych efektów.
 
 ---
 

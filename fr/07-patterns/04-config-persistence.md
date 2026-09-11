@@ -1,6 +1,5 @@
 # Chapitre 7.4 : Persistance de la configuration
 
-[Accueil](../README.md) | [<< Précédent : Patrons RPC](03-rpc-patterns.md) | **Persistance de la configuration** | [Suivant : Systèmes de permissions >>](05-permissions.md)
 
 ---
 
@@ -121,7 +120,7 @@ Le JSON résultant ressemble à :
 | `string` | Chaîne |
 | `vector` | Tableau de 3 nombres |
 | `array<T>` | Tableau JSON |
-| `map<string, T>` | Objet JSON (clés string uniquement) |
+| `map<K, T>` | Objet JSON (`K` peut être `string`, `int` ou un `enum` ; JSON rend toutes les clés sous forme de chaînes) |
 | Classe imbriquée | Objet JSON imbriqué |
 
 ### Objets imbriqués
@@ -692,7 +691,3 @@ string LogPath = "$profile:MyMod/Logs/server.log";
 | Utilisez des E/S fichier asynchrones pour éviter le blocage | Enforce Script n'a pas d'E/S fichier asynchrones ; toutes les lectures/écritures sont synchrones. Chargez au démarrage, sauvegardez sur des minuteries. |
 | Validez le JSON avec un schéma | Il n'existe pas de validation de schéma JSON ; validez les champs dans `OnAfterLoad()` ou avec des clauses de garde après le chargement. |
 | Utilisez une base de données pour les données structurées | Pas d'accès base de données depuis Enforce Script ; les fichiers JSON dans `$profile:` sont le seul mécanisme de persistance. |
-
----
-
-[Accueil](../README.md) | [<< Précédent : Patrons RPC](03-rpc-patterns.md) | **Persistance de la configuration** | [Suivant : Systèmes de permissions >>](05-permissions.md)

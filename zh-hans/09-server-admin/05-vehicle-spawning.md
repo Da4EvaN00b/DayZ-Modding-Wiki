@@ -1,6 +1,5 @@
 # Chapter 9.5: 载具与动态事件刷新
 
-[首页](../README.md) | [<< 上一章: 战利品经济](04-loot-economy.md) | [下一章: 玩家出生 >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@
 
 CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 中查找匹配位置，随机选择一个满足 `saferadius` 和 `distanceradius` 约束的位置，然后在该位置刷新一个随机选择的子实体。
 
-这三个文件都位于 `mpmissions/<your_mission>/db/` 中。
+`events.xml` 位于 `mpmissions/<your_mission>/db/` 中，而 `cfgeventspawns.xml` 和 `cfgeventgroups.xml` 位于任务根目录（`mpmissions/<your_mission>/`）。
 
 ---
 
@@ -167,17 +166,17 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-车队的工作方式与直升机坠毁完全相同：`<secondary>` 标签在现场周围刷新 `InfectedArmy`，`deloot="1"` 的战利品物品出现在残骸上。设置 `nominal=5` 时，地图上最多同时存在 5 个车队点。每个持续 1800 秒（30 分钟），之后循环到新位置。
+车队的工作方式类似于直升机坠毁：`<secondary>` 标签在现场周围刷新 `InfectedArmy`，`deloot="1"` 的战利品物品出现在残骸上。与直升机坠毁不同，车队事件有一个空的 `<children/>` 元素——它的损坏载具被定义为 `cfgeventgroups.xml` 中的一个组，并通过 `cfgeventspawns.xml` 中的组引用进行放置。设置 `nominal=5` 时，地图上最多同时存在 5 个车队点。每个持续 1800 秒（30 分钟），之后循环到新位置。
 
 ---
 
@@ -231,20 +228,21 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 此文件定义多个物体以相对位置偏移一起刷新的事件。最常见的用途是废弃火车。
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-第一个子项放置在 `cfgeventspawns.xml` 的位置上。后续子项相对于该原点按其 `x`、`z`、`a` 值偏移。在此示例中，火车车厢沿 z 轴间隔 15 米。
+每个组使用文件根 `<eventgroupdef>` 内的 `<group name="...">` 元素声明，其 `<child>` 条目是 `<group>` 的直接子元素（此处没有 `<children>` 包装器）。第一个子项放置在 `cfgeventspawns.xml` 的位置上。后续子项相对于该原点按其 `x`、`z`、`y`、`a` 值偏移。
 
 组中每个 `<child>` 有：
 
@@ -277,7 +273,11 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 | `type` | 要刷新的物体类名。 |
 | `x` | 相对于组原点的 X 偏移（米）。 |
 | `z` | 相对于组原点的 Z 偏移（米）。 |
+| `y` | 相对于组原点的 Y（垂直）偏移（米）。 |
 | `a` | 相对于组原点的角度偏移（度）。 |
+| `deloot` | 此子项内是否可以刷新动态事件战利品（0 或 1）。 |
+| `lootmin` | 此子项内刷新的最少战利品数量。 |
+| `lootmax` | 此子项内刷新的最多战利品数量。 |
 
 组事件本身仍需要在 `events.xml` 中有一个匹配条目来控制 nominal 数量、生命周期和活动状态。
 
@@ -343,7 +343,3 @@ CE 读取 `events.xml`，选取需要刷新的事件，在 `cfgeventspawns.xml` 
 **问题：** 载具刷新时嵌入建筑或埋在地形中。
 
 **解决方法：** 检查 `cfgeventspawns.xml` 中的 `<pos>` 坐标。在将位置添加到文件之前，使用管理员传送在游戏中测试位置。位置应在平坦的道路或空旷地面上，角度（`a`）应与道路方向对齐。
-
----
-
-[首页](../README.md) | [<< 上一章: 战利品经济](04-loot-economy.md) | [下一章: 玩家出生 >>](06-player-spawning.md)

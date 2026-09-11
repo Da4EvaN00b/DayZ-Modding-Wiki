@@ -1,6 +1,5 @@
 # Capitolo 6.12: Sistema delle Azioni
 
-[Home](../README.md) | [<< Precedente: Mission Hooks](11-mission-hooks.md) | **Sistema delle Azioni** | [Successivo: Sistema di Input >>](13-input-system.md)
 
 ---
 
@@ -482,7 +481,7 @@ I componenti azione controllano _come_ l'azione progredisce nel tempo. Vengono c
 | `CAInteract` | nessuno | Esecuzione istantanea per azioni interact |
 | `CAContinuousTime` | `float time` | Barra progresso, si completa dopo `time` secondi |
 | `CAContinuousRepeat` | `float time` | Cicli ripetuti, lancia `OnFinishProgress` ogni ciclo |
-| `CAContinuousQuantity` | `float quantity, float time` | Consuma quantità nel tempo |
+| `CAContinuousQuantity` | `float quantity_used_per_second` | Consuma quantità nel tempo |
 | `CAContinuousQuantityEdible` | `float quantity, float time` | Come Quantity ma applica modificatori cibo/bevanda |
 
 ### Costanti di Tempo
@@ -649,7 +648,3 @@ Il sistema è progettato per essere modulare: i componenti condizione gestiscono
 - **Multi-Mod:** Le azioni sono registrate per tipo di classe tramite `SetActions()`. Due mod che aggiungono azioni diverse allo stesso tipo di oggetto funzionano entrambi --- le azioni si accumulano. Tuttavia, se entrambi i mod fanno override di `SetActions()` senza chiamare `super`, solo le azioni dell'ultimo mod caricato sopravvivono.
 - **Prestazioni:** `ActionCondition()` viene valutata ogni frame per ogni azione candidata sul target corrente del giocatore. Mantienila leggera --- evita raycast costosi, ricerche config o iterazioni di array dentro i controlli condizione.
 - **Server/Client:** La pipeline delle azioni è divisa: i controlli condizione e la visualizzazione UI girano sul client, i callback di esecuzione girano sul server. Il motore gestisce la sincronizzazione tramite RPC interni.
-
----
-
-[Home](../README.md) | [<< Precedente: Mission Hooks](11-mission-hooks.md) | **Sistema delle Azioni** | [Successivo: Sistema di Input >>](13-input-system.md)

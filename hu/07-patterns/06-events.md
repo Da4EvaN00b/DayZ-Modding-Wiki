@@ -1,6 +1,5 @@
 # 7.6. fejezet: Eseményvezérelt architektúra
 
-[Kezdőlap](../README.md) | [<< Előző: Jogosultsági rendszerek](05-permissions.md) | **Eseményvezérelt architektúra** | [Következő: Teljesítményoptimalizálás >>](07-performance.md)
 
 ---
 
@@ -107,16 +106,18 @@ graph TB
 
 ### Az Insert/Remove működése
 
-Az `Insert` egy függvényreferenciát ad hozzá egy belső listához. A `Remove` végigkeresi a listát és eltávolítja az egyező bejegyzést. Ha kétszer hívod meg az `Insert`-et ugyanazzal a függvénnyel, az minden `Invoke`-kor kétszer lesz meghívva. Ha egyszer hívod a `Remove`-t, az csak egy bejegyzést távolít el.
+Az `Insert` egy függvényreferenciát ad hozzá egy belső listához. A `Remove` végigkeresi a listát és eltávolítja az egyező bejegyzéseket. Ha kétszer hívod meg az `Insert`-et ugyanazzal a függvénnyel, az minden `Invoke`-kor kétszer lesz meghívva. Alapértelmezetten a `Remove(fn)` az `EScriptInvokerRemoveFlags.ALL` jelzőt használja, így minden egyező bejegyzést eltávolít. Ha csak a legutóbbi egyetlen bejegyzést szeretnéd eltávolítani, hívd a `Remove(fn, EScriptInvokerRemoveFlags.NONE)`-t.
 
 ```c
 // Ugyanaz a kezelő kétszeri feliratkozása hiba:
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);
 mgr.OnWeatherChanged.Insert(OnWeatherChanged);  // Most 2x hívódik Invoke-onként
 
-// Egy Remove csak egy bejegyzést távolít el:
+// Az alapértelmezett ALL jelző minden egyező bejegyzést eltávolít:
 mgr.OnWeatherChanged.Remove(OnWeatherChanged);
-// Továbbra is 1x hívódik Invoke-onként — a második Insert még ott van
+// 0x hívódik Invoke-onként — mindkét Insert eltűnt.
+// Ha egy bejegyzést meg szeretnél hagyni, add át a NONE-t:
+// mgr.OnWeatherChanged.Remove(OnWeatherChanged, EScriptInvokerRemoveFlags.NONE);
 ```
 
 ### Típusos szignatúrák
@@ -135,13 +136,11 @@ Ha egy feliratkozónak rossz a szignatúrája, a viselkedés futásidőben defin
 Számos vanilla DayZ osztály rendelkezik `ScriptInvoker` eseményekkel:
 
 ```c
-// UIScriptedMenu rendelkezik OnVisibilityChanged eseménnyel
-class UIScriptedMenu
-{
-    ref ScriptInvoker m_OnVisibilityChanged;
-};
+// A DayZPlayer egy ScriptInvoker-t tesz elérhetővé a GetOnDeathStart()-on keresztül
+DayZPlayer player = g_Game.GetPlayer();
+player.GetOnDeathStart().Insert(OnPlayerDeath);  // Feliratkozás
 
-// MissionBase rendelkezik esemény hook-okkal
+// MissionBase rendelkezik esemény hook-okkal (virtuális metódusok, nem ScriptInvokerek)
 class MissionBase
 {
     void OnUpdate(float timeslice);
@@ -546,10 +545,6 @@ OnKillEvent.Invoke(killData);
 |---------|--------|-----|
 | `Insert()`-tel való feliratkozás, de a `Remove()` soha nem hívódik meg | Memóriaszivárgás: az invoker referenciát tart a halott objektumra; `Invoke()`-kor felszabadított memóriába hív (összeomlás) vagy semmit nem csinál felesleges iterációval | Párosíts minden `Insert()`-et egy `Remove()`-val az `OnMissionFinish`-ben vagy a destruktorban |
 | `Remove()` hívása null EventBus invokeren leállás közben | A `MyEventBus.Cleanup()` már nullázhatta az invokert; a `.Remove()` hívása null-on összeomlást okoz | Mindig ellenőrizd null-ra az invokert a `Remove()` előtt: `if (MyEventBus.OnPlayerConnected) MyEventBus.OnPlayerConnected.Remove(handler);` |
-| Ugyanaz a kezelő dupla `Insert()`-je | A kezelő kétszer hívódik `Invoke()`-onként; egy `Remove()` csak egy bejegyzést távolít el, elavult feliratkozást hagyva | Ellenőrizd beszúrás előtt, vagy biztosítsd, hogy az `Insert()` csak egyszer hívódik (pl. `OnInit`-ben őrfeltétellel) |
+| Ugyanaz a kezelő dupla `Insert()`-je | A kezelő kétszer hívódik `Invoke()`-onként; egy alapértelmezett `Remove()` (`ALL` jelző) egyszerre törli az összes bejegyzést, eltávolítva minden feliratkozást | Ellenőrizd beszúrás előtt, vagy biztosítsd, hogy az `Insert()` csak egyszer hívódik (pl. `OnInit`-ben őrfeltétellel) |
 | Anonim/lambda függvények használata kezelőként | Nem távolíthatók el, mert nincs referencia a `Remove()`-nak átadásához | Mindig nevesített metódusokat használj eseménykezelőkként |
 | Események eltérő argumentum-szignatúrával való kiváltása | A feliratkozók szemétadatokat kapnak vagy futásidőben összeomlanak; nincs fordítási idejű ellenőrzés | Dokumentáld a várt szignatúrát minden `ScriptInvoker` deklaráció fölött és pontosan egyeztesd az összes kezelőben |
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Jogosultsági rendszerek](05-permissions.md) | **Eseményvezérelt architektúra** | [Következő: Teljesítményoptimalizálás >>](07-performance.md)

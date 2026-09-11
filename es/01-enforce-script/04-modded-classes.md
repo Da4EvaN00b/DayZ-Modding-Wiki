@@ -1,6 +1,5 @@
 # Capitulo 1.4: Clases Modded (La Clave del Modding de DayZ)
 
-[Inicio](../README.md) | [<< Anterior: Clases y Herencia](03-classes-inheritance.md) | **Clases Modded** | [Siguiente: Control Flow >>](05-control-flow.md)
 
 ---
 
@@ -533,25 +532,27 @@ modded class CarScript
 
 ## Guardas `#ifdef` para Dependencias Opcionales
 
-Cuando tu mod opcionalmente soporta otro mod, usa guardas de preprocesador. Si el otro mod define un simbolo en su `config.cpp` (via `CfgPatches`), puedes verificarlo en tiempo de compilacion.
+Cuando tu mod opcionalmente soporta otro mod, usa guardas de preprocesador. Si el otro mod declara un simbolo en su `config.cpp` (via el array `defines[]` en `CfgMods`), puedes verificarlo en tiempo de compilacion.
 
 ### Como Funciona
 
-El nombre de clase `CfgPatches` de cada mod se convierte en un simbolo de preprocesador. Por ejemplo, si un mod tiene:
+Un mod declara sus simbolos de preprocesador explicitamente a traves del array `defines[]` dentro de su entrada `CfgMods`. Por ejemplo, si un mod tiene:
 
 ```cpp
-class CfgPatches
+class CfgMods
 {
-    class MyAI_Scripts
+    class MyMod_AI
     {
+        type = "mod";
+        defines[] = { "MYMOD_AI" };
         // ...
     };
 };
 ```
 
-Entonces `#ifdef MyAI_Scripts` sera `true` cuando ese mod este cargado.
+Entonces `#ifdef MYMOD_AI` sera `true` cuando ese mod este cargado.
 
-Muchos mods tambien definen simbolos explicitos. La convencion varia --- consulta la documentacion del mod o el `config.cpp`.
+Ten en cuenta que los nombres de clase de `CfgPatches` registran el contenido del addon de un mod pero **no** crean simbolos `#ifdef` --- solo `defines[]` lo hace. Los nombres de los simbolos los elige el autor del mod y no tienen por que coincidir con ningun nombre de clase, asi que la convencion varia --- consulta la documentacion del mod o el `config.cpp`.
 
 ### Patron Basico
 
@@ -1118,7 +1119,3 @@ Crea un `modded class PlayerBase` que agregue un sistema de reputacion. Cuando u
 1. **Siempre llamar a `super`** --- a menos que tengas una razon documentada para no hacerlo
 2. **Proteger dependencias opcionales con `#ifdef`** --- tu mod deberia funcionar solo
 3. **Prefijar tus campos y metodos** --- evitar colisiones de nombres con otros mods
-
----
-
-[Inicio](../README.md) | [<< Anterior: Clases y Herencia](03-classes-inheritance.md) | **Clases Modded** | [Siguiente: Control Flow >>](05-control-flow.md)

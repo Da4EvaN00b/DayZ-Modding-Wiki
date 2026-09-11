@@ -1,6 +1,5 @@
 # Capitolo 6.11: Hook delle Missioni
 
-[Home](../README.md) | [<< Precedente: Economia Centrale](10-central-economy.md) | **Hook delle Missioni** | [Successivo: Sistema delle Azioni >>](12-action-system.md)
 
 ---
 
@@ -39,8 +38,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["Loop OnUpdate(timeslice)"]
+    E --> G["Loop OnUpdate(timeslice)"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["Distruttore: ~MissionServer()"]
@@ -58,8 +56,7 @@ flowchart TD
     A["Il motore crea MissionGameplay"] --> B["Costruttore: MissionGameplay()"]
     B --> C["OnInit() — HUD, chat, menu azioni"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["Loop OnUpdate(timeslice)"]
+    D --> F["Loop OnUpdate(timeslice)"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["Distruttore: ~MissionGameplay()"]
@@ -82,7 +79,6 @@ La classe base `Mission` definisce ogni metodo agganciabile. Tutti sono virtuali
 |--------|-------|-----------------|
 | `OnInit` | `void OnInit()` | Dopo il costruttore, prima che la missione inizi. Punto di setup principale. |
 | `OnMissionStart` | `void OnMissionStart()` | Dopo OnInit. Il mondo della missione è attivo. |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | Dopo OnMissionStart. Tutti i sistemi vanilla sono inizializzati. |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | Server: dopo il caricamento dei dati di gameplay (cfggameplay.json). |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | Ogni frame. `timeslice` sono i secondi dall'ultimo frame (tipicamente 0.016-0.033). |
 | `OnMissionFinish` | `void OnMissionFinish()` | All'arresto o alla disconnessione. Pulisci tutto qui. |
@@ -111,7 +107,7 @@ La classe base `Mission` definisce ogni metodo agganciabile. Tutti sono virtuali
 | `IsPaused` | `bool IsPaused()` | Se il gioco è in pausa (single player / listen server). |
 | `IsServer` | `bool IsServer()` | `true` per MissionServer, `false` per MissionGameplay. |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | `true` per MissionGameplay, `false` per MissionServer. |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | Riabilita l'input del giocatore dopo la disabilitazione. |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | Riabilita l'input del giocatore dopo la disabilitazione. (Deprecato nel vanilla.) |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | Disabilita l'input del giocatore (es. `INPUT_EXCLUDE_ALL`). |
 | `IsControlDisabled` | `bool IsControlDisabled()` | Se i controlli del giocatore sono attualmente disabilitati. |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | Restituisce la modalità corrente di esclusione degli input. |
@@ -190,7 +186,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // Vanilla inoltra a Hud.KeyPress(key)
-    // i valori dei tasti sono costanti KeyCode (es. KeyCode.KC_F1 = 59)
+    // i valori dei tasti sono costanti KeyCode (es. KeyCode.KC_F1 = 58)
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +197,11 @@ override void OnKeyRelease(int key)
 
 ### Hook degli Eventi
 
-L'`OnEvent()` di MissionGameplay vanilla gestisce `ChatMessageEventTypeID` (aggiunge al widget della chat), `ChatChannelEventTypeID` (aggiorna l'indicatore del canale), `WindowsResizeEventTypeID` (ricostruisce menu/HUD), `SetFreeCameraEventTypeID` (camera di debug), e `VONStateEventTypeID` (stato vocale). Sovrascrivilo con lo stesso pattern `switch` e chiama sempre `super.OnEvent()`.
+L'`OnEvent()` di MissionGameplay vanilla gestisce `ChatMessageEventTypeID` (aggiunge al widget della chat), `ChatChannelEventTypeID` (aggiorna l'indicatore del canale), `WindowsResizeEventTypeID` (ricostruisce menu/HUD), `SetFreeCameraEventTypeID` (camera di debug), e `NetworkInputBufferEventTypeID` (buffer input di rete). Sovrascrivilo con lo stesso pattern `switch` e chiama sempre `super.OnEvent()`.
 
 ### Controllo degli Input
 
-`PlayerControlDisable(int mode)` attiva un gruppo di esclusione degli input (es. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSuppress)` lo rimuove. Questi corrispondono ai gruppi di esclusione definiti in `specific.xml`. Sovrascrivili se la tua mod necessita di un comportamento personalizzato di esclusione degli input (come fa Expansion per i suoi menu).
+`PlayerControlDisable(int mode)` attiva un gruppo di esclusione degli input (es. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` lo rimuove. Questi corrispondono ai gruppi di esclusione definiti in `specific.xml`. Entrambi sono marcati `//!deprecated` nel vanilla; `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()` sono l'API corrente. Sovrascrivili se la tua mod necessita di un comportamento personalizzato di esclusione degli input (come fa Expansion per i suoi menu).
 
 ---
 
@@ -493,8 +489,7 @@ modded class MissionServer
 | Creare elementi HUD | `OnInit()` | `MissionGameplay` |
 | Pulire all'arresto del server | `OnMissionFinish()` | `MissionServer` |
 | Pulire alla disconnessione del client | `OnMissionFinish()` | `MissionGameplay` |
-| Eseguire codice una volta dopo il caricamento di tutti i sistemi | `OnMissionLoaded()` | Entrambi |
-| Disabilitare/abilitare gli input del giocatore | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| Disabilitare/abilitare gli input del giocatore | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +500,6 @@ modded class MissionServer
 | Costruttore | Sì | Sì | Classe diversa su ogni lato |
 | `OnInit()` | Sì | Sì | |
 | `OnMissionStart()` | Sì | Sì | |
-| `OnMissionLoaded()` | Sì | Sì | |
 | `OnGameplayDataHandlerLoad()` | Sì | No | cfggameplay.json caricato |
 | `OnUpdate(timeslice)` | Sì | Sì | Entrambi eseguono il proprio loop di frame |
 | `OnMissionFinish()` | Sì | Sì | |
@@ -785,15 +779,14 @@ Sia COT che Expansion seguono lo stesso pattern: i loro hook delle missioni sono
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | Hook | Quando | Usare Per |
 |------|--------|-----------|
 | `OnInit()` | Primo. I moduli script sono caricati, il mondo non è ancora attivo. | Creare manager, registrare RPC, caricare configurazioni. |
 | `OnMissionStart()` | Secondo. Il mondo è attivo, le entità possono essere generate. | Generare entità, avviare sistemi di gameplay, creare trigger. |
-| `OnMissionLoaded()` | Terzo. Tutti i sistemi vanilla completamente inizializzati. | Query tra mod, finalizzazione che dipende dal fatto che tutto sia pronto. |
 
-Chiama sempre `super` su tutti e tre. Usa `OnInit` come punto di inizializzazione principale. Usa `OnMissionLoaded` solo quando hai bisogno di garantire che altre mod si siano già inizializzate.
+Chiama sempre `super` su entrambi. Usa `OnInit` come punto di inizializzazione principale, e `OnMissionStart` per qualsiasi cosa che necessiti che il mondo sia attivo (generare entità, creare trigger).
 
 ---
 
@@ -893,7 +886,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Gerarchia Mission | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | Classe server | `MissionServer` --- gestisce connessioni giocatori, spawn, pianificazione tick |
 | Classe client | `MissionGameplay` --- gestisce HUD, input, chat, menu |
-| Ordine del ciclo di vita | Costruttore > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > loop `OnUpdate()` > `OnMissionFinish()` > Distruttore |
+| Ordine del ciclo di vita | Costruttore > `OnInit()` > `OnMissionStart()` > loop `OnUpdate()` > `OnMissionFinish()` > Distruttore |
 | Connessione giocatore (server) | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | Disconnessione giocatore (server) | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | Pattern di aggancio | `modded class MissionServer/MissionGameplay` con chiamate `override` e `super` |
@@ -939,7 +932,3 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Override di `StartingEquipSetup` per kit iniziali personalizzati | Molteplici mod della comunità | Hook dei kit iniziali in MissionServer |
 | Intercettazione `OnEvent` prima di `super` per bloccare giocatori bannati | COT | Sistema ban in MissionServer |
 | Pulizia in `OnMissionFinish` con `Unlink()` dei widget e assegnazioni null | Expansion | Pulizia HUD e menu |
-
----
-
-[Home](../README.md) | [<< Precedente: Economia Centrale](10-central-economy.md) | **Hook delle Missioni** | [Successivo: Sistema delle Azioni >>](12-action-system.md)

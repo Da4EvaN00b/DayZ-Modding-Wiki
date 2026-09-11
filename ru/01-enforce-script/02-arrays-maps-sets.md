@@ -1,6 +1,5 @@
 # Глава 1.2: Массивы, словари и множества
 
-[Главная](../README.md) | [<< Назад: Переменные и типы](01-variables-types.md) | **Массивы, словари и множества** | [Далее: Классы и наследование >>](03-classes-inheritance.md)
 
 ---
 
@@ -947,7 +946,3 @@ string GetFirstItem(array<string> items)
 | Случайный | `GetRandomElement()` | Возвращает случайное значение |
 | foreach | `foreach (T val : arr)` | Только значение |
 | foreach с индексом | `foreach (int i, T val : arr)` | Индекс + значение |
-
----
-
-[Главная](../README.md) | [<< Назад: Переменные и типы](01-variables-types.md) | **Массивы, словари и множества** | [Далее: Классы и наследование >>](03-classes-inheritance.md)

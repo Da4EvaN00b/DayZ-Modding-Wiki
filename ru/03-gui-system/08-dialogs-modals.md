@@ -1,6 +1,5 @@
 # Глава 3.8: Диалоги и модальные окна
 
-[Главная](../README.md) | [<< Назад: Стили, шрифты и изображения](07-styles-fonts.md) | **Диалоги и модальные окна** | [Далее: Паттерны UI реальных модов >>](09-real-mod-patterns.md)
 
 ---
 
@@ -631,7 +630,7 @@ class InputDialog : ScriptedWidgetEventHandler
         if (w == m_BtnOk)
         {
             string text = m_InputBox.GetText();
-            text.Trim();
+            text.TrimInPlace();
 
             if (text == "")
             {

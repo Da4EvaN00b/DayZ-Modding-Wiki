@@ -1,6 +1,5 @@
-# Chapter 2.1: The 5-Layer Script Hierarchy
+# The 5-Layer Script Hierarchy
 
-[Home](../README.md) | **The 5-Layer Script Hierarchy** | [Next: config.cpp Deep Dive >>](02-config-cpp.md)
 
 ---
 
@@ -172,9 +171,9 @@ Bindings de biblioteca de baixo nivel do motor. Esta camada existe na hierarquia
 **DabsFramework** e um dos poucos mods que usa esta camada:
 
 ```c
-// 2_GameLib/DabsFramework/MVC/ScriptView.c
-// Infraestrutura de binding de view de baixo nivel
-class ScriptView : ScriptedWidgetEventHandler
+// 2_GameLib/DabsFramework/Attributes/AttributeBase/ConfigEntryAttribute.c
+// Infraestrutura de binding de atributo de baixo nivel
+class ConfigEntryAttribute : AttributeBase
 {
     // ...
 };
@@ -226,17 +225,6 @@ class JMRPCData
     static const int WEATHER_SET  = 0x1001;
     static const int PLAYER_HEAL  = 0x1002;
     // ...
-};
-```
-
-**VPP Admin Tools** registra seus comandos de chat:
-
-```c
-// 3_Game/VPPAdminTools/ChatCommands/ChatCommandBase.c
-class ChatCommandBase
-{
-    string GetCommand();
-    bool Execute(PlayerIdentity sender, array<string> args);
 };
 ```
 

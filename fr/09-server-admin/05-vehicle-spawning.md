@@ -1,6 +1,5 @@
 # Chapter 9.5 : Apparition des véhicules et événements dynamiques
 
-[Accueil](../README.md) | [<< Précédent : Économie du loot](04-loot-economy.md) | [Suivant : Apparition des joueurs >>](06-player-spawning.md)
 
 ---
 
@@ -35,7 +34,7 @@ Les véhicules ne sont **pas** définis dans `types.xml`. Si vous ajoutez une cl
 
 Le CE lit `events.xml`, choisit un événement qui a besoin d'apparaître, cherche les positions correspondantes dans `cfgeventspawns.xml`, en sélectionne une au hasard qui satisfait les contraintes `saferadius` et `distanceradius`, puis fait apparaître une entité enfant sélectionnée aléatoirement à cette position.
 
-Les trois fichiers se trouvent dans `mpmissions/<votre_mission>/db/`.
+`events.xml` se trouve dans `mpmissions/<votre_mission>/db/`, tandis que `cfgeventspawns.xml` et `cfgeventgroups.xml` se trouvent à la racine de la mission (`mpmissions/<votre_mission>/`).
 
 ---
 
@@ -167,17 +166,17 @@ Les crashs d'hélicoptères sont des événements dynamiques qui font apparaîtr
 ```xml
 <event name="StaticHeliCrash">
     <nominal>3</nominal>
-    <min>1</min>
-    <max>3</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2100</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
     <children>
         <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
@@ -202,25 +201,23 @@ Les convois militaires sont des groupes de véhicules épaves statiques qui appa
 ```xml
 <event name="StaticMilitaryConvoy">
     <nominal>5</nominal>
-    <min>3</min>
-    <max>5</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>1800</lifetime>
     <restock>0</restock>
     <saferadius>1000</saferadius>
-    <distanceradius>500</distanceradius>
-    <cleanupradius>200</cleanupradius>
+    <distanceradius>1000</distanceradius>
+    <cleanupradius>1000</cleanupradius>
     <secondary>InfectedArmy</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="5" min="3" type="Wreck_V3S"/>
-    </children>
+    <children/>
 </event>
 ```
 
-Les convois fonctionnent de manière identique aux crashs d'hélicoptères : le tag `<secondary>` fait apparaître `InfectedArmy` autour du site, et les objets de loot avec `deloot="1"` apparaissent sur les épaves. Avec `nominal=5`, jusqu'à 5 sites de convoi existent sur la carte simultanément. Chacun dure 1800 secondes (30 minutes) avant de se déplacer vers un nouvel emplacement.
+Les convois fonctionnent comme les crashs d'hélicoptères : le tag `<secondary>` fait apparaître `InfectedArmy` autour du site, et les objets de loot avec `deloot="1"` apparaissent sur les épaves. Contrairement au crash d'hélicoptère, l'événement de convoi a un élément `<children/>` vide -- ses véhicules épaves sont définis comme un groupe dans `cfgeventgroups.xml` et placés via des références de groupe dans `cfgeventspawns.xml`. Avec `nominal=5`, jusqu'à 5 sites de convoi existent sur la carte simultanément. Chacun dure 1800 secondes (30 minutes) avant de se déplacer vers un nouvel emplacement.
 
 ---
 
@@ -231,20 +228,21 @@ Les événements de voitures de police font apparaître des véhicules de police
 ```xml
 <event name="StaticPoliceCar">
     <nominal>10</nominal>
-    <min>5</min>
-    <max>10</max>
+    <min>0</min>
+    <max>0</max>
     <lifetime>2500</lifetime>
     <restock>0</restock>
     <saferadius>500</saferadius>
-    <distanceradius>200</distanceradius>
-    <cleanupradius>100</cleanupradius>
+    <distanceradius>500</distanceradius>
+    <cleanupradius>200</cleanupradius>
     <secondary>InfectedPoliceHard</secondary>
     <flags deletable="1" init_random="0" remove_damaged="0"/>
     <position>fixed</position>
-    <limit>mixed</limit>
+    <limit>child</limit>
     <active>0</active>
     <children>
-        <child lootmax="5" lootmin="3" max="10" min="5" type="Wreck_PoliceCar"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban1_police"/>
+        <child lootmax="5" lootmin="3" max="5" min="5" type="Land_Wreck_sed01_aban2_police"/>
     </children>
 </event>
 ```
@@ -258,17 +256,15 @@ Les événements de voitures de police font apparaître des véhicules de police
 Ce fichier définit les événements où plusieurs objets apparaissent ensemble avec des décalages de position relatifs. L'utilisation la plus courante est les trains abandonnés.
 
 ```xml
-<event name="Train_Abandoned_Cherno">
-    <children>
-        <child type="Land_Train_Wagon_Tanker_Blue" x="0" z="0" a="0"/>
-        <child type="Land_Train_Wagon_Box_Brown" x="0" z="15" a="0"/>
-        <child type="Land_Train_Wagon_Flatbed_Green" x="0" z="30" a="0"/>
-        <child type="Land_Train_Engine_Blue" x="0" z="45" a="0"/>
-    </children>
-</event>
+<group name="Train_Abandoned_Cherno">
+    <child type="StaticObj_Wreck_Train_742_Red_DE" deloot="0" lootmax="3" lootmin="1" x="0" z="0" a="78.123" y="1.9"/>
+    <child type="StaticObj_Wreck_Train_Wagon_Tanker_DE" deloot="0" lootmax="3" lootmin="1" x="12.085" z="2.740" a="256.739" y="1.789"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="34.546" z="8.424" a="255.837" y="1.32"/>
+    <child type="Land_Train_Wagon_Box_DE" deloot="0" lootmax="3" lootmin="2" x="46.285" z="11.341" a="255.321" y="1.398"/>
+</group>
 ```
 
-Le premier enfant est placé à la position de `cfgeventspawns.xml`. Les enfants suivants sont décalés par leurs valeurs `x`, `z`, `a` par rapport à cette origine. Dans cet exemple, les wagons sont espacés de 15 mètres le long de l'axe z.
+Chaque groupe est déclaré avec un élément `<group name="...">` à l'intérieur de la racine `<eventgroupdef>` du fichier, et ses entrées `<child>` sont des enfants directs de `<group>` (il n'y a pas de wrapper `<children>` ici). Le premier enfant est placé à la position de `cfgeventspawns.xml`. Les enfants suivants sont décalés par leurs valeurs `x`, `z`, `y`, `a` par rapport à cette origine.
 
 Chaque `<child>` dans un groupe a :
 
@@ -277,7 +273,11 @@ Chaque `<child>` dans un groupe a :
 | `type` | Nom de classe de l'objet à faire apparaître. |
 | `x` | Décalage en X en mètres depuis l'origine du groupe. |
 | `z` | Décalage en Z en mètres depuis l'origine du groupe. |
+| `y` | Décalage en Y (vertical) en mètres depuis l'origine du groupe. |
 | `a` | Décalage d'angle en degrés depuis l'origine du groupe. |
+| `deloot` | Indique si le loot d'événement dynamique peut apparaître dans cet enfant (0 ou 1). |
+| `lootmin` | Nombre minimum d'objets de loot apparus dans cet enfant. |
+| `lootmax` | Nombre maximum d'objets de loot apparus dans cet enfant. |
 
 L'événement de groupe lui-même a toujours besoin d'une entrée correspondante dans `events.xml` pour contrôler les compteurs nominaux, la durée de vie et l'état actif.
 
@@ -343,7 +343,3 @@ Ce sont les problèmes d'apparition de véhicules les plus fréquents rencontré
 **Problème :** Un véhicule apparaît clippé dans un bâtiment ou enterré dans le terrain.
 
 **Solution :** Examinez les coordonnées `<pos>` dans `cfgeventspawns.xml`. Testez les positions en jeu en utilisant la téléportation admin avant de les ajouter au fichier. Les positions doivent être sur des routes plates ou un terrain dégagé, et l'angle (`a`) doit être aligné avec la direction de la route.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Économie du loot](04-loot-economy.md) | [Suivant : Apparition des joueurs >>](06-player-spawning.md)

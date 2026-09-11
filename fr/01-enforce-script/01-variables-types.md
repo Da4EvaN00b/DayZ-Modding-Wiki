@@ -1,6 +1,5 @@
 # Chapitre 1.1 : Variables et types
 
-[Accueil](../README.md) | **Variables et types** | [Suivant : Tableaux, Maps et Sets >>](02-arrays-maps-sets.md)
 
 ---
 
@@ -305,8 +304,8 @@ void StringExamples()
     bool same = (greeting == "Hello");  // true
 
     // Conversion depuis d'autres types
-    string fromInt = "Score: " + 42;     // ne fonctionne PAS -- il faut convertir explicitement
-    string correct = "Score: " + 42.ToString();  // "Score: 42"
+    string fromInt = "Score: " + 42;     // fonctionne -- l'opérateur + convertit 42 en "42"
+    string correct = "Score: " + 42.ToString();  // "Score: 42" (explicite, même résultat)
 
     // Utiliser Format est l'approche recommandée
     string best = string.Format("Score: %1", 42);  // "Score: 42"
@@ -464,7 +463,7 @@ void TypenameExamples()
     typename t = PlayerBase;
 
     // Obtenir un typename depuis une chaîne
-    typename t2 = t.StringToEnum(PlayerBase, "PlayerBase");
+    typename t2 = "PlayerBase".ToType();
 
     // Comparer des types
     if (t == PlayerBase)
@@ -873,7 +872,3 @@ Indice : pour la distance 2D, créez de nouveaux vecteurs avec `[1]` mis à `0` 
 | Portée | Variables limitées aux blocs `{}` ; pas de redéclaration dans les portées imbriquées/parallèles |
 | Conversion | `float` vers `int` tronque ; utilisez `.ToInt()`, `.ToFloat()`, `.ToVector()` pour le parsing de chaînes |
 | Formatage | Utilisez toujours `string.Format()` pour construire des chaînes à partir de types mixtes |
-
----
-
-[Accueil](../README.md) | **Variables et types** | [Suivant : Tableaux, Maps et Sets >>](02-arrays-maps-sets.md)

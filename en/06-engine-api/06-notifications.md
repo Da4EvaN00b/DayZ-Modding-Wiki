@@ -1,6 +1,5 @@
-# Chapter 6.6: Notification System
+# Notification System
 
-[Home](../README.md) | [<< Previous: Post-Process Effects](05-ppe.md) | **Notifications** | [Next: Timers & CallQueue >>](07-timers.md)
 
 ---
 
@@ -157,11 +156,13 @@ The vanilla game defines notification types with associated titles and icons. Co
 
 | Type | Description |
 |------|-------------|
-| `NotificationType.GENERIC` | Generic notification |
-| `NotificationType.FRIENDLY_FIRE` | Friendly fire warning |
-| `NotificationType.JOIN` | Player join |
-| `NotificationType.LEAVE` | Player leave |
-| `NotificationType.STATUS` | Status update |
+| `NotificationType.FRIEND_CONNECTED` | A friend connected |
+| `NotificationType.INVITE_FAIL_SAME_SERVER` | Invite failed (already on same server) |
+| `NotificationType.JOIN_FAIL_GET_SESSION` | Failed to get session when joining |
+| `NotificationType.CONNECT_FAIL_GENERIC` | Generic connection failure |
+| `NotificationType.DISCONNECTED` | Disconnected from server |
+| `NotificationType.GENERIC_ERROR` | Generic error |
+| `NotificationType.NOTIFICATIONS_END` | Sentinel value (marks the end of the enum) |
 
 > **Note:** The available types depend on the game version. For maximum flexibility, use the `Extended` variants which accept custom title and icon strings.
 
@@ -207,7 +208,7 @@ ref ScriptInvoker m_OnNotificationRemoved;
 ```c
 void Init()
 {
-    NotificationSystem notifSys = GetNotificationSystem();
+    NotificationSystem notifSys = NotificationSystem.GetInstance();
     if (notifSys)
     {
         notifSys.m_OnNotificationAdded.Insert(OnNotifAdded);
@@ -236,7 +237,7 @@ The notification system must be ticked each frame to handle fade-in/fade-out ani
 static void Update(float timeslice);
 ```
 
-This is called automatically by the vanilla mission's `OnUpdate` method. If you are writing a completely custom mission, make sure to call it.
+This is called automatically from `DayZGame.OnUpdate` (the game's update loop), not the mission's `OnUpdate`. If you are writing a completely custom game class, make sure to call it.
 
 ---
 
@@ -285,23 +286,79 @@ class MyServerModule
 
 ---
 
-## CommunityFramework (CF) Alternative
+## Building a Custom Notification Layer
 
-If you use CommunityFramework, it provides its own notification API:
+Several large public frameworks (CommunityFramework, DayZ-Expansion) ship their own notification channels that stack above the vanilla toasts, adding conveniences such as colored icons, localized strings, and per-server styling. You do not need a framework to get most of that --- a thin static wrapper over the vanilla `NotificationSystem` gives you named severity helpers, consistent icons, and a single choke point for logging, while still sharing the vanilla 5-notification stack.
+
+The example below wraps the `Extended` server-to-client call. Every helper routes through `SendNotificationToPlayerExtended`, so a Lantern notification behaves exactly like a vanilla one on the client:
 
 ```c
-// CF notification (different RPC internally)
-NotificationSystem.Create(
-    new StringLocaliser("Title"),
-    new StringLocaliser("Body with param: %1", someValue),
-    "set:dayz_gui image:icon_info",
-    COLOR_GREEN,
-    5,
-    player.GetIdentity()
-);
+// Lantern_Core/Scripts/3_Game/LNT_Notify.c
+// Static convenience wrapper over the vanilla NotificationSystem.
+// Named severity helpers pick a preset icon and a sensible display time.
+class LNT_Notify
+{
+    // Icons live in the mod's imageset (lnt_icons.imageset).
+    // Use colored glyphs to convey severity, since vanilla toasts
+    // do not carry a per-message color of their own.
+    static const string ICON_INFO    = "set:lnt_icons image:info";
+    static const string ICON_WARNING = "set:lnt_icons image:warning";
+    static const string ICON_SUCCESS = "set:lnt_icons image:success";
+
+    static void Info(PlayerBase player, string title, string body = "")
+    {
+        Send(player, title, body, ICON_INFO, 8.0);
+    }
+
+    static void Warning(PlayerBase player, string title, string body = "")
+    {
+        Send(player, title, body, ICON_WARNING, 10.0);
+    }
+
+    static void Success(PlayerBase player, string title, string body = "")
+    {
+        Send(player, title, body, ICON_SUCCESS, 6.0);
+    }
+
+    // Single choke point: guard, validate, then hand off to vanilla.
+    static void Send(PlayerBase player, string title, string body, string icon, float show_time)
+    {
+        if (!GetGame().IsServer())
+            return;
+
+        if (!player)
+            return;
+
+        NotificationSystem.SendNotificationToPlayerExtended(player, show_time, title, body, icon);
+    }
+}
 ```
 
-The CF API adds color and localization support. Use whichever system your mod stack requires --- they are functionally similar but use different internal RPCs.
+Calling it from server code stays readable:
+
+```c
+// Server-side
+LNT_Notify.Warning(player, "Restart Soon", "Server restarts in 5 minutes.");
+LNT_Notify.Success(player, "Objective Complete", "You secured the airfield.");
+```
+
+### Registering a Custom Preset in notifications.json
+
+The typed variants (`SendNotificationToPlayer`, `AddNotification`) do not carry a title or icon in the call --- they look those up by `NotificationType` in `scripts/data/notifications.json`. At startup `NotificationSystem.LoadNotificationData()` reads that file into a map keyed by the enum value:
+
+```json
+{
+    "0": {
+        "m_Icon": "set:dayz_gui image:notification_friend",
+        "m_TitleText": "#ps4_invite_friend_connected",
+        "m_DescriptionText": ""
+    }
+}
+```
+
+Each key is the integer value of a `NotificationType`; `m_Icon` uses the same `"set:... image:..."` syntax as the `Extended` methods, and the two text fields accept stringtable keys (`#STR_...`) for localization. If a type in the enum has no matching JSON entry, `LoadNotificationData()` writes a placeholder row for it and re-saves the file.
+
+For most mods, prefer the `Extended` wrapper above: it needs no shared data file and cannot collide with another mod's preset keys. Reserve the typed/JSON route for notifications whose icon and localized title you want defined as data rather than passed at every call site.
 
 ---
 
@@ -332,10 +389,6 @@ The CF API adds color and localization support. Use whichever system your mod st
 
 ## Compatibility & Impact
 
-- **Multi-Mod:** The vanilla `NotificationSystem` is shared by all mods. Multiple mods sending notifications simultaneously can overflow the 5-notification stack. CF provides a separate notification channel that does not conflict with vanilla notifications.
+- **Multi-Mod:** The vanilla `NotificationSystem` is shared by all mods. Multiple mods sending notifications simultaneously can overflow the 5-notification stack. Framework notification systems render on their own layer, independently of the vanilla stack.
 - **Performance:** Notifications are lightweight (a single RPC per notification). However, broadcasting to all players every few seconds generates measurable network traffic on servers with 60+ players.
 - **Server/Client:** `SendNotificationToPlayer*` methods are server-to-client RPCs. `AddNotificationExtended` is client-only (local). The `Update()` tick runs on the client mission loop.
-
----
-
-[<< Previous: Post-Process Effects](05-ppe.md) | **Notifications** | [Next: Timers & CallQueue >>](07-timers.md)

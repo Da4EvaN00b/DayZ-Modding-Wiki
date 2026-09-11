@@ -1,6 +1,5 @@
-# Capítulo 6.23: Sistemas de Configuração de Mundo
+# Sistemas de Configuração de Mundo
 
-[Início](../README.md) | [<< Anterior: Administração e Gerenciamento de Servidor](22-admin-server.md) | **Sistemas de Mundo**
 
 ---
 
@@ -138,7 +137,7 @@ Quando um jogador está dentro de uma zona de trigger contaminada sem proteção
 - O efeito PPE tinge a visão do jogador (tonalidade verde/amarela por padrão)
 - Partículas de gás aparecem ao redor do personagem do jogador
 
-**Proteção:** Máscaras de gás com filtros intactos e trajes NBQ fornecem proteção. A lógica de proteção é tratada em script (`ContaminatedAreaAgent` e classes relacionadas), não na configuração JSON.
+**Proteção:** Máscaras de gás com filtros intactos e trajes NBQ fornecem proteção. O tick de dano é tratado em script pela classe `ContaminatedTrigger` (usando `GameConstants.AI_CONTAMINATION_DMG_PER_SEC`), e a proteção vem do equipamento NBQ vestido --- nenhum dos dois é definido na configuração JSON.
 
 ### Múltiplas Zonas
 
@@ -499,7 +498,7 @@ O arquivo `cfgGameplay.json` fornece aos administradores de servidor uma forma d
 |------|-----------|--------|-----------|
 | float | `sprintStaminaModifierErc` | `1.0` | Taxa de consumo de stamina durante sprint em pé |
 | float | `sprintStaminaModifierCro` | `1.0` | Taxa de consumo de stamina durante sprint agachado |
-| float | `staminaWeightLimitThreshold` | `6000.0` | Pontos de stamina (divididos por 1000) isentos de dedução por peso |
+| float | `staminaWeightLimitThreshold` | `6000.0` | Limite de peso carregado em gramas (6000 g = 6 kg) abaixo do qual a carga não penaliza a stamina |
 | float | `staminaMax` | `100.0` | Stamina máxima (não defina como 0) |
 | float | `staminaKgToStaminaPercentPenalty` | `1.75` | Multiplicador de dedução de stamina baseado na carga do jogador |
 | float | `staminaMinCap` | `5.0` | Limite mínimo de stamina (não defina como 0) |
@@ -791,7 +790,3 @@ Todos os cinco sistemas compartilham estas características:
 - Carregados no **início do servidor** (mudanças requerem reinicialização)
 - Não requerem **modificações de script** para uso básico
 - Podem ser **combinados com scripting** para comportamento avançado
-
----
-
-[Início](../README.md) | [<< Anterior: Administração e Gerenciamento de Servidor](22-admin-server.md) | **Sistemas de Mundo**

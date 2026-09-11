@@ -1,551 +1,498 @@
-# Chapter 6.10: Central Economy
+# Central Economy Script API
 
-[Home](../README.md) | [<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Next: Mission Hooks >>](11-mission-hooks.md)
-
----
-
-## Introduction
-
-The Central Economy (CE) is DayZ's server-side system for managing all spawnable entities in the world: loot, vehicles, infected, animals, and dynamic events. It is configured entirely through XML files in the mission folder. While the CE itself is an engine system (not directly scriptable), understanding its configuration files is essential for any server mod. This chapter covers all CE configuration files, their structure, key parameters, and how they interact.
+> **Summary:** The Central Economy (CE) is DayZ's server-side spawning engine — it reads `types.xml`, `globals.xml`, `events.xml`, and the other mission XML files and keeps the world stocked with loot, vehicles, infected, and animals. This chapter covers the **script side** of the CE: the `CEApi` interface, ECE spawn flags, `CEItemProfile`, per-entity lifetime control, and the hooks the engine fires when the CE creates an entity.
 
 ---
 
-## How the CE Works
+## Table of Contents
 
-1. The server reads `types.xml` to learn every item's **nominal** (target count) and **min** (minimum before restock).
-2. Items are assigned **usage flags** (e.g., `Military`, `Town`) that map to building/location types.
-3. Items are assigned **value flags** (e.g., `Tier1` through `Tier4`) that restrict them to map zones.
-4. The CE periodically scans the world, counts existing items, and spawns new ones when counts fall below `min`.
-5. Items untouched for their `lifetime` (seconds) are cleaned up.
-6. Dynamic events (`events.xml`) spawn vehicles, helicopter crashes, and infected groups on their own schedule.
-
----
-
-## File Overview
-
-All CE files live in the mission folder (e.g., `dayzOffline.chernarusplus/`).
-
-| File | Purpose |
-|------|---------|
-| `db/types.xml` | Every spawnable item's parameters |
-| `db/events.xml` | Dynamic event definitions (vehicles, crashes, infected) |
-| `db/globals.xml` | Global CE parameters (timers, limits) |
-| `db/economy.xml` | Subsystem toggle switches |
-| `cfgeconomycore.xml` | Root classes, defaults, CE logging |
-| `cfgspawnabletypes.xml` | Per-item attachment and cargo rules |
-| `cfgrandompresets.xml` | Random loot preset pools |
-| `cfgeventspawns.xml` | World coordinates for event spawn positions |
-| `cfglimitsdefinition.xml` | All valid category, usage, and value flag names |
-| `cfgplayerspawnpoints.xml` | Fresh spawn locations |
+- [The CE at a Glance](#the-ce-at-a-glance)
+- [Where the XML Reference Lives](#where-the-xml-reference-lives)
+- [The Hive and CE Availability](#the-hive-and-ce-availability)
+- [Getting the CE API](#getting-the-ce-api)
+- [ECE Spawn Flags](#ece-spawn-flags)
+- [Rotation Flags (RF)](#rotation-flags-rf)
+- [Reading an Item's Economy Profile](#reading-an-items-economy-profile)
+- [Controlling Lifetime from Script](#controlling-lifetime-from-script)
+- [Reading globals.xml from Script](#reading-globalsxml-from-script)
+- [Avoidance Queries](#avoidance-queries)
+- [The EEOnCECreate Hook](#the-eeoncecreate-hook)
+- [Developer and Diagnostic Tools](#developer-and-diagnostic-tools)
+- [Summary](#summary)
 
 ---
 
-## Spawn Cycle
+## The CE at a Glance
 
-```mermaid
-flowchart TD
-    A[CE Startup] --> B[Load types.xml]
-    B --> C[For each item type]
-    C --> D{Current count < nominal?}
-    D -->|Yes| E{Restock timer elapsed?}
-    E -->|Yes| F[Spawn item at valid position]
-    E -->|No| G[Wait for restock interval]
-    D -->|No| H{Current count > nominal?}
-    H -->|Yes| I[Mark excess for cleanup]
-    H -->|No| J[Item count balanced]
-    F --> K{Lifetime expired?}
-    K -->|Yes| L[Delete item]
-    K -->|No| M[Item persists]
-    L --> C
-```
+The Central Economy is an engine system that runs entirely on the server. On a continuous loop it:
+
+1. Reads `types.xml` to learn every item's **nominal** (target count) and **min** (respawn threshold).
+2. Matches items to spawn locations through **usage** flags (`Military`, `Town`, ...) and **value** flags (`Tier1`-`Tier4`).
+3. Counts existing instances, and spawns replacements when a count drops below `min`.
+4. Deletes items whose **lifetime** expires untouched.
+5. Runs dynamic events (`events.xml`) for vehicles, helicopter crashes, and infected on their own schedule.
+
+The CE is configured through XML files in the mission folder (`types.xml`, `globals.xml`, `events.xml`, `cfgspawnabletypes.xml`, `cfgrandompresets.xml`, `cfgeconomycore.xml`, `cfglimitsdefinition.xml`, `cfgeventspawns.xml`). Script code does not drive the spawn loop — but it can query the CE, adjust lifetimes, spawn through it, and react when it creates entities. That script surface is what this chapter documents.
 
 ---
 
-## types.xml
+## Where the XML Reference Lives
 
-The most critical CE file. Every item that can exist in the world must have an entry here.
+The full field-by-field XML reference is in the server administration part of this wiki:
 
-### Structure
-
-```xml
-<types>
-    <type name="AKM">
-        <nominal>10</nominal>
-        <lifetime>14400</lifetime>
-        <restock>0</restock>
-        <min>5</min>
-        <quantmin>-1</quantmin>
-        <quantmax>-1</quantmax>
-        <cost>100</cost>
-        <flags count_in_cargo="0" count_in_hoarder="0"
-               count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
-        <category name="weapons"/>
-        <usage name="Military"/>
-        <value name="Tier3"/>
-        <value name="Tier4"/>
-    </type>
-</types>
-```
-
-### Parameters
-
-| Parameter | Description | Typical Values |
-|-----------|-------------|----------------|
-| `nominal` | Target count on the entire map | 1 - 200 |
-| `lifetime` | Seconds before untouched items despawn | 3600 (1h) - 14400 (4h) |
-| `restock` | Seconds before CE attempts to respawn after item is taken | 0 (immediate) - 1800 |
-| `min` | Minimum count before CE spawns more | Usually `nominal / 2` |
-| `quantmin` | Minimum quantity % (ammo, liquids); -1 = not applicable | -1, 0 - 100 |
-| `quantmax` | Maximum quantity %; -1 = not applicable | -1, 0 - 100 |
-| `cost` | Priority cost (always 100 in vanilla) | 100 |
-
-### Flags
-
-| Flag | Description |
-|------|-------------|
-| `count_in_cargo` | Count items inside player/container cargo toward nominal |
-| `count_in_hoarder` | Count items in storage (tents, barrels, buried stashes) |
-| `count_in_map` | Count items on the ground and in buildings |
-| `count_in_player` | Count items on player characters |
-| `crafted` | Item is craftable (CE does not spawn it naturally) |
-| `deloot` | Dynamic event loot (spawned by events, not CE) |
-
-### Category, Usage, and Value
-
-- **category**: Item category (e.g., `weapons`, `tools`, `food`, `clothes`, `containers`)
-- **usage**: Where the item spawns (e.g., `Military`, `Police`, `Town`, `Village`, `Farm`, `Hunting`, `Coast`)
-- **value**: Map tier restriction (e.g., `Tier1` = coast, `Tier2` = inland, `Tier3` = military, `Tier4` = deep inland)
-
-An item can have multiple `<usage>` and `<value>` tags to spawn in multiple locations and tiers.
-
-**Example --- add a custom item to the economy:**
-
-```xml
-<type name="MyCustomRifle">
-    <nominal>5</nominal>
-    <lifetime>14400</lifetime>
-    <restock>1800</restock>
-    <min>2</min>
-    <quantmin>-1</quantmin>
-    <quantmax>-1</quantmax>
-    <cost>100</cost>
-    <flags count_in_cargo="0" count_in_hoarder="0"
-           count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
-    <category name="weapons"/>
-    <usage name="Military"/>
-    <value name="Tier3"/>
-    <value name="Tier4"/>
-</type>
-```
+- **[Loot Economy Deep Dive](../09-server-admin/04-loot-economy.md)** — `types.xml`, `globals.xml`, `cfgspawnabletypes.xml`, `cfgrandompresets.xml`, `cfgeconomycore.xml`, `cfglimitsdefinition.xml`, tuning, and troubleshooting.
+- **[Vehicle & Dynamic Event Spawning](../09-server-admin/05-vehicle-spawning.md)** — `events.xml`, `cfgeventspawns.xml`, and `cfgeventgroups.xml`.
 
 ---
 
-## globals.xml
+## The Hive and CE Availability
 
-Global CE parameters that affect all items.
-
-```xml
-<variables>
-    <var name="AnimalMaxCount" type="0" value="200"/>
-    <var name="CleanupAvoidance" type="0" value="100"/>
-    <var name="CleanupLifetimeDeadAnimal" type="0" value="1200"/>
-    <var name="CleanupLifetimeDeadInfected" type="0" value="330"/>
-    <var name="CleanupLifetimeDeadPlayer" type="0" value="3600"/>
-    <var name="CleanupLifetimeDefault" type="0" value="45"/>
-    <var name="CleanupLifetimeLimit" type="0" value="50"/>
-    <var name="CleanupLifetimeRuined" type="0" value="330"/>
-    <var name="FlagRefreshFrequency" type="0" value="432000"/>
-    <var name="FlagRefreshMaxDuration" type="0" value="3456000"/>
-    <var name="IdleModeCountdown" type="0" value="60"/>
-    <var name="IdleModeStartup" type="0" value="1"/>
-    <var name="InitialSpawn" type="0" value="100"/>
-    <var name="LootDamageMax" type="1" value="0.82"/>
-    <var name="LootDamageMin" type="1" value="0.0"/>
-    <var name="RespawnAttempt" type="0" value="2"/>
-    <var name="RespawnLimit" type="0" value="20"/>
-    <var name="RespawnTypes" type="0" value="12"/>
-    <var name="RestartSpawn" type="0" value="0"/>
-    <var name="SpawnInitial" type="0" value="1200"/>
-    <var name="TimeHopping" type="0" value="60"/>
-    <var name="TimeLogin" type="0" value="15"/>
-    <var name="TimeLogout" type="0" value="15"/>
-    <var name="TimePenalty" type="0" value="20"/>
-    <var name="WorldWetTempUpdate" type="0" value="1"/>
-    <var name="ZombieMaxCount" type="0" value="1000"/>
-</variables>
-```
-
-### Key Parameters
-
-| Variable | Description |
-|----------|-------------|
-| `AnimalMaxCount` | Maximum animals alive simultaneously |
-| `ZombieMaxCount` | Maximum infected alive simultaneously |
-| `CleanupLifetimeDeadPlayer` | Seconds before dead player body despawns |
-| `CleanupLifetimeDeadInfected` | Seconds before dead zombie despawns |
-| `InitialSpawn` | Number of items to spawn on server startup |
-| `SpawnInitial` | Number of spawn attempts on startup |
-| `LootDamageMin` / `LootDamageMax` | Damage range applied to spawned loot (0.0-1.0 float, type="1") |
-| `RespawnAttempt` | Seconds between respawn checks |
-| `FlagRefreshFrequency` | Territory flag refresh interval (seconds) |
-| `TimeLogin` / `TimeLogout` | Login/logout timer (seconds) |
-
----
-
-## events.xml
-
-Defines dynamic events: infected spawn zones, vehicle spawns, helicopter crashes, and other world events.
-
-### Structure
-
-```xml
-<events>
-    <event name="StaticHeliCrash">
-        <nominal>3</nominal>
-        <min>0</min>
-        <max>0</max>
-        <lifetime>2100</lifetime>
-        <restock>0</restock>
-        <saferadius>1000</saferadius>
-        <distanceradius>1000</distanceradius>
-        <cleanupradius>1000</cleanupradius>
-        <flags deletable="1" init_random="0" remove_damaged="0"/>
-        <position>fixed</position>
-        <limit>child</limit>
-        <active>1</active>
-        <children>
-            <child lootmax="10" lootmin="5" max="3" min="1"
-                   type="Wreck_UH1Y"/>
-        </children>
-    </event>
-</events>
-```
-
-### Event Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| `nominal` | Target number of active events |
-| `min` / `max` | Minimum and maximum active at once |
-| `lifetime` | Seconds before event despawns |
-| `saferadius` | Minimum distance from players when spawning |
-| `distanceradius` | Minimum distance between event instances |
-| `cleanupradius` | Radius for cleanup checks |
-| `position` | `"fixed"` (from cfgeventspawns.xml) or `"player"` (near players) |
-| `active` | `1` = enabled, `0` = disabled |
-
-### Children (Event Objects)
-
-Each event can spawn one or more child objects:
-
-| Attribute | Description |
-|-----------|-------------|
-| `type` | Class name of the object to spawn |
-| `min` / `max` | Count range for this child |
-| `lootmin` / `lootmax` | Number of loot items spawned with this child |
-
----
-
-## cfgspawnabletypes.xml
-
-Defines what attachments and cargo spawn with specific items.
-
-```xml
-<spawnabletypes>
-    <type name="AKM">
-        <attachments chance="0.3">
-            <item name="AK_WoodBttstck" chance="0.5"/>
-            <item name="AK_PlasticBttstck" chance="0.3"/>
-            <item name="AK_FoldingBttstck" chance="0.2"/>
-        </attachments>
-        <attachments chance="0.2">
-            <item name="AK_WoodHndgrd" chance="0.6"/>
-            <item name="AK_PlasticHndgrd" chance="0.4"/>
-        </attachments>
-        <cargo chance="0.15">
-            <item name="Mag_AKM_30Rnd" chance="0.7"/>
-            <item name="Mag_AKM_Drum75Rnd" chance="0.3"/>
-        </cargo>
-    </type>
-</spawnabletypes>
-```
-
-### How It Works
-
-- Each `<attachments>` block has a `chance` (0.0 - 1.0) of being applied.
-- Within a block, items are selected by their individual `chance` values (normalized to 100% within the block).
-- Multiple `<attachments>` blocks allow different attachment slots to be independently rolled.
-- `<cargo>` blocks work the same way for items placed in the entity's cargo.
-
----
-
-## cfgrandompresets.xml
-
-Defines reusable loot preset pools referenced by `cfgspawnabletypes.xml`.
-
-```xml
-<randompresets>
-    <cargo name="foodGeneral" chance="0.5">
-        <item name="Apple" chance="0.15"/>
-        <item name="Pear" chance="0.15"/>
-        <item name="BakedBeansCan" chance="0.3"/>
-        <item name="SardinesCan" chance="0.3"/>
-        <item name="WaterBottle" chance="0.1"/>
-    </cargo>
-</randompresets>
-```
-
-These presets can be referenced by name in `cfgspawnabletypes.xml`:
-
-```xml
-<type name="Barrel_Green">
-    <cargo preset="foodGeneral"/>
-</type>
-```
-
----
-
-## cfgeconomycore.xml
-
-Root-level CE configuration. Defines default values, CE classes, and logging flags.
-
-```xml
-<economycore>
-    <classes>
-        <rootclass name="CfgVehicles" act="character" reportMemoryLOD="no"/>
-        <rootclass name="CfgVehicles" act="car"/>
-        <rootclass name="CfgVehicles" act="deployable"/>
-        <rootclass name="CfgAmmo" act="none" reportMemoryLOD="no"/>
-    </classes>
-    <defaults>
-        <default name="dyn_radius" value="40"/>
-        <default name="dyn_smin" value="0"/>
-        <default name="dyn_smax" value="0"/>
-        <default name="dyn_dmin" value="0"/>
-        <default name="dyn_dmax" value="10"/>
-    </defaults>
-    <ce folder="db"/>
-</economycore>
-```
-
-The `<ce folder="db"/>` tag tells the CE where to find `types.xml`, `events.xml`, and `globals.xml`.
-
----
-
-## cfglimitsdefinition.xml
-
-Defines all valid category, usage, tag, and value flag names that can be used in `types.xml`.
-
-```xml
-<lists>
-    <categories>
-        <category name="weapons"/>
-        <category name="tools"/>
-        <category name="food"/>
-        <category name="clothes"/>
-        <category name="containers"/>
-        <category name="vehiclesparts"/>
-        <category name="explosives"/>
-    </categories>
-    <usageflags>
-        <usage name="Military"/>
-        <usage name="Police"/>
-        <usage name="Hunting"/>
-        <usage name="Town"/>
-        <usage name="Village"/>
-        <usage name="Farm"/>
-        <usage name="Coast"/>
-        <usage name="Industrial"/>
-        <usage name="Medic"/>
-        <usage name="Firefighter"/>
-        <usage name="School"/>
-        <usage name="Office"/>
-        <usage name="Prison"/>
-        <usage name="Lunapark"/>
-        <usage name="ContaminatedArea"/>
-    </usageflags>
-    <valueflags>
-        <value name="Tier1"/>
-        <value name="Tier2"/>
-        <value name="Tier3"/>
-        <value name="Tier4"/>
-    </valueflags>
-</lists>
-```
-
-Custom mods can add new flags here and reference them in their `types.xml` entries.
-
----
-
-## ECE Flags in Script
-
-When spawning entities from script, the ECE flags (covered in [Chapter 6.1](01-entity-system.md)) determine how the entity interacts with the CE:
-
-| Flag | CE Behavior |
-|------|-------------|
-| `ECE_NOLIFETIME` | Entity will never despawn (not tracked by CE lifetime) |
-| `ECE_DYNAMIC_PERSISTENCY` | Entity becomes persistent only after player interaction |
-| `ECE_EQUIP_ATTACHMENTS` | CE spawns configured attachments from `cfgspawnabletypes.xml` |
-| `ECE_EQUIP_CARGO` | CE spawns configured cargo from `cfgspawnabletypes.xml` |
-
-**Example --- spawn an item that persists forever:**
+The CE only exists when the mission initializes a **Hive** — the persistence backend that owns the economy. The vanilla mission `init.c` does this in `main()`:
 
 ```c
+void main()
+{
+    // Initialize the economy
+    Hive ce = CreateHive();
+    if (ce)
+    {
+        ce.InitOffline();
+    }
+
+    // ... weather, date, mission setup ...
+}
+```
+
+The `Hive` class (defined in `3_game/hive/hive.c`) exposes:
+
+```c
+class Hive
+{
+    proto native void InitOnline(string ceSetup, string host = "");
+    proto native void InitOffline();
+    proto native void InitSandbox();
+
+    proto native bool IsIdleMode();
+
+    proto native void SetShardID(string shard);
+    proto native void SetEnviroment(string env);
+
+    proto native void CharacterSave(Man player);
+    proto native void CharacterKill(Man player);
+    proto native void CharacterExit(Man player);
+}
+
+proto native Hive CreateHive();
+proto native void DestroyHive();
+proto native Hive GetHive();
+```
+
+Key consequences for mod code:
+
+- **Server only.** A client connected to a server has no Hive and no CE. Only the server (or an offline/single-player mission that called `CreateHive()`) has one.
+- **Null-check everything.** `GetCEApi()` returns `null` when no CE is running — for example in the main menu or on a client.
+
+---
+
+## Getting the CE API
+
+`GetCEApi()` (defined in `3_game/ce/centraleconomy.c`) returns the `CEApi` interface:
+
+```c
+CEApi ce = GetCEApi();
+if (!ce)
+{
+    return; // no CE on this machine (client, or no Hive)
+}
+```
+
+The vanilla game itself uses this exact pattern — for example `DayZGame` reads a global economy variable only after checking the API exists:
+
+```c
+if (GetCEApi())
+{
+    bool wetUpdate = (GetCEApi().GetCEGlobalInt("WorldWetTempUpdate") == 1);
+}
+```
+
+The `CEApi` methods fall into a few groups, covered in the sections below: lifetime manipulation, globals access, avoidance queries, and developer/diagnostic tooling.
+
+---
+
+## ECE Spawn Flags
+
+When you spawn entities from script with `GetGame().CreateObjectEx()`, the **ECE flags** control both placement behavior and how the entity relates to the CE. They are plain `int` constants defined in `3_game/ce/centraleconomy.c`:
+
+```c
+proto native Object CreateObjectEx(string type, vector pos, int iFlags, int iRotation = RF_DEFAULT);
+```
+
+### Placement and Setup Flags
+
+| Flag | Value | Meaning |
+|------|-------|---------|
+| `ECE_NONE` | 0 | No flags |
+| `ECE_SETUP` | 2 | Process full entity setup (when creating a NEW entity) |
+| `ECE_TRACE` | 4 | Trace under the entity when placing it |
+| `ECE_CENTER` | 8 | Use the model shape's center for placement |
+| `ECE_UPDATEPATHGRAPH` | 32 | Update the navmesh where the object is placed |
+| `ECE_ROTATIONFLAGS` | 512 | Enable rotation flags for placement |
+| `ECE_CREATEPHYSICS` | 1024 | Create the collision envelope and physics data |
+| `ECE_INITAI` | 2048 | Initialize AI (infected, animals) |
+| `ECE_AIRBORNE` | 4096 | Create a flying unit in the air |
+| `ECE_NOSURFACEALIGN` | 262144 | Do not align the object to the surface |
+| `ECE_KEEPHEIGHT` | 524288 | Keep the given height (no trace / surface placement) |
+| `ECE_LOCAL` | 1073741824 | Create the object locally (not networked) |
+
+### CE-Interaction Flags
+
+| Flag | Value | CE Behavior |
+|------|-------|-------------|
+| `ECE_EQUIP_ATTACHMENTS` | 8192 | Equip the configured attachments from `cfgspawnabletypes.xml` |
+| `ECE_EQUIP_CARGO` | 16384 | Fill the configured cargo from `cfgspawnabletypes.xml` |
+| `ECE_EQUIP` | 24576 | Both of the above (`ECE_EQUIP_ATTACHMENTS + ECE_EQUIP_CARGO`) |
+| `ECE_EQUIP_CONTAINER` | 2097152 | Populate a dynamic-event/group container during spawn |
+| `ECE_NOLIFETIME` | 4194304 | Do not set a CE lifetime — the entity never despawns from idle cleanup |
+| `ECE_NOPERSISTENCY_WORLD` | 8388608 | Do not save this object in world persistence |
+| `ECE_NOPERSISTENCY_CHAR` | 16777216 | Do not save this object in character persistence |
+| `ECE_DYNAMIC_PERSISTENCY` | 33554432 | Spawns without persistency; becomes persistent once a player takes it |
+
+### Predefined Combinations
+
+Use these instead of hand-building masks when they fit:
+
+| Combination | Value | Composition |
+|-------------|-------|-------------|
+| `ECE_PLACE_ON_SURFACE` | 1060 | `ECE_CREATEPHYSICS \| ECE_UPDATEPATHGRAPH \| ECE_TRACE` |
+| `ECE_IN_INVENTORY` | 787456 | `ECE_CREATEPHYSICS \| ECE_KEEPHEIGHT \| ECE_NOSURFACEALIGN` |
+| `ECE_OBJECT_SWAP` | 787488 | `ECE_CREATEPHYSICS \| ECE_UPDATEPATHGRAPH \| ECE_KEEPHEIGHT \| ECE_NOSURFACEALIGN` |
+| `ECE_FULL` | 25126 | `ECE_SETUP \| ECE_TRACE \| ECE_ROTATIONFLAGS \| ECE_UPDATEPATHGRAPH \| ECE_EQUIP` |
+
+### Examples
+
+**Spawn an item that persists forever (no CE lifetime):**
+
+```c
+vector pos = "7500 0 7500";
+pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
 int flags = ECE_PLACE_ON_SURFACE | ECE_NOLIFETIME;
 Object obj = GetGame().CreateObjectEx("Barrel_Green", pos, flags);
 ```
 
-**Example --- spawn with CE-configured attachments:**
+**Spawn a weapon with its CE-configured attachments and cargo:**
 
 ```c
-int flags = ECE_PLACE_ON_SURFACE | ECE_EQUIP_ATTACHMENTS | ECE_EQUIP_CARGO;
+vector pos = "7500 0 7500";
+pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
+int flags = ECE_PLACE_ON_SURFACE | ECE_EQUIP;
 Object obj = GetGame().CreateObjectEx("AKM", pos, flags);
-// The AKM will spawn with random attachments per cfgspawnabletypes.xml
+// The AKM rolls its attachment slots per cfgspawnabletypes.xml
+```
+
+**Spawn event loot that becomes persistent only when picked up:**
+
+```c
+vector pos = "7500 0 7500";
+pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
+int flags = ECE_PLACE_ON_SURFACE | ECE_DYNAMIC_PERSISTENCY;
+Object obj = GetGame().CreateObjectEx("FirstAidKit", pos, flags);
+```
+
+See [Entity System](01-entity-system.md) for the general entity creation and deletion API.
+
+---
+
+## Rotation Flags (RF)
+
+The fourth parameter of `CreateObjectEx()` takes **RF rotation flags** (also from `centraleconomy.c`), which control how the object may be oriented when placed:
+
+| Flag | Value | Meaning |
+|------|-------|---------|
+| `RF_NONE` | 0 | No rotation flags |
+| `RF_FRONT` / `RF_TOP` / `RF_LEFT` / `RF_RIGHT` / `RF_BACK` / `RF_BOTTOM` | 1 / 2 / 4 / 8 / 16 / 32 | Allow placement on that side |
+| `RF_ALL` | 63 | All six sides |
+| `RF_IGNORE` | 64 | Ignore placement RF flags — spawn as the model was created |
+| `RF_RANDOMROT` | 64 | Allow random rotation around the axis when placing |
+| `RF_ORIGINAL` | 128 | Use the default placement set up on the object in config |
+| `RF_DEFAULT` | 512 | Use the default placement set up on the object in config |
+
+```c
+vector pos = "7500 0 7500";
+pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
+Object obj = GetGame().CreateObjectEx("Mag_AKM_30Rnd", pos, ECE_PLACE_ON_SURFACE, RF_RANDOMROT);
 ```
 
 ---
 
-## Script API for CE Interaction
+## Reading an Item's Economy Profile
 
-While the CE is primarily XML-configured, there are some script-side interactions:
-
-### Reading Config Values
+Every entity the CE tracks has a **`CEItemProfile`** — the parsed `types.xml` entry for its type. On the server you get it from `EntityAI.GetEconomyProfile()` (returns `null` when the type has no economy entry):
 
 ```c
-// Check if an item exists in CfgVehicles
-bool exists = GetGame().ConfigIsExisting("CfgVehicles MyCustomItem");
-
-// Read config properties
-string displayName;
-GetGame().ConfigGetText("CfgVehicles AKM displayName", displayName);
-
-int weight = GetGame().ConfigGetInt("CfgVehicles AKM weight");
+class CEItemProfile
+{
+    proto native int   GetNominal();      // target count on the map
+    proto native int   GetMin();          // minimum count before respawn
+    proto native float GetQuantityMin();  // min quantity (0.0 - 1.0)
+    proto native float GetQuantityMax();  // max quantity (0.0 - 1.0)
+    proto native float GetQuantity();     // random quantity in that range (0.0 - 1.0)
+    proto native float GetLifetime();     // default lifetime in seconds
+    proto native float GetRestock();      // restock cooldown in seconds
+    proto native int   GetCost();         // priority during respawn/cleanup
+    proto native int   GetUsageFlags();   // usage flag bitmask
+    proto native int   GetValueFlags();   // value (tier) flag bitmask
+}
 ```
 
-### Querying Objects in the World
+**Example — log the economy settings of the item a player is holding:**
 
 ```c
-// Get objects near a position
-array<Object> objects = new array<Object>;
-array<CargoBase> proxyCargos = new array<CargoBase>;
-GetGame().GetObjectsAtPosition(pos, 50.0, objects, proxyCargos);
+void PrintHeldItemEconomy(PlayerBase player)
+{
+    EntityAI held = player.GetHumanInventory().GetEntityInHands();
+    if (!held)
+    {
+        return;
+    }
+
+    CEItemProfile profile = held.GetEconomyProfile();
+    if (!profile)
+    {
+        Print(held.GetType() + " has no types.xml entry");
+        return;
+    }
+
+    Print(held.GetType() + " nominal=" + profile.GetNominal() + " min=" + profile.GetMin());
+    Print("lifetime=" + profile.GetLifetime() + " restock=" + profile.GetRestock());
+}
 ```
 
-### Surface and Position Queries
-
-```c
-// Get terrain height (for placing items on ground)
-float surfaceY = GetGame().SurfaceY(x, z);
-
-// Get surface type at position
-string surfaceType;
-GetGame().SurfaceGetType(x, z, surfaceType);
-```
+Note the quantity getters return a **0.0-1.0 fraction**, while the `quantmin`/`quantmax` fields in `types.xml` are written as percentages (-1 to 100).
 
 ---
 
-## Modding the Central Economy
+## Controlling Lifetime from Script
 
-### Adding Custom Items
+### Per-Entity Lifetime
 
-1. Define the item class in your mod's `config.cpp` under `CfgVehicles`.
-2. Add a `<type>` entry in `types.xml` with nominal, lifetime, usage, and value flags.
-3. Optionally add attachment/cargo rules in `cfgspawnabletypes.xml`.
-4. If using new usage/value flags, define them in `cfglimitsdefinition.xml`.
+`EntityAI` exposes direct control over the CE cleanup timer of a single entity (server side):
 
-### Modifying Existing Items
-
-Edit the `<type>` entry in `types.xml` to change spawn rates, lifetimes, or location restrictions. Changes take effect on server restart.
-
-### Disabling Items
-
-Set `nominal` and `min` to `0`:
-
-```xml
-<type name="UnwantedItem">
-    <nominal>0</nominal>
-    <min>0</min>
-    <!-- rest of parameters -->
-</type>
+```c
+// From 3_game/entities/entityai.c
+proto native void  SetLifetime(float fLifeTime); // override REMAINING lifetime (seconds)
+proto native float GetLifetime();                // remaining lifetime (seconds)
+proto native void  IncreaseLifetime();           // reset lifetime to its default
+proto native void  SetLifetimeMax(float fLifeTime); // override max lifetime for this instance
+proto native float GetLifetimeMax();             // max lifetime (default comes from types.xml)
 ```
 
-### Adding Custom Events
+`IncreaseLifetimeUp()` is a script helper that resets the lifetime of an entity **and every parent up its inventory hierarchy** — this is what "touching" an item effectively does:
 
-Add a new `<event>` block in `events.xml` and corresponding spawn positions in `cfgeventspawns.xml`:
-
-```xml
-<!-- events.xml -->
-<event name="MyCustomEvent">
-    <nominal>5</nominal>
-    <min>2</min>
-    <max>5</max>
-    <lifetime>3600</lifetime>
-    <restock>0</restock>
-    <saferadius>300</saferadius>
-    <distanceradius>800</distanceradius>
-    <cleanupradius>100</cleanupradius>
-    <flags deletable="1" init_random="1" remove_damaged="1"/>
-    <position>fixed</position>
-    <limit>child</limit>
-    <active>1</active>
-    <children>
-        <child lootmax="5" lootmin="2" max="1" min="1"
-               type="MyCustomObject"/>
-    </children>
-</event>
+```c
+void KeepAlive(EntityAI item)
+{
+    item.IncreaseLifetimeUp();
+}
 ```
 
-```xml
-<!-- cfgeventspawns.xml -->
-<event name="MyCustomEvent">
-    <pos x="6543.2" z="2872.5" a="180"/>
-    <pos x="7821.0" z="3100.8" a="90"/>
-    <pos x="4200.5" z="8500.3" a="0"/>
-</event>
+### Area Lifetime via CEApi
+
+`CEApi` can adjust lifetimes in bulk. Results are clamped between 3 seconds and 10 years:
+
+```c
+CEApi ce = GetCEApi();
+if (!ce)
+{
+    return;
+}
+
+vector center = "7500 0 7500";
+
+// Extend everything within 100 m by one hour
+ce.RadiusLifetimeIncrease(center, 100, 3600);
+
+// Shorten everything within 100 m by 10 minutes
+ce.RadiusLifetimeDecrease(center, 100, 600);
+
+// Reset everything within 100 m to its types.xml default
+ce.RadiusLifetimeReset(center, 100);
+
+// Subtract 60 seconds from the lifetime of EVERY item in the world
+ce.TimeShift(60);
 ```
+
+`OverrideLifeTime(float seconds)` sets a debug lifetime applied to any dynamic event spawned afterwards; pass `0` to turn it off again.
+
+---
+
+## Reading globals.xml from Script
+
+`CEApi` exposes typed getters for the `<var>` entries in `globals.xml`. The `type` attribute in the XML decides which getter matches: `type="0"` is int, `type="1"` is float, `type="2"` is string.
+
+```c
+CEApi ce = GetCEApi();
+if (!ce)
+{
+    return;
+}
+
+int zombieMax = ce.GetCEGlobalInt("ZombieMaxCount");     // returns int.MIN if not found
+float dmgMax = ce.GetCEGlobalFloat("LootDamageMax");     // returns float.MIN if not found
+string custom = ce.GetCEGlobalString("MyCustomVar");     // returns "" if not found
+```
+
+This also works for **custom variables**: a server can add its own `<var>` entries to `globals.xml` and mod code can read them at runtime — a lightweight way to make server-side script behavior configurable per mission without shipping a config file. The full parameter reference for the vanilla variables is in [Loot Economy Deep Dive](../09-server-admin/04-loot-economy.md#globalsxml----economy-parameters).
+
+---
+
+## Avoidance Queries
+
+The CE uses optimized internal checks to avoid spawning dynamic events on top of players and vehicles. The same checks are exposed to script — useful for custom spawners that should behave like the CE:
+
+```c
+CEApi ce = GetCEApi();
+if (!ce)
+{
+    return;
+}
+
+vector pos = "4500 0 10200";
+
+// true = area is clear of players within 500 m; false = a player is inside
+bool clearOfPlayers = ce.AvoidPlayer(pos, 500);
+
+// true = area is clear of vehicles; optional third parameter narrows it
+// to one dynamic event name (empty string = all vehicles)
+bool clearOfVehicles = ce.AvoidVehicle(pos, 500, "VehicleCivilianSedan");
+
+// Exact player count within a radius
+int players = ce.CountPlayersWithinRange(pos, 1000);
+
+if (clearOfPlayers && clearOfVehicles)
+{
+    // safe to place a custom event here
+}
+```
+
+Note the polarity: `AvoidPlayer()`/`AvoidVehicle()` return **true when the area is clear** (the avoidance succeeded) and false when something is inside the radius.
+
+---
+
+## The EEOnCECreate Hook
+
+When the CE (or the debug spawner) creates a **new** entity, the engine calls `EEOnCECreate()` on it. This fires only for fresh CE spawns — not for entities loaded back from persistence and not for script-created objects. Vanilla uses it, for example, to randomize the food stage of spawned fruit and to set up helicopter crash sites.
+
+**Example — a custom supply cache that starts with a random amount of starter loot when the CE spawns it.** The class goes in `4_World`:
+
+```c
+class LNT_SupplyCache : Barrel_ColorBase
+{
+    override void EEOnCECreate()
+    {
+        super.EEOnCECreate();
+
+        // Runs on the server, only when the CE spawned this instance fresh
+        int rolls = Math.RandomIntInclusive(1, 3);
+        for (int i = 0; i < rolls; i++)
+        {
+            GetInventory().CreateInInventory("Rag");
+        }
+    }
+}
+```
+
+Registration in `config.cpp` (the cache reuses the vanilla barrel model by inheriting from `Barrel_ColorBase`):
+
+```cpp
+class CfgPatches
+{
+    class Lantern_Core_Scripts
+    {
+        units[] = {"LNT_SupplyCache"};
+        weapons[] = {};
+        requiredVersion = 0.1;
+        requiredAddons[] = {"DZ_Data", "DZ_Gear_Camping"};
+    };
+};
+
+class CfgVehicles
+{
+    class Barrel_ColorBase;
+    class LNT_SupplyCache : Barrel_ColorBase
+    {
+        scope = 2;
+        displayName = "Supply Cache";
+    };
+};
+```
+
+For the crate to actually spawn, it also needs a `types.xml` entry on the server — see [Loot Economy Deep Dive](../09-server-admin/04-loot-economy.md).
+
+---
+
+## Developer and Diagnostic Tools
+
+Most of the remaining `CEApi` surface is developer/diagnostic tooling. These methods are marked **DEVELOPER/DIAG ONLY** in the engine headers — they are meant for the diagnostic executable and offline testing, not for live gameplay logic:
+
+### Force-Spawning Through the CE
+
+| Method | Purpose |
+|--------|---------|
+| `SpawnDE(string name, vector pos, float angle = -1)` | Force-spawn a dynamic event (`"StaticHeliCrash"`, vehicle events, ...); bypasses limits and avoidance |
+| `SpawnDEEx(string name, vector pos, float angle, int flags)` | Same, with custom ECE flags |
+| `SpawnLoot(string type, vector pos, float angle, int count = 1, float range = 1)` | Spawn one or more loot items in a circle |
+| `SpawnEntity(string type, vector pos, float range, int count)` | Like `SpawnLoot`, works better for animals/infected/vehicles |
+| `SpawnSingleEntity(string type, vector pos)` | Spawn one entity and get the `Object` back |
+| `SpawnGroup(string groupName, vector pos, float angle = -1)` | Force-spawn a building prototype group with its loot |
+| `SpawnAnalyze(string type)` | Emulate spawning of a type and dump images/logs to `storage/lmap`; `"*"` produces a CSV for all types |
+
+```c
+CEApi ce = GetCEApi();
+if (ce)
+{
+    ce.SpawnDE("StaticHeliCrash", "4500 0 10200");
+}
+```
+
+### Economy Logging and Maps
+
+| Method | Purpose |
+|--------|---------|
+| `EconomyLog(string category)` | Dump a CSV to `storage/log/` — categories in `EconomyLogCategories` (e.g. `Economy`, `RespawnQueue`, `InfectedZone`) |
+| `EconomyMap(string what)` | Render spawn locations to a `.tga` in `storage/lmap/` — a class name, or `EconomyMapStrings` helpers like `ALL_LOOT` or `EconomyMapStrings.Category("food")` |
+| `EconomyOutput(string what, float range)` | Write diagnostics to the server log — strings in `EconomyOutputStrings` (`STATUS`, `SUSPICIOUS`, `EMPTY`, `CLOSE`, ...) |
+
+### Loot-Point Exports
+
+Used when building or fixing map loot data:
+
+| Method | Output |
+|--------|--------|
+| `ExportSpawnData()` | Regenerates `storage/spawnpoints.bin` |
+| `ExportProxyData(vector center = vector.Zero, float radius = 0)` | `storage/export/mapgrouppos.xml` (zero vector/radius = whole map) |
+| `ExportClusterData()` | `storage/export/mapgroupcluster.xml` |
+| `ExportProxyProto()` | `storage/export/mapgroupproto.xml` |
+| `MarkCloseProxy(float radius, bool allSelections)` | Invalidate loot points closer than `radius` |
+| `RemoveCloseProxy()` | Delete the invalidated points |
+| `ListCloseProxy(float radius)` | Log loot points closer than `radius` without touching them |
 
 ---
 
 ## Summary
 
-| File | Purpose | Key Parameters |
-|------|---------|----------------|
-| `types.xml` | Item spawn definitions | `nominal`, `min`, `lifetime`, `usage`, `value` |
-| `globals.xml` | Global CE variables | `ZombieMaxCount`, `AnimalMaxCount`, cleanup timers |
-| `events.xml` | Dynamic events | `nominal`, `lifetime`, `position`, `children` |
-| `cfgspawnabletypes.xml` | Attachment/cargo rules per item | `attachments`, `cargo`, `chance` |
-| `cfgrandompresets.xml` | Reusable loot pools | `cargo`/`attachments` presets |
-| `cfgeconomycore.xml` | Root CE configuration | `classes`, `defaults`, CE folder |
-| `cfglimitsdefinition.xml` | Valid flag definitions | `categories`, `usageflags`, `valueflags` |
+| API | Where | Purpose |
+|-----|-------|---------|
+| `CreateHive()` / `GetHive()` | `3_game/hive/hive.c` | Initialize/access the persistence backend that owns the CE |
+| `GetCEApi()` | `3_game/ce/centraleconomy.c` | Access the `CEApi`; returns `null` without a Hive (e.g. on clients) |
+| ECE flags | `3_game/ce/centraleconomy.c` | Control placement, persistence, and CE equipment when spawning via `CreateObjectEx()` |
+| RF flags | `3_game/ce/centraleconomy.c` | Placement rotation control for `CreateObjectEx()` |
+| `EntityAI.GetEconomyProfile()` | `3_game/entities/entityai.c` | Read the parsed `types.xml` entry (`CEItemProfile`) of an entity |
+| `SetLifetime()` / `IncreaseLifetimeUp()` | `EntityAI` | Per-entity CE cleanup timer control |
+| `RadiusLifetime*()` / `TimeShift()` | `CEApi` | Bulk lifetime manipulation |
+| `GetCEGlobalInt/Float/String()` | `CEApi` | Read `globals.xml` variables (including custom ones) from script |
+| `AvoidPlayer()` / `AvoidVehicle()` | `CEApi` | CE-style spawn avoidance checks for custom spawners |
+| `EEOnCECreate()` | `EntityAI` | Per-entity hook fired when the CE creates the entity fresh |
 
-| Concept | Key Point |
-|---------|-----------|
-| Nominal/Min | CE spawns items when count drops below `min`, targeting `nominal` |
-| Lifetime | Seconds before untouched items despawn |
-| Usage flags | Where items spawn (Military, Town, etc.) |
-| Value flags | Map tier restriction (Tier1 = coast through Tier4 = deep inland) |
-| Count flags | Which items count toward nominal (cargo, hoarder, map, player) |
-| Events | Dynamic spawns with their own lifecycle (crashes, vehicles, infected) |
-| ECE flags | `ECE_NOLIFETIME`, `ECE_EQUIP` for script-spawned items |
-
----
-
-## Best Practices
-
-- **Set `count_in_hoarder="1"` for high-value items.** Without this flag, players can hoard rare weapons in stashes without reducing the world spawn count, leading to item duplication in practice.
-- **Keep `restock` at 0 for most items.** Non-zero restock values delay respawning after an item is picked up. Use it only for items that should not immediately reappear (e.g., rare military gear).
-- **Test nominal/min ratios on a live server with players.** Static testing does not reveal real CE behavior. Items interact with player movement patterns, container storage, and cleanup timers in ways that are only visible under real load.
-- **Always define new items in both `config.cpp` and `types.xml`.** A config entry without a types.xml entry means the item will never spawn naturally. A types.xml entry without a config class causes CE errors.
-- **Use `cfgspawnabletypes.xml` to create weapon variety.** Instead of spawning naked weapons, define attachment presets so players find weapons with random stocks, handguards, and magazines -- this dramatically improves loot quality perception.
-
----
-
-## Compatibility & Impact
-
-- **Multi-Mod:** Multiple mods can add entries to `types.xml`. If two mods define the same `<type name="">`, the last loaded file wins. Use unique class names to avoid collisions. Merge types.xml entries carefully on community servers.
-- **Performance:** High `nominal` values (200+) for many item types strain the CE's spawn loop. The CE runs periodic scans that scale with total tracked entity count. Keep nominals realistic -- 5-20 for weapons, 20-100 for common items.
-- **Server/Client:** The CE runs entirely on the server. Clients have no visibility into CE state. All XML files are server-side only and are not distributed to clients.
-
----
-
-[Home](../README.md) | [<< Previous: Networking & RPC](09-networking.md) | **Central Economy** | [Next: Mission Hooks >>](11-mission-hooks.md)
+- The CE runs **only on the server**; always null-check `GetCEApi()`.
+- The XML configuration itself is documented in [Loot Economy Deep Dive](../09-server-admin/04-loot-economy.md) and [Vehicle & Dynamic Event Spawning](../09-server-admin/05-vehicle-spawning.md).
+- Diag-marked `CEApi` methods are tooling, not gameplay API — keep them out of production code paths.

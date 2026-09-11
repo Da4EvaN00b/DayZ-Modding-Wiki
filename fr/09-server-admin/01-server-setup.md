@@ -1,6 +1,5 @@
 # Chapter 9.1 : Installation du serveur et premier lancement
 
-[Accueil](../README.md) | **Installation du serveur** | [Suivant : Structure des répertoires >>](02-directory-structure.md)
 
 ---
 
@@ -184,7 +183,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -a
 | `-dologs` | Activer les logs du serveur |
 | `-adminlog` | Journaliser les actions admin |
 | `-netlog` | Journaliser les événements réseau |
-| `-freezecheck` | Redémarrage automatique en cas de détection de gel |
+| `-freezecheck` | Arrête le serveur et écrit un crash dump lorsqu'il est gelé pendant plus de 5 minutes |
 
 ### Étape 3 : Attendre l'initialisation
 
@@ -226,7 +225,7 @@ Ouvrez Steam, allez dans **Vue > Serveurs de jeu > Favoris**, cliquez sur **Ajou
 
 ### Méthode 4 : Port de requête
 
-Utilisez un outil externe comme https://www.battlemetrics.com/ ou le package npm `gamedig` pour interroger le port 27016 (port de requête Steam = port du jeu + 24714).
+Utilisez un outil externe comme https://www.battlemetrics.com/ ou le package npm `gamedig` pour interroger le port de requête Steam. Par défaut, il s'agit de **2305 UDP** (configurable via `steamQueryPort` dans `serverDZ.cfg`), et non du port du jeu.
 
 ---
 
@@ -300,7 +299,3 @@ C'est normal. Le serveur DayZ est mono-thread. N'exécutez pas plusieurs instanc
 ```cpp
 template = "dayzOffline.chernarusplus";  // Doit correspondre au nom du dossier dans mpmissions/
 ```
-
----
-
-**[Accueil](../README.md)** | **Suivant :** [Structure des répertoires >>](02-directory-structure.md)

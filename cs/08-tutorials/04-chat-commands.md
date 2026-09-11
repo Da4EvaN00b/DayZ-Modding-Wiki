@@ -1,6 +1,5 @@
 # Kapitola 8.4: Přidání chatových příkazů
 
-[Domů](../README.md) | [<< Předchozí: Tvorba administrátorského panelu](03-admin-panel.md) | **Přidání chatových příkazů** | [Další: Použití šablony DayZ modu >>](05-mod-template.md)
 
 ---
 
@@ -116,7 +115,7 @@ modded class MissionGameplay
         // ChatMessageEventTypeID se spustí, když hráč odešle chatovou zprávu
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -173,11 +172,12 @@ modded class MissionGameplay
 
 ### Jak funguje zachycení chatu
 
-Metoda `OnEvent` na `MissionGameplay` se volá pro různé herní události. Když je `eventTypeId` roven `ChatMessageEventTypeID`, znamená to, že hráč právě odeslal chatovou zprávu. `Param3` obsahuje:
+Metoda `OnEvent` na `MissionGameplay` se volá pro různé herní události. Když je `eventTypeId` roven `ChatMessageEventTypeID`, znamená to, že hráč právě odeslal chatovou zprávu. Parametry jsou typu `ChatMessageEventParams` (což je `Param4<int, string, string, string>`) a obsahují:
 
 - `param1` -- Kanál (int): chatový kanál (globální, přímý atd.)
 - `param2` -- Jméno odesílatele (string)
 - `param3` -- Text zprávy (string)
+- `param4` -- Konfigurační třída barvy (string)
 
 Kontrolujeme, zda zpráva začíná `/`. Pokud ano, přepošleme celý řetězec na server přes RPC. Zpráva je stále odeslána i jako normální chat -- v produkčním modu byste ji potlačili (popsáno v poznámkách na konci).
 
@@ -644,8 +644,8 @@ if (rpc_type == CCmdRPC.COMMAND_FEEDBACK)
 
 | Kanál | Barva | Typické použití |
 |-------|-------|-----------------|
-| `"colorStatusChannel"` | Žlutá/oranžová | Systémové zprávy |
-| `"colorAction"` | Bílá | Zpětná vazba akce |
+| `"colorStatusChannel"` | Modrá | Systémové zprávy |
+| `"colorAction"` | Žlutá | Zpětná vazba akce |
 | `"colorFriendly"` | Zelená | Pozitivní zpětná vazba |
 | `"colorImportant"` | Červená | Varování/chyby |
 
@@ -1352,7 +1352,7 @@ modded class MissionGameplay
 
         if (eventTypeId == ChatMessageEventTypeID)
         {
-            Param3<int, string, string> chatParams;
+            ChatMessageEventParams chatParams;
             if (Class.CastTo(chatParams, params))
             {
                 string message = chatParams.param3;
@@ -1505,7 +1505,7 @@ CCmdRegistry.Register(new CCmdTime());
 ### Oprávnění zamítnuto pro administrátory
 
 - **Špatné Steam64 ID:** Dvakrát zkontrolujte ID administrátorů v `IsCommandAdmin()`. Musí to být přesná Steam64 ID (17-místná čísla začínající `7656`).
-- **GetPlainId() vs GetId():** `GetPlainId()` vrací Steam64 ID. `GetId()` vrací ID relace DayZ. Pro kontroly administrátora používejte `GetPlainId()`.
+- **GetPlainId() vs GetId():** `GetPlainId()` vrací plaintextové Steam64 ID. `GetId()` vrací stabilní hashované unikátní ID (bezpečné pro databáze a logy), nikoli ID relace -- ID specifické pro relaci, které se po odpojení hráče znovu použije, je `GetPlayerId()` (typu int). Pro kontroly administrátora používejte `GetPlainId()`.
 
 ### Zpětná vazba se nezobrazuje v chatu
 
@@ -1521,20 +1521,19 @@ CCmdRegistry.Register(new CCmdTime());
 
 ### Příkaz se objeví v chatu jako běžná zpráva
 
-- Hook `OnEvent` zachytí zprávu, ale nepotlačí ji z odeslání jako chat. Pro potlačení v produkčním modu byste potřebovali moddovat třídu `ChatInputMenu` pro filtrování zpráv s `/` před jejich odesláním:
+- Hook `OnEvent` zachytí zprávu, ale nepotlačí ji z odeslání jako chat. Pro potlačení v produkčním modu byste potřebovali moddovat třídu `ChatInputMenu` pro filtrování zpráv s `/` před jejich odesláním. Ve vanilce `ChatInputMenu` odesílá text chatu ze svého handleru `OnChange()`, kde volá `g_Game.ChatPlayer(text)`. Můžete přepsat `OnChange()` a přeskočit odeslání, když text začíná `/`:
 
 ```c
 modded class ChatInputMenu
 {
-    override void OnChatInputSend()
+    override bool OnChange(Widget w, int x, int y, bool finished)
     {
-        string text = "";
-        // Získání aktuálního textu z edit widgetu
-        // Pokud začíná /, NEVOLEJTE super (který to pošle jako chat)
+        // Získání aktuálního textu z edit widgetu (m_edit_box.GetText())
+        // Pokud začíná /, NEVOLEJTE super (který volá g_Game.ChatPlayer)
         // Místo toho zpracujte jako příkaz
 
         // Tento přístup se liší podle verze DayZ -- zkontrolujte vanilkové zdrojáky
-        super.OnChatInputSend();
+        return super.OnChange(w, x, y, finished);
     }
 };
 ```
@@ -1558,7 +1557,7 @@ Přesná implementace závisí na verzi DayZ a na tom, jak `ChatInputMenu` zpř�
 
 - **Vždy ověřte oprávnění před provedením administrátorských příkazů.** Chybějící kontrola oprávnění znamená, že jakýkoli hráč může `/heal` nebo `/kill` kohokoli. Ověřte Steam64 ID volajícího (přes `GetPlainId()`) na serveru před zpracováním.
 - **Odesílejte zpětnou vazbu administrátorovi i pro selhané příkazy.** Tichá selhání znemožňují ladění. Vždy odešlete chatovou zprávu vysvětlující, co se pokazilo ("Player not found", "Permission denied").
-- **Používejte `GetPlainId()` pro kontroly administrátora, nikoli `GetId()`.** `GetId()` vrací ID specifické pro relaci DayZ, které se mění při každém opětovném připojení. `GetPlainId()` vrací trvalé Steam64 ID.
+- **Používejte `GetPlainId()` pro kontroly administrátora, nikoli `GetId()`.** `GetId()` vrací stabilní hashované unikátní ID určené pro databáze a logy (ID specifické pro relaci, které se po odpojení hráče znovu použije, je `GetPlayerId()`). `GetPlainId()` vrací plaintextové Steam64 ID.
 - **Ukládejte ID administrátorů v JSON konfiguračním souboru, nikoli v kódu.** Hardkódovaná ID vyžadují přestavbu PBO pro změnu. JSON soubor `$profile:` může být upraven administrátory serveru bez znalosti moddingu.
 - **Převádějte názvy příkazů na malá písmena před porovnáváním.** Hráči mohou psát `/Heal`, `/HEAL` nebo `/heal`. Normalizace na malá písmena zabraňuje frustrujícím chybám "unknown command".
 

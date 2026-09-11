@@ -1,6 +1,5 @@
-# Chapter 3.1: Widget Types
+# Widget Types
 
-[Home](../README.md) | **Widget Types** | [Next: Layout Files >>](02-layout-files.md)
 
 ---
 
@@ -34,16 +33,18 @@ Container widgets hold and organize child widgets. They do not display content t
 |---|---|---|
 | `Widget` | `WidgetClass` | Abstract base class for all widgets. Never instantiate directly. |
 | `WorkspaceWidget` | `WorkspaceWidgetClass` | Root workspace. Obtained via `GetGame().GetWorkspace()`. Used to create widgets programmatically. |
-| `FrameWidget` | `FrameWidgetClass` | General-purpose container. The most commonly used widget in DayZ. |
-| `PanelWidget` | `PanelWidgetClass` | Solid colored rectangle. Use for backgrounds, dividers, separators. |
+| `Widget` | `FrameWidgetClass` | General-purpose container. The most commonly used widget in DayZ. |
+| `Widget` | `PanelWidgetClass` | Solid colored rectangle. Use for backgrounds, dividers, separators. |
 | `WrapSpacerWidget` | `WrapSpacerWidgetClass` | Flow layout. Arranges children sequentially with wrapping, padding, and margins. |
 | `GridSpacerWidget` | `GridSpacerWidgetClass` | Grid layout. Arranges children in a grid defined by `Columns` and `Rows`. |
 | `ScrollWidget` | `ScrollWidgetClass` | Scrollable viewport. Enables vertical/horizontal scrolling of child content. |
-| `SpacerBaseWidget` | -- | Abstract base class for `WrapSpacerWidget` and `GridSpacerWidget`. |
+| `SpacerBaseWidget` | -- | Abstract base class for `SpacerWidget` and `ScrollWidget`. `WrapSpacerWidget` and `GridSpacerWidget` both extend `SpacerWidget`. |
 
 ### FrameWidget
 
-The workhorse of DayZ UI. Use `FrameWidget` as your default container when you need to group widgets together. It has no visual appearance -- it is purely structural.
+The workhorse of DayZ UI. Use a frame as your default container when you need to group widgets together. It has no visual appearance -- it is purely structural.
+
+> **Note:** `FrameWidgetClass` is usable in `.layout` files and `FrameWidgetTypeID` exists for `CreateWidget()`, but there is no `FrameWidget` script class. Like `PanelWidget`, work with a frame as a base `Widget` -- do not cast to `FrameWidget`.
 
 **Key methods:**
 - All base `Widget` methods (position, size, color, children, flags)
@@ -52,7 +53,7 @@ The workhorse of DayZ UI. Use `FrameWidget` as your default container when you n
 
 ```c
 // Find a frame widget by name
-FrameWidget panel = FrameWidget.Cast(root.FindAnyWidget("MyPanel"));
+Widget panel = root.FindAnyWidget("MyPanel");
 panel.Show(true);
 ```
 
@@ -151,7 +152,7 @@ tw.GetOutlineColor();                   // Returns int (ARGB)
 tw.SetColor(int argb);                  // Text color
 ```
 
-> **Note:** `TextWidget` does NOT have a `GetText()` method. `GetText()` only exists on `EditBoxWidget` and `ButtonWidget`. If you need to read text back, store it in a variable when you call `SetText()`.
+> **Note:** `TextWidget` does NOT have a `GetText()` method. `GetText()` only exists on `EditBoxWidget` (and its subclass `PasswordEditBoxWidget`), `MultilineEditBoxWidget`, and `ButtonWidget`. If you need to read text back, store it in a variable when you call `SetText()`.
 
 **Key layout attributes:** `text`, `font`, `"text halign"`, `"text valign"`, `"exact text"`, `"exact text size"`, `"bold text"`, `"size to text h"`, `"size to text v"`, `wrap`.
 
@@ -170,7 +171,7 @@ Supports inline images embedded within text using `<image>` tags. Also supports 
 
 **Usage in text:**
 ```
-"Health: <image set:dayz_gui image:iconHealth0 /> OK"
+Health: <image set="dayz_gui" name="iconHealth0" /> OK
 ```
 
 **When to use:** Status text with icons, formatted messages, chat with inline images.
@@ -190,7 +191,7 @@ iw.SetMaskProgress(float progress);        // 0-1 for wipe/reveal transitions
 
 **Key layout attributes:**
 - `image0 "set:dayz_gui image:icon_refresh"` -- Image from an imageset
-- `mode blend` -- Blend mode (`blend`, `additive`, `stretch`)
+- `mode blend` -- Blend mode (`blend`, `additive`, `opaque`)
 - `"src alpha" 1` -- Use source alpha channel
 - `stretch 1` -- Stretch image to fill widget
 - `"flip u" 1` -- Flip horizontally
@@ -273,13 +274,13 @@ The primary interactive control. Supports both momentary click and toggle modes.
 ```c
 ButtonWidget bw;
 bw.SetText("Click Me");
-bw.GetState();              // Returns bool (toggle buttons only)
+bw.GetState();              // Returns bool
 bw.SetState(bool state);    // Set toggle state
 ```
 
 **Key layout attributes:**
 - `text "Label"` -- Button label text
-- `switch toggle` -- Make it a toggle button
+- `switch normal` / `switch once` -- Values used by vanilla button layouts. For persistent on/off state, use `CheckBoxWidget` and explicitly read or set its state with `GetState()` / `SetState()`
 - `style Default` -- Visual style
 
 **Events fired:** `OnClick(Widget w, int x, int y, int button)`
@@ -317,7 +318,8 @@ A horizontal slider for numeric values.
 **Key methods:**
 ```c
 SliderWidget sw;
-sw.GetCurrent();            // Returns float (0-1)
+sw.SetMinMax(0, 100);       // Configure the value range (default range otherwise)
+sw.GetCurrent();            // Returns float within the configured min/max range
 sw.SetCurrent(float val);   // Set position
 ```
 
@@ -402,7 +404,10 @@ EmbededWidgetTypeID
 WindowWidgetTypeID
 BaseListboxWidgetTypeID
 GenericListboxWidgetTypeID
+ComboBoxWidgetTypeID
 ```
+
+> **Naming mismatch:** the dropdown script/layout class is `XComboBoxWidget`/`XComboBoxWidgetClass`, but the `CreateWidget()` TypeID constant is `ComboBoxWidgetTypeID` -- there is no `XComboBoxWidgetTypeID`. Passing the "X"-prefixed name (a natural guess given the pattern every other widget follows) fails to compile.
 
 ---
 
@@ -417,7 +422,7 @@ GenericListboxWidgetTypeID
 | Show text with inline icons | `RichTextWidget` |
 | Display an image/icon | `ImageWidget` |
 | Create a clickable button | `ButtonWidget` |
-| Create a toggle (on/off) | `CheckBoxWidget` or `ButtonWidget` with `switch toggle` |
+| Create a toggle (on/off) | `CheckBoxWidget` with explicit `GetState()` / `SetState()` handling |
 | Accept text input | `EditBoxWidget` |
 | Accept multi-line text input | `MultilineEditBoxWidget` |
 | Accept a password | `PasswordEditBoxWidget` |
@@ -450,6 +455,14 @@ GenericListboxWidgetTypeID
 - Use `WrapSpacerWidget` for dynamic lists and `GridSpacerWidget` for fixed grids. Do not manually position children in a flow layout.
 - Avoid `CanvasWidget` for production UI -- it redraws every frame and has no batching. Use it only for debug overlays.
 
+> **The null check is not the whole fix -- it just prevents the crash. The feature is still broken.** `FindAnyWidget("Name")` resolves a widget by string, at runtime, against whatever the `.layout` file actually contains. There is no compile-time link between the name you type in a `.c` file and the name declared in the `.layout` -- a typo, a renamed widget, or a category list in code that outgrew its layout all produce the exact same outcome: `null`, silently, forever. The idiomatic `if (w) { w.SetText(...); }` guard that everyone writes to avoid a crash also perfectly hides the bug -- the block simply never executes, the screen renders fine, and nothing in any log says a button, filter, or stat bar was never wired up.
+>
+> Check each FindAnyWidget lookup against names declared in the layout actually loaded. A null guard prevents a crash, but it also lets a missing label or button remain silently unwired; log missing required widgets during development.
+>
+> Two patterns will otherwise produce false positives in a manual check like this: widgets built purely from script (`Widget.CreateWidget(...)` followed by `.SetName("literal")`) never appear in any `.layout` file at all, and names built by string concatenation (`label + "BarFill"`) will not match a plain-text search for the literal.
+
+
+
 ---
 
 ## Theory vs Practice
@@ -467,4 +480,4 @@ GenericListboxWidgetTypeID
 ## Compatibility & Impact
 
 - **Multi-Mod:** Widget type IDs are engine constants shared across all mods. Two mods creating widgets with the same name under the same parent will collide. Use unique widget names with your mod prefix.
-- **Performance:** `TextListboxWidget` and `ScrollWidget` with hundreds of children cause frame drops. Pool and recycle widgets for lists exceeding 50 items.
+- **Performance:** `TextListboxWidget` and `ScrollWidget` with hundreds of children cause frame drops. Profile large lists and pool or recycle rows when creation or layout work becomes costly.

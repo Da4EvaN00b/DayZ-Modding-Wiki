@@ -1,6 +1,5 @@
 # Глава 1.9: Приведение типов и рефлексия
 
-[Главная](../README.md) | [<< Назад: Управление памятью](08-memory-management.md) | **Приведение типов и рефлексия** | [Далее: Перечисления и препроцессор >>](10-enums-preprocessor.md)
 
 ---
 
@@ -641,11 +640,3 @@ if (myObj.Type() == PlayerBase)  // true, если myObj ЯВЛЯЕТСЯ Player
 | Тип переменной | `obj.Type().GetVariableType(i)` | `typename` |
 | Чтение свойства | `EnScript.GetClassVar(obj, name, 0, out val)` | `void` |
 | Запись свойства | `EnScript.SetClassVar(obj, name, 0, val)` | `bool` |
-
----
-
-## Навигация
-
-| Назад | Наверх | Далее |
-|----------|----|------|
-| [1.8 Управление памятью](08-memory-management.md) | [Часть 1: Enforce Script](../README.md) | [1.10 Перечисления и препроцессор](10-enums-preprocessor.md) |

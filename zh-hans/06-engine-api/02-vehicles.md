@@ -1,6 +1,5 @@
 # 第 6.2 章：载具系统
 
-[首页](../README.md) | [<< 上一章：实体系统](01-entity-system.md) | **载具** | [下一章：天气 >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ EntityAI
 proto native int   CrewSize();                          // 总座位数
 proto native int   CrewMemberIndex(Human crew_member);  // 获取人员的座位索引
 proto native Human CrewMember(int posIdx);              // 获取座位索引上的人员
-proto native void  CrewGetOut(int posIdx);              // 强制乘员下车
+proto native Human CrewGetOut(int posIdx);              // 强制乘员下车（返回被弹出的人员）
 proto native void  CrewDeath(int posIdx);               // 击杀座位上的乘员
 ```
 
 ### 乘员进入
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // 脚本（可覆盖）方法，非 proto native
 proto native int  CrewPositionIndex(int componentIdx);  // 组件到座位索引
-proto native vector CrewEntryPoint(int posIdx);         // 座位的世界进入点
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // 模型空间中的进入点/方向
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // 世界空间中的进入点/方向
 ```
 
 **示例 --- 弹出所有乘客：**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // 速度（千米/时，绝对值）
 ### 控制（模拟）
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0，-1 = 所有车轮
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0（额外参数未使用）
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0（第二个参数未使用）
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0（SetThrust 已废弃）
+proto native void  SetClutch(float value);                    // SetClutchState 已废弃
 ```
 
 ### 车轮
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### 回调（在 CarScript 中覆盖）
@@ -219,17 +219,28 @@ graph TD
 
 ### 灯光
 
+灯光 API 位于 `Transport` 上：
+
 ```c
-void SetLightsState(int state);   // 0 = 关闭，1 = 开启
-int  GetLightsState();
+proto native bool LightIsOn();    // 灯光开启时返回 true
+proto native void LightOn();      // 开启灯光
+proto native void LightOff();     // 关闭灯光
+proto native void LightToggle();  // 切换当前灯光状态
 ```
 
 ### 车门控制
 
+车门状态通过 `GetCarDoorsState` 查询，它返回一个 `CarDoorState` 值（`DOORS_MISSING`、`DOORS_OPEN` 或 `DOORS_CLOSED`）：
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // 返回一个 CarDoorState 值
 ```
 
 ### 自定义载具的关键覆盖
@@ -238,8 +249,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // 初始化载具部件、流体
 override void OnEngineStart();             // 自定义引擎启动行为
 override void OnEngineStop();              // 自定义引擎停止行为
-override void EOnSimulate(IEntity other, float dt);  // 每帧模拟
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // 每帧模拟（CarScript）
 ```
 
 **示例 --- 创建一个满油的载具：**
@@ -286,31 +296,36 @@ proto native float EngineGetRPM();
 
 ### 流体
 
-船只使用相同的 `CarFluid` 枚举，但通常只使用 `FUEL`：
+船只使用独立的 `BoatFluid` 枚举，它只定义了 `FUEL`：
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### 速度
+### 速度与推进
+
+`Boat` 不暴露 `GetSpeedometer()`（该方法仅存在于 `Car` 上）。请改为读取引擎 RPM 和螺旋桨速度：
 
 ```c
-proto native float GetSpeedometer();   // 速度（千米/时）
+proto native float EngineGetRPM();                   // 引擎转速
+proto native float PropellerGetAngularVelocity();    // 螺旋桨角速度
 ```
 
 **示例 --- 生成一艘船：**
+
+`Boat_01` 不是可直接生成的类；请生成具体的颜色变体之一（`Boat_01_Blue`、`Boat_01_Orange`、`Boat_01_Black`、`Boat_01_Camo`）：
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -479,7 +494,7 @@ Bullet Physics 库已更新到最新的 Enfusion 版本。碰撞响应、摩擦�
 **已更改：**
 - `Material1`、`Material2` --- 类型从 `dMaterial` 改为 `SurfaceProperties`
 
-在 `EOnContact` 中读取 `Contact` 数据的模组必须更新到新的变量名称和类型。
+在 `OnContact` 中读取 `Contact` 数据的模组必须更新到新的变量名称和类型。
 
 ---
 
@@ -511,7 +526,3 @@ Bullet Physics 库启用了多线程支持。服务器压力测试显示 FPS 提
 | `EOnSimulate` 累加器用于周期性油耗检查 | Vanilla+ 载具模组 | `CarScript` 覆盖 |
 | 管理员弹出所有人命令中的 `CrewGetOut()` 循环 | VPP 管理工具 | 载具管理模块 |
 | 自定义 `OnContact()` 覆盖用于碰撞伤害调整 | Expansion | `ExpansionCarScript` |
-
----
-
-[首页](../README.md) | [<< 上一章：实体系统](01-entity-system.md) | **载具** | [下一章：天气 >>](03-weather.md)

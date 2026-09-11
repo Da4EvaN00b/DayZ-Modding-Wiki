@@ -1,6 +1,5 @@
-# Chapter 9.8: Performance Tuning
+# Performance Tuning
 
-[Home](../README.md) | [<< Previous: Persistence](07-persistence.md) | [Next: Access Control >>](09-access-control.md)
 
 ---
 
@@ -30,7 +29,7 @@ From community data (400+ Discord mentions of FPS/performance/lag/desync), the t
 2. **Event spawning** -- too many active dynamic events (vehicles, animals, helicrashes) in `events.xml` consume spawn/cleanup cycles and entity slots.
 3. **Player count + mod count** -- each connected player generates entity updates, and each mod adds script classes that the engine must compile and execute every tick.
 
-The server game loop runs at a fixed 30 FPS tick rate. When the server cannot maintain 30 FPS, players experience desync -- rubber-banding, delayed item pickups, and hit registration failures. Below 15 server FPS, the game becomes unplayable.
+The server game loop runs at a variable FPS that fluctuates with load. When the server cannot maintain a healthy FPS (the `serverFpsWarning` default threshold is 15), players experience desync -- rubber-banding, delayed item pickups, and hit registration failures. Below 15 server FPS, the game becomes unplayable.
 
 ---
 
@@ -53,7 +52,7 @@ These are the vanilla defaults for the parameters that directly affect performan
 | `ZombieMaxCount` | 1000 | Cap for total infected on the server. Each zombie runs AI pathfinding. Lowering to 500-700 noticeably improves server FPS on populated servers. |
 | `AnimalMaxCount` | 200 | Cap for animals. Animals have simpler AI than zombies but still consume tick time. Lower to 100 if you see FPS issues. |
 | `ZoneSpawnDist` | 300 | Distance in meters at which zombie zones activate around players. Lowering to 200 means fewer simultaneous active zones. |
-| `SpawnInitial` | 1200 | Number of items the CE spawns on first start. Higher values mean a longer initial load. Does not affect steady-state performance. |
+| `SpawnInitial` | 1200 | Number of spawn attempts (tests) allowed during initial item spawn, not a count of items spawned. The amount of loot spawned on first start is governed by `InitialSpawn` (default 100, a percentage). Higher values mean a longer initial load. Does not affect steady-state performance. |
 | `CleanupLifetimeDefault` | 45 | Default cleanup time in seconds for items without a specific lifetime. Lower values mean faster cleanup cycles but more frequent CE processing. |
 
 **Recommended performance profile** (for servers struggling above 40 players):
@@ -135,7 +134,7 @@ The main server configuration file has limited performance-related options:
 | `maxPlayers` | Lower this if the server struggles. Each player generates network traffic and entity updates. Going from 60 to 40 players can recover 5-10 server FPS. |
 | `instanceId` | Determines the `storage_1/` path. Not a performance setting, but if your storage is on a slow disk, it affects persistence I/O. |
 
-**What you cannot change:** the server tick rate is fixed at 30 FPS. There is no setting to increase or decrease it. If the server cannot maintain 30 FPS, it simply runs slower.
+**What you cannot change:** there is no setting to force a higher minimum server FPS. Server FPS is variable and fluctuates with load. You can cap the maximum with the `-limitFPS=` launch parameter (current max is 200) to lower CPU usage on low-population servers, but if the server cannot keep up under load, it simply runs slower.
 
 ---
 
@@ -225,7 +224,3 @@ A `storage_1/` folder that grows to several gigabytes slows down every persisten
 ### Logging Left Enabled
 
 CE diagnostic logging, script debug logging, and admin tool logging all write to disk every tick. Enable them for diagnosis, then turn them off. Persistent verbose logging on a busy server can cost 1-2 FPS by itself.
-
----
-
-[Home](../README.md) | [<< Previous: Persistence](07-persistence.md) | [Next: Access Control >>](09-access-control.md)

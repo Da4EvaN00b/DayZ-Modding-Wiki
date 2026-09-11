@@ -1,6 +1,5 @@
 # Chapter 9.3: serverDZ.cfg 完全リファレンス
 
-[ホーム](../README.md) | [<< 前へ: ディレクトリ構造](02-directory-structure.md) | **serverDZ.cfgリファレンス** | [次へ: ルートエコノミー詳解 >>](04-loot-economy.md)
 
 ---
 
@@ -103,7 +102,7 @@ lightingConfig = 0;                 // 夜の明るさ（0 = 明るい、1 = 暗
 | `disable3rdPerson` | int | 0, 1 | 0 | 一人称専用サーバーには1に設定します。最も一般的な「ハードコア」設定です。 |
 | `disableCrosshair` | int | 0, 1 | 0 | クロスヘアを除去するには1に設定します。`disable3rdPerson=1` と組み合わせることが多いです。 |
 | `disablePersonalLight` | int | 0, 1 | 1 | 「パーソナルライト」は夜間のプレイヤー周囲の微妙な光です。ほとんどのサーバーはリアリズムのために無効化（値1）します。 |
-| `lightingConfig` | int | 0, 1 | 0 | 0 = 明るい夜（月明かりが見える）。1 = 真っ暗な夜（懐中電灯/NVGが必要）。 |
+| `lightingConfig` | int | 0, 1, 2 | 0 | 0 = 明るい夜（月明かりが見える）。1 = 真っ暗な夜（懐中電灯/NVGが必要）。2 = サハル専用のライティング。 |
 
 ---
 
@@ -119,7 +118,7 @@ serverTimePersistent = 0;                  // 再起動間で時間を保存
 | パラメータ | 型 | 有効な値 | デフォルト | 備考 |
 |-----------|------|-------------|---------|-------|
 | `serverTime` | string | `"SystemTime"` または `"YYYY/MM/DD/HH/MM"` | `"SystemTime"` | `"SystemTime"` はマシンのローカル時計を使用します。常時昼間サーバーの場合は `"2024/9/15/12/0"` のような固定時間を設定します。 |
-| `serverTimeAcceleration` | int | 0-24 | 12 | ゲーム内時間の倍率です。12の場合、24時間サイクルは実時間2時間で完了します。1の場合はリアルタイムです。24の場合は1時間で1日が経過します。 |
+| `serverTimeAcceleration` | float | 0.1-64 | 12 | ゲーム内時間の倍率です。12の場合、24時間サイクルは実時間2時間で完了します。1の場合はリアルタイムです。24の場合は1時間で1日が経過します。 |
 | `serverNightTimeAcceleration` | float | 0.1-64 | 1 | `serverTimeAcceleration` と乗算されます。値4でacceleration 12の場合、夜は48倍速で経過します（非常に短い夜）。 |
 | `serverTimePersistent` | int | 0, 1 | 0 | 1の場合、サーバーはゲーム内時計をディスクに保存し、再起動後にそこから再開します。0の場合、毎回の再起動時に `serverTime` にリセットされます。 |
 
@@ -288,7 +287,3 @@ start DayZServer_x64.exe ^
 ```
 
 MODは `-mod=` で指定された順序でロードされます。依存関係の順序が重要です: MOD BがMOD Aを必要とする場合、MOD Aを先にリストしてください。
-
----
-
-**前へ:** [ディレクトリ構造](02-directory-structure.md) | [ホーム](../README.md) | **次へ:** [ルートエコノミー詳解 >>](04-loot-economy.md)

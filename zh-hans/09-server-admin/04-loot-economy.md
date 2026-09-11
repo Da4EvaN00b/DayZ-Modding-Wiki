@@ -1,6 +1,5 @@
 # Chapter 9.4: 战利品经济深入解析
 
-[首页](../README.md) | [<< 上一章: serverDZ.cfg 参考](03-server-cfg.md) | **战利品经济深入解析**
 
 ---
 
@@ -194,7 +193,7 @@ AKM 是一把稀有的高阶武器。地图上同时只能存在 3 把（`nomina
 | `restock` | int | 秒 | CE 刷新替代品之前的最短冷却时间。0 = 立即。 |
 | `quantmin` | int | -1 到 100 | 刷新时的最低数量百分比（弹药%、液体%）。-1 = 不适用。 |
 | `quantmax` | int | -1 到 100 | 刷新时的最高数量百分比。-1 = 不适用。 |
-| `cost` | int | 0+ | 刷新选择的优先级权重。目前所有原版物品都使用 100。 |
+| `cost` | int | 0+ | 在重生/清理期间使用的优先级权重。几乎所有原版物品都使用 100，但少数使用更高的值（例如 `Mag_SVD_10Rnd` 使用 1000）。 |
 
 ### 标志
 
@@ -721,7 +720,3 @@ IF (current_count < min) AND (time_since_last_spawn > restock):
 - 删除 `storage_1/` 进行完全清档并重新开始经济
 - 在 `globals.xml` 中将 `RestartSpawn` 设为 `1` 重启一次以重新随机化战利品，然后设回 `0`
 - 等待物品生命周期自然到期（可能需要数小时）
-
----
-
-**上一章：** [serverDZ.cfg 参考](03-server-cfg.md) | [首页](../README.md) | **下一章：** [载具与动态事件刷新](05-vehicle-spawning.md)

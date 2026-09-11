@@ -1,6 +1,5 @@
 # 第4.3章: マテリアル (.rvmat)
 
-[ホーム](../README.md) | [<< 前: 3Dモデル](02-models.md) | **マテリアル** | [次: オーディオ >>](04-audio.md)
 
 ---
 
@@ -83,9 +82,9 @@ class Stage1                               // テクスチャステージ: ノ�
     };
 };
 
-class Stage2                               // テクスチャステージ: ディフューズ/カラーマップ
+class Stage2                               // テクスチャステージ: ディテールマップ（ベースとなる _co カラーはStageではなく、モデルテクスチャ / hiddenSelectionsTextures[] から来ます）
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -138,24 +137,25 @@ class Stage3                               // テクスチャステージ: ス�
 | **Super** | 標準的な不透明サーフェス（武器、衣服、アイテム） | ノーマル、ディフューズ、スペキュラ/メタリック |
 | **Multi** | マルチレイヤーの地形と複雑なサーフェス | 複数のディフューズ/ノーマルペア |
 | **Glass** | 透明および半透明サーフェス | アルファ付きディフューズ |
-| **Water** | 反射と屈折を持つ水面 | 特殊な水テクスチャ |
-| **Terrain** | 地形の地面サーフェス | サテライト、マスク、マテリアルレイヤー |
+| **CalmWater** | 反射と屈折を持つ水面 | 特殊な水テクスチャ |
+| **TerrainX** | 地形の地面サーフェス（ピクセルシェーダー。頂点シェーダーは`Terrain`） | サテライト、マスク、マテリアルレイヤー |
 | **NormalMap** | 簡略化されたノーマルマップサーフェス | ノーマル、ディフューズ |
-| **NormalMapSpecular** | スペキュラ付きノーマルマップ | ノーマル、ディフューズ、スペキュラ |
-| **Hair** | キャラクターの髪のレンダリング | アルファ付きディフューズ、特殊なトランスルーセンシー |
+| **NormalMapSpecularMap** | スペキュラ付きノーマルマップ | ノーマル、ディフューズ、スペキュラ |
+| **SuperHair** | キャラクターの髪のレンダリング | アルファ付きディフューズ、特殊なトランスルーセンシー |
 | **Skin** | サブサーフェススキャッタリングを持つキャラクターの肌 | ディフューズ、ノーマル、スペキュラ |
-| **AlphaTest** | ハードエッジ透明度（植物、フェンス） | アルファ付きディフューズ |
-| **AlphaBlend** | スムーズ透明度（ガラス、煙） | アルファ付きディフューズ |
+| **AlphaShadow / AlphaNoShadow** | アルファキー透明度（植物、フェンス）、シャドウキャストあり/なし | アルファ付きディフューズ |
 
 ### Superシェーダー（最も一般的）
 
-**Super**シェーダーは、DayZの大多数のアイテムに使用される標準的な物理ベースレンダリングシェーダーです。3つのテクスチャステージを期待します:
+**Super**シェーダーは、DayZの大多数のアイテムに使用される標準的な物理ベースレンダリングシェーダーです。次のコアテクスチャステージを期待します（実際のバニラrvmat、例えば`DZ\weapons\ammunition\data\00buck_box.rvmat`に一致）:
 
 ```
 Stage1 = ノーマルマップ (_nohq)
-Stage2 = ディフューズ/カラーマップ (_co)
+Stage2 = ディテールマップ (_dt)
 Stage3 = スペキュラ/メタリックマップ (_smdi)
 ```
+
+ベースカラー（`_co`）はSuperシェーダーではStageを通じて割り当てられません -- モデルのベーステクスチャまたは`hiddenSelectionsTextures[]`から来ます。
 
 モッドアイテム（武器、衣服、ツール、コンテナ）を作成する場合、ほぼ常にSuperシェーダーを使用します。
 
@@ -193,7 +193,7 @@ RVMAT内の各`Stage`クラスは、テクスチャを特定のシェーダー�
 | ステージ | テクスチャの役割 | 一般的なサフィックス | 説明 |
 |-------|-------------|----------------|-------------|
 | **Stage1** | ノーマルマップ | `_nohq` | サーフェスのディテール、バンプ、溝 |
-| **Stage2** | ディフューズ/カラーマップ | `_co`または`_ca` | サーフェスのベースカラー |
+| **Stage2** | ディテールマップ | `_dt` | 細かいサーフェスディテール（ベースとなる`_co`カラーはStageではなく、モデルのベーステクスチャ / `hiddenSelectionsTextures[]`から供給されます） |
 | **Stage3** | スペキュラ/メタリックマップ | `_smdi` | 光沢、メタリック特性、ディテール |
 | **Stage4** | アンビエントシャドウ | `_as` | プリベイクされたアンビエントオクルージョン（オプション） |
 | **Stage5** | マクロマップ | `_mc` | 大規模な色のバリエーション（オプション） |
@@ -267,10 +267,10 @@ emmisive[] = {0.2, 0.8, 0.2, 1.0};   // 緑の発光
 両側から見える薄いサーフェス（旗、植物、布）の場合:
 
 ```cpp
-renderFlags[] = {"noZWrite", "noAlpha", "twoSided"};
+renderFlags[] = {"NoZWrite"};
 ```
 
-これはトップレベルのRVMATプロパティではなく、使用ケースに応じてconfig.cppまたはマテリアルのシェーダー設定を通じて構成されます。
+`renderFlags[]`はトップレベルのRVMATプロパティです（`ambient[]`や`PixelShaderID`と同列）。バニラの値はPascalCaseで、例えば`"NoZWrite"`、`"NoAlphaWrite"`、`"NoColorWrite"`、`"AddBlend"`などです。`"twoSided"`フラグは存在しません -- 両面レンダリングは`renderFlags[]`ではなく、他の場所（例えばObject Builderのフェースプロパティ）で制御されます。
 
 ---
 
@@ -285,15 +285,25 @@ class MyItem: Inventory_Base
 {
     // ... その他の設定 ...
 
-    healthLevels[] =
+    class DamageSystem
     {
-        // {ヘルスしきい値, {"マテリアルセット"}},
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    // {ヘルスしきい値, {"マテリアルセット"}},
 
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // 新品（100%ヘルス）
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // 使い古し（70%ヘルス）
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // 損傷（50%ヘルス）
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// ひどく損傷（30%ヘルス）
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // 破損（0%ヘルス）
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // 新品（100%ヘルス）
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // 使い古し（70%ヘルス）
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // 損傷（50%ヘルス）
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// ひどく損傷（30%ヘルス）
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // 破損（0%ヘルス）
+                };
+            };
+        };
     };
 };
 ```
@@ -341,16 +351,16 @@ data/
 
 ### バニラダメージマテリアルの使用
 
-DayZは、カスタムダメージテクスチャを作成したくない場合に使用できる汎用ダメージオーバーレイマテリアルのセットを提供しています:
+バニラアイテムは、レベルごとに名前付けされた汎用オーバーレイのセットを使用しません。代わりに、各ヘルスレベルはアイテム固有のRVMAT（通常は`<item>.rvmat`、`<item>_damage.rvmat`、`<item>_destruct.rvmat`）を指し、隣接するレベル間で同じファイルを再利用します。`DZ\data\data\`にある唯一の汎用マテリアルは`default_destruct.rvmat`です（`default.rvmat`とともに）:
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -575,7 +585,7 @@ VertexShaderID = "Super";
 ### 1. ステージの順序の誤り
 
 **症状:** テクスチャがスクランブルされて表示され、ノーマルマップがカラーとして表示され、カラーがバンプとして表示される。
-**修正:** Superシェーダーの場合、Stage1 = ノーマル、Stage2 = ディフューズ、Stage3 = スペキュラであることを確認してください。
+**修正:** Superシェーダーの場合、Stage1 = ノーマル、Stage2 = ディテール、Stage3 = マクロ、Stage5 = スペキュラであることを確認してください。ベースとなる`_co`カラーはStageではなく、モデルテクスチャ / `hiddenSelectionsTextures[]`から来ます。上記のステージ割り当ての表を参照してください。
 
 ### 2. `emmisive`のスペルミス
 
@@ -595,7 +605,7 @@ VertexShaderID = "Super";
 ### 5. 透明アイテムに間違ったシェーダーを使用
 
 **症状:** 透明テクスチャが不透明に見える、またはサーフェス全体が消える。
-**修正:** 透明サーフェスには`Super`の代わりに`Glass`、`AlphaTest`、または`AlphaBlend`シェーダーを使用してください。適切なアルファチャンネルを持つ`_ca`サフィックスのテクスチャを使用してください。
+**修正:** 透明サーフェスには`Super`の代わりに`Glass`、`AlphaShadow`、または`AlphaNoShadow`シェーダーを使用してください。適切なアルファチャンネルを持つ`_ca`サフィックスのテクスチャを使用してください。
 
 ---
 

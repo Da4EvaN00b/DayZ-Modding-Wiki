@@ -1,6 +1,5 @@
 # Chapter 9.10: Mod kezelés
 
-[Kezdőlap](../README.md) | [<< Előző: Hozzáférés vezérlés](09-access-control.md) | [Következő: Hibaelhárítás >>](11-troubleshooting.md)
 
 ---
 
@@ -214,7 +213,3 @@ Ha két mod egyaránt `modded class PlayerBase`-t használ, az **utolsóként** 
 **Szóközök a mod elérési utakban.** Egy `-mod=@My Mod` típusú elérési út megtöri az elemzést. Nevezd át a mod mappákat a szóközök elkerülése érdekében, vagy tedd az egész paramétert idézőjelbe: `-mod="@My Mod;@CF"`.
 
 **Elavult mod a szerveren, frissített a kliensnél (vagy fordítva).** Verzió eltérés megakadályozza a csatlakozást. Tartsd szinkronban a szerver és Workshop verziókat. Frissítsd egyszerre az összes modot és a szervert.
-
----
-
-[Kezdőlap](../README.md) | [<< Előző: Hozzáférés vezérlés](09-access-control.md) | [Következő: Hibaelhárítás >>](11-troubleshooting.md)

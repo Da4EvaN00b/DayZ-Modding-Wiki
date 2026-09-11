@@ -1,6 +1,5 @@
 # Chapter 9.8 : Optimisation des performances
 
-[Accueil](../README.md) | [<< Précédent : Persistance](07-persistence.md) | [Suivant : Contrôle d'accès >>](09-access-control.md)
 
 ---
 
@@ -30,7 +29,7 @@ D'après les données communautaires (plus de 400 mentions Discord de FPS/perfor
 2. **Apparition d'événements** -- trop d'événements dynamiques actifs (véhicules, animaux, crashs d'hélicoptères) dans `events.xml` consomment des cycles d'apparition/nettoyage et des emplacements d'entités.
 3. **Nombre de joueurs + nombre de mods** -- chaque joueur connecté génère des mises à jour d'entités, et chaque mod ajoute des classes de script que le moteur doit compiler et exécuter à chaque tick.
 
-La boucle de jeu du serveur fonctionne à un taux fixe de 30 FPS. Quand le serveur ne peut pas maintenir 30 FPS, les joueurs subissent de la désynchronisation -- téléportations, ramassages d'objets retardés et échecs de détection des hits. En dessous de 15 FPS serveur, le jeu devient injouable.
+La boucle de jeu du serveur fonctionne à un FPS variable qui fluctue avec la charge. Quand le serveur ne peut pas maintenir un FPS sain (le seuil par défaut de `serverFpsWarning` est de 15), les joueurs subissent de la désynchronisation -- téléportations, ramassages d'objets retardés et échecs de détection des hits. En dessous de 15 FPS serveur, le jeu devient injouable.
 
 ---
 
@@ -53,7 +52,7 @@ Voici les valeurs vanilla par défaut pour les paramètres qui affectent directe
 | `ZombieMaxCount` | 1000 | Plafond pour le total d'infectés sur le serveur. Chaque zombie fait tourner le pathfinding IA. Réduire à 500-700 améliore sensiblement les FPS serveur sur les serveurs peuplés. |
 | `AnimalMaxCount` | 200 | Plafond pour les animaux. Les animaux ont une IA plus simple que les zombies mais consomment quand même du temps de tick. Réduisez à 100 si vous constatez des problèmes de FPS. |
 | `ZoneSpawnDist` | 300 | Distance en mètres à laquelle les zones de zombies s'activent autour des joueurs. Réduire à 200 signifie moins de zones simultanément actives. |
-| `SpawnInitial` | 1200 | Nombre d'objets que le CE fait apparaître au premier démarrage. Des valeurs plus élevées signifient un chargement initial plus long. N'affecte pas les performances en régime permanent. |
+| `SpawnInitial` | 1200 | Nombre de tentatives d'apparition (tests) autorisées pendant l'apparition initiale des objets, et non un nombre d'objets apparus. La quantité de loot apparu au premier démarrage est régie par `InitialSpawn` (défaut 100, un pourcentage). Des valeurs plus élevées signifient un chargement initial plus long. N'affecte pas les performances en régime permanent. |
 | `CleanupLifetimeDefault` | 45 | Temps de nettoyage par défaut en secondes pour les objets sans durée de vie spécifique. Des valeurs plus basses signifient des cycles de nettoyage plus rapides mais un traitement CE plus fréquent. |
 
 **Profil de performance recommandé** (pour les serveurs en difficulté au-dessus de 40 joueurs) :
@@ -135,7 +134,7 @@ Le fichier de configuration principal du serveur a des options limitées liées 
 | `maxPlayers` | Réduisez si le serveur peine. Chaque joueur génère du trafic réseau et des mises à jour d'entités. Passer de 60 à 40 joueurs peut récupérer 5-10 FPS serveur. |
 | `instanceId` | Détermine le chemin de `storage_1/`. Pas un paramètre de performance, mais si votre stockage est sur un disque lent, cela affecte les E/S de persistance. |
 
-**Ce que vous ne pouvez pas changer :** le taux de tick du serveur est fixé à 30 FPS. Il n'y a aucun paramètre pour l'augmenter ou le diminuer. Si le serveur ne peut pas maintenir 30 FPS, il tourne simplement plus lentement.
+**Ce que vous ne pouvez pas changer :** il n'y a aucun paramètre pour forcer un FPS serveur minimum plus élevé. Le FPS serveur est variable et fluctue avec la charge. Vous pouvez plafonner le maximum avec le paramètre de lancement `-limitFPS=` (le maximum actuel est 200) pour réduire l'utilisation CPU sur les serveurs à faible population, mais si le serveur ne peut pas suivre sous la charge, il tourne simplement plus lentement.
 
 ---
 
@@ -225,7 +224,3 @@ Un dossier `storage_1/` qui atteint plusieurs gigaoctets ralentit chaque cycle d
 ### Journalisation laissée activée
 
 La journalisation de diagnostic CE, la journalisation de débogage des scripts, et la journalisation des outils admin écrivent toutes sur le disque à chaque tick. Activez-les pour le diagnostic, puis désactivez-les. Une journalisation verbeuse permanente sur un serveur occupé peut coûter 1-2 FPS à elle seule.
-
----
-
-[Accueil](../README.md) | [<< Précédent : Persistance](07-persistence.md) | [Suivant : Contrôle d'accès >>](09-access-control.md)

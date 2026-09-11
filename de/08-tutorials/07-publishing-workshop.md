@@ -1,6 +1,5 @@
 # Chapter 8.7: Publishing to the Steam Workshop
 
-[Home](../README.md) | [<< Previous: Debugging & Testing](06-debugging-testing.md) | **Publishing to the Steam Workshop** | [Next: Building a HUD Overlay >>](08-hud-overlay.md)
 
 ---
 
@@ -105,7 +104,6 @@ author       = "YourName";
 overviewPicture = "MyMod/Data/Textures/overview_co.paa";
 action       = "https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID";
 version      = "1.0.0";
-versionPath  = "MyMod/Data/version.txt";
 ```
 
 ### Field Reference
@@ -123,7 +121,6 @@ versionPath  = "MyMod/Data/version.txt";
 | `overviewPicture` | No | Large image shown in the mod overview panel |
 | `action` | No | URL opened when der Spieler clicks "Website" (typischerweise your Workshop page or GitHub) |
 | `version` | Yes | Current version string (e.g., `"1.0.0"`) |
-| `versionPath` | No | Path to a text file containing the version number (for automated builds) |
 
 ### Häufige Fehler
 
@@ -450,7 +447,7 @@ When your mod saves persistent data (JSON configs, player data files), think car
 
 Example migration check in Enforce Script:
 
-```csharp
+```c
 // In your config load function
 if (config.configVersion < 2)
 {

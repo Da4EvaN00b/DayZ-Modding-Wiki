@@ -1,6 +1,5 @@
 # Chapter 9.8: Ladeni vykonu
 
-[Domu](../README.md) | [<< Predchozi: Persistence](07-persistence.md) | [Dalsi: Rizeni pristupu >>](09-access-control.md)
 
 ---
 
@@ -30,7 +29,7 @@ Z komunitnich dat (400+ zminku na Discordu o FPS/vykonu/lagu/desyncu) jsou tri n
 2. **Spawnovani udalosti** -- prilis mnoho aktivnich dynamickych udalosti (vozidla, zvírata, helikopterove zriceniny) v `events.xml` spotrebovava cykly spawnu/cisteni a sloty entit.
 3. **Pocet hracu + pocet modu** -- kazdy pripojeny hrac generuje aktualizace entit a kazdy mod pridava tridy skriptu, ktere engine musi kompilovat a vykonavat kazdy tick.
 
-Herní smycka serveru bezi na fixni obnovovaci frekvenci 30 FPS. Kdyz server nemuze udrzet 30 FPS, hraci zaznamenaji desync -- rubber-banding, zpozdene sebirani predmetu a selhani registrace zasahu. Pod 15 server FPS je hra nehratelna.
+Herní smycka serveru bezi na promenne FPS, ktera kolisa podle zateze. Kdyz server nemuze udrzet zdravou FPS (vychozi prah `serverFpsWarning` je 15), hraci zaznamenaji desync -- rubber-banding, zpozdene sebirani predmetu a selhani registrace zasahu. Pod 15 server FPS je hra nehratelna.
 
 ---
 
@@ -53,7 +52,7 @@ Toto jsou vanilkove vychozi hodnoty pro parametry, ktere primo ovlivnuji vykon:
 | `ZombieMaxCount` | 1000 | Strop pro celkovy pocet nakazenych na serveru. Kazdy zombie spousti pathfinding AI. Snizení na 500-700 znatelne zlepsuje FPS serveru na populovanych serverech. |
 | `AnimalMaxCount` | 200 | Strop pro zvírata. Zvírata mají jednodussi AI nez zombie, ale stale spotrebovavaji cas ticku. Snizte na 100, pokud vidite problemy s FPS. |
 | `ZoneSpawnDist` | 300 | Vzdalenost v metrech, pri ktere se aktivuji zony zombie kolem hracu. Snizení na 200 znamena mene soucasne aktivnich zon. |
-| `SpawnInitial` | 1200 | Pocet predmetu, ktere CE spawnuje pri prvnim startu. Vyssi hodnoty znamenaji delsi pocatecni nacitani. Neovlivnuje vykon v ustalenem stavu. |
+| `SpawnInitial` | 1200 | Pocet pokusu o spawn (testu) povolenych behem pocatecniho spawnu predmetu, nikoli pocet skutecne spawnutych predmetu. Mnozstvi lootu spawnuteho pri prvnim startu ridi `InitialSpawn` (vychozi 100, procento). Vyssi hodnoty znamenaji delsi pocatecni nacitani. Neovlivnuje vykon v ustalenem stavu. |
 | `CleanupLifetimeDefault` | 45 | Vychozi cas cisteni v sekundach pro predmety bez specificke zivotnosti. Nizsi hodnoty znamenaji rychlejsi cykly cisteni, ale castejsi zpracovani CE. |
 
 **Doporuceny vykonovy profil** (pro servery mající problemy nad 40 hracu):
@@ -135,7 +134,7 @@ Hlavni konfiguracni soubor serveru ma omezene moznosti souvisejici s vykonem:
 | `maxPlayers` | Snizte toto, pokud server ma problemy. Kazdy hrac generuje sitovy provoz a aktualizace entit. Prechod z 60 na 40 hracu muze ziskat 5-10 server FPS. |
 | `instanceId` | Urcuje cestu `storage_1/`. Neni to nastaveni vykonu, ale pokud je vase uloziste na pomalem disku, ovlivnuje to I/O persistence. |
 
-**Co nemuzete zmenit:** obnovovaci frekvence serveru je fixni na 30 FPS. Neexistuje nastaveni pro jeji zvyseni nebo snizeni. Pokud server nemuze udrzet 30 FPS, jednodusse bezi pomaleji.
+**Co nemuzete zmenit:** neexistuje nastaveni, ktere by vynutilo vyssi minimalni server FPS. Server FPS je promenna a kolisa podle zateze. Maximum muzete omezit spousteciim parametrem `-limitFPS=` (soucasne maximum je 200), abyste snizili zatez CPU na serverech s nizkym poctem hracu, ale pokud server nestiha pri zatezi, jednodusse bezi pomaleji.
 
 ---
 
@@ -225,7 +224,3 @@ Slozka `storage_1/`, ktera naroste na nekolik gigabajtu, zpomaluje kazdy cyklus 
 ### Logovani ponechano povolene
 
 Diagnosticke logovani CE, logovani ladeni skriptu a logovani admin nastroju vse zapisuji na disk kazdy tick. Povolte je pro diagnostiku, pak je vypnete. Trvale podrobne logovani na vytizenem serveru muze stat 1-2 FPS samo o sobe.
-
----
-
-[Domu](../README.md) | [<< Predchozi: Persistence](07-persistence.md) | [Dalsi: Rizeni pristupu >>](09-access-control.md)

@@ -1,6 +1,5 @@
 # Kapitel 6.7: Timer und CallQueue
 
-[Startseite](../README.md) | [<< Zurück: Benachrichtigungen](06-notifications.md) | **Timer und CallQueue** | [Weiter: Datei-E/A und JSON >>](08-file-io.md)
 
 ---
 
@@ -33,7 +32,7 @@ TimerQueue       timers  = GetGame().GetTimerQueue(CALL_CATEGORY_GAMEPLAY);
 
 ## ScriptCallQueue
 
-**Datei:** `3_Game/tools/utilityclasses.c`
+**Datei:** `2_GameLib/tools.c`
 
 Der primäre Mechanismus für verzögerte Funktionsaufrufe. Unterstützt einmalige Verzögerungen, wiederholende Aufrufe und sofortige Ausführung im nächsten Frame.
 
@@ -99,16 +98,20 @@ GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this.Initialize);
 ### CallByName
 
 ```c
-void CallByName(Class obj, string fnName, int delay = 0, bool repeat = false,
-                Param par = null);
+void CallByName(Class obj, string fnName, Param params = NULL);
 ```
 
-Ruft eine Methode über ihren String-Namen auf. Nützlich, wenn die Methodenreferenz nicht direkt verfügbar ist.
+Ruft eine Methode über ihren String-Namen im nächsten Frame auf. Nützlich, wenn die Methodenreferenz nicht direkt verfügbar ist. Für einen verzögerten oder wiederholenden Aufruf über den Namen verwenden Sie stattdessen `CallLaterByName`:
+
+```c
+void CallLaterByName(Class obj, string fnName, int delay = 0, bool repeat = false,
+                     Param params = NULL);
+```
 
 **Beispiel:**
 
 ```c
-GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallByName(
+GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLaterByName(
     myObject, "OnTimerExpired", 3000, false
 );
 ```
@@ -148,7 +151,7 @@ Wird intern von der Engine jeden Frame aufgerufen. Sie sollten dies niemals manu
 
 ## Timer
 
-**Datei:** `3_Game/tools/utilityclasses.c`
+**Datei:** `3_Game/tools/tools.c`
 
 Ein klassenbasierter Timer mit explizitem Start/Stopp-Lebenszyklus. Übersichtlicher für langlebige Timer, die pausiert oder neu gestartet werden müssen.
 
@@ -161,7 +164,7 @@ void Timer(int category = CALL_CATEGORY_SYSTEM);
 ### Run
 
 ```c
-void Run(float duration, Class obj, string fn_name, Param params = null, bool loop = false);
+void Run(float duration, Managed obj, string fn_name, Param params = NULL, bool loop = false);
 ```
 
 | Parameter | Beschreibung |
@@ -239,15 +242,9 @@ void Continue();
 
 Setzt einen pausierten Timer an der Stelle fort, an der er gestoppt wurde.
 
-### IsPaused
-
-```c
-bool IsPaused();
-```
-
-Gibt `true` zurück, wenn der Timer aktuell pausiert ist.
-
 **Beispiel --- Pause und Fortsetzen:**
+
+`Timer` hat keine `IsPaused()`-Methode. Da `IsRunning()` nur dann `true` zurückgibt, während der Timer aktiv ist (und `false`, sobald er pausiert oder gestoppt wurde), verwenden Sie diese Methode, um zu entscheiden, ob pausiert oder fortgesetzt werden soll:
 
 ```c
 ref Timer m_Timer;
@@ -260,10 +257,10 @@ void StartTimer()
 
 void TogglePause()
 {
-    if (m_Timer.IsPaused())
-        m_Timer.Continue();
-    else
+    if (m_Timer.IsRunning())
         m_Timer.Pause();
+    else
+        m_Timer.Continue();
 }
 ```
 
@@ -287,25 +284,25 @@ Gibt die gesamte durch `Run()` gesetzte Dauer zurück.
 
 ## ScriptInvoker
 
-**Datei:** `3_Game/tools/utilityclasses.c`
+**Datei:** `2_GameLib/tools.c`
 
 Ein Ereignis-/Delegaten-System. `ScriptInvoker` hält eine Liste von Callback-Funktionen und ruft alle auf, wenn `Invoke()` aufgerufen wird. Dies ist DayZ's Äquivalent zu C#-Events oder dem Beobachter-Muster.
 
 ### Insert
 
 ```c
-void Insert(func fn);
+bool Insert(func fn, int flags = EScriptInvokerInsertFlags.IMMEDIATE);
 ```
 
-Registriert eine Callback-Funktion.
+Registriert eine Callback-Funktion. Das optionale Argument `flags` akzeptiert `EScriptInvokerInsertFlags.IMMEDIATE` (Standard) oder `EScriptInvokerInsertFlags.UNIQUE`. Gibt bei Erfolg `true` zurück.
 
 ### Remove
 
 ```c
-void Remove(func fn);
+bool Remove(func fn, int flags = EScriptInvokerRemoveFlags.ALL);
 ```
 
-Deregistriert eine Callback-Funktion.
+Deregistriert eine Callback-Funktion. Das optionale Argument `flags` ist standardmäßig `EScriptInvokerRemoveFlags.ALL`. Gibt bei Erfolg `true` zurück.
 
 ### Invoke
 
@@ -319,10 +316,10 @@ Ruft alle registrierten Funktionen mit den übergebenen Parametern auf.
 ### Count
 
 ```c
-int Count();
+int Count(func fn);
 ```
 
-Anzahl der registrierten Callbacks.
+Gibt zurück, wie oft die angegebene Funktion `fn` aktuell im Invoker registriert ist (nicht eine Gesamtanzahl aller Callbacks).
 
 ### Clear
 
@@ -387,17 +384,16 @@ Funktionen, die in der Update-Warteschlange registriert sind, werden jeden Frame
 
 ## WidgetFadeTimer
 
-**Datei:** `3_Game/tools/utilityclasses.c`
+**Datei:** `3_Game/tools/tools.c`
 
-Ein spezialisierter Timer zum Ein- und Ausblenden von Widgets.
+Ein spezialisierter Timer zum Ein- und Ausblenden von Widgets. `WidgetFadeTimer` erweitert `TimerBase`, daher erbt er `Stop()` und `IsRunning()`.
 
 ```c
-class WidgetFadeTimer
+class WidgetFadeTimer extends TimerBase
 {
-    void FadeIn(Widget w, float time, bool continue_from_current = false);
-    void FadeOut(Widget w, float time, bool continue_from_current = false);
-    bool IsFading();
-    void Stop();
+    void FadeIn(Widget w, float time, bool continue_ = false);
+    void FadeOut(Widget w, float time, bool continue_ = false);
+    // Stop() und IsRunning() werden von TimerBase geerbt
 }
 ```
 
@@ -405,7 +401,9 @@ class WidgetFadeTimer
 |-----------|--------------|
 | `w` | Das Widget zum Ein-/Ausblenden |
 | `time` | Dauer der Blende in Sekunden |
-| `continue_from_current` | Wenn `true`, vom aktuellen Alpha-Wert starten; sonst bei 0 (Einblenden) oder 1 (Ausblenden) beginnen |
+| `continue_` | Wenn `true`, vom aktuellen Alpha-Wert starten; sonst bei 0 (Einblenden) oder 1 (Ausblenden) beginnen |
+
+Verwenden Sie das geerbte `IsRunning()`, um zu prüfen, ob aktuell eine Blende läuft.
 
 **Beispiel:**
 
@@ -433,17 +431,18 @@ void HideNotification()
 
 ## GetRemainingTime (CallQueue)
 
-Die `ScriptCallQueue` bietet auch eine Möglichkeit, die verbleibende Zeit eines geplanten `CallLater` abzufragen:
+Die `ScriptCallQueue` bietet auch eine Möglichkeit, die verbleibende Zeit (in Millisekunden) eines geplanten Aufrufs abzufragen. Es gibt zwei Varianten --- eine über die Funktionsreferenz und eine über den Namen:
 
 ```c
-float GetRemainingTime(Class obj, string fnName);
+int GetRemainingTime(func fn);
+int GetRemainingTimeByName(Class obj, string fnName);
 ```
 
 **Beispiel:**
 
 ```c
-// Verbleibende Zeit eines CallLater abfragen
-float remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTime(this, "MyCallback");
+// Verbleibende Zeit eines über den Namen geplanten Aufrufs abfragen
+int remaining = GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).GetRemainingTimeByName(this, "MyCallback");
 if (remaining > 0)
     Print(string.Format("Callback feuert in %1 ms", remaining));
 ```

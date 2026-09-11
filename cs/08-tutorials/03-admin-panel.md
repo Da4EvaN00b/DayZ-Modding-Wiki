@@ -1,6 +1,5 @@
 # Kapitola 8.3: Tvorba modulu administrátorského panelu
 
-[Domů](../README.md) | [<< Předchozí: Vytvoření vlastního předmětu](02-custom-item.md) | **Tvorba administrátorského panelu** | [Další: Přidání chatových příkazů >>](04-chat-commands.md)
 
 ---
 
@@ -381,7 +380,7 @@ class AdminDemoPanel extends ScriptedWidgetEventHandler
     }
 
     // -------------------------------------------------------
-    // Voláno při příchodu odpovědi ze serveru (z mission OnRPC)
+    // Voláno při příchodu odpovědi ze serveru (z handleru DayZGame OnRPC)
     // -------------------------------------------------------
     void OnPlayerInfoReceived(int playerCount, string playerNames)
     {
@@ -565,24 +564,11 @@ modded class PlayerBase
         // --- Odeslání odpovědi zpět žádajícímu klientovi ---
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        // RPCSingleParam s objektem hráče žadatele odešle tomuto konkrétnímu klientovi
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
+        // target = null, aby na klientu proběhl vlastní switch v DayZGame.OnRPC;
+        // příjemce (requestor) omezuje doručení pouze na tohoto jednoho klienta.
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
 
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -603,7 +589,7 @@ modded class PlayerBase
 
 ```c
 GetGame().RPCSingleParam(
-    requestorPlayer,                        // Cílový objekt (hráč)
+    null,                                   // Cílový objekt (null -> zpracuje klientský DayZGame.OnRPC)
     AdminDemoRPC.RESPONSE_PLAYER_INFO,      // RPC ID
     responseData,                           // Datový obsah
     true,                                   // Garantované doručení
@@ -611,7 +597,7 @@ GetGame().RPCSingleParam(
 );
 ```
 
-Pátý parametr `requestor` (typu `PlayerIdentity`) je to, co z toho dělá cílenou odpověď. Bez něj by RPC šlo všem klientům.
+Pátý parametr `requestor` (typu `PlayerIdentity`) je to, co z toho dělá cílenou odpověď. Bez něj by RPC šlo všem klientům. První parametr je `null`, protože odpověď zpracovává switch v klientském `DayZGame.OnRPC` -- pokud místo toho předáte cílový objekt, engine přepošle RPC do `OnRPC` daného objektu (varianta se 3 parametry) a switch v `DayZGame` se nikdy nespustí.
 
 ---
 
@@ -620,6 +606,8 @@ Pátý parametr `requestor` (typu `PlayerIdentity`) je to, co z toho dělá cíl
 Zpět na straně klienta potřebujeme zachytit odpověďové RPC ze serveru a směrovat ho do panelu.
 
 ### Vytvořte `Scripts/5_Mission/AdminDemo/AdminDemoMission.c`
+
+Panel a jeho přepínání klávesou žijí v misi, ale odpověďové RPC se přijímá v `DayZGame` -- skutečném univerzálním handleru RPC enginu. Soubor proto rozdělíme na dvě `modded` třídy.
 
 ```c
 modded class MissionGameplay
@@ -668,8 +656,19 @@ modded class MissionGameplay
         }
     }
 
+    // Zpřístupnění panelu, aby k němu mohl handler RPC v DayZGame přistupovat
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     // -------------------------------------------------------
-    // Příjem serverových RPC na straně klienta
+    // Příjem serverových RPC na straně klienta.
+    // DayZGame.OnRPC je univerzální handler enginu; tento switch
+    // spustí pouze pro RPC bez cíle (target = null).
     // -------------------------------------------------------
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
@@ -700,15 +699,16 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
 
 ### Jak funguje příjem RPC na straně klienta
 
-1. **`MissionGameplay.OnRPC()`** je univerzální handler pro RPC přijatá na klientu. Spouští se pro každé příchozí RPC.
+1. **`DayZGame.OnRPC()`** je univerzální handler enginu pro RPC přijatá na klientu. Spouští se pro každé příchozí RPC. Třída mise (`MissionGameplay`) nemá metodu `OnRPC`, takže příjemce musí moddovat `DayZGame`. Pamatujte, že `DayZGame.OnRPC` spustí svůj vlastní switch pouze tehdy, když RPC nemá cílový objekt; pokud je cíl nastaven, engine místo toho přepošle RPC do `target.OnRPC(sender, rpc_type, ctx)`.
 
 2. **`ParamsReadContext ctx`** obsahuje serializovaná data odeslaná serverem. Musíte je deserializovat pomocí `ctx.Read()` s odpovídajícím typem `Param`.
 
@@ -897,22 +897,8 @@ modded class PlayerBase
 
         Param2<int, string> responseData = new Param2<int, string>(playerCount, playerNames);
 
-        Man requestorPlayer = null;
-        for (int j = 0; j < players.Count(); j++)
-        {
-            Man candidate = players.Get(j);
-            if (candidate && candidate.GetIdentity() && candidate.GetIdentity().GetId() == requestor.GetId())
-            {
-                requestorPlayer = candidate;
-                break;
-            }
-        }
-
-        if (requestorPlayer)
-        {
-            GetGame().RPCSingleParam(requestorPlayer, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
-            Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
-        }
+        GetGame().RPCSingleParam(null, AdminDemoRPC.RESPONSE_PLAYER_INFO, responseData, true, requestor);
+        Print("[AdminDemo] Server sent player info response: " + playerCount.ToString() + " players");
     }
 };
 ```
@@ -1091,6 +1077,14 @@ modded class MissionGameplay
         }
     }
 
+    AdminDemoPanel GetAdminDemoPanel()
+    {
+        return m_AdminDemoPanel;
+    }
+};
+
+modded class DayZGame
+{
     override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
     {
         super.OnRPC(sender, target, rpc_type, ctx);
@@ -1117,8 +1111,9 @@ modded class MissionGameplay
 
         Print("[AdminDemo] Client received player info: " + playerCount.ToString() + " players");
 
-        if (m_AdminDemoPanel)
-            m_AdminDemoPanel.OnPlayerInfoReceived(playerCount, playerNames);
+        MissionGameplay mission = MissionGameplay.Cast(GetMission());
+        if (mission && mission.GetAdminDemoPanel())
+            mission.GetAdminDemoPanel().OnPlayerInfoReceived(playerCount, playerNames);
     }
 };
 ```
@@ -1152,7 +1147,7 @@ Zde je přesná sekvence událostí, když admin stiskne F5 a klikne na Refresh:
 
 5. [SÍŤ] RPC cestuje ze serveru na klienta
 
-6. [KLIENT] MissionGameplay.OnRPC() se spustí
+6. [KLIENT] DayZGame.OnRPC() se spustí (cíl je null, takže se spustí jeho switch)
    --> rpc_type odpovídá RESPONSE_PLAYER_INFO
    --> HandlePlayerInfoResponse(ctx) je zavolán
    --> Data jsou deserializována z ParamsReadContext
@@ -1188,7 +1183,7 @@ Celkový čas: typicky pod 100 ms v lokální síti.
 
 - **Zkontrolujte parametr příjemce:** Pátý parametr `RPCSingleParam` musí být `PlayerIdentity` cílového klienta.
 - **Zkontrolujte shodu typů Param:** Server odesílá `Param2<int, string>`, klient čte `Param2<int, string>`. Neshoda typů způsobí selhání `ctx.Read()`.
-- **Zkontrolujte override MissionGameplay.OnRPC:** Ujistěte se, že voláte `super.OnRPC()` a signatura metody je správná.
+- **Zkontrolujte override DayZGame.OnRPC:** Ujistěte se, že voláte `super.OnRPC()`, signatura metody je správná a že server odeslal odpověď s cílem `null` (jinak engine RPC nasměruje do `OnRPC` cíle a switch v `DayZGame` se nikdy nespustí).
 
 ### UI se zobrazí, ale data se neaktualizují
 

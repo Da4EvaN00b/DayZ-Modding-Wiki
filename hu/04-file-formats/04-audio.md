@@ -1,6 +1,5 @@
 # 4.4. fejezet: Hang (.ogg, .wss)
 
-[Kezdőlap](../README.md) | [<< Előző: Anyagok](03-materials.md) | **Hang** | [Következő: DayZ Tools munkafolyamat >>](05-dayz-tools.md)
 
 ---
 
@@ -137,7 +136,7 @@ class CfgSoundSets
 | `spatial` | int | `1` 3D térbeli hanghoz, `0` 2D-hez (UI, zene). |
 | `doppler` | int | `1` a Doppler hangmagasság eltolás engedélyezéséhez mozgó forrásoknál. |
 | `loop` | int | `1` folyamatos ismétléshez, `0` egyszeri lejátszáshoz. |
-| `distanceFilter` | int | `1` az aluláteresztő szűrő alkalmazásához távolságnál (tompított távoli hangok). |
+| `distanceFilter` | string | Egy távolság/frekvencia csillapító szűrő osztály neve, amelyet távolságnál kell alkalmazni (pl. `"defaultDistanceFreqAttenuationFilter"`), tompítva a távoli hangokat. |
 | `occlusionFactor` | float | Mennyire tompítják a falak/terep a hangot (0.0-tól 1.0-ig). |
 
 ---
@@ -243,13 +242,15 @@ rangeCurve[] =
 };
 ```
 
-### Előre definiált hangerő görbék
+### Hangerő görbe osztályok
 
-| Görbe neve | Viselkedés |
+A SoundSet-ek a `volumeCurve` tulajdonságon keresztül csillapító görbe osztályokra hivatkoznak. A görbenevek a `class CfgSoundCurves` alatt definiált osztálynevek (a vanilla DZ hangok sokat definiálnak), és a modok vagy egy meglévőre hivatkozhatnak, vagy sajátot definiálhatnak. Nincsenek olyan önálló preset-ek, amelyek szó szerint `"InverseSquare"`, `"Linear"` vagy `"Logarithmic"` névre hallgatnának. Gyakori vanilla görbe osztályok:
+
+| Görbe osztály | Viselkedés |
 |------------|----------|
-| `"InverseSquare"` | Valósághű csökkenés (hangerő = 1/távolság^2). Természetes hangzás. |
-| `"Linear"` | Egyenletes csökkenés maximumtól nulláig a tartományon. |
-| `"Logarithmic"` | Hangos közelről, gyorsan csökken közepes távolságnál, majd lassan halkulik. |
+| `"InverseSquare2Curve"` | Valósághű csökkenés (a hangerő nagyjából a távolság négyzetével arányosan csökken). Természetes hangzás. |
+| `"LinearCurve"` | Egyenletes csökkenés maximumtól nulláig a tartományon. |
+| `"defaultAmpAttenuationCurve"` | Hangos közelről, gyorsan csökken közepes távolságnál, majd lassan halkulik. |
 
 ---
 

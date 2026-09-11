@@ -1,97 +1,24 @@
-# Chapter 9.12: Advanced Server Topics
+# Advanced Server Operations
 
-[Home](../README.md) | [<< Previous: Troubleshooting](11-troubleshooting.md) | [Part 9 Home](01-server-setup.md)
-
----
-
-> **Summary:** Deep configuration files, multi-map setups, economy splitting, animal territories, dynamic events, weather control, automated restarts, and the messages system.
+> **Summary:** Operational tasks that go beyond a single-map vanilla server: running additional maps and custom map mods (Namalsk, Deer Isle), automating restarts safely, scheduling in-game messages via **messages.xml**, and populating the world with animal territories through **cfgenvironment.xml**. Deep-dives for **cfggameplay.json**, **cfgweather.xml**, economy file splitting, and custom dynamic events now live in their own reference chapters (linked below).
 
 ---
 
 ## Table of Contents
 
-- [cfggameplay.json Deep Dive](#cfggameplayjson-deep-dive)
 - [Multi-Map Servers](#multi-map-servers)
-- [Custom Economy Tuning](#custom-economy-tuning)
+- [Custom Map Mods](#custom-map-mods)
+- [Running Multiple Maps at Once](#running-multiple-maps-at-once)
 - [cfgenvironment.xml and Animal Territories](#cfgenvironmentxml-and-animal-territories)
-- [Custom Dynamic Events](#custom-dynamic-events)
 - [Server Restart Automation](#server-restart-automation)
-- [cfgweather.xml](#cfgweatherxml)
-- [Messages System](#messages-system)
-
----
-
-## cfggameplay.json Deep Dive
-
-The file **cfggameplay.json** lives in your mission folder and overrides hardcoded gameplay defaults. Enable it in **serverDZ.cfg** first:
-
-```cpp
-enableCfgGameplayFile = 1;
-```
-
-Vanilla structure:
-
-```json
-{
-  "version": 123,
-  "GeneralData": {
-    "disableBaseDamage": false,
-    "disableContainerDamage": false,
-    "disableRespawnDialog": false,
-    "disableRespawnInUnconsciousness": false
-  },
-  "PlayerData": {
-    "disablePersonalLight": false,
-    "StaminaData": {
-      "sprintStaminaModifierErc": 1.0, "sprintStaminaModifierCro": 1.0,
-      "staminaWeightLimitThreshold": 6000.0, "staminaMax": 100.0,
-      "staminaKg": 0.3, "staminaMin": 0.0,
-      "staminaDepletionSpeed": 1.0, "staminaRecoverySpeed": 1.0
-    },
-    "ShockHandlingData": {
-      "shockRefillSpeedConscious": 5.0, "shockRefillSpeedUnconscious": 1.0,
-      "allowRefillSpeedModifier": true
-    },
-    "MovementData": {
-      "timeToSprint": 0.45, "timeToJog": 0.0,
-      "rotationSpeedJog": 0.3, "rotationSpeedSprint": 0.15
-    },
-    "DrowningData": {
-      "staminaDepletionSpeed": 10.0, "healthDepletionSpeed": 3.0,
-      "shockDepletionSpeed": 10.0
-    },
-    "WeaponObstructionData": { "staticMode": 1, "dynamicMode": 1 }
-  },
-  "WorldsData": {
-    "lightingConfig": 0, "objectSpawnersArr": [],
-    "environmentMinTemps": [-3, -2, 0, 4, 9, 14, 18, 17, 13, 11, 9, 0],
-    "environmentMaxTemps": [3, 5, 7, 14, 19, 24, 26, 25, 18, 14, 10, 5]
-  },
-  "BaseBuildingData": { "canBuildAnywhere": false, "canCraftAnywhere": false },
-  "UIData": {
-    "use3DMap": false,
-    "HitIndicationData": {
-      "hitDirectionOverrideEnabled": false, "hitDirectionBehaviour": 1,
-      "hitDirectionStyle": 0, "hitDirectionIndicatorColorStr": "0xffbb0a1e",
-      "hitDirectionMaxDuration": 2.0, "hitDirectionBreakPointRelative": 0.2,
-      "hitDirectionScatter": 10.0, "hitIndicationPostProcessEnabled": true
-    }
-  }
-}
-```
-
-- `version` -- must match what your server binary expects. Do not change it.
-- `lightingConfig` -- `0` (default) or `1` (brighter nights).
-- `environmentMinTemps` / `environmentMaxTemps` -- 12 values, one per month (Jan-Dec).
-- `disablePersonalLight` -- removes the faint ambient light near new players at night.
-- `staminaMax` and sprint modifiers control how far players can run before exhaustion.
-- `use3DMap` -- switches the in-game map to the terrain-rendered 3D variant.
+- [Scheduled Messages](#scheduled-messages)
+- [Moved Topics](#moved-topics)
 
 ---
 
 ## Multi-Map Servers
 
-DayZ supports multiple maps through different mission folders inside `mpmissions/`:
+DayZ ships three official maps, each as its own mission folder inside `mpmissions/`:
 
 | Map | Mission Folder |
 |-----|---------------|
@@ -99,72 +26,104 @@ DayZ supports multiple maps through different mission folders inside `mpmissions
 | Livonia | `mpmissions/dayzOffline.enoch/` |
 | Sakhal | `mpmissions/dayzOffline.sakhal/` |
 
-Each map has its own CE files (`types.xml`, `events.xml`, etc.). Switch maps via `template` in **serverDZ.cfg**:
+Every mission folder carries its own Central Economy files (`types.xml`, `events.xml`, `cfgeconomycore.xml`, and the rest). Switching maps means pointing the server at a different mission folder — the CE files come along with it.
+
+Select the active mission with the `template` line in the `Missions` class of **serverDZ.cfg**:
 
 ```cpp
 class Missions {
     class DayZ {
-        template = "dayzOffline.chernarusplus";
+        template = "dayzOffline.enoch";
     };
 };
 ```
 
-Or with a launch parameter: `-mission=mpmissions/dayzOffline.enoch`
+Or override it on the command line, which wins over the config:
 
-To run multiple maps simultaneously, use separate server instances with their own config, profile directory, and port range.
+```batch
+DayZServer_x64.exe -config=serverDZ.cfg -mission=mpmissions/dayzOffline.enoch -port=2302
+```
+
+Only one mission template is active per running server process. To offer several maps, run several server instances (see [Running Multiple Maps at Once](#running-multiple-maps-at-once)).
 
 ---
 
-## Custom Economy Tuning
+## Custom Map Mods
 
-### Splitting types.xml
+Community terrains such as **Namalsk** and **Deer Isle** are distributed as regular DayZ mods plus a matching mission folder. Getting one online is a two-part job: load the map addon, then run a mission built for that terrain.
 
-Split items into multiple files and register them in **cfgeconomycore.xml**:
+**1. Load the map mod.** Add the map addon to the server's `-mod` list, exactly like any other mod, and subscribe clients to the same addon so they can connect:
 
-```xml
-<economycore>
-    <ce folder="db">
-        <file name="types.xml" type="types" />
-        <file name="types_weapons.xml" type="types" />
-        <file name="types_vehicles.xml" type="types" />
-    </ce>
-</economycore>
+```batch
+DayZServer_x64.exe -config=serverDZ.cfg -mod=@Namalsk;@NamalskSurvival -port=2302
 ```
 
-The server loads and merges all files with `type="types"`.
+Load order follows the map's own documentation — a terrain and its gameplay companion addon usually ship together, and the companion is loaded after the terrain.
 
-### Custom Categories and Tags
+**2. Use a mission built for that world.** A terrain mod cannot use the Chernarus mission — the mission folder name encodes the world it belongs to. The map author supplies a starter mission; copy it into `mpmissions/` and point `template` at it:
 
-**cfglimitsdefinition.xml** defines categories/tags for `types.xml` but gets overwritten on updates. Use **cfglimitsdefinitionuser.xml** instead:
-
-```xml
-<lists>
-    <categories>
-        <category name="custom_rare" />
-    </categories>
-    <tags>
-        <tag name="custom_event" />
-    </tags>
-</lists>
+```cpp
+class Missions {
+    class DayZ {
+        template = "regular.namalsk";
+    };
+};
 ```
+
+Common community mission folder names look like `regular.namalsk`, `hardcore.namalsk`, and `empty.deerisle`. Always take the exact folder name from the map mod's release notes rather than guessing — the suffix after the dot must match the terrain's world name, and the server refuses to load a mission whose world it cannot resolve.
+
+**3. Regenerate persistence on the first boot.** A custom map has its own storage layout. When you switch to a new terrain, wipe (or move aside) the old `storage_*` folder so the Central Economy rebuilds it for the new world. Skipping this step is the most common cause of a custom-map server that boots but spawns no loot.
+
+When updating a map mod, expect the mission's CE files to change between versions. Merge your customizations into the new mission folder instead of overwriting the author's files wholesale.
+
+---
+
+## Running Multiple Maps at Once
+
+A single server process serves one map. To host, say, Chernarus and Livonia together, run two independent instances. Each needs its own:
+
+- **config file** — a separate `serverDZ.cfg` with its own `hostname` and `template`
+- **profile directory** — pass a distinct `-profiles=` path so logs and bans do not collide
+- **port range** — the game port and the Steam query/RCON ports must not overlap
+
+```batch
+start "" DayZServer_x64.exe -config=cherno.cfg  -profiles=P:\cherno  -port=2302
+start "" DayZServer_x64.exe -config=livonia.cfg -profiles=P:\livonia -port=2402
+```
+
+Steam reserves the game port plus the next few ports for queries, so leave a gap (2302, 2402, …) rather than using adjacent numbers. The two instances share the same DayZ install and the same mods — only the mission, config, profile, and ports differ.
 
 ---
 
 ## cfgenvironment.xml and Animal Territories
 
-The file **cfgenvironment.xml** in your mission folder links to territory files in the `env/` subdirectory:
+The file **cfgenvironment.xml** in your mission folder maps territory files in the `env/` subdirectory to animal behaviors. Each animal group is a `<territory>` element with a `<file usable="..." />` child, referenced by name without the `env/` prefix or `.xml` extension:
+
+The root `<env>` element holds a single `<territories>` wrapper. Inside it, first declare every territory file with a `<file path="env/x.xml" />` line, then list the `<territory>` mappings:
 
 ```xml
 <env>
     <territories>
-        <file path="env/zombie_territories.xml" />
-        <file path="env/bear_territories.xml" />
+        <file path="env/red_deer_territories.xml" />
         <file path="env/wolf_territories.xml" />
+        <file path="env/bear_territories.xml" />
+
+        <territory type="Herd" name="Deer" behavior="DZDeerGroupBeh">
+            <file usable="red_deer_territories" />
+        </territory>
+        <territory type="Herd" name="Wolf" behavior="DZWolfGroupBeh">
+            <file usable="wolf_territories" />
+        </territory>
+        <territory type="Herd" name="Bear" behavior="BlissBearGroupBeh">
+            <file usable="bear_territories" />
+        </territory>
     </territories>
 </env>
 ```
 
-The `env/` folder contains these animal territory files:
+The `<file path="..." />` declarations use the full `env/…​.xml` path, while the `<file usable="..." />` child inside each `<territory>` references the same file by name only (no `env/` prefix, no `.xml`).
+
+The `env/` folder contains the animal territory files themselves:
 
 | File | Animals |
 |------|---------|
@@ -180,7 +139,7 @@ The `env/` folder contains these animal territory files:
 | **wild_boar_territories.xml** | Wild boars |
 | **cattle_territories.xml** | Cows |
 
-A territory entry defines circular zones with position and animal count:
+A territory entry defines circular zones with a position and an animal count:
 
 ```xml
 <territory color="4291543295" name="BearTerritory 001">
@@ -192,108 +151,90 @@ A territory entry defines circular zones with position and animal count:
 - `dmin`, `dmax` -- min/max animal count in the zone
 - `smin`, `smax` -- reserved (set to `-1`)
 
----
-
-## Custom Dynamic Events
-
-Dynamic events (heli crashes, convoys) are defined in **events.xml**. To create a custom event:
-
-**1. Define the event** in **events.xml**:
-
-```xml
-<event name="StaticMyCustomCrash">
-    <nominal>3</nominal> <min>1</min> <max>5</max>
-    <lifetime>1800</lifetime> <restock>600</restock>
-    <saferadius>500</saferadius> <distanceradius>200</distanceradius> <cleanupradius>100</cleanupradius>
-    <flags deletable="0" init_random="0" remove_damaged="1" />
-    <position>fixed</position> <limit>child</limit> <active>1</active>
-    <children>
-        <child lootmax="10" lootmin="5" max="3" min="1" type="Wreck_Mi8_Crashed" />
-    </children>
-</event>
-```
-
-**2. Add spawn positions** in **cfgeventspawns.xml**:
-
-```xml
-<event name="StaticMyCustomCrash">
-    <pos x="4523.2" z="9234.5" a="180" />
-    <pos x="7812.1" z="3401.8" a="90" />
-</event>
-```
-
-**3. Add infected guards** (optional) -- add `<secondary type="ZmbM_PatrolNormal_Autumn" />` elements in your event definition.
-
-**4. Grouped spawns** (optional) -- define clusters in **cfgeventgroups.xml** and reference the group name in your event.
+When you build a custom map's animal population, add one territory file per species, register each in **cfgenvironment.xml**, and place zones on the terrain that actually has the ground cover those animals expect.
 
 ---
 
 ## Server Restart Automation
 
-DayZ has no built-in restart scheduler. Use OS-level automation.
+DayZ has no built-in restart scheduler. Restarts are driven from outside the game by an OS-level task that stops the server, backs up persistence, checks for updates, and relaunches.
 
 ### Windows
 
-Create **restart_server.bat** and run it via Windows Scheduled Task every 4-6 hours:
+Create **restart_server.bat** and run it from a Windows Scheduled Task every 4-6 hours:
 
 ```batch
 @echo off
 taskkill /f /im DayZServer_x64.exe
 timeout /t 10
-xcopy /e /y "C:\DayZServer\profiles\storage_1" "C:\DayZBackups\%date:~-4%-%date:~-7,2%-%date:~-10,2%\"
+
+rem Build a locale-independent timestamp (yyyy-MM-dd_HHmm) via PowerShell.
+rem Do NOT slice %date% by character offset -- its layout changes with the
+rem machine's regional settings and the backup path will silently break.
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HHmm"') do set STAMP=%%i
+
+xcopy /e /i /y "C:\DayZServer\profiles\storage_1" "C:\DayZBackups\%STAMP%\storage_1\"
 C:\SteamCMD\steamcmd.exe +force_install_dir C:\DayZServer +login anonymous +app_update 223350 validate +quit
 start "" "C:\DayZServer\DayZServer_x64.exe" -config=serverDZ.cfg -profiles=profiles -port=2302
 ```
 
+> **Why not `%date:~-4%`?** The classic trick of slicing `%date%` by character offset assumes a fixed layout, but `%date%` is formatted from Windows regional settings. On a machine set to `dd/MM/yyyy` the same slice produces a different (or invalid) folder name, and the backup lands somewhere you never look. Asking PowerShell for `Get-Date -Format yyyy-MM-dd_HHmm` returns the same string on every machine regardless of locale.
+
 ### Linux
 
-Create a shell script and add it to cron (`0 */4 * * *`):
+Create a shell script and add it to cron (`0 */4 * * *` runs it every four hours):
 
 ```bash
 #!/bin/bash
 kill $(pidof DayZServer) && sleep 15
-cp -r /home/dayz/server/profiles/storage_1 /home/dayz/backups/$(date +%F_%H%M)_storage_1
+cp -r /home/dayz/server/profiles/storage_1 "/home/dayz/backups/$(date +%F_%H%M)_storage_1"
 /home/dayz/steamcmd/steamcmd.sh +force_install_dir /home/dayz/server +login anonymous +app_update 223350 validate +quit
 cd /home/dayz/server && ./DayZServer -config=serverDZ.cfg -profiles=profiles -port=2302 &
 ```
 
-Always back up `storage_1/` before each restart. Corrupted persistence during shutdown can wipe player bases and vehicles.
+Always back up `storage_1/` **before** each restart. Persistence corrupted during an unclean shutdown can wipe player bases and vehicles, and a pre-restart backup is the only way back. Pair the restart schedule with the warning broadcasts in the next section so players are not caught mid-action.
 
 ---
 
-## cfgweather.xml
+## Scheduled Messages
 
-The file **cfgweather.xml** in your mission folder controls weather patterns. Each map ships with its own defaults:
+The file **db/messages.xml** in your mission folder controls scheduled server broadcasts and the countdown warnings shown before a restart:
 
-Each phenomenon has `min`, `max`, `duration_min`, and `duration_max` (seconds):
-
-| Phenomenon | Default Min | Default Max | Notes |
-|------------|-------------|-------------|-------|
-| `overcast` | 0.0 | 1.0 | Drives cloud density and rain probability |
-| `rain` | 0.0 | 1.0 | Only triggers above an overcast threshold. Set max to `0.0` for no rain |
-| `fog` | 0.0 | 0.3 | Values above `0.5` produce near-zero visibility |
-| `wind_magnitude` | 0.0 | 18.0 | Affects ballistics and player movement |
-
----
-
-## Messages System
-
-The file **db/messages.xml** in your mission folder controls scheduled server messages and shutdown warnings:
+Each `<message>` carries its settings as **child elements**, not attributes. A shutdown countdown message uses `<deadline>` (measured in **minutes** from server start) plus `<shutdown>1</shutdown>`; a repeating broadcast uses `<repeat>` (interval in minutes) with optional `<delay>` and `<onconnect>`:
 
 ```xml
 <messages>
-    <message deadline="0" shutdown="0"><text>Welcome to our server!</text></message>
-    <message deadline="240" shutdown="1"><text>Server restart in 4 minutes!</text></message>
-    <message deadline="60" shutdown="1"><text>Server restart in 1 minute!</text></message>
-    <message deadline="0" shutdown="1"><text>Server is restarting now.</text></message>
+    <message>
+        <deadline>360</deadline>
+        <shutdown>1</shutdown>
+        <text>#name will shutdown in #tmin minutes.</text>
+    </message>
+    <message>
+        <repeat>15</repeat>
+        <text>Welcome to the server! Back up your loadout before the restart.</text>
+    </message>
+    <message>
+        <delay>2</delay>
+        <onconnect>1</onconnect>
+        <text>Welcome to #name — restarts run every 6 hours.</text>
+    </message>
 </messages>
 ```
 
-- `deadline` -- minutes before the message triggers (for shutdown messages, minutes before server stops)
-- `shutdown` -- `1` for shutdown-sequence messages, `0` for regular broadcasts
+- `<deadline>` -- for a shutdown message, the number of **minutes** after server start at which it stops (so `360` = 6 hours). The engine shows the countdown automatically.
+- `<shutdown>` -- `1` marks the message as a shutdown timer; omit it (or set `0`) for a normal broadcast.
+- `<repeat>` -- interval in minutes at which a non-shutdown message is re-broadcast.
+- `<delay>` -- minutes to wait before the first broadcast; with `<onconnect>1</onconnect>` the delay is counted from each player's connection.
+- Tokens such as `#name` (server name) and `#tmin` (minutes remaining) are substituted at runtime.
 
-The messages system does not restart the server. It only displays warnings when a restart schedule is configured externally.
+The messages system **does** stop the server when a `<deadline>` elapses, and it displays the warnings on the way there. Set the `<deadline>` to match the interval of your external restart task (from [Server Restart Automation](#server-restart-automation)) so the on-screen countdown ends exactly when the OS task relaunches the process.
 
 ---
 
-[Home](../README.md) | [<< Previous: Troubleshooting](11-troubleshooting.md) | [Part 9 Home](01-server-setup.md)
+## Moved Topics
+
+Several deep-dives that once lived here now have dedicated homes:
+
+- **cfggameplay.json** (stamina, shock, movement, base-building rules) and **cfgweather.xml** — see [World Configuration Systems](../06-engine-api/23-world-systems.md).
+- **Splitting types.xml and custom categories/tags** (`cfgeconomycore.xml`, `cfglimitsdefinitionuser.xml`) — see [Loot Economy Deep Dive](04-loot-economy.md).
+- **Custom dynamic events** (`events.xml`, `cfgeventspawns.xml`, `cfgeventgroups.xml`) — see [Vehicle & Dynamic Event Spawning](05-vehicle-spawning.md).

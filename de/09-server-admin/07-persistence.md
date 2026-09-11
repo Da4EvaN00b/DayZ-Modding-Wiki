@@ -1,6 +1,5 @@
 # Kapitel 9.7: Weltzustand & Persistenz
 
-[Home](../README.md) | [<< Zurueck: Spieler-Spawning](06-player-spawning.md) | [Weiter: Performance-Optimierung >>](08-performance.md)
 
 DayZ-Persistenz haelt die Welt zwischen Neustarts am Leben. Das Verstaendnis ihrer Funktionsweise ermoeglicht Ihnen, Basen zu verwalten, Wipes zu planen und Datenbeschaedigungen zu vermeiden.
 
@@ -188,7 +187,3 @@ Diese kommen in Server-Admin-Communities immer wieder vor:
 | Wetter-Reset mit vollstaendigem Wipe verwechseln | Das Loeschen von `events.xy` setzt nur dynamische Event-Positionen zurueck. Es setzt weder Loot, noch Basen, noch Spieler zurueck. | Wissen Sie, welche Dateien was steuern (siehe die Verzeichnistabelle oben). |
 | Fahne nicht rechtzeitig aufgefrischt | Nach 40 Tagen (FlagRefreshMaxDuration) laeuft die Fahne ab und alle angebundenen Basisteile werden aufraeumungsberechtigt. Spieler verlieren ihre gesamte Basis. | Erinnern Sie Spieler an das Auffrischungsintervall. Senken Sie FlagRefreshMaxDuration auf Low-Pop-Servern. |
 | globals.xml bearbeiten, waehrend der Server laeuft | Aenderungen werden erst beim Neustart uebernommen. Schlimmer noch, der Server ueberschreibt moeglicherweise Ihre Bearbeitungen beim Herunterfahren. | Bearbeiten Sie Konfigurationsdateien nur bei gestopptem Server. |
-
----
-
-[Home](../README.md) | [<< Zurueck: Spieler-Spawning](06-player-spawning.md) | [Weiter: Performance-Optimierung >>](08-performance.md)

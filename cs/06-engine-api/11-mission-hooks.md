@@ -1,6 +1,5 @@
 # Chapter 6.11: Mission Hooks
 
-[Domů](../README.md) | [<< Předchozí: Central Economy](10-central-economy.md) | **Mission Hooks** | [Další: Action System >>](12-action-system.md)
 
 ---
 
@@ -39,8 +38,7 @@ flowchart TD
     B --> C["OnInit()"]
     C --> D["OnGameplayDataHandlerLoad()"]
     D --> E["OnMissionStart()"]
-    E --> F["OnMissionLoaded()"]
-    F --> G["OnUpdate(timeslice) loop"]
+    E --> G["OnUpdate(timeslice) loop"]
     G --> G
     G --> H["OnMissionFinish()"]
     H --> I["Destructor: ~MissionServer()"]
@@ -58,8 +56,7 @@ flowchart TD
     A["Engine creates MissionGameplay"] --> B["Constructor: MissionGameplay()"]
     B --> C["OnInit() — HUD, chat, action menu"]
     C --> D["OnMissionStart()"]
-    D --> E["OnMissionLoaded()"]
-    E --> F["OnUpdate(timeslice) loop"]
+    D --> F["OnUpdate(timeslice) loop"]
     F --> F
     F --> G["OnMissionFinish()"]
     G --> H["Destructor: ~MissionGameplay()"]
@@ -82,7 +79,6 @@ Základní třída `Mission` definuje každou hookovatelnou metodu. Všechny jso
 |--------|-----------|-------------|
 | `OnInit` | `void OnInit()` | Po konstruktoru, před startem mise. Primární bod nastavení. |
 | `OnMissionStart` | `void OnMissionStart()` | Po OnInit. Svět mise je aktivní. |
-| `OnMissionLoaded` | `void OnMissionLoaded()` | Po OnMissionStart. Všechny vanilla systémy jsou inicializovány. |
 | `OnGameplayDataHandlerLoad` | `void OnGameplayDataHandlerLoad()` | Server: po načtení gameplay dat (cfggameplay.json). |
 | `OnUpdate` | `void OnUpdate(float timeslice)` | Každý snímek. `timeslice` je počet sekund od posledního snímku (typicky 0,016–0,033). |
 | `OnMissionFinish` | `void OnMissionFinish()` | Při vypnutí nebo odpojení. Zde ukliďte vše. |
@@ -111,7 +107,7 @@ Základní třída `Mission` definuje každou hookovatelnou metodu. Všechny jso
 | `IsPaused` | `bool IsPaused()` | Zda je hra pozastavena (singleplayer / listen server). |
 | `IsServer` | `bool IsServer()` | `true` pro MissionServer, `false` pro MissionGameplay. |
 | `IsMissionGameplay` | `bool IsMissionGameplay()` | `true` pro MissionGameplay, `false` pro MissionServer. |
-| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSuppress)` | Znovu povolí vstup hráče po zakázání. |
+| `PlayerControlEnable` | `void PlayerControlEnable(bool bForceSupress)` | Znovu povolí vstup hráče po zakázání. (Ve vanilla zastaralé.) |
 | `PlayerControlDisable` | `void PlayerControlDisable(int mode)` | Zakáže vstup hráče (např. `INPUT_EXCLUDE_ALL`). |
 | `IsControlDisabled` | `bool IsControlDisabled()` | Zda jsou ovládací prvky hráče aktuálně zakázány. |
 | `GetControlDisabledMode` | `int GetControlDisabledMode()` | Vrací aktuální režim blokování vstupu. |
@@ -190,7 +186,7 @@ override void OnKeyPress(int key)
 {
     super.OnKeyPress(key);
     // Vanilla předává do Hud.KeyPress(key)
-    // hodnoty key jsou konstanty KeyCode (např. KeyCode.KC_F1 = 59)
+    // hodnoty key jsou konstanty KeyCode (např. KeyCode.KC_F1 = 58)
 }
 
 override void OnKeyRelease(int key)
@@ -201,11 +197,11 @@ override void OnKeyRelease(int key)
 
 ### Hook událostí
 
-Vanilla `MissionGameplay.OnEvent()` zpracovává `ChatMessageEventTypeID` (přidává do widgetu chatu), `ChatChannelEventTypeID` (aktualizuje indikátor kanálu), `WindowsResizeEventTypeID` (přestavuje menu/HUD), `SetFreeCameraEventTypeID` (debug kamera) a `VONStateEventTypeID` (stav hlasu). Přepište ji stejným vzorem `switch` a vždy volejte `super.OnEvent()`.
+Vanilla `MissionGameplay.OnEvent()` zpracovává `ChatMessageEventTypeID` (přidává do widgetu chatu), `ChatChannelEventTypeID` (aktualizuje indikátor kanálu), `WindowsResizeEventTypeID` (přestavuje menu/HUD), `SetFreeCameraEventTypeID` (debug kamera) a `NetworkInputBufferEventTypeID` (network input buffer). Přepište ji stejným vzorem `switch` a vždy volejte `super.OnEvent()`.
 
 ### Řízení vstupu
 
-`PlayerControlDisable(int mode)` aktivuje skupinu vyloučení vstupu (např. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSuppress)` ji odebere. Mapují se na skupiny vyloučení definované v `specific.xml`. Přepište je, pokud váš mod potřebuje vlastní chování blokování vstupu (jako to dělá Expansion pro svá menu).
+`PlayerControlDisable(int mode)` aktivuje skupinu vyloučení vstupu (např. `INPUT_EXCLUDE_ALL`, `INPUT_EXCLUDE_INVENTORY`). `PlayerControlEnable(bool bForceSupress)` ji odebere. Mapují se na skupiny vyloučení definované v `specific.xml`. Obě jsou ve vanilla označeny jako `//!deprecated`; aktuálním API jsou `AddActiveInputExcludes()` / `RemoveActiveInputExcludes()`. Přepište je, pokud váš mod potřebuje vlastní chování blokování vstupu (jako to dělá Expansion pro svá menu).
 
 ---
 
@@ -493,8 +489,7 @@ modded class MissionServer
 | Vytvořit prvky HUD | `OnInit()` | `MissionGameplay` |
 | Uklidit při vypnutí serveru | `OnMissionFinish()` | `MissionServer` |
 | Uklidit při odpojení klienta | `OnMissionFinish()` | `MissionGameplay` |
-| Spustit kód jednou po načtení všech systémů | `OnMissionLoaded()` | Obě |
-| Zakázat/povolit vstup hráče | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSuppress)` | `MissionGameplay` |
+| Zakázat/povolit vstup hráče | `PlayerControlDisable(mode)` / `PlayerControlEnable(bForceSupress)` | `MissionGameplay` |
 
 ---
 
@@ -505,7 +500,6 @@ modded class MissionServer
 | Konstruktor | Ano | Ano | Jiná třída na každé straně |
 | `OnInit()` | Ano | Ano | |
 | `OnMissionStart()` | Ano | Ano | |
-| `OnMissionLoaded()` | Ano | Ano | |
 | `OnGameplayDataHandlerLoad()` | Ano | Ne | cfggameplay.json načten |
 | `OnUpdate(timeslice)` | Ano | Ano | Obě strany mají vlastní smyčku snímků |
 | `OnMissionFinish()` | Ano | Ano | |
@@ -785,15 +779,14 @@ COT i Expansion používají stejný vzor: jejich mission hooky jsou tenké obá
 
 ---
 
-## OnInit vs OnMissionStart vs OnMissionLoaded
+## OnInit vs OnMissionStart
 
 | Hook | Kdy | Použití |
 |------|-----|---------|
 | `OnInit()` | Jako první. Skriptové moduly načteny, svět ještě není aktivní. | Vytváření manažerů, registrace RPC, načítání konfigurací. |
 | `OnMissionStart()` | Jako druhý. Svět je aktivní, entity lze spawnovat. | Spawnování entit, spouštění herních systémů, vytváření triggerů. |
-| `OnMissionLoaded()` | Jako třetí. Všechny vanilla systémy plně inicializovány. | Cross-mod dotazy, finalizace závislá na tom, že je vše připraveno. |
 
-Vždy volejte `super` na všech třech. Používejte `OnInit` jako primární bod inicializace. `OnMissionLoaded` používejte jen když potřebujete zaručit, že ostatní mody jsou již inicializovány.
+Vždy volejte `super` na obou. Používejte `OnInit` jako primární bod inicializace a `OnMissionStart` pro cokoli, co potřebuje aktivní svět (spawnování entit, vytváření triggerů).
 
 ---
 
@@ -893,7 +886,7 @@ override void InvokeOnDisconnect(PlayerBase player)
 | Hierarchie Mission | `Mission` > `MissionBaseWorld` > `MissionBase` > `MissionServer` / `MissionGameplay` |
 | Třída serveru | `MissionServer` --- zpracovává připojení hráčů, spawny, plánování ticků |
 | Třída klienta | `MissionGameplay` --- zpracovává HUD, vstup, chat, menu |
-| Pořadí životního cyklu | Konstruktor > `OnInit()` > `OnMissionStart()` > `OnMissionLoaded()` > smyčka `OnUpdate()` > `OnMissionFinish()` > Destruktor |
+| Pořadí životního cyklu | Konstruktor > `OnInit()` > `OnMissionStart()` > smyčka `OnUpdate()` > `OnMissionFinish()` > Destruktor |
 | Připojení hráče (server) | `OnEvent(ClientNewEventTypeID/ClientReadyEventTypeID)` > `InvokeOnConnect()` |
 | Odchod hráče (server) | `OnEvent(ClientDisconnectedEventTypeID)` > `PlayerDisconnected()` > `InvokeOnDisconnect()` |
 | Vzor hookování | `modded class MissionServer/MissionGameplay` s voláním `override` a `super` |

@@ -1,6 +1,5 @@
 # Capitolo 4.3: Materiali (.rvmat)
 
-[Home](../README.md) | [<< Precedente: Modelli 3D](02-models.md) | **Materiali** | [Successivo: Audio >>](04-audio.md)
 
 ---
 
@@ -83,9 +82,9 @@ class Stage1                               // Stadio texture: Normal map
     };
 };
 
-class Stage2                               // Stadio texture: Mappa Diffuse/Colore
+class Stage2                               // Stadio texture: Mappa Dettaglio (il colore base _co proviene dalla texture del modello / hiddenSelectionsTextures[], non da uno Stage)
 {
-    texture = "MyMod\data\my_item_co.paa";
+    texture = "MyMod\data\my_item_dt.paa";
     uvSource = "tex";
     class uvTransform
     {
@@ -138,24 +137,29 @@ I valori `PixelShaderID` e `VertexShaderID` determinano quale pipeline di render
 | **Super** | Superfici opache standard (armi, abbigliamento, oggetti) | Normal, Diffuse, Speculare/Metallico |
 | **Multi** | Terreno multi-strato e superfici complesse | Coppie diffuse/normal multiple |
 | **Glass** | Superfici trasparenti e semi-trasparenti | Diffuse con alfa |
-| **Water** | Superfici d'acqua con riflesso e rifrazione | Texture acqua speciali |
-| **Terrain** | Superfici del terreno | Satellite, maschera, strati di materiale |
+| **CalmWater** | Superfici d'acqua con riflesso e rifrazione | Texture acqua speciali |
+| **TerrainX** | Superfici del terreno (pixel shader; il vertex shader è `Terrain`) | Satellite, maschera, strati di materiale |
 | **NormalMap** | Superficie normal-mapped semplificata | Normal, Diffuse |
-| **NormalMapSpecular** | Normal-mapped con speculare | Normal, Diffuse, Speculare |
-| **Hair** | Rendering capelli personaggio | Diffuse con alfa, traslucenza speciale |
+| **NormalMapSpecularMap** | Normal-mapped con speculare | Normal, Diffuse, Speculare |
+| **SuperHair** | Rendering capelli personaggio | Diffuse con alfa, traslucenza speciale |
 | **Skin** | Pelle del personaggio con scattering sottosuperficiale | Diffuse, Normal, Speculare |
-| **AlphaTest** | Trasparenza a bordi netti (fogliame, recinzioni) | Diffuse con alfa |
-| **AlphaBlend** | Trasparenza uniforme (vetro, fumo) | Diffuse con alfa |
+| **AlphaShadow / AlphaNoShadow** | Trasparenza con keying alfa (fogliame, recinzioni) con o senza proiezione di ombre | Diffuse con alfa |
 
 ### Shader Super (Più Comune)
 
-Lo shader **Super** è lo shader standard di rendering basato sulla fisica usato per la grande maggioranza degli oggetti in DayZ. Si aspetta tre stadi texture:
+Lo shader **Super** è lo shader standard di rendering basato sulla fisica usato per la grande maggioranza degli oggetti in DayZ. Si aspetta questi stadi texture principali (corrispondenti a rvmat vanilla reali come `DZ\weapons\ammunition\data\00buck_box.rvmat`):
 
 ```
 Stage1 = Normal map (_nohq)
-Stage2 = Mappa Diffuse/Colore (_co)
-Stage3 = Mappa Speculare/Metallico (_smdi)
+Stage2 = Mappa Dettaglio (_dt)
+Stage3 = Mappa Macro (_mc)
+Stage4 = Ombra Ambientale (_as)
+Stage5 = Mappa Speculare/Metallico (_smdi)
+Stage6 = Fresnel (_fr)
+Stage7 = Mappa ambiente (_env)
 ```
+
+Il colore base (`_co`) non viene assegnato tramite uno Stage nello shader Super -- proviene dalla texture base del modello o da `hiddenSelectionsTextures[]`.
 
 Se stai creando un oggetto mod (arma, abbigliamento, strumento, contenitore), userai quasi sempre lo shader Super.
 
@@ -193,7 +197,7 @@ Ogni classe `Stage` nell'RVMAT assegna una texture a un input specifico dello sh
 | Stadio | Ruolo Texture | Suffisso Tipico | Descrizione |
 |-------|-------------|----------------|-------------|
 | **Stage1** | Normal map | `_nohq` | Dettaglio della superficie, dossi, scanalature |
-| **Stage2** | Mappa Diffuse / Colore | `_co` o `_ca` | Colore base della superficie |
+| **Stage2** | Mappa Dettaglio | `_dt` | Dettaglio fine della superficie (il colore base `_co` è fornito dalla texture base del modello / `hiddenSelectionsTextures[]`, non da uno Stage) |
 | **Stage3** | Mappa Speculare / Metallico | `_smdi` | Lucentezza, proprietà metalliche, dettaglio |
 | **Stage4** | Ombra Ambientale | `_as` | Occlusione ambientale precalcolata (opzionale) |
 | **Stage5** | Mappa Macro | `_mc` | Variazione di colore su larga scala (opzionale) |
@@ -240,15 +244,25 @@ class MyItem: Inventory_Base
 {
     // ... altra configurazione ...
 
-    healthLevels[] =
+    class DamageSystem
     {
-        // {soglia_salute, {"set_materiale"}},
+        class GlobalHealth
+        {
+            class Health
+            {
+                hitpoints = 100;
+                healthLevels[] =
+                {
+                    // {soglia_salute, {"set_materiale"}},
 
-        {1.0, {"MyMod\data\my_item.rvmat"}},           // Incontaminato (100% salute)
-        {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Consumato (70% salute)
-        {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Danneggiato (50% salute)
-        {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Molto Danneggiato (30% salute)
-        {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Rovinato (0% salute)
+                    {1.0, {"MyMod\data\my_item.rvmat"}},           // Incontaminato (100% salute)
+                    {0.7, {"MyMod\data\my_item_worn.rvmat"}},       // Consumato (70% salute)
+                    {0.5, {"MyMod\data\my_item_damaged.rvmat"}},     // Danneggiato (50% salute)
+                    {0.3, {"MyMod\data\my_item_badly_damaged.rvmat"}},// Molto Danneggiato (30% salute)
+                    {0.0, {"MyMod\data\my_item_ruined.rvmat"}}       // Rovinato (0% salute)
+                };
+            };
+        };
     };
 };
 ```
@@ -264,16 +278,16 @@ class MyItem: Inventory_Base
 
 ### Usare Materiali di Danno Vanilla
 
-DayZ fornisce un set di materiali overlay di danno generici che possono essere usati se non vuoi creare texture di danno personalizzate:
+Gli oggetti vanilla non usano un set di overlay generici nominati per ogni livello. Invece ogni livello di salute punta a un RVMAT specifico dell'oggetto (tipicamente `<item>.rvmat`, `<item>_damage.rvmat` e `<item>_destruct.rvmat`), riutilizzando lo stesso file tra livelli adiacenti. L'unico materiale generico in `DZ\data\data\` è `default_destruct.rvmat` (insieme a `default.rvmat`):
 
 ```cpp
 healthLevels[] =
 {
     {1.0, {"MyMod\data\my_item.rvmat"}},
-    {0.7, {"DZ\data\data\default_worn.rvmat"}},
-    {0.5, {"DZ\data\data\default_damaged.rvmat"}},
-    {0.3, {"DZ\data\data\default_badly_damaged.rvmat"}},
-    {0.0, {"DZ\data\data\default_ruined.rvmat"}}
+    {0.7, {"MyMod\data\my_item.rvmat"}},
+    {0.5, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.3, {"MyMod\data\my_item_damage.rvmat"}},
+    {0.0, {"DZ\data\data\default_destruct.rvmat"}}
 };
 ```
 
@@ -305,7 +319,7 @@ healthLevels[] =
 ### 1. Ordine degli Stadi Sbagliato
 
 **Sintomo:** La texture appare mescolata, la normal map si vede come colore, il colore si vede come rilievi.
-**Soluzione:** Assicurati che Stage1 = normal, Stage2 = diffuse, Stage3 = speculare (per lo shader Super).
+**Soluzione:** Assicurati che Stage1 = normal, Stage2 = dettaglio, Stage3 = macro, Stage5 = speculare (per lo shader Super). Il colore base `_co` proviene dalla texture del modello / `hiddenSelectionsTextures[]`, non da uno Stage. Consulta la tabella delle Assegnazioni Stadi sopra.
 
 ### 2. Errore Ortografico `emmisive`
 
@@ -325,7 +339,7 @@ healthLevels[] =
 ### 5. Uso dello Shader Sbagliato per Oggetti Trasparenti
 
 **Sintomo:** La texture trasparente appare opaca, o l'intera superficie scompare.
-**Soluzione:** Usa lo shader `Glass`, `AlphaTest` o `AlphaBlend` invece di `Super` per le superfici trasparenti. Usa texture con suffisso `_ca` con canali alfa appropriati.
+**Soluzione:** Usa lo shader `Glass`, `AlphaShadow` o `AlphaNoShadow` invece di `Super` per le superfici trasparenti. Usa texture con suffisso `_ca` con canali alfa appropriati.
 
 ---
 

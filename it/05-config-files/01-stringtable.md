@@ -1,6 +1,5 @@
 # Capitolo 5.1: stringtable.csv --- Localizzazione
 
-[Home](../README.md) | **stringtable.csv** | [Successivo: inputs.xml >>](02-inputs-xml.md)
 
 ---
 
@@ -372,14 +371,14 @@ STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkze
 
 ### VPP Admin Tools
 
-VPP usa un set ridotto di colonne (13 colonne, senza colonna `hungarian`) e non aggiunge il prefisso `STR_` alle chiavi:
+VPP usa un set ridotto di colonne (14 colonne, senza colonna `hungarian`) e non aggiunge il prefisso `STR_` alle chiavi:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
 "vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-Questo dimostra che il prefisso `STR_` è una convenzione, non un requisito. Tuttavia, ometterlo significa che non puoi usare la risoluzione con prefisso `#` nei file layout. VPP referenzia queste chiavi solo tramite codice script. Il prefisso `STR_` è fortemente consigliato per tutte le nuove mod.
+Questo dimostra che il prefisso `STR_` è una convenzione, non un requisito. La risoluzione con prefisso `#` nei file layout funziona con qualsiasi chiave nella stringtable --- non dipende dal prefisso `STR_`. VPP referenzia queste chiavi tramite l'attributo `loc` nel suo inputs.xml (ad es. `loc="vpp_focus_on_game"`) oltre che tramite codice script. Il prefisso `STR_` è comunque fortemente consigliato per tutte le nuove mod.
 
 ### MyMod Missions
 

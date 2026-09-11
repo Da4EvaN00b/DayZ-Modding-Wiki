@@ -1,6 +1,5 @@
 # Rozdział 7.3: Wzorce komunikacji RPC
 
-[Strona główna](../README.md) | [<< Poprzedni: Systemy modułów](02-module-systems.md) | **Wzorce komunikacji RPC** | [Dalej: Trwałość konfiguracji >>](04-config-persistence.md)
 
 ---
 
@@ -654,7 +653,3 @@ Lub użyj scentralizowanego `Cleanup()` który czyści całą mapę handlerów (
 | Używaj protocol buffers lub serializacji opartej na schemacie | Enforce Script nie wspiera protobuf; ręcznie `Write`/`Read` prymitywów w dopasowanej kolejności |
 | Waliduj wszystkie wejścia z wymuszaniem schematu | Nie istnieje walidacja schematu; każda wartość zwrotna `ctx.Read()` musi być sprawdzana indywidualnie |
 | RPC powinny być idempotentne | Praktyczne w DayZ tylko dla RPC zapytań; mutujące RPC (spawn, usunięcie, teleportacja) są z natury nieidempotentne --- zabezpiecz sprawdzeniami uprawnień |
-
----
-
-[Strona główna](../README.md) | [<< Poprzedni: Systemy modułów](02-module-systems.md) | **Wzorce komunikacji RPC** | [Dalej: Trwałość konfiguracji >>](04-config-persistence.md)

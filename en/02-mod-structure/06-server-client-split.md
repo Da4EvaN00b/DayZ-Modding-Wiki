@@ -1,6 +1,5 @@
-# Chapter 2.6: Server vs Client Architecture
+# Server vs Client Architecture
 
-[Home](../README.md) | [<< Previous: File Organization](05-file-organization.md) | **Server vs Client Architecture**
 
 ---
 
@@ -22,7 +21,7 @@
 - [Common Server-Client Patterns](#common-server-client-patterns)
 - [Listen Server Gotchas](#listen-server-gotchas)
 - [Dependency Between Split Mods](#dependency-between-split-mods)
-- [Real-World Split Examples](#real-world-split-examples)
+- [Worked Split Examples](#worked-split-examples)
 - [Common Mistakes](#common-mistakes)
 - [Decision Flowchart](#decision-flowchart)
 - [Summary Checklist](#summary-checklist)
@@ -140,6 +139,8 @@ if (GetGame().IsMultiplayer())
 
 > **Note on IsMultiplayer():** A LAN listen server (launched with `-server`) returns `true` for `IsMultiplayer()` because it accepts network connections from other players. Only true offline singleplayer (no networking) returns `false`. The distinction is whether the session involves networking, not whether the process acts as a server.
 
+> **Source:** All four methods are declared on the game instance in `3_game/global/game.c` (`IsMultiplayer`, `IsClient`, `IsServer`, `IsDedicatedServer`). The engine header notes that `IsDedicatedServer()` is a "robust check ... valid much sooner" and, where a compile-time answer suffices, points to the `SERVER` define instead (see [Preprocessor Guards](#preprocessor-guards)).
+
 ### Common Patterns
 
 ```c
@@ -160,7 +161,7 @@ void ShowNotification(string text)
         return;
 
     // Only the client can display UI
-    NotificationSystem.AddNotification(text, "set:dayz_gui image:icon_pin");
+    NotificationSystem.AddNotificationExtended(5, text, "", "set:dayz_gui image:icon_pin");
 }
 
 // Guard: handle both sides correctly
@@ -184,7 +185,7 @@ void OnPlayerAction(PlayerBase player, int actionID)
 
 ## The mod.cpp type Field
 
-The `mod.cpp` file at the root of your mod folder contains a `type` field that controls WHERE the mod is loaded:
+The `mod.cpp` file at the root of your mod folder commonly carries a `type` field. Treat it as **declarative metadata that should match how you actually launch the mod, not the mechanism that places it there**: what determines whether a PBO reaches clients or stays server-only is which launch flag loads it -- `-mod=` versus `-servermod=`. Bohemia's [Modding Structure](https://community.bistudio.com/wiki/DayZ:Modding_Structure) page documents `-mod=` as how a mod is loaded, and documents `type` under `CfgMods` in a PBO's `config.cpp` rather than as a `mod.cpp` key, so the `mod.cpp` copy is convention. Launcher and build tooling decides which launch list a package goes into from its own bookkeeping; the `type` field is where you record that intent so the launcher display and Workshop categorization stay consistent with it. Ship a `type = "servermod"` package but launch it with `-mod=` and you are not exercising some documented "servermod behavior" -- you are just launching a mod, with whatever that package's code assumes about being server-only left unverified.
 
 ### type = "mod" (Both Sides)
 
@@ -197,11 +198,11 @@ The mod is loaded on **both server and client**. The server loads it, clients do
 
 **When to use:** Most mods use this. Any mod that has shared types (entity definitions, config classes, RPC data structures) needs to be `type = "mod"` so both sides know about the same types.
 
-**Example:** The StarDZ AI client mod uses `type = "mod"` because both server and client need the AI entity class definitions, RPC constants, and sync data structures:
+**Example:** This wiki's teaching mod **Lantern AI** --- a designed example, not a shipped product --- uses `type = "mod"` for its client package because both server and client need the AI entity class definitions, RPC constants, and sync data structures:
 
-```
-// StarDZ_AI/mod.cpp
-name = "StarDZ AI";
+```cpp
+// Lantern_AI/mod.cpp
+name = "Lantern AI";
 type = "mod";
 ```
 
@@ -221,11 +222,11 @@ The mod is loaded on the **server only**. Clients never see it, never download i
 - Database connections and external API calls
 - Anti-cheat validation logic
 
-**Example:** The StarDZ AI Server mod uses `type = "servermod"` because clients should never see the AI brain, perception, combat, or spawning logic:
+**Example:** The **Lantern AI Server** package uses `type = "servermod"` because clients should never see the AI brain, perception, combat, or spawning logic:
 
-```
-// StarDZ_AI_Server/mod.cpp
-name = "StarDZ AI Server";
+```cpp
+// Lantern_AIServer/mod.cpp
+name = "Lantern AI Server";
 type = "servermod";
 ```
 
@@ -250,31 +251,31 @@ class CfgMods
 };
 ```
 
-This field should match your `mod.cpp` type field. If they disagree, you get unpredictable behavior. Keep them consistent.
+This field should match your `mod.cpp` type field for the same reason covered above: neither field is the mechanism that routes the PBO to server or client -- the launch flag (`-mod=` vs `-servermod=`) is. Two details are worth knowing before you lean on the declaration. Bohemia's `CfgMods` reference annotates `type = "mod";` as *required* and documents no other value. And in the vanilla scripts, `CfgMods` is read by `ModLoader` and `ModStructure` (`3_game/client/mods/modloader.c:17-23`), which enumerate the mod entries for the in-game mod list and never read `type` at all; the string `"servermod"` does not appear anywhere in the script extraction. That is not proof the engine ignores it -- the config is also read natively -- but it does mean no script-visible behaviour hangs on it. Keep the two fields consistent as hygiene and as documentation of intent; no specific engine error is documented for a mismatch.
 
 The `config.cpp` also contains the `defines[]` array, which is how you enable preprocessor symbols for cross-mod detection:
 
 ```cpp
 class CfgMods
 {
-    class StarDZ_AI
+    class Lantern_AI
     {
         type = "mod";
-        defines[] = { "STARDZ_AI" };    // Other mods can use #ifdef STARDZ_AI
+        defines[] = { "LANTERN_AI" };    // Other mods can use #ifdef LANTERN_AI
     };
 };
 
 class CfgMods
 {
-    class StarDZ_AIServer
+    class Lantern_AIServer
     {
         type = "servermod";
-        defines[] = { "STARDZ_AI", "STARDZ_AISERVER" };  // Both defines available
+        defines[] = { "LANTERN_AI", "LANTERN_AISERVER" };  // Both defines available
     };
 };
 ```
 
-Notice that the server mod defines both `STARDZ_AI` and `STARDZ_AISERVER`. This allows server-side code to detect whether just the client mod is present or the full server package is loaded.
+Notice that the server mod re-declares `LANTERN_AI` and adds `LANTERN_AISERVER`. Treat this as the defensive pattern rather than a guaranteed engine rule. `defines[]` is not documented on Bohemia's `CfgMods` reference at all, so there is no published contract for how a symbol declared in one package is scoped when another package compiles -- and community reports of cross-mod `#ifdef` detection describe it as inconsistent. Re-declaring every symbol your own code tests in that package's own `defines[]`, as done here, sidesteps the question entirely and is correct whatever the underlying mechanism turns out to be.
 
 ---
 
@@ -426,8 +427,10 @@ The 5-layer hierarchy (Chapter 2.1) intersects with the server-client split. Not
 Layers 1 through 4 compile and run on **all sides**. The code is the same. This is why entity class definitions, config classes, and RPC constants all live in `3_Game` or `4_World` -- both sides need them.
 
 Layer 5 (`5_Mission`) is where the split becomes explicit:
-- `MissionServer` is a class that only exists on the server (and listen server). It handles server-side initialization, update loops, and cleanup.
-- `MissionGameplay` is a class that only exists on the client (and listen server). It handles client-side UI, HUD, and player-facing features.
+- `MissionServer` is only *instantiated* on the server (and listen server). It handles server-side initialization, update loops, and cleanup.
+- `MissionGameplay` is only *instantiated* on the client (and listen server). It handles client-side UI, HUD, and player-facing features.
+
+Both classes are **compiled into every build** -- they live in the vanilla `5_mission` module (`5_mission/mission/missionserver.c:5` and `missiongameplay.c:1`, both extending `MissionBase`). What differs per side is which one the engine creates, not which one exists. That distinction matters when you decide whether a `modded class` needs a preprocessor guard -- see [Preprocessor Guards](#preprocessor-guards).
 
 When you write `modded class MissionServer`, that code runs on the dedicated server. When you write `modded class MissionGameplay`, that code runs on the client.
 
@@ -463,17 +466,17 @@ Enforce Script supports preprocessor directives that let you conditionally compi
 
 ### The SERVER Define
 
-The engine automatically defines `SERVER` when compiling for a **dedicated server** or a **listen server** (client launched with the `-server` flag). Per `staticdefinesdoc.c`, `SERVER` is set whenever the process acts as a server -- this includes both dedicated and listen server contexts. This is a **compile-time** check, not a runtime check:
+The engine defines `SERVER` in the **dedicated server build only**. The vanilla header is explicit: the `ServerDefines` group is "Defines for dedicated server code", noted as "Only defined when CGame.IsDedicatedServer equals true", and `SERVER` itself is documented as a "Define always present on dedicated servers" that "should be preferred over using CGame.IsDedicatedServer when possible" (`1_core/defines.c:104-115`). Because `IsDedicatedServer()` is false on a **listen server**, `SERVER` is **not** defined there --- `#ifndef SERVER` client code compiles into a listen server host exactly as it does into a remote client. This is a **compile-time** distinction, not a runtime one:
 
 ```c
 #ifdef SERVER
-    // This code is ONLY compiled on the server
-    // It does not exist in the client binary at all
+    // Compiled ONLY into the dedicated server binary
+    // It does not exist in the client binary -- or a listen server host -- at all
 #endif
 
 #ifndef SERVER
-    // This code is ONLY compiled on the client
-    // The server will not see this code
+    // Compiled into the client binary -- this includes a listen server host
+    // The dedicated server will not see this code
 #endif
 ```
 
@@ -481,16 +484,16 @@ The engine automatically defines `SERVER` when compiling for a **dedicated serve
 
 | Approach | When to Use | Example |
 |----------|-------------|---------|
-| `#ifndef SERVER` | Wrapping code that references client-only types (widgets, UI classes) | Client UI helper classes, `MissionGameplay` bodies that use widget types |
+| `#ifndef SERVER` | Wrapping your own client-only helper classes (typically UI logic) that you deliberately keep out of the server build | Your own UI helper classes, `MissionGameplay` bodies that reference them |
 | `#ifdef SERVER` | Wrapping entire class definitions that should only exist on server | Server-only helper classes |
 | `GetGame().IsServer()` | Runtime branching within code that runs on both sides | Entity update logic that differs per side |
 | `GetGame().IsClient()` | Runtime branching within code that runs on both sides | Playing effects only on client |
 
-### Real Example: Client Mission Hook in a Shared Mod
+### Worked Example: Client Mission Hook in a Shared Mod
 
-`MissionGameplay` compiles on **both server and client** -- the class itself exists everywhere in vanilla DayZ. You do NOT need `#ifndef SERVER` just to mod `MissionGameplay`. The guard is only required when the modded class body references **client-only types** such as widget classes or UI helpers that do not exist on the server.
+`MissionGameplay` compiles into **both** the server and the client build -- the class exists in every vanilla script module (`5_mission/mission/missiongameplay.c`), it is simply only *instantiated* on the client and the listen server host. You do NOT need `#ifndef SERVER` just to mod `MissionGameplay`. The guard is only required when the modded class body references a type that is genuinely unavailable on the server -- almost always one of **your own** helper classes that you chose to compile out with its own `#ifndef SERVER`. It is not because vanilla widget or UI types are missing there: `Widget` itself is declared unguarded at `1_core/proto/enwidgets.c:107`, and every built-in widget subclass with it, so they resolve on the server exactly as `MissionGameplay` does. The guard is still useful for keeping client-only *logic* -- input handling, HUD updates -- out of the server build even when the vanilla types involved would compile fine there.
 
-COT and Expansion both mod `MissionGameplay` without wrapping it in `#ifndef SERVER`. The vanilla `MissionGameplay` class is not guarded either.
+Several large public mods mod `MissionGameplay` without any `#ifndef SERVER` guard, and that is correct: the vanilla `MissionGameplay` type is unguarded, so it resolves on every build. You only need the guard once your modded body pulls in a type that is actually unavailable on the server -- typically one you wrapped in a guard yourself.
 
 ```c
 // SAFE: No #ifndef SERVER needed because the body uses no client-only types
@@ -505,8 +508,11 @@ modded class MissionGameplay
 ```
 
 ```c
-// NEEDS #ifndef SERVER: The body references MyClientUI (a widget/UI class
-// that only exists on the client). Without the guard, the server cannot
+// NEEDS #ifndef SERVER: MyClientUI is a UI helper class of your own, not a
+// vanilla widget type -- vanilla widgets like `Widget` are declared unguarded
+// (1_core/proto/enwidgets.c:107) and resolve on every build. MyClientUI is
+// unresolvable on the server precisely because you would declare/use it only
+// inside a guard like this one. Without the guard here, the server cannot
 // resolve the MyClientUI type and compilation fails.
 
 #ifndef SERVER
@@ -537,8 +543,8 @@ The rule is simple: if the **body** of your modded `MissionGameplay` (or `Missio
 You can stack preprocessor guards for fine-grained control:
 
 ```c
-// Only compile if StarDZ Core is loaded AND we are on the client
-#ifdef STARDZ_CORE
+// Only compile if Lantern Core is loaded AND we are on the client
+#ifdef LANTERN_CORE
 #ifndef SERVER
 modded class MissionGameplay
 {
@@ -546,10 +552,10 @@ modded class MissionGameplay
     {
         super.OnInit();
         // Register with Core's admin panel -- client side only
-        StarDZCore core = StarDZCore.GetInstance();
+        LanternCore core = LanternCore.GetInstance();
         if (core)
         {
-            ref StarDZModInfo info = new StarDZModInfo("MyMod", "My Mod", "1.0");
+            ref LNT_ModInfo info = new LNT_ModInfo("MyMod", "My Mod", "1.0");
             core.RegisterMod(info);
         }
     }
@@ -558,219 +564,20 @@ modded class MissionGameplay
 #endif
 ```
 
+The `LanternCore.RegisterMod()` API and the `LNT_ModInfo` descriptor are covered in Chapter 7.2. Here the only point is the guard: the two nested directives mean this block compiles solely when Lantern Core is present **and** the build is a client build.
+
 ---
 
 ## Common Server-Client Patterns
 
-### Pattern 1: Server-Side Validation with Client Feedback
+Once you know which side your code runs on, a handful of patterns cover almost all cross-side communication. Every one of them is an RPC pattern, so the full worked implementations live in the RPC chapters rather than being duplicated here:
 
-The most fundamental pattern in multiplayer game modding. The client requests an action, the server validates it, and sends back the result.
+- **Request, validate, respond** --- the client asks, the server validates and executes, then replies. See [Chapter 7.3: RPC Communication Patterns](../07-patterns/03-rpc-patterns.md#request-validate-respond).
+- **Config sync (server to client)** --- the server pushes display settings to each client as it becomes ready. See [Config Sync](../07-patterns/03-rpc-patterns.md#config-sync-server-to-client).
+- **Entity state sync** --- the server computes authoritative entity state and broadcasts it to nearby clients. See [Entity State Sync](../07-patterns/03-rpc-patterns.md#entity-state-sync).
+- **Permission checking** --- privileged actions are authorized on the server before they run. See [Chapter 7.5: Permissions](../07-patterns/05-permissions.md).
 
-```c
-// ---------------------------------------------------------------
-// 3_Game: Shared RPC constants and data (both sides need these)
-// ---------------------------------------------------------------
-class MyRPC
-{
-    static const int REQUEST_ACTION  = 85001;  // Client -> Server
-    static const int ACTION_RESULT   = 85002;  // Server -> Client
-}
-
-class MyActionData
-{
-    int m_ActionID;
-    bool m_Success;
-    string m_Message;
-}
-```
-
-```c
-// ---------------------------------------------------------------
-// Client side: Send request, handle response
-// ---------------------------------------------------------------
-class MyClientHandler
-{
-    void RequestAction(int actionID)
-    {
-        if (!GetGame().IsClient())
-            return;
-
-        // Send request to server
-        ScriptRPC rpc = new ScriptRPC();
-        rpc.Write(actionID);
-        rpc.Send(null, MyRPC.REQUEST_ACTION, true);
-    }
-
-    void OnActionResult(ParamsReadContext ctx)
-    {
-        int actionID;
-        bool success;
-        string message;
-
-        ctx.Read(actionID);
-        ctx.Read(success);
-        ctx.Read(message);
-
-        if (success)
-            ShowSuccessUI(message);
-        else
-            ShowErrorUI(message);
-    }
-}
-```
-
-```c
-// ---------------------------------------------------------------
-// Server side: Validate and respond
-// ---------------------------------------------------------------
-class MyServerHandler
-{
-    void OnActionRequest(PlayerIdentity sender, ParamsReadContext ctx)
-    {
-        if (!GetGame().IsServer())
-            return;
-
-        int actionID;
-        ctx.Read(actionID);
-
-        // VALIDATE -- never trust client data
-        bool allowed = ValidateAction(sender, actionID);
-
-        // Execute if valid
-        if (allowed)
-            ExecuteAction(sender, actionID);
-
-        // Send result back to client
-        ScriptRPC rpc = new ScriptRPC();
-        rpc.Write(actionID);
-        rpc.Write(allowed);
-        rpc.Write(allowed ? "Action completed" : "Action denied");
-        rpc.Send(null, MyRPC.ACTION_RESULT, true, sender);
-    }
-}
-```
-
-### Pattern 2: Config Sync (Server to Client)
-
-The server owns the configuration. When a player connects, the server sends relevant settings to the client so the client can adjust its display accordingly.
-
-```c
-// ---------------------------------------------------------------
-// Server: Send config on player connect
-// ---------------------------------------------------------------
-modded class MissionServer
-{
-    void OnPlayerConnect(PlayerBase player)
-    {
-        PlayerIdentity identity = player.GetIdentity();
-        if (!identity)
-            return;
-
-        // Send display settings to client
-        ScriptRPC rpc = new ScriptRPC();
-        rpc.Write(m_Config.m_ShowHUD);
-        rpc.Write(m_Config.m_HUDColor);
-        rpc.Write(m_Config.m_MaxDistance);
-        rpc.Send(null, MyRPC.SYNC_CONFIG, true, identity);
-    }
-}
-```
-
-```c
-// ---------------------------------------------------------------
-// Client: Receive and apply config
-// ---------------------------------------------------------------
-#ifndef SERVER
-class MyClientConfig
-{
-    bool m_ShowHUD;
-    int m_HUDColor;
-    float m_MaxDistance;
-
-    void OnConfigReceived(ParamsReadContext ctx)
-    {
-        ctx.Read(m_ShowHUD);
-        ctx.Read(m_HUDColor);
-        ctx.Read(m_MaxDistance);
-
-        // Apply to local UI
-        UpdateHUDVisibility();
-    }
-}
-#endif
-```
-
-### Pattern 3: Entity State Sync
-
-Entities that exist on both server and client often need to synchronize custom state. The server computes the state, then sends it to nearby clients via RPC.
-
-```c
-// ---------------------------------------------------------------
-// Server: Broadcast AI state to nearby players
-// ---------------------------------------------------------------
-void SyncStateToClients(SDZ_AIEntity ai)
-{
-    if (!GetGame().IsServer())
-        return;
-
-    ScriptRPC rpc = new ScriptRPC();
-    rpc.Write(ai.GetID());
-    rpc.Write(ai.GetBehaviorState());
-    rpc.Write(ai.IsInCombat());
-
-    // Send to all clients within 200m
-    rpc.Send(ai, MyRPC.SYNC_STATE, true);
-}
-```
-
-```c
-// ---------------------------------------------------------------
-// Client: Receive and display AI state
-// ---------------------------------------------------------------
-void OnStateReceived(SDZ_AIEntity ai, ParamsReadContext ctx)
-{
-    if (!GetGame().IsClient())
-        return;
-
-    int entityID, behaviorState;
-    bool inCombat;
-
-    ctx.Read(entityID);
-    ctx.Read(behaviorState);
-    ctx.Read(inCombat);
-
-    // Update client-side visual state
-    ai.SetClientBehaviorState(behaviorState);
-    ai.SetClientCombatIndicator(inCombat);
-}
-```
-
-### Pattern 4: Permission Checking
-
-Permissions are always checked on the server. The client may cache permission data for UI purposes (e.g., graying out buttons), but the server is the final authority.
-
-```c
-// ---------------------------------------------------------------
-// Server: Check permission before executing admin command
-// ---------------------------------------------------------------
-void OnAdminCommand(PlayerIdentity sender, ParamsReadContext ctx)
-{
-    if (!GetGame().IsServer())
-        return;
-
-    string command;
-    ctx.Read(command);
-
-    // Server-side permission check -- the ONLY check that matters
-    if (!HasPermission(sender.GetId(), "admin.commands." + command))
-    {
-        SendDenied(sender, "Insufficient permissions");
-        return;
-    }
-
-    ExecuteAdminCommand(command);
-}
-```
+The rule under all four is the one from [The Golden Rules](#the-golden-rules): the client requests, the server decides, and nothing the client sends is trusted until the server validates it.
 
 ---
 
@@ -905,83 +712,70 @@ A common trap: you test your mod on a listen server, everything works, you publi
 
 ### requiredAddons[] Controls Load Order
 
-When you split a mod into client and server packages, the server package MUST declare the client package as a dependency:
+The server package must declare the client package in its `requiredAddons[]`, exactly as shown in [The Dependency Chain](#the-dependency-chain) above. That single dependency does three things:
+
+1. The client package compiles first.
+2. The server package can reference every type defined in the client package.
+3. Entity class definitions from the client package are available to server logic.
+
+Applied to Lantern AI, the client package `Lantern_AI_Scripts` requires only the base scripts and Core, while the server package `Lantern_AIServer_Scripts` additionally requires the client package:
 
 ```cpp
-// Client package: config.cpp
-class CfgPatches
-{
-    class SDZ_AI_Scripts
-    {
-        requiredAddons[] = { "DZ_Scripts", "DZ_Data", "SDZ_Core_Scripts" };
-    };
-};
+// Client package (config.cpp)
+requiredAddons[] = { "DZ_Scripts", "Lantern_Core_Scripts" };
 
-// Server package: config.cpp
-class CfgPatches
-{
-    class SDZA_Scripts
-    {
-        requiredAddons[] = { "DZ_Scripts", "SDZ_AI_Scripts", "SDZ_Core_Scripts" };
-        //                                 ^^^^^^^^^^^^^^^^
-        //                     Server depends on client package
-    };
-};
+// Server package (config.cpp)
+requiredAddons[] = { "DZ_Scripts", "Lantern_AI_Scripts", "Lantern_Core_Scripts" };
+//                                  ^^^^^^^^^^^^^^^^^ server depends on client
 ```
-
-This ensures:
-1. The client package compiles first
-2. The server package can reference all types from the client package
-3. Entity class definitions from the client package are available to server logic
 
 ### defines[] for Optional Dependency Detection
 
-The `defines[]` array in `CfgMods` creates preprocessor symbols that other mods can check with `#ifdef`:
+The `defines[]` array in `CfgMods` creates preprocessor symbols other mods can test with `#ifdef`:
 
 ```cpp
-// StarDZ_AI client mod defines:
-defines[] = { "STARDZ_AI" };
+// Lantern AI client mod defines:
+defines[] = { "LANTERN_AI" };
 
-// StarDZ_AI server mod defines:
-defines[] = { "STARDZ_AI", "STARDZ_AISERVER" };
+// Lantern AI server mod defines:
+defines[] = { "LANTERN_AI", "LANTERN_AISERVER" };
 ```
 
-Other mods can then conditionally compile code:
+Another mod can then compile integration code only when the AI mod is present:
 
 ```c
-// In another mod that optionally integrates with StarDZ AI
-#ifdef STARDZ_AI
-    // AI mod is loaded -- enable integration features
-    void OnAIEntitySpawned(SDZ_AIEntity ai)
-    {
-        // React to AI spawns
-    }
+// In another mod that optionally integrates with Lantern AI
+#ifdef LANTERN_AI
+void OnPatrolSpawned(LNT_PatrolEntity ai)
+{
+    // React to patrol spawns
+}
 #endif
 ```
 
 ### Soft vs Hard Dependencies
 
-**Hard dependency:** Listed in `requiredAddons[]`. The engine will not load your mod if the dependency is missing. Use for mods that MUST be present.
+**Hard dependency** --- listed in `requiredAddons[]`. The engine refuses to load your mod if the dependency is missing. Use it for mods that MUST be present:
 
 ```cpp
-requiredAddons[] = { "DZ_Scripts", "SDZ_Core_Scripts" };
-// If SDZ_Core_Scripts is missing, this mod will not load
+requiredAddons[] = { "DZ_Scripts", "Lantern_Core_Scripts" };
+// If Lantern_Core_Scripts is missing, this mod will not load
 ```
 
-**Soft dependency:** Detected via `#ifdef` at compile time. The mod loads regardless, but enables extra features when the dependency is present.
+**Soft dependency** --- detected via `#ifdef` at compile time. The mod loads regardless, and enables extra features only when the dependency is present:
 
 ```c
-// Soft dependency on StarDZ Core
-#ifdef STARDZ_CORE
-class SDZ_AIAdminConfig : StarDZConfigBase
+// Soft dependency on Lantern Core
+#ifdef LANTERN_CORE
+class LNT_AIAdminConfig : LNT_ConfigBase
 {
     // Only exists if Core is loaded
 };
 #endif
 
 // Fallback when Core is not available
-#ifndef STARDZ_CORE
-class SDZ_AIAdminConfig
+#ifndef LANTERN_CORE
+class LNT_AIAdminConfig
 {
     // Standalone version without Core integration
 };
@@ -990,123 +784,70 @@ class SDZ_AIAdminConfig
 
 ---
 
-## Real-World Split Examples
+## Worked Split Examples
 
-### Example 1: StarDZ AI (Client + Server)
+The mods below --- **Lantern AI**, **NightPatrol**, and **Lantern Missions** --- are this wiki's designed teaching examples, not shipped products. Each shows the same idea from a different angle: shared and client-facing code lives in a `type = "mod"` package, and the sensitive logic lives in a `type = "servermod"` package the client never receives.
 
-StarDZ AI splits into two packages with clear separation of concerns:
+### Example 1: Lantern AI (Client + Server)
 
-```
-StarDZ_AI/                              <-- Development root
-  StarDZ_AI/                            <-- Client package (type = "mod")
-    mod.cpp
-    stringtable.csv
-    GUI/
-      layouts/
-        sdz_ai_interact_prompt.layout   <-- Client-only: interaction UI
-        sdz_ai_voice_bubble.layout      <-- Client-only: speech bubble
-    Scripts/
-      config.cpp                        <-- defines[] = { "STARDZ_AI" }
-      3_Game/StarDZ_AI/
-        SDZ_AI_Config.c                 <-- Shared config class
-        SDZ_AIConstants.c               <-- Shared constants
-        SDZ_AIRPC.c                     <-- Shared RPC IDs + data structs
-      4_World/StarDZ_AI/
-        SDZ_AIEntity.c                  <-- Entity definition (both sides)
-        SDZ_AIPlayerPatches.c           <-- Player interaction patches
-      5_Mission/StarDZ_AI/
-        SDZ_AI_Register.c              <-- Core registration (guarded)
-        SDZ_AIClientMission.c           <-- Client UI (#ifndef SERVER)
-        SDZ_AIClientUI.c               <-- UI management
-
-  StarDZ_AI_Server/                     <-- Server package (type = "servermod")
-    mod.cpp
-    Scripts/
-      config.cpp                        <-- depends on SDZ_AI_Scripts
-      3_Game/StarDZ_AIServer/
-        SDZ_AIAdminConfig.c             <-- Admin panel config bridge
-        SDZ_AIConfig.c                  <-- Server config loading
-        SDZ_AILoadout.c                 <-- Loadout definitions
-      4_World/StarDZ_AIServer/
-        SDZ_AIAPI.c                     <-- Developer API
-        SDZ_AIBrain.c                   <-- AI decision making
-        SDZ_AICombat.c                  <-- Combat behavior
-        SDZ_AIEvents.c                  <-- Event handling
-        SDZ_AIGOAP.c                    <-- Goal-oriented action planning
-        SDZ_AIGroup.c                   <-- Group coordination
-        SDZ_AIInteraction.c             <-- Player interaction handling
-        SDZ_AILogger.c                  <-- Server-side logging
-        SDZ_AIManager.c                 <-- Main AI manager
-        SDZ_AIMemory.c                  <-- Memory/knowledge base
-        SDZ_AIMovement.c               <-- Navigation
-        SDZ_AINavmesh.c                <-- Pathfinding
-        SDZ_AIPerception.c             <-- Sight/hearing/awareness
-        SDZ_AISoundPropagation.c       <-- Sound detection
-        SDZ_AISpawner.c                <-- Spawn logic
-      5_Mission/StarDZ_AIServer/
-        SDZ_AIServerMission.c           <-- MissionServer hook
-```
-
-Notice the pattern:
-- **Client package** has 7 script files: constants, RPCs, entity definitions, UI
-- **Server package** has 19 script files: the entire AI brain, perception, combat system
-- The bulk of the logic is server-side and invisible to players
-
-### Example 2: DayZ Expansion AI
-
-Expansion uses a different structure -- all scripts in one directory tree, but split into multiple PBOs:
+Lantern AI splits into two packages with a clear separation of concerns. The client package carries only what both sides must agree on plus the UI; everything that decides behavior is server-side and invisible to players.
 
 ```
-DayZExpansion/AI/
-  Animations/config.cpp          <-- Animation overrides PBO
-  DebugWeapons/config.cpp        <-- Debug weapons PBO
-  Gear/config.cpp                <-- AI gear/clothing PBO
-  GUI/                           <-- GUI resources PBO
-    layouts/
-    config.cpp
-  Scripts/                       <-- Main scripts PBO
-    config.cpp
-    1_Core/                      <-- Engine-level AI foundations
-    3_Game/                      <-- Shared types
-    4_World/                     <-- Entity and behavior code
-    5_Mission/                   <-- Mission hooks
-    AI/                          <-- AI-specific subfolder
-    Common/                      <-- Shared across all layers
-    Data/                        <-- Data files
-    FSM/                         <-- Finite state machine definitions
-    inputs.xml                   <-- Input bindings
-  Sounds/                        <-- Audio PBO
+Lantern_AI/                             <-- Client package (type = "mod")
+  mod.cpp                               <-- type = "mod"
+  Scripts/
+    config.cpp                          <-- defines[] = { "LANTERN_AI" }
+    3_Game/                             <-- shared: config class, constants, RPC ids + data
+    4_World/                            <-- LNT_PatrolEntity (exists on both sides)
+    5_Mission/                          <-- client UI, wrapped in #ifndef SERVER
+  GUI/layouts/                          <-- client-only: interaction prompt, voice bubble
+
+Lantern_AIServer/                       <-- Server package (type = "servermod")
+  mod.cpp                               <-- type = "servermod"
+  Scripts/
+    config.cpp                          <-- requiredAddons[] includes Lantern_AI_Scripts
+    3_Game/                             <-- server config loader, admin config bridge
+    4_World/                            <-- brain, perception, combat, navigation, spawner
+    5_Mission/                          <-- modded MissionServer hook
 ```
 
-Expansion keeps everything in one `type = "mod"` package but uses internal `#ifdef` guards to separate server and client code paths. This is an alternative approach -- less secure (clients can decompile everything) but simpler to manage.
+The shape is deliberate: the client package holds a few shared and UI files; the server package holds the entire decision-making system --- brain, perception, combat, spawning --- none of which ships to clients.
 
-### Example 3: StarDZ Missions (Client + Server)
+### Example 2: NightPatrol (a second split mod)
+
+**NightPatrol** (class prefix `NP_`) is a smaller content mod that patrols spawn points at night. It uses the same two-package split, which shows the pattern does not depend on one mod's file names:
 
 ```
-StarDZ_Missions/
-  StarDZ_Missions/                      <-- Client (type = "mod")
-    Scripts/
-      3_Game/StarDZ_Missions/
-        SDZ_Constants.c                 <-- Mission type enums, RPC IDs
-        SDZ_MissionsConfig.c            <-- Display settings
-        SDZ_RPC.c                       <-- RPC definitions
-      4_World/StarDZ_Missions/
-        SDZ_RadioHelper.c               <-- Radio proximity helper
-      5_Mission/StarDZ_Missions/
-        SDZ_ClientHandler.c             <-- Client UI for missions
-        SDZ_MissionsAdminModule.c       <-- Admin panel module
+NightPatrol/                            <-- Client package (type = "mod")
+  Scripts/
+    config.cpp                          <-- defines[] = { "NIGHTPATROL" }
+    3_Game/                             <-- NP_Constants, NP_RPC (shared ids + data)
+    4_World/                            <-- NP_PatrolMarker (rendered on both sides)
+    5_Mission/                          <-- NP_ClientHud (#ifndef SERVER)
 
-  StarDZ_Missions_Server/              <-- Server (type = "servermod")
-    Scripts/
-      3_Game/StarDZ_MissionsServer/
-        SDZ_Config.c                    <-- Server config loader
-        SDZ_Logger.c                    <-- Server-side mission logging
-        SDZ_MissionData.c               <-- Mission data structures
-      4_World/StarDZ_MissionsServer/
-        SDZ_Instance.c                  <-- Active mission instance
-        SDZ_Spawner.c                   <-- Loot and objective spawning
-      5_Mission/StarDZ_MissionsServer/
-        SDZ_ServerMission.c             <-- MissionServer hook
+NightPatrol_Server/                     <-- Server package (type = "servermod")
+  Scripts/
+    config.cpp                          <-- requiredAddons[] includes NightPatrol_Scripts
+    4_World/                            <-- NP_Scheduler, NP_SpawnDirector (night logic)
+    5_Mission/                          <-- modded MissionServer hook
+```
+
+The client renders patrol markers and a HUD; the server decides *when* and *where* patrols appear. A player who decompiles the client PBO learns nothing about the spawn schedule, because that code was never sent to them.
+
+### Example 3: Lantern Missions (Client + Server)
+
+```
+Lantern_Missions/                       <-- Client package (type = "mod")
+  Scripts/
+    3_Game/                             <-- mission type enums, RPC ids, display settings
+    4_World/                            <-- proximity / radio helpers
+    5_Mission/                          <-- client mission UI, admin panel module
+
+Lantern_MissionsServer/                 <-- Server package (type = "servermod")
+  Scripts/
+    3_Game/                             <-- server config loader, mission data structures
+    4_World/                            <-- active mission instance, loot/objective spawner
+    5_Mission/                          <-- modded MissionServer hook
 ```
 
 ---
@@ -1233,32 +974,37 @@ void OnEntityCreated(EntityAI entity)
 ### Mistake 5: Not Using #ifdef for Optional Mod Detection
 
 ```c
-// WRONG: Crashes if StarDZ Core is not loaded
+// WRONG: fails to COMPILE when Lantern Core is absent.
+// LanternCore and LNT_ModInfo do not exist in the build unless the mod is
+// loaded, so the compiler cannot resolve them -- a build error, not a crash.
 class MyModInit
 {
     void Init()
     {
-        StarDZCore core = StarDZCore.GetInstance();  // COMPILE ERROR if Core not present
+        LanternCore core = LanternCore.GetInstance();   // unresolved type if Core absent
+        ref LNT_ModInfo info = new LNT_ModInfo("MyMod", "My Mod", "1.0");
         core.RegisterMod(info);
     }
 }
 
-// RIGHT: Guard with preprocessor directive
+// RIGHT: guard with a preprocessor directive
 class MyModInit
 {
     void Init()
     {
-        #ifdef STARDZ_CORE
-        StarDZCore core = StarDZCore.GetInstance();
+        #ifdef LANTERN_CORE
+        LanternCore core = LanternCore.GetInstance();
         if (core)
         {
-            ref StarDZModInfo info = new StarDZModInfo("MyMod", "My Mod", "1.0");
+            ref LNT_ModInfo info = new LNT_ModInfo("MyMod", "My Mod", "1.0");
             core.RegisterMod(info);
         }
         #endif
     }
 }
 ```
+
+The failure is at **compile time**, not run time. Without Lantern Core in the build, its types are not present, so the references never resolve. That is why the fix is a **preprocessor** guard (`#ifdef`, evaluated during compilation) and not a runtime `if` --- a runtime null check cannot rescue code that never compiled in the first place.
 
 ### Mistake 6: Putting Shared Types Only in the Server Package
 
@@ -1330,15 +1076,10 @@ Before publishing a split mod, verify:
 - [ ] Server `config.cpp` lists client package in `requiredAddons[]`
 - [ ] All shared types (RPC data, entity classes, enums) are in the client package
 - [ ] All server logic (spawning, validation, AI brains) is in the server package
-- [ ] `MissionGameplay` modded classes that reference client-only types (widgets, UI classes) are wrapped in `#ifndef SERVER`
+- [ ] `MissionGameplay` modded classes that reference your own client-only helper types (UI logic you compile out of the server build) are wrapped in `#ifndef SERVER`
 - [ ] No `GetGame().GetPlayer()` calls on server without null checks
 - [ ] No UI/widget code in the server package
 - [ ] Optional dependencies use `#ifdef` guards, not direct references
-- [ ] `defines[]` array matches between `mod.cpp` and `config.cpp`
+- [ ] `defines[]` is declared in each package's `config.cpp` `CfgMods` (not in `mod.cpp`), and lists every symbol that package's own code tests
 - [ ] Tested on a **dedicated server**, not just a listen server
 - [ ] Server config files are loaded server-side and synced via RPC, not read by clients
-
----
-
-**Previous:** [Chapter 2.5: File Organization Best Practices](05-file-organization.md)
-**Next:** [Part 3: GUI & Layout System](../03-gui-system/01-widget-types.md)

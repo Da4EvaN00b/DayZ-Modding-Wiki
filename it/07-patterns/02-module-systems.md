@@ -1,6 +1,5 @@
 # Capitolo 7.2: Sistemi a Moduli / Plugin
 
-[Home](../README.md) | [<< Precedente: Pattern Singleton](01-singletons.md) | **Sistemi a Moduli / Plugin** | [Successivo: Pattern RPC >>](03-rpc-patterns.md)
 
 ---
 
@@ -219,18 +218,28 @@ class ConfigurablePlugin : PluginBase
 
 ### Registrazione
 
-VPP registra i plugin nel metodo `MissionServer.OnInit()` moddificato:
+VPP registra i plugin moddificando il `PluginManager.Init()` vanilla. `RegisterPlugin` prende il nome della classe del plugin come stringa più i flag client/server (non prende un'istanza `new`):
 
 ```c
 // Pattern VPP
-GetPluginManager().RegisterPlugin(new VPPESPPlugin());
-GetPluginManager().RegisterPlugin(new VPPTeleportPlugin());
-GetPluginManager().RegisterPlugin(new VPPWeatherPlugin());
+modded class PluginManager
+{
+    override void Init()
+    {
+        super.Init();
+        //              Class Name        Client  Server
+        RegisterPlugin("VPPESPPlugin",     false,  true);
+        RegisterPlugin("VPPTeleportPlugin", false, true);
+        RegisterPlugin("VPPWeatherPlugin", false,  true);
+    }
+};
 ```
+
+Il manager istanzia da sé ciascun plugin registrato. Per recuperare un plugin in esecuzione altrove, usa `GetPluginManager().GetPluginByType(VPPESPPlugin)` o il globale `GetPlugin(VPPESPPlugin)`.
 
 ### Caratteristiche Principali
 
-- **Registrazione manuale**: ogni plugin viene esplicitamente creato con `new` e registrato
+- **Registrazione manuale**: ogni plugin viene registrato per nome di classe in `PluginManager.Init()`; il manager lo istanzia
 - **Integrazione della configurazione**: `ConfigurablePlugin` unisce la gestione della configurazione al ciclo di vita del modulo
 - **Autosufficiente**: nessuna dipendenza dal CF; il plugin manager di VPP è un sistema a sé
 - **Proprietà chiara**: il plugin manager mantiene `ref` a tutti i plugin, controllandone la durata di vita
@@ -529,7 +538,7 @@ override void OnMissionFinish()
 | **Integrazione config** | Separata | Integrata in ConfigurablePlugin | Separata | Tramite MyConfigManager |
 | **Distribuzione update** | Automatica | Il manager chiama `OnUpdate` | Automatica | Il manager chiama `OnUpdate` |
 | **Pulizia** | CF la gestisce | `OnDestroy` manuale | CF la gestisce | `MyModuleManager.Cleanup()` |
-| **Accesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().Get()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
+| **Accesso cross-mod** | `CF_Modules<T>.Get()` | `GetPluginManager().GetPluginByType()` | `CF_Modules<T>.Get()` | `MyModuleManager.GetModule()` |
 
 Scegli l'approccio che corrisponde al profilo di dipendenze del tuo mod. Se dipendi già dal CF, usa `CF_ModuleCore`. Se vuoi zero dipendenze esterne, costruisci il tuo sistema seguendo il pattern del manager personalizzato o di VPP.
 
@@ -565,7 +574,3 @@ Scegli l'approccio che corrisponde al profilo di dipendenze del tuo mod. Se dipe
 | I moduli dovrebbero essere sostituibili a caldo in runtime | DayZ non supporta il hot-reloading degli script; i moduli vivono per l'intero ciclo di vita della missione |
 | Usa interfacce per i contratti dei moduli | Enforce Script non ha la keyword `interface`; usa metodi virtuali della classe base (`override`) al suo posto |
 | La dependency injection disaccoppia i moduli | Non esiste un framework DI; usa lookup del manager e guard `#ifdef` per le dipendenze cross-mod opzionali |
-
----
-
-[Home](../README.md) | [<< Precedente: Pattern Singleton](01-singletons.md) | **Sistemi a Moduli / Plugin** | [Successivo: Pattern RPC >>](03-rpc-patterns.md)

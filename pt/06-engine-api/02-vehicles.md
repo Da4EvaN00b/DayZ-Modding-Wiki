@@ -1,6 +1,5 @@
-# Chapter 6.2: Vehicle System
+# Vehicle System
 
-[Home](../README.md) | [<< Previous: Entity System](01-entity-system.md) | **Vehicles** | [Next: Weather >>](03-weather.md)
 
 ---
 
@@ -41,16 +40,17 @@ A base abstrata para todos os veículos. Fornece gerenciamento de assentos e ace
 proto native int   CrewSize();                          // Número total de assentos
 proto native int   CrewMemberIndex(Human crew_member);  // Obter índice do assento de um humano
 proto native Human CrewMember(int posIdx);              // Obter humano no índice do assento
-proto native void  CrewGetOut(int posIdx);              // Forçar membro da tripulação a sair
+proto native Human CrewGetOut(int posIdx);              // Forçar membro da tripulação a sair (retorna o humano ejetado)
 proto native void  CrewDeath(int posIdx);               // Matar membro no assento
 ```
 
 ### Entrada da Tripulação
 
 ```c
-proto native int  GetAnimInstance();
+int  GetAnimInstance();                                 // Método scriptável (sobrescritível), não proto native
 proto native int  CrewPositionIndex(int componentIdx);  // Componente para índice do assento
-proto native vector CrewEntryPoint(int posIdx);         // Posição de entrada no mundo para o assento
+proto void CrewEntry(int posIdx, out vector pos, out vector dir);    // Ponto/direção de entrada no espaço do modelo
+proto void CrewEntryWS(int posIdx, out vector pos, out vector dir);  // Ponto/direção de entrada no espaço do mundo
 ```
 
 **Exemplo --- ejetar todos os passageiros:**
@@ -132,11 +132,11 @@ proto native float GetSpeedometer();    // Velocidade em km/h (valor absoluto)
 ### Controles (Simulação)
 
 ```c
-proto native void  SetBrake(float value, int wheel = -1);    // 0.0 - 1.0, -1 = todas as rodas
+proto native void  SetBrake(float value, float unused0 = 0, bool unused1 = false);  // 0.0 - 1.0 (parâmetros extras não usados)
 proto native void  SetHandbrake(float value);                 // 0.0 - 1.0
-proto native void  SetSteering(float value, bool analog = true);
-proto native void  SetThrust(float value, int wheel = -1);    // 0.0 - 1.0
-proto native void  SetClutchState(bool engaged);
+proto native void  SetSteering(float value, bool unused0 = false);  // -1.0 - 1.0 (segundo parâmetro não usado)
+proto native void  SetThrottle(float value);                  // 0.0 - 1.0 (SetThrust está obsoleto)
+proto native void  SetClutch(float value);                    // SetClutchState está obsoleto
 ```
 
 ### Rodas
@@ -144,7 +144,7 @@ proto native void  SetClutchState(bool engaged);
 ```c
 proto native int   WheelCount();
 proto native bool  WheelIsAnyLocked();
-proto native float WheelGetSurface(int wheelIdx);
+proto native SurfaceInfo WheelGetSurface(int wheelIdx);
 ```
 
 ### Callbacks (Sobrescreva em CarScript)
@@ -216,17 +216,28 @@ graph TD
     style FT fill:#ffa07a,color:#fff
     style R fill:#87ceeb,color:#fff
 ```
+A API de luzes fica em `Transport`:
+
 ```c
-void SetLightsState(int state);   // 0 = desligado, 1 = ligado
-int  GetLightsState();
+proto native bool LightIsOn();    // Verdadeiro quando as luzes estão ligadas
+proto native void LightOn();      // Ligar as luzes
+proto native void LightOff();     // Desligar as luzes
+proto native void LightToggle();  // Alternar o estado atual das luzes
 ```
 
 ### Controle de Portas
 
+O estado das portas é consultado com `GetCarDoorsState`, que retorna um valor `CarDoorState` (`DOORS_MISSING`, `DOORS_OPEN` ou `DOORS_CLOSED`):
+
 ```c
-bool IsDoorOpen(string doorSource);
-void OpenDoor(string doorSource);
-void CloseDoor(string doorSource);
+enum CarDoorState
+{
+    DOORS_MISSING,
+    DOORS_OPEN,
+    DOORS_CLOSED
+}
+
+int GetCarDoorsState(string slotType);   // Retorna um valor CarDoorState
 ```
 
 ### Sobrescritas Importantes para Veículos Personalizados
@@ -235,8 +246,7 @@ void CloseDoor(string doorSource);
 override void EEInit();                    // Inicializar peças do veículo, fluidos
 override void OnEngineStart();             // Comportamento personalizado ao ligar motor
 override void OnEngineStop();              // Comportamento personalizado ao desligar motor
-override void EOnSimulate(IEntity other, float dt);  // Simulação por tick
-override bool CanObjectAttachWeapon(string slot_name);
+override void EOnPostSimulate(IEntity other, float timeSlice);  // Simulação por tick (CarScript)
 ```
 
 **Exemplo --- criar um veículo com fluidos cheios:**
@@ -283,31 +293,36 @@ proto native float EngineGetRPM();
 
 ### Fluidos
 
-Barcos usam o mesmo enum `CarFluid` mas típicamente só usam `FUEL`:
+Barcos usam um enum `BoatFluid` separado que só define `FUEL`:
 
 ```c
-float fuel = boat.GetFluidFraction(CarFluid.FUEL);
-boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+float fuel = boat.GetFluidFraction(BoatFluid.FUEL);
+boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
 ```
 
-### Velocidade
+### Velocidade e Propulsão
+
+`Boat` não expõe `GetSpeedometer()` (esse método existe apenas em `Car`). Em vez disso, leia o RPM do motor e a velocidade da hélice:
 
 ```c
-proto native float GetSpeedometer();   // Velocidade em km/h
+proto native float EngineGetRPM();                   // RPM do motor
+proto native float PropellerGetAngularVelocity();    // Velocidade angular da hélice
 ```
 
 **Exemplo --- spawnar um barco:**
+
+`Boat_01` não é uma classe diretamente spawnável; spawne uma das variantes de cor concretas (`Boat_01_Blue`, `Boat_01_Orange`, `Boat_01_Black`, `Boat_01_Camo`):
 
 ```c
 void SpawnBoat(vector waterPos)
 {
     BoatScript boat = BoatScript.Cast(
-        GetGame().CreateObjectEx("Boat_01", waterPos,
+        GetGame().CreateObjectEx("Boat_01_Blue", waterPos,
                                   ECE_CREATEPHYSICS | ECE_INITAI)
     );
     if (boat)
     {
-        boat.Fill(CarFluid.FUEL, boat.GetFluidCapacity(CarFluid.FUEL));
+        boat.Fill(BoatFluid.FUEL, boat.GetFluidCapacity(BoatFluid.FUEL));
     }
 }
 ```
@@ -476,7 +491,7 @@ A classe `Contact` foi modificada:
 **Alterados:**
 - `Material1`, `Material2` --- tipo mudou de `dMaterial` para `SurfaceProperties`
 
-Mods que leem dados de `Contact` em `EOnContact` devem atualizar para os novos nomes de variavel e tipos.
+Mods que leem dados de `Contact` em `OnContact` devem atualizar para os novos nomes de variavel e tipos.
 
 ---
 

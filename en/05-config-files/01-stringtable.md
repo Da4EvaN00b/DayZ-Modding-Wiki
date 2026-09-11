@@ -1,6 +1,5 @@
-# Chapter 5.1: stringtable.csv --- Localization
+# stringtable.csv --- Localization
 
-[Home](../README.md) | **stringtable.csv** | [Next: inputs.xml >>](02-inputs-xml.md)
 
 ---
 
@@ -18,8 +17,8 @@
 - [Creating a New Stringtable](#creating-a-new-stringtable)
 - [Empty Cell Handling and Fallback Behavior](#empty-cell-handling-and-fallback-behavior)
 - [Multi-Language Workflow](#multi-language-workflow)
-- [Modular Stringtable Approach (DayZ Expansion)](#modular-stringtable-approach-dayz-expansion)
-- [Real Examples](#real-examples)
+- [Modular Per-PBO Stringtables](#modular-per-pbo-stringtables)
+- [Worked Examples](#worked-examples)
 - [Common Mistakes](#common-mistakes)
 
 ---
@@ -31,7 +30,7 @@ DayZ uses a CSV-based localization system. When the engine encounters a string k
 The stringtable file must be named exactly `stringtable.csv`. The engine discovers it automatically --- no config.cpp registration is required. It can live in multiple locations:
 
 - **Next to mod.cpp** at the root of your mod directory
-- **Inside any PBO** (this is how COT, CF, and Expansion do it)
+- **Inside any PBO** (this is how virtually all large mods do it)
 - **Multiple stringtable.csv files across different PBOs** are all loaded and merged by the engine
 
 This means a single mod can have several stringtable.csv files spread across its PBOs, and they all work together.
@@ -66,7 +65,7 @@ Many stringtable files include a trailing comma after the last column. This is c
 
 - Fields **must** be quoted with double quotes if they contain commas, newlines, or double quotes.
 - In practice, most mods quote every field for consistency.
-- Some mods (like MyMod Missions) omit quotes entirely; the engine handles both styles as long as the field content does not contain commas.
+- Some mods omit quotes entirely; the engine handles both styles as long as the field content does not contain commas.
 
 ---
 
@@ -105,7 +104,7 @@ You do not need to include all 15 columns. If your mod only supports English, yo
 "STR_MYMOD_HELLO","Hello World"
 ```
 
-Some mods add non-standard columns like `korean` (MyMod Missions does this). The engine ignores columns it does not recognize as a supported language, but those columns can serve as documentation or preparation for future language support.
+Some mods add non-standard columns like `korean`. The engine ignores columns it does not recognize as a supported language, but those columns can serve as documentation or preparation for future language support.
 
 ---
 
@@ -120,23 +119,24 @@ STR_MODNAME_CATEGORY_ELEMENT
 ### Rules
 
 1. **Always start with `STR_`** --- this is a universal DayZ convention
-2. **Mod prefix** --- uniquely identifies your mod (e.g., `MYMOD`, `COT`, `EXPANSION`, `VPP`)
+2. **Mod prefix** --- uniquely identifies your mod (e.g., `MYMOD`, `LNT`, `NP`)
 3. **Category** --- groups related strings (e.g., `INPUT`, `TAB`, `CONFIG`, `DIR`)
 4. **Element** --- the specific string (e.g., `ADMIN_PANEL`, `NORTH`, `SAVE`)
 5. **Use UPPERCASE** --- the convention across all major mods
 6. **Use underscores** as separators, never spaces or hyphens
 
-### Examples from Real Mods
+### Examples
+
+These use the wiki's constructed Lantern and NightPatrol teaching mods:
 
 ```
-STR_MYMOD_INPUT_ADMIN_PANEL       -- MyMod: keybinding label
-STR_MYMOD_CLOSE                   -- MyMod: generic "Close" button
-STR_MYMOD_DIR_NORTH                  -- MyMod: compass direction
-STR_MYMOD_TAB_ONLINE                 -- MyMod: admin panel tab name
-STR_COT_ESP_MODULE_NAME            -- COT: module display name
-STR_COT_CAMERA_MODULE_BLUR         -- COT: camera tool label
-STR_EXPANSION_ATM                  -- Expansion: feature name
-STR_EXPANSION_AI_COMMAND_MENU      -- Expansion: input label
+STR_LNT_INPUT_ADMIN_PANEL     -- Lantern: keybinding label
+STR_LNT_CLOSE                 -- Lantern: generic "Close" button
+STR_LNT_DIR_NORTH             -- Lantern: compass direction
+STR_LNT_TAB_ONLINE            -- Lantern: admin panel tab name
+STR_LNT_CAMERA_BLUR           -- Lantern: camera tool label
+STR_NP_MISSION_AVAILABLE      -- NightPatrol: mission banner text
+STR_NP_INPUT_PATROL_MAP       -- NightPatrol: input label
 ```
 
 ### Anti-Patterns
@@ -233,7 +233,7 @@ Create a file named exactly `stringtable.csv`. The engine scans all loaded PBOs 
       stringtable.csv          <-- Option C: inside another PBO (also valid)
 ```
 
-All three options work. You can even use multiple stringtable.csv files across different PBOs in the same mod -- the engine merges them all. This is the approach used by large mods like DayZ Expansion, which has 20 separate stringtable files across its PBOs (see the [Modular Stringtable Approach](#modular-stringtable-approach-dayz-expansion) section below).
+All three options work. You can even use multiple stringtable.csv files across different PBOs in the same mod -- the engine merges them all. Large frameworks routinely split their translations into a dozen or more per-feature stringtable files (see the [Modular Per-PBO Stringtables](#modular-per-pbo-stringtables) section below).
 
 ### Step 2: Write the Header
 
@@ -309,34 +309,26 @@ CSV files open naturally in Excel, Google Sheets, or LibreOffice Calc. Be aware 
 
 ---
 
-## Modular Stringtable Approach (DayZ Expansion)
+## Modular Per-PBO Stringtables
 
-DayZ Expansion demonstrates a best practice for large mods: splitting translations across multiple stringtable files organized by feature module. Their structure uses 20 separate stringtable files inside a `languagecore` directory:
+A best practice for large mods is splitting translations across multiple stringtable files organized by feature module. Using the wiki's Lantern teaching framework as the example, each feature package carries its own stringtable:
 
 ```
-DayZExpansion/
-  languagecore/
-    AI/stringtable.csv
-    BaseBuilding/stringtable.csv
-    Book/stringtable.csv
-    Chat/stringtable.csv
-    Core/stringtable.csv
-    Garage/stringtable.csv
-    Groups/stringtable.csv
-    Hardline/stringtable.csv
-    Licensed/stringtable.csv
-    Main/stringtable.csv
-    MapAssets/stringtable.csv
-    Market/stringtable.csv
-    Missions/stringtable.csv
-    Navigation/stringtable.csv
-    PersonalStorage/stringtable.csv
-    PlayerList/stringtable.csv
-    Quests/stringtable.csv
-    SpawnSelection/stringtable.csv
-    Vehicles/stringtable.csv
-    Weapons/stringtable.csv
+@Lantern/
+  Addons/
+    Lantern_Core.pbo
+      stringtable.csv          <-- shared UI strings (STR_LNT_CLOSE, STR_LNT_SAVE, ...)
+    Lantern_Admin.pbo
+      stringtable.csv          <-- admin panel strings (STR_LNT_TAB_*, STR_LNT_CAMERA_*)
+    Lantern_AI.pbo
+      stringtable.csv          <-- AI feature strings
+    Lantern_Missions.pbo
+      stringtable.csv          <-- mission banner and reward strings
+    Lantern_Market.pbo
+      stringtable.csv          <-- trader UI strings
 ```
+
+The largest community frameworks take this to twenty or more stringtable files, one per subsystem (base building, groups, quests, vehicles, and so on). The mechanism is identical at any scale.
 
 ### Why Split?
 
@@ -346,24 +338,26 @@ DayZExpansion/
 
 ### How It Works
 
-The engine scans every loaded PBO for `stringtable.csv`. Since each Expansion sub-module is packed into its own PBO, each one naturally includes only its own stringtable. No special configuration is needed --- just name the file `stringtable.csv` and place it inside the PBO.
+The engine scans every loaded PBO for `stringtable.csv`. Since each feature module is packed into its own PBO, each one naturally includes only its own stringtable. No special configuration is needed --- just name the file `stringtable.csv` and place it inside the PBO.
 
-Key names still use a global prefix (`STR_EXPANSION_`) to avoid collisions.
+Key names still use a global mod prefix (`STR_LNT_`) across every file to avoid collisions --- the split is purely organizational; at runtime all rows merge into one table.
 
 ---
 
-## Real Examples
+## Worked Examples
 
-### MyMod Core
+The examples below use the wiki's constructed Lantern and NightPatrol teaching mods --- they are not real published mods, but each one demonstrates a formatting style you will encounter in the wild.
 
-MyMod Core uses the full 15-column format with Portuguese as the `original` language (the development team's native language) and comprehensive translations for all 13 supported languages:
+### Full 15-Column Format (Lantern Core)
+
+Lantern Core uses the full 15-column format. Imagine a team authoring in Portuguese first: the `original` column carries the team's native language, and `english` is always filled as the international baseline:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","hungarian","italian","spanish","french","chinese","japanese","portuguese","chinesesimp",
-"STR_MYMOD_INPUT_GROUP","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod","MyMod",
-"STR_MYMOD_INPUT_ADMIN_PANEL","Painel Admin","Open Admin Panel","Otevřít Admin Panel","Admin-Panel öffnen","Открыть Админ Панель","Otwórz Panel Admina","Admin Panel megnyitása","Apri Pannello Admin","Abrir Panel Admin","Ouvrir le Panneau Admin","打开管理面板","管理パネルを開く","Abrir Painel Admin","打开管理面板",
-"STR_MYMOD_CLOSE","Fechar","Close","Zavřít","Schließen","Закрыть","Zamknij","Bezárás","Chiudi","Cerrar","Fermer","关闭","閉じる","Fechar","关闭",
-"STR_MYMOD_SAVE","Salvar","Save","Uložit","Speichern","Сохранить","Zapisz","Mentés","Salva","Guardar","Sauvegarder","保存","保存","Salvar","保存",
+"STR_LNT_INPUT_GROUP","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern","Lantern",
+"STR_LNT_INPUT_ADMIN_PANEL","Painel Admin","Open Admin Panel","Otevřít Admin Panel","Admin-Panel öffnen","Открыть Админ Панель","Otwórz Panel Admina","Admin Panel megnyitása","Apri Pannello Admin","Abrir Panel Admin","Ouvrir le Panneau Admin","打开管理面板","管理パネルを開く","Abrir Painel Admin","打开管理面板",
+"STR_LNT_CLOSE","Fechar","Close","Zavřít","Schließen","Закрыть","Zamknij","Bezárás","Chiudi","Cerrar","Fermer","关闭","閉じる","Fechar","关闭",
+"STR_LNT_SAVE","Salvar","Save","Uložit","Speichern","Сохранить","Zapisz","Mentés","Salva","Guardar","Sauvegarder","保存","保存","Salvar","保存",
 ```
 
 Notable patterns:
@@ -371,34 +365,36 @@ Notable patterns:
 - `english` is always filled as the international baseline
 - All 13 language columns are populated
 
-### COT (Community Online Tools)
+### Unquoted Fields (Lantern Admin)
 
-COT uses the same 15-column format. Its keys follow the `STR_COT_MODULE_CATEGORY_ELEMENT` pattern:
+Lantern Admin's camera-tools stringtable uses the same 15-column layout but omits the quotes. This is valid as long as no field contains a comma:
 
 ```csv
 Language,original,english,czech,german,russian,polish,hungarian,italian,spanish,french,chinese,japanese,portuguese,chinesesimp,
-STR_COT_CAMERA_MODULE_BLUR,Blur:,Blur:,Rozmazání:,Weichzeichner:,Размытие:,Rozmycie:,Elmosódás:,Sfocatura:,Desenfoque:,Flou:,模糊:,ぼかし:,Desfoque:,模糊:,
-STR_COT_ESP_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkzeuge,Камера,Narzędzia Kamery,Kamera Eszközök,Strumenti Camera,Herramientas de Cámara,Outils Caméra,相機工具,カメラツール,Ferramentas da Câmera,相机工具,
+STR_LNT_CAMERA_BLUR,Blur:,Blur:,Rozmazání:,Weichzeichner:,Размытие:,Rozmycie:,Elmosódás:,Sfocatura:,Desenfoque:,Flou:,模糊:,ぼかし:,Desfoque:,模糊:,
+STR_LNT_CAMERA_MODULE_NAME,Camera Tools,Camera Tools,Nástroje kamery,Kamera-Werkzeuge,Инструменты камеры,Narzędzia Kamery,Kamera Eszközök,Strumenti Camera,Herramientas de Cámara,Outils Caméra,相機工具,カメラツール,Ferramentas da Câmera,相机工具,
 ```
 
-### VPP Admin Tools
+The moment a translation contains a comma, an unquoted file breaks --- which is why quoting every field remains the safer habit.
 
-VPP uses a reduced column set (13 columns, no `hungarian` column) and does not prefix keys with `STR_`:
+### Legacy-Style Keys Without the `STR_` Prefix
+
+Some long-lived mods predate today's conventions. A legacy-style stringtable might drop a column (here, `hungarian`) and use lowercase keys with no `STR_` prefix:
 
 ```csv
 "Language","original","english","czech","german","russian","polish","italian","spanish","french","chinese","japanese","portuguese","chinesesimp"
-"vpp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
+"lamp_focus_on_game","[Hold/2xTap] Focus On Game","[Hold/2xTap] Focus On Game","...","...","...","...","...","...","...","...","...","...","..."
 ```
 
-This demonstrates that the `STR_` prefix is a convention, not a requirement. However, omitting it means you cannot use the `#` prefix resolution in layout files. VPP references these keys only through script code. The `STR_` prefix is strongly recommended for all new mods.
+This demonstrates that the `STR_` prefix is a convention, not a requirement. The `#` prefix resolution in layout files works with any key in the stringtable --- it does not depend on the `STR_` prefix. Such keys work in the `loc` attribute of inputs.xml (e.g. `loc="lamp_focus_on_game"`) as well as in script code. The `STR_` prefix is still strongly recommended for all new mods.
 
-### MyMod Missions
+### Extra and Missing Columns (NightPatrol)
 
-MyMod Missions uses an unquoted, headerless-style CSV (no quotes around fields) with an extra `Korean` column:
+NightPatrol uses an unquoted CSV with no `original` column and an extra `Korean` column:
 
 ```csv
 Language,English,Czech,German,Russian,Polish,Hungarian,Italian,Spanish,French,Chinese,Japanese,Portuguese,Korean
-STR_MYMOD_MISSION_AVAILABLE,MISSION AVAILABLE,MISE K DISPOZICI,MISSION VERFÜGBAR,МИССИЯ ДОСТУПНА,...
+STR_NP_MISSION_AVAILABLE,MISSION AVAILABLE,MISE K DISPOZICI,MISSION VERFÜGBAR,МИССИЯ ДОСТУПНА,...
 ```
 
 Notable: the `original` column is absent, and `Korean` is added as an extra language. The engine ignores unrecognized column names, so `Korean` serves as documentation until official Korean support is added.
@@ -462,7 +458,7 @@ This breaks parsing because `Hello` and ` World` are read as separate columns. E
 - Always use the `STR_MODNAME_` prefix for every key. This prevents collisions when multiple mods are loaded together.
 - Quote every field in the CSV, even if the content has no commas. This prevents subtle parsing errors when translations in other languages contain commas or special characters.
 - Fill the `english` column for every key, even if your native language is different. English is the universal fallback and the baseline for community translators.
-- Keep one stringtable per PBO for small mods. For large mods with 500+ keys, split into per-feature stringtable files in separate PBOs (following the Expansion pattern).
+- Keep one stringtable per PBO for small mods. For large mods with 500+ keys, split into per-feature stringtable files in separate PBOs (see [Modular Per-PBO Stringtables](#modular-per-pbo-stringtables)).
 - Save files as UTF-8 without BOM. If using Excel, explicitly choose "CSV UTF-8" format on export.
 
 ---

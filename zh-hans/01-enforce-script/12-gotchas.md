@@ -1,6 +1,5 @@
 # Chapter 1.12: What Does NOT Exist (Gotchas)
 
-[Home](../README.md) | [<< Previous: Error Handling](11-error-handling.md) | **Gotchas** | [Next: Functions & Methods >>](13-functions-methods.md)
 
 ---
 
@@ -595,27 +594,27 @@ class EntityContainer<Class T>
 
 **你会写：**
 ```c
-EDamageState state = (EDamageState)999;  // Expect error or exception
+DamageType type = (DamageType)999;  // Expect error or exception
 ```
 
 **实际结果：** No error. Any `int` value can be assigned to an enum variable, even values outside the defined range.
 
 **正确方案：** Validate manually:
 ```c
-bool IsValidDamageState(int value)
+bool IsValidDamageType(int value)
 {
-    return (value >= EDamageState.PRISTINE && value <= EDamageState.RUINED);
+    return (value >= DamageType.CLOSE_COMBAT && value <= DamageType.CUSTOM);
 }
 
 int rawValue = LoadFromConfig();
-if (IsValidDamageState(rawValue))
+if (IsValidDamageType(rawValue))
 {
-    EDamageState state = rawValue;
+    DamageType type = rawValue;
 }
 else
 {
-    Print("Invalid damage state: " + rawValue.ToString());
-    EDamageState state = EDamageState.PRISTINE;  // fallback
+    Print("Invalid damage type: " + rawValue.ToString());
+    DamageType type = DamageType.CLOSE_COMBAT;  // fallback
 }
 ```
 
@@ -1209,11 +1208,3 @@ if (GetGame().IsDedicatedServer())  { /* 服务端代码 */ }
 | `IsClient()` 加载期间 | 返回 false | 使用 `IsDedicatedServer()` |
 | 编译错误定位错误文件 | 误导性位置 | 检查报告文件之后被解析的文件 |
 | `crash_*.log` 文件 | 不是实际崩溃 | 它们是运行时脚本异常 |
-
----
-
-## 导航
-
-| 上一章 | 上级 | 下一章 |
-|----------|----|------|
-| [1.11 错误处理](11-error-handling.md) | [第一部分：Enforce Script](../README.md) | [第二部分：Mod 结构](../02-mod-structure/01-five-layers.md) |

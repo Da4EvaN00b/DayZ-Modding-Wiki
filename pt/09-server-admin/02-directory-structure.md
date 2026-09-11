@@ -1,6 +1,5 @@
-# Chapter 9.2: Estrutura de Diretorios e Pasta de Missao
+# Estrutura de Diretorios e Pasta de Missao
 
-[Inicio](../README.md) | [<< Anterior: Configuracao do Servidor](01-server-setup.md) | **Estrutura de Diretorios** | [Proximo: Referencia do serverDZ.cfg >>](03-server-cfg.md)
 
 ---
 
@@ -174,7 +173,7 @@ Define regras de spawn para **todo item** no jogo. Com aproximadamente 23.000 li
 
 ### globals.xml
 
-Parametros globais que afetam toda a economia: contagens de zumbis, contagens de animais, timers de limpeza, faixas de dano de loot, timing de respawn. Sao 33 parametros no total. Veja o [Capitulo 9.4](04-loot-economy.md) para a referencia completa.
+Parametros globais que afetam toda a economia: contagens de zumbis, contagens de animais, timers de limpeza, faixas de dano de loot, timing de respawn. Sao 30 parametros no total. Veja o [Capitulo 9.4](04-loot-economy.md) para a referencia completa.
 
 ### events.xml
 
@@ -258,19 +257,19 @@ Guarda o estado persistente do servidor entre reinicializacoes:
 
 ```
 storage_1/
-  players.db         # Banco de dados SQLite de todos os personagens
+  players/           # Registros binarios de personagens, um por jogador
   spawnpoints.bin    # Dados binarios de pontos de spawn
   backup/            # Backups automaticos de dados de persistencia
   data/              # Estado do mundo (itens colocados, construcoes de base, veiculos)
 ```
 
-**Nunca edite `players.db` enquanto o servidor estiver rodando.** Ele e um banco de dados SQLite bloqueado pelo processo do servidor. Se voce precisar limpar personagens, pare o servidor primeiro e delete ou renomeie o arquivo.
+**Nunca edite manualmente os arquivos em `players/` enquanto o servidor estiver rodando.** Sao registros binarios opacos escritos apenas pelo processo do servidor. Se voce precisar limpar personagens, pare o servidor primeiro e delete ou renomeie a pasta.
 
 Para fazer um **wipe completo de persistencia**, pare o servidor e delete toda a pasta `storage_1/`. O servidor a recriara no proximo lancamento com um mundo novo.
 
 Para fazer um **wipe parcial** (manter personagens, resetar loot):
 1. Pare o servidor
-2. Delete os arquivos em `storage_1/data/` mas mantenha `players.db`
+2. Delete os arquivos em `storage_1/data/` mas mantenha `storage_1/players/`
 3. Reinicie
 
 ---
@@ -438,7 +437,3 @@ O atributo `a` e o angulo de rotacao em graus.
 | `storage_1/` | Apenas deletar | Persistencia -- nao edite manualmente |
 | `battleye/` | **Nao** | Anti-cheat -- nao toque |
 | `mapgroup*.xml` | Cuidado | Posicoes de loot em construcoes -- edicao avancada apenas |
-
----
-
-**Anterior:** [Configuracao do Servidor](01-server-setup.md) | [Inicio](../README.md) | **Proximo:** [Referencia do serverDZ.cfg >>](03-server-cfg.md)

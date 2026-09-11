@@ -1,6 +1,5 @@
-# Chapter 3.2: Layout File Format (.layout)
+# Layout File Format (.layout)
 
-[Home](../README.md) | [<< Previous: Widget Types](01-widget-types.md) | **Layout File Format** | [Next: Sizing & Positioning >>](03-sizing-positioning.md)
 
 ---
 
@@ -45,13 +44,13 @@ Key rules:
 |---|---|---|
 | `position` | `x y` | Widget position (proportional 0-1 or pixel values) |
 | `size` | `w h` | Widget dimensions (proportional 0-1 or pixel values) |
-| `halign` | `left_ref`, `center_ref`, `right_ref` | Horizontal alignment reference point |
-| `valign` | `top_ref`, `center_ref`, `bottom_ref` | Vertical alignment reference point |
+| `halign` | `left`, `center_ref`, `right_ref` | Horizontal alignment reference point |
+| `valign` | `top`, `center_ref`, `bottom_ref` | Vertical alignment reference point |
 | `hexactpos` | `0` or `1` | 0 = proportional X position, 1 = pixel X position |
 | `vexactpos` | `0` or `1` | 0 = proportional Y position, 1 = pixel Y position |
 | `hexactsize` | `0` or `1` | 0 = proportional width, 1 = pixel width |
 | `vexactsize` | `0` or `1` | 0 = proportional height, 1 = pixel height |
-| `fixaspect` | `fixwidth`, `fixheight` | Maintain aspect ratio by constraining one dimension |
+| `fixaspect` | `none`, `fixwidth`, `inside`, `outside` | Keep the widget's aspect ratio (see [fixaspect Values](#fixaspect-values)) |
 | `scaled` | `0` or `1` | Scale with DayZ UI scaling setting |
 | `priority` | integer | Z-order (higher values render on top) |
 
@@ -103,14 +102,14 @@ These apply to `ImageWidgetClass`.
 | Attribute | Values | Description |
 |---|---|---|
 | `image0` | `"set:name image:name"` | Primary image from an imageset |
-| `mode` | `blend`, `additive`, `stretch` | Image blend mode |
+| `mode` | `blend`, `additive`, `opaque` | Image blend mode |
 | `"src alpha"` | `0` or `1` | Use the source alpha channel |
 | `stretch` | `0` or `1` | Stretch image to fill widget |
 | `filter` | `0` or `1` | Enable texture filtering |
 | `"flip u"` | `0` or `1` | Flip image horizontally |
 | `"flip v"` | `0` or `1` | Flip image vertically |
-| `"clamp mode"` | `clamp`, `wrap` | Texture edge behavior |
-| `"stretch mode"` | `stretch_w_h`, etc. | Stretch mode |
+| `"clamp mode"` | `clamp`, `wrap`, `border` | Texture edge behavior |
+| `"stretch mode"` | `none`, `stretch_w_h`, `fit_w_center` | Stretch mode |
 
 ### Spacer Attributes
 
@@ -131,20 +130,25 @@ These apply to `WrapSpacerWidgetClass` and `GridSpacerWidgetClass`.
 
 | Attribute | Values | Description |
 |---|---|---|
-| `switch` | `toggle` | Makes the button a toggle (stays pressed) |
+| `switch` | `normal`, `once` | Both values occur in vanilla layouts; manage persistent on/off state explicitly with `CheckBoxWidget`, `GetState()` and `SetState()` |
 | `style` | style name | Visual style for the button |
 
 ### fixaspect Values
 
-The `fixaspect` attribute controls how a widget maintains its aspect ratio:
+The values below are used in shipped layouts. Copy a matching vanilla pattern and test resizing; this list is not an exhaustive declaration of every native parser value.
+
+The `fixaspect` attribute keeps a widget's aspect ratio constant when the screen aspect ratio or the parent size would otherwise distort it. The value is a **keyword**, not a number:
 
 | Value | Behavior |
 |-------|----------|
-| `0` | No aspect ratio constraint (default) |
-| `1` (fixwidth) | Width adjusts to maintain aspect ratio based on height |
-| `2` (fixheight) | Height adjusts to maintain aspect ratio based on width |
-| `3` (inside) | Fits inside the given size, maintaining aspect ratio |
-| `4` (outside) | Fills the given size, maintaining aspect ratio (may crop) |
+| `none` | No aspect ratio constraint (default) |
+| `fixwidth` | Width stays as authored; **height** is recalculated to keep the aspect ratio |
+| `inside` | Widget fits entirely inside its authored rectangle while keeping the ratio (letterbox) |
+| `outside` | Widget fills its authored rectangle while keeping the ratio (content may extend past the edges) |
+
+By far the most common use is `fixaspect fixwidth` on an `ImageWidgetClass` with a square proportional size -- without it, an icon that is square at 16:9 becomes stretched at 21:9. Vanilla HUD icon layouts include this pattern; inspect the specific image you are adapting. `inside` is the vanilla choice for radial menus (a square menu letterboxed into any screen), and `outside` for full-screen background art that must cover the whole frame.
+
+See [Sizing & Positioning](03-sizing-positioning.md#the-fixaspect-attribute) for how `fixaspect` interacts with the four exact-size flags.
 
 ### Slider Attributes
 
@@ -175,7 +179,7 @@ float val = slider.GetCurrent();
 
 ### The `scriptclass` Attribute
 
-The `scriptclass` attribute binds a widget to an Enforce Script class. When the layout is loaded, the engine creates an instance of that class and calls its `OnWidgetScriptInit(Widget w)` method.
+The `scriptclass` attribute binds a widget to an Enforce Script class by name. When the layout is loaded, the engine creates one instance of that class per widget and calls its `OnWidgetScriptInit(Widget w)` method after the widget tree exists.
 
 ```
 FrameWidgetClass MyPanel {
@@ -184,63 +188,132 @@ FrameWidgetClass MyPanel {
 }
 ```
 
-The script class must inherit from `Managed` and implement `OnWidgetScriptInit`:
+Inherit from `ScriptedWidgetEventHandler` and call `SetHandler(this)` inside `OnWidgetScriptInit` -- that is the vanilla pattern (for example, `ScrollBarContainer` initializes its root handler this way). `SetHandler` routes the widget's UI events (`OnClick`, `OnMouseEnter`, `OnChildAdd`, ...) to the same object, so one class both configures the widget and reacts to it:
 
 ```c
-class MyPanelHandler : Managed
+class MyPanelHandler : ScriptedWidgetEventHandler
 {
-    Widget m_Root;
+    protected Widget m_Root;
 
     void OnWidgetScriptInit(Widget w)
     {
         m_Root = w;
+        m_Root.SetHandler(this);
+    }
+
+    override bool OnClick(Widget w, int x, int y, int button)
+    {
+        return false;
     }
 }
 ```
 
+Technically any script class works as a `scriptclass` (`OnWidgetScriptInit` is found by name), but without `ScriptedWidgetEventHandler` and `SetHandler` you get no event callbacks.
+
 ### The ScriptParamsClass Block
 
-Parameters can be passed from the layout to the `scriptclass` via a `ScriptParamsClass` block. This block appears as a second `{ }` child block after the widget's children.
+A layout can pass per-widget parameters to its `scriptclass` through a `ScriptParamsClass` block. The block lives in its own `{ }` brace block; when the widget also has children, the params block is a **second** brace block after the children block.
 
 ```
-ImageWidgetClass Logo {
- image0 "set:dayz_gui image:DayZLogo"
- scriptclass "Bouncer"
+ImageWidgetClass AlertIcon {
+ size 32 32
+ hexactsize 1
+ vexactsize 1
+ image0 "set:lnt_icons image:alert"
+ scriptclass "LNT_FadeIn"
  {
   ScriptParamsClass {
-   amount 0.1
-   speed 1
+   Start_Alpha 0.25
+   Log_Label "AlertIcon"
   }
  }
 }
 ```
 
-The script class reads these parameters in `OnWidgetScriptInit` by using the widget's script param system.
+On the script side, each parameter maps to a member variable declared with the **`reference`** keyword. The engine fills these members **before** calling `OnWidgetScriptInit`, matching by name -- `Start_Alpha 0.25` in the layout fills `reference float Start_Alpha;` in the class:
 
-### DabsFramework ViewBinding
+```c
+class LNT_FadeIn : ScriptedWidgetEventHandler
+{
+    // Filled from the layout's ScriptParamsClass block, matched by name
+    reference float Start_Alpha;
+    reference string Log_Label;
 
-In mods that use DabsFramework MVC, the `scriptclass "ViewBinding"` pattern connects widgets to a ViewController's data properties:
+    protected Widget m_Root;
+
+    void OnWidgetScriptInit(Widget w)
+    {
+        m_Root = w;
+        m_Root.SetHandler(this);
+        m_Root.SetAlpha(Start_Alpha);
+        Print("Layout handler initialized for: " + Log_Label);
+    }
+}
+```
+
+Supported `reference` member types are `bool`, `int`, `float`, and `string`. In the layout, booleans are written as `0`/`1` and strings are quoted.
+
+### Framework-Defined scriptclass Parameters
+
+Because `ScriptParamsClass` values arrive before any script runs, UI frameworks use this mechanism to make layouts **declarative**: the framework ships one reusable `scriptclass`, and each layout instance configures it with its own parameters -- no per-widget code required.
+
+Parameters in such a design fall into three kinds:
+
+| Kind | Layout syntax | Typical use |
+|---|---|---|
+| Numeric / flag | `Tooltip_Delay 0.5`, `Two_Way 1` | Timings, thresholds, feature switches |
+| Literal string | `Tooltip_Text "Repairs the item"` | Display text, style names |
+| Name reference | `Target_Widget "RepairIcon"` | A string the framework resolves at runtime -- a widget name, a property name, a function name |
+
+Here is a tooltip-handler skeleton showing the attribute-binding pattern; implement timer scheduling and tooltip display where indicated. The class is written once; every widget that wants a tooltip declares it in the layout with its own text and delay:
+
+```c
+class LNT_TooltipHandler : ScriptedWidgetEventHandler
+{
+    // Declared per-widget in the layout, filled before OnWidgetScriptInit
+    reference string Tooltip_Text;
+    reference float Tooltip_Delay;
+
+    protected Widget m_Root;
+
+    void OnWidgetScriptInit(Widget w)
+    {
+        m_Root = w;
+        m_Root.SetHandler(this);
+    }
+
+    override bool OnMouseEnter(Widget w, int x, int y)
+    {
+        // A full implementation starts a Tooltip_Delay timer here,
+        // then shows a tooltip widget containing Tooltip_Text.
+        Print("Tooltip requested: " + Tooltip_Text);
+        return true;
+    }
+
+    override bool OnMouseLeave(Widget w, Widget enterW, int x, int y)
+    {
+        return true;
+    }
+}
+```
 
 ```
-TextWidgetClass StatusLabel {
- scriptclass "ViewBinding"
- "text halign" center
+ButtonWidgetClass RepairButton {
+ size 200 30
+ hexactsize 1
+ vexactsize 1
+ text "Repair"
+ scriptclass "LNT_TooltipHandler"
  {
   ScriptParamsClass {
-   Binding_Name "StatusText"
-   Two_Way_Binding 0
+   Tooltip_Text "Repairs the selected item"
+   Tooltip_Delay 0.5
   }
  }
 }
 ```
 
-| Param | Description |
-|---|---|
-| `Binding_Name` | Name of the ViewController property to bind to |
-| `Two_Way_Binding` | `1` = UI changes push back to the controller |
-| `Relay_Command` | Function name on the controller to call when the widget is clicked/changed |
-| `Selected_Item` | Property to bind the selected item to (for lists) |
-| `Debug_Logging` | `1` = enable verbose logging for this binding |
+Community UI frameworks take this idea much further -- for example, [Dabs Framework](https://github.com/InclementDab/DayZ-Dabs-Framework) uses the same declare-in-layout / read-in-script mechanism to implement full MVC-style data binding between widgets and controller properties.
 
 ---
 
@@ -323,8 +396,8 @@ FrameWidgetClass NotificationPanel {
    "text halign" center
    "text valign" center
 
-   // Use a bold font
-   font "gui/fonts/Metron-Bold"
+   // Use a vanilla font (see gui/fonts in the game data)
+   font "gui/fonts/sdf_MetronBook24"
 
    // Default text (will be overridden by script)
    text "Notification"
@@ -343,7 +416,6 @@ WrapSpacerWidgetClass MyDialog {
  halign center_ref
  valign center_ref
  priority 998
- style Outline_1px_BlackBackground
  Padding 5
  "Size To Content H" 1
  "Size To Content V" 1
@@ -359,7 +431,7 @@ WrapSpacerWidgetClass MyDialog {
     PanelWidgetClass TitleBar {
      color 0.4196 0.6471 1 0.9412
      size 1 25
-     style rover_sim_colorable
+     style ColorablePanel
      {
       TextWidgetClass TitleText {
        size 0.85 0.9
@@ -398,31 +470,115 @@ WrapSpacerWidgetClass MyDialog {
 
 ---
 
+## Copy-Paste Templates
+
+Starter skeletons for the three layout shapes you will build most often. Save each as its own `.layout` file and load it with `GetGame().GetWorkspace().CreateWidgets("MyMod/GUI/layouts/my_panel.layout")`.
+
+### Centered Fixed-Size Panel
+
+A pixel-sized panel centered on screen -- the base for popups and HUD widgets:
+
+```
+FrameWidgetClass CenteredPanel {
+ visible 1
+ position 0 0
+ hexactpos 1
+ vexactpos 1
+ size 400 300
+ hexactsize 1
+ vexactsize 1
+ halign center_ref
+ valign center_ref
+ {
+  PanelWidgetClass PanelBackground {
+   color 0 0 0 0.8
+   size 1 1
+   hexactsize 0
+   vexactsize 0
+   style ColorablePanel
+  }
+ }
+}
+```
+
+### Auto-Sizing Dialog
+
+A `WrapSpacerWidgetClass` root that grows to fit whatever you put inside it (see the annotated dialog above for a filled-in version):
+
+```
+WrapSpacerWidgetClass AutoDialog {
+ size 0.35 0
+ halign center_ref
+ valign center_ref
+ priority 998
+ clipchildren 1
+ Padding 5
+ "Size To Content H" 1
+ "Size To Content V" 1
+ content_halign center
+ {
+  // Add rows here -- each child stacks vertically
+ }
+}
+```
+
+### Scrollable List
+
+A scroll container with an auto-growing content spacer. Insert row widgets into `ListContent` from script:
+
+```
+ScrollWidgetClass ListScroll {
+ size 1 300
+ hexactsize 0
+ vexactsize 1
+ clipchildren 1
+ "Scrollbar V" 1
+ {
+  WrapSpacerWidgetClass ListContent {
+   size 1 0
+   hexactsize 0
+   vexactsize 1
+   "Size To Content V" 1
+  }
+ }
+}
+```
+
+---
+
 ## Common Mistakes
 
 1. **Forgetting the `Class` suffix** -- In layouts, write `TextWidgetClass`, not `TextWidget`.
 2. **Mixing proportional and pixel values** -- If `hexactsize 0`, the size values are 0.0-1.0 proportional. If `hexactsize 1`, they are pixel values. Using `300` with proportional mode means 300x the parent width.
-3. **Not quoting multi-word attributes** -- Write `"text halign" center`, not `text halign center`.
-4. **Placing ScriptParamsClass in the wrong block** -- It must be in a separate `{ }` block after the children block, not inside it.
+3. **Not quoting multi-word attributes** -- Write `"text halign" center`, not `text halign center`. An unquoted multi-word attribute is silently ignored.
+4. **Placing ScriptParamsClass inside the children block** -- `ScriptParamsClass` sits in its own `{ }` brace block. When the widget has children, the params block is a second brace block *after* the children block, never inside it.
+5. **Writing numeric `fixaspect` values** -- `fixaspect` takes keywords (`none`, `fixwidth`, `inside`, `outside`), not numbers.
 
 ---
 
 ## Gotchas
 
-- If the `scriptclass` does not inherit from `Managed` or has a constructor error, the widget loads but the handler is silently null.
-- `ScriptParamsClass` only supports string and numeric values. Nested objects or arrays are not supported.
+Engine behaviors that surprise people -- none of these produce an error message:
+
+- If the `scriptclass` name does not match any compiled script class, the layout still loads; the widget simply has no handler. Nothing is written to the log.
+- A plain class works as a `scriptclass`, but only a `ScriptedWidgetEventHandler` that calls `SetHandler(this)` receives UI events. Forgetting `SetHandler` is the usual reason `OnClick` never fires.
+- `ScriptParamsClass` values bind only to `reference` members of type `bool`, `int`, `float`, or `string`. Nested blocks or arrays are not supported, and a param with no matching `reference` member is silently dropped.
+- `scriptclass` resolves by global class name, and Enforce Script class names are global across every loaded mod. Prefix your handler classes (`LNT_TooltipHandler`, not `TooltipHandler`) -- two mods declaring the same class name break script compilation at server start.
 - Some widget types ignore the alpha channel in `color`. You may need `inheritalpha 1` on the parent for transparency to propagate.
-- Attribute defaults vary per widget type -- `ButtonWidget` defaults `hexactsize` differently than `FrameWidget` on some engine versions. Always set all four exact flags explicitly.
+- Attribute defaults vary per widget type. Always set all four exact flags (`hexactpos`, `vexactpos`, `hexactsize`, `vexactsize`) explicitly instead of relying on defaults.
 - `"no focus"` also prevents gamepad selection, which can break controller navigation if set on interactive widgets.
-- `scriptclass` names must be globally unique across all mods. Two mods using `scriptclass "PanelHandler"` will cause one to silently fail.
-- Each widget is a real engine object. Layouts with 500+ widgets cause measurable frame drops. Use programmatic pooling for large lists.
-- Use `WrapSpacerWidgetClass` as dialog root with `Size To Content V/H` for auto-sizing dialogs.
-- Use `priority 998-999` for modal overlays to render above all other UI.
-- Split list rows into separate `.layout` files loaded into a WrapSpacer for reuse and pooling.
+- Each widget is a real engine object. Layouts with 500+ widgets cause measurable frame drops.
+
+---
+
+## Best Practices
+
+- Use `WrapSpacerWidgetClass` as the dialog root with `"Size To Content H"`/`"Size To Content V"` for auto-sizing dialogs.
+- Use `priority 998-999` for modal overlays that must render above all other UI.
+- Split list rows into their own `.layout` file and instantiate them into a WrapSpacer from script -- this enables reuse and widget pooling for large lists.
 - Use `scriptclass` sparingly -- only on widgets that genuinely need script-driven behavior.
-- Name widgets descriptively (`PlayerListScroll`, `TitleBarClose`). `FindAnyWidget()` uses names, and collisions cause silent failures.
-- Keep layout files under 200 lines. Split complex UIs into multiple `.layout` files loaded with `CreateWidgets()`.
-- Always quote multi-word attribute names (`"text halign"`, `"Size To Content V"`). Unquoted multi-word attributes silently fail.
+- Name widgets descriptively (`PlayerListScroll`, `TitleBarClose`). `FindAnyWidget()` looks up widgets by name, and duplicate names cause silent wrong-widget bugs.
+- Keep layout files small and focused. Split complex UIs into multiple `.layout` files composed with `CreateWidgets()`.
 
 ---
 

@@ -1,6 +1,5 @@
 # Rozdział 6.3: System pogody
 
-[Strona główna](../README.md) | [<< Poprzedni: Pojazdy](02-vehicles.md) | **Pogoda** | [Następny: Kamery >>](04-cameras.md)
 
 ---
 
@@ -45,7 +44,7 @@ class WeatherPhenomenon
     // Aktualny stan
     proto native float GetActual();          // Aktualna interpolowana wartość (0.0 - 1.0 dla większości)
     proto native float GetForecast();        // Docelowa wartość do interpolacji
-    proto native float GetDuration();        // Jak długo aktualna prognoza trwa (sekundy)
+    proto native float GetNextChange();      // Sekundy do obliczenia następnej prognozy
 
     // Ustaw prognozę (tylko serwer)
     proto native void Set(float forecast, float time = 0, float minDuration = 0);
@@ -53,16 +52,17 @@ class WeatherPhenomenon
     // time:     sekundy do interpolacji do tej wartości (0 = natychmiast)
     // minDuration: minimalny czas utrzymywania wartości przed automatyczną zmianą
 
-    // Limity
-    proto native void  SetLimits(float fnMin, float fnMax);
-    proto native float GetMin();
-    proto native float GetMax();
+    // Limity (aktualna wartość jest zawsze utrzymywana w [fnMin, fnMax])
+    proto native void SetLimits(float fnMin, float fnMax);
+    proto void        GetLimits(out float fnMin, out float fnMax);
 
-    // Limity prędkości zmian (jak szybko zjawisko może się zmieniać)
-    proto native void SetTimeLimits(float fnMin, float fnMax);
+    // Limity czasu prognozy (zakres sekund, w którym obliczana jest następna prognoza; domyślnie 300-3600)
+    proto native void SetForecastTimeLimits(float ftMin, float ftMax);
+    proto void        GetForecastTimeLimits(out float ftMin, out float ftMax);
 
-    // Limity zakresu zmian
-    proto native void SetChangeLimits(float fnMin, float fnMax);
+    // Limity zmiany prognozy (o ile wartość prognozy może się zmienić przy każdym przeliczeniu; domyślnie 0-1)
+    proto native void SetForecastChangeLimits(float fcMin, float fcMax);
+    proto void        GetForecastChangeLimits(out float fcMin, out float fcMax);
 }
 ```
 
@@ -173,7 +173,7 @@ GetGame().GetWeather().SetStorm(1.0, 0.6, 10);
 Aby przejąć ręczną kontrolę nad pogodą (wyłączając automatyczną maszynę stanów pogody), wywołaj:
 
 ```c
-proto native void MissionWeather(bool use);
+void MissionWeather(bool use);
 ```
 
 Gdy wywołane jest `MissionWeather(true)`, silnik zatrzymuje automatyczne przejścia pogodowe i tylko twoje skryptowe wywołania `Set()` kontrolują pogodę.
@@ -229,7 +229,7 @@ serverTimeAcceleration = 12;      // 12x czas rzeczywisty
 serverNightTimeAcceleration = 4;  // 4x przyspieszenie w nocy
 ```
 
-W skrypcie możesz odczytać aktualny mnożnik czasu, ale zazwyczaj nie możesz go zmienić w trakcie działania.
+W skrypcie możesz zmienić przyspieszenie czasu w trakcie działania (głównie do debugowania) za pomocą `GetGame().GetWorld().SetTimeMultiplier(float timeMultiplier)`, gdzie `timeMultiplier` to wartość przyspieszenia 0-64 (lub `-1`, aby przywrócić wartość z konfiguracji). Nie ma skryptowego gettera dla aktualnego mnożnika.
 
 ---
 
@@ -240,7 +240,7 @@ Vanilla DayZ używa skryptowanej maszyny stanów pogody w klasach `WorldData` (n
 ```c
 class WorldData
 {
-    void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
+    bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual, float change,
                                 float time);
 }
 ```
@@ -250,16 +250,19 @@ Nadpisz tę metodę w klasie `modded` WorldData, aby przechwytywać i modyfikowa
 ```c
 modded class ChernarusPlusData
 {
-    override void WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
+    // Zwróć true, gdy skrypt modyfikuje stan zjawiska;
+    // zwróć false, aby silnik zastosował swoją obliczoną zmianę.
+    override bool WeatherOnBeforeChange(EWeatherPhenomenon type, float actual,
                                          float change, float time)
     {
-        super.WeatherOnBeforeChange(type, actual, change, time);
-
         // Zapobiegaj przekroczeniu 0.5 przez deszcz
         if (type == EWeatherPhenomenon.RAIN && change > 0.5)
         {
             GetGame().GetWeather().GetRain().Set(0.5, time, 300);
+            return true;
         }
+
+        return super.WeatherOnBeforeChange(type, actual, change, time);
     }
 }
 ```

@@ -1,6 +1,5 @@
 # 6.13. fejezet: Input rendszer
 
-[Kezdőlap](../README.md) | [<< Előző: Akció rendszer](12-action-system.md) | **Input rendszer** | [Következő: Játékos rendszer >>](14-player-system.md)
 
 ---
 
@@ -113,7 +112,7 @@ float value   = input.LocalValue("UAMyAction", false);
 
 Figyelj a kis elnevezési különbségre: `LocalDoubleClick()` az `UAInput`-on vs `LocalDbl()` az `Input`-on.
 
-Mindkét osztály `_ID` variánsokat is biztosít, amelyek egész szám akció ID-kat fogadnak szövegek helyett (pl. `LocalPress_ID(int action)`).
+Az `Input` osztály `_ID` variánsokat is biztosít, amelyek egész szám akció ID-kat fogadnak szövegek helyett (pl. `LocalPress_ID(int action, bool check_focus = true)`). Az `UAInput`-nak nincsenek `_ID` túlterhelései; metódusai (`LocalPress()` stb.) nem fogadnak paramétert.
 
 ---
 
@@ -203,7 +202,7 @@ modded class MissionGameplay
 Az inputokat technikailag bármely képkockánkénti callbackben ellenőrizni lehet, de a `MissionGameplay.OnUpdate()` a kanonikus helyszín. Egyéb érvényes helyek:
 
 - `PlayerBase.CommandHandler()` --- minden képkockán fut a helyi játékos számára
-- `ScriptedWidgetEventHandler.Update()` --- UI-specifikus inputhoz (de előnyben részesítsd a widget eseménykezelőket)
+- `ScriptedWidgetEventHandler.OnUpdate(Widget w)` --- UI-specifikus inputhoz (de előnyben részesítsd a widget eseménykezelőket)
 - `PluginBase.OnUpdate()` --- plugin hatókörű inputhoz
 
 Kerüld az inputok ellenőrzését szerver oldali kódban, entitás konstruktorokban vagy egyszeri eseménykezelőkben, ahol a képkocka időzítés nem garantált.
